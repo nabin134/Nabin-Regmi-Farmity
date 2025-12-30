@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account - Farmity</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <div class="auth-container">
+        <div class="auth-left">
+            <div class="auth-left-content">
+                <div class="logo">
+                    <img src="" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                        <span class="logo-icon">🌾</span>
+                        <span class="logo-text">Farmity</span>
+                    </span>
+                </div>
+                <h1>Join Farmity Today</h1>
+                <p>Create your account and become part of India's fastest growing agricultural community. Connect, learn, and grow with us.</p>
+                <div class="features-list">
+                    <div class="feature-item">
+                        {% comment %} <span class="feature-icon">👥</span>
+                        <span>10,000+ Farmers: Active Community</span> {% endcomment %}
+                    </div>
+                    <div class="feature-item">
+                        {% comment %} <span class="feature-icon">✅</span>
+                        <span>500+ Vendors: Verified Suppliers</span> {% endcomment %}
+                    </div>
+                    <div class="feature-item">
+                        {% comment %} <span class="feature-icon">👨‍🔬</span>
+                        <span>100+ Experts: Agricultural specialists</span> {% endcomment %}
+                    </div>
+                </div>
+                <p class="copyright">© 2025 Farmity. All rights reserved.</p>
+            </div>
+        </div>
+        <div class="auth-right">
+            <div class="auth-form-container">
+                <h2>Create Account</h2>
+                <p class="subtitle">Fill in your details to get started</p>
+                
+                <form id="registerForm" class="auth-form">
+                    <input type="hidden" id="role" name="role" value="{{ role }}">
+                    
+                    <div class="form-group">
+                        <label for="fullName">Full Name</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">👤</span>
+                            <input type="text" id="fullName" name="fullName" placeholder="Enter your full name" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">✉️</span>
+                            <input type="email" id="email" name="email" placeholder="your@email.com" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="phone">Phone Number</label>
+                        <div class="phone-input">
+                            <select id="countryCode" name="countryCode" class="country-code">
+                                <option value="+91">+977</option>
+                                <option value="+1">+1</option>
+                                 <option value="+1">+91</option>
+                            </select>
+                            <div class="input-wrapper">
+                                <span class="input-icon">📞</span>
+                                <input type="tel" id="phone" name="phone" placeholder="Phone number" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="location">Location</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">📍</span>
+                            <input type="text" id="location" name="location" placeholder="City, State" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="userRole">I am a</label>
+                        <div class="input-wrapper">
+                            <select id="userRole" name="userRole" required>
+                                <option value="buyer" {% if role == 'buyer' %}selected{% endif %}>Buyer</option>
+                                <option value="farmer" {% if role == 'farmer' %}selected{% endif %}>Farmer</option>
+                                <option value="agricultural_expert" {% if role == 'agricultural_expert' %}selected{% endif %}>Agricultural Expert</option>
+                                <option value="vendor" {% if role == 'vendor' %}selected{% endif %}>Vendor</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🔒</span>
+                            <input type="password" id="password" name="password" placeholder="Create a password" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="confirmPassword">Confirm Password</label>
+                        <div class="input-wrapper">
+                            <span class="input-icon">🔒</span>
+                            <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm your password" required>
+                        </div>
+                    </div>
+
+                    <div class="form-group checkbox-group">
+                        <input type="checkbox" id="terms" name="terms" required>
+                        <label for="terms">I agree to the <a href="#" class="link">Terms of Service</a> and <a href="#" class="link">Privacy Policy</a></label>
+                    </div>
+
+                    <button type="submit" class="btn-primary btn-full">Create Account</button>
+                </form>
+
+                <div id="message" class="message"></div>
+
+                <div class="divider">
+                    <span>OR SIGN UP WITH</span>
+                </div>
+
+                <div class="social-buttons">
+                    <button class="social-btn google-btn">
+                        <span class="social-icon">G</span>
+                        <span>Google</span>
+                    </button>
+                    <button class="social-btn facebook-btn">
+                        <span class="social-icon">f</span>
+                        <span>Facebook</span>
+                    </button>
+                </div>
+
+                <div class="auth-link">
+                    <p>Already have an account? <a href="/login/" class="link">Sign In</a></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Check if already logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            if (isLoggedIn === 'true') {
+                window.location.href = '/dashboard/';
+            }
+        });
+    </script>
+</body>
+</html>
+

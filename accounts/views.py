@@ -3,28 +3,33 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate
+from django.shortcuts import render
 
 from .serializers import SignupSerializer, LoginSerializer, UserSerializer
 
 
+# ======================
+# SIGNUP API
+# ======================
 class SignupView(APIView):
     permission_classes = [AllowAny]
-    
+
     def post(self, request):
         serializer = SignupSerializer(data=request.data)
+
         if serializer.is_valid():
             user = serializer.save()
-            
-            # Auto-verify user (no email verification needed)
             user.is_verified = True
             user.save()
-            
+
             return Response(
                 {
-                    "message": "Account created successfully"
+                    "message": "Account created successfully",
+                    "user": UserSerializer(user).data
                 },
                 status=status.HTTP_201_CREATED
             )
+
         return Response(
             {
                 "error": "Validation failed",
@@ -34,61 +39,70 @@ class SignupView(APIView):
         )
 
 
+# ======================
+# LOGIN API (FIXED)
+# ======================
 class LoginView(APIView):
     permission_classes = [AllowAny]
-    
+
     def post(self, request):
-        # Validate input fields using serializer
         serializer = LoginSerializer(data=request.data)
-        
+
         if not serializer.is_valid():
             return Response(
                 {
                     "error": "Validation failed",
-                    "fields": {
-                        "email": serializer.errors.get('email', []),
-                        "password": serializer.errors.get('password', [])
-                    },
-                    "required_fields": {
-                        "email": "Email address (text field)",
-                        "password": "Password (text field)"
-                    }
+                    "details": serializer.errors
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
-        
+
         email = serializer.validated_data['email']
         password = serializer.validated_data['password']
-        
-        # Authenticate user
-        user = authenticate(request, username=email, password=password)
-        
+
+        # 🔥 FIX: authenticate with email
+        user = authenticate(request, email=email, password=password)
+
         if user is None:
             return Response(
-                {
-                    "error": "Invalid email or password",
-                    "fields": {
-                        "email": email,
-                        "password": "***"  # Don't show actual password
-                    }
-                },
+                {"error": "Invalid email or password"},
                 status=status.HTTP_401_UNAUTHORIZED
             )
-        
+
         if not user.is_active:
             return Response(
-                {
-                    "error": "User account is disabled"
-                },
-                status=status.HTTP_401_UNAUTHORIZED
+                {"error": "User account is disabled"},
+                status=status.HTTP_403_FORBIDDEN
             )
-        
-        # Return success message with user details
-        user_serializer = UserSerializer(user)
+
         return Response(
             {
                 "message": "Login successful",
-                "user": user_serializer.data
+                "user": UserSerializer(user).data
             },
             status=status.HTTP_200_OK
         )
+
+
+# ======================
+# FRONTEND PAGES
+# ======================
+def landing_page(request):
+    return render(request, 'landing.html')
+
+
+def role_selection(request):
+    return render(request, 'role_selection.html')
+
+
+def register_page(request):
+    role = request.GET.get('role', 'buyer')
+    return render(request, 'register.html', {'role': role})
+
+
+def login_page(request):
+    return render(request, 'login.html')
+
+
+def dashboard(request):
+    return render(request, 'dashboard.html')

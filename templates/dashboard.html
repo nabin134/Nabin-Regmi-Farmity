@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Farmity</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Header Navigation -->
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo">
+                <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                    <span class="logo-icon">🌾</span>
+                    <span class="logo-text">Farmity</span>
+                </span>
+            </div>
+            <nav class="main-nav">
+                <a href="/dashboard/">Home</a>
+                <a href="#marketplace">Marketplace</a>
+                <a href="#vendors">Vendors</a>
+                <a href="#experts">Experts</a>
+                <a href="#learning">Learning Hub</a>
+            </nav>
+            <div class="header-actions">
+                <div class="search-bar">
+                    <input type="text" placeholder="Search...">
+                    <span class="search-icon">🔍</span>
+                </div>
+                <div class="weather-info">
+                    <span class="weather-icon">☀️</span>
+                    <span>29°C</span>
+                </div>
+                <div class="user-menu">
+                    <span id="userEmail" class="user-email"></span>
+                    <button onclick="handleLogout()" class="btn-logout">Logout</button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Dashboard Content -->
+    <section class="dashboard-section">
+        <div class="dashboard-container">
+            <div class="welcome-card">
+                <h1>Welcome Back!</h1>
+                <p id="welcomeMessage">You are logged in as <span id="userRole"></span></p>
+                <div class="user-info">
+                    <p><strong>Email:</strong> <span id="userEmailDisplay"></span></p>
+                    <p><strong>Role:</strong> <span id="userRoleDisplay"></span></p>
+                    <p><strong>Verified:</strong> <span id="userVerified"></span></p>
+                </div>
+            </div>
+
+            <div class="dashboard-grid">
+                <div class="dashboard-card">
+                    <div class="card-icon">🛒</div>
+                    <h3>Marketplace</h3>
+                    <p>Browse and purchase agricultural products</p>
+                    <button class="btn-card">Explore</button>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-icon">🏪</div>
+                    <h3>Vendors</h3>
+                    <p>Connect with trusted suppliers</p>
+                    <button class="btn-card">View Vendors</button>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-icon">👨‍🔬</div>
+                    <h3>Experts</h3>
+                    <p>Get expert consultation</p>
+                    <button class="btn-card">Consult Now</button>
+                </div>
+                <div class="dashboard-card">
+                    <div class="card-icon">📚</div>
+                    <h3>Learning Hub</h3>
+                    <p>Enhance your knowledge</p>
+                    <button class="btn-card">Start Learning</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Load user data on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const user = JSON.parse(localStorage.getItem('user') || '{}');
+            
+            if (!user || !user.email) {
+                // Not logged in, redirect to login
+                window.location.href = '/login/';
+                return;
+            }
+
+            // Display user info
+            document.getElementById('userEmail').textContent = user.email;
+            document.getElementById('userEmailDisplay').textContent = user.email;
+            document.getElementById('userRoleDisplay').textContent = user.role || 'User';
+            document.getElementById('userRole').textContent = user.role || 'User';
+            document.getElementById('userVerified').textContent = user.is_verified ? 'Yes' : 'No';
+        });
+    </script>
+</body>
+</html>
+

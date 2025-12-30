@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmity - Smart Agriculture Platform</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- Header Navigation -->
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo">
+                <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                    <span class="logo-icon">🌾</span>
+                    <span class="logo-text">Farmity</span>
+                </span>
+            </div>
+            <nav class="main-nav">
+                <a href="#home">Home</a>
+                <a href="#marketplace">Marketplace</a>
+                <a href="#vendors">Vendors</a>
+                <a href="#experts">Experts</a>
+                <a href="#learning">Learning Hub</a>
+            </nav>
+            <div class="header-actions">
+                <div class="search-bar">
+                    <input type="text" placeholder="Search...">
+                    <span class="search-icon">🔍</span>
+                </div>
+                <div class="weather-info">
+                    <span class="weather-icon">☀️</span>
+                    <span>29°C</span>
+                </div>
+                <a href="/login/" class="nav-link">Login</a>
+                <a href="/role-selection/" class="btn-signup">Sign Up</a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Section -->
+    <section class="hero-section" id="home">
+        <div class="hero-container">
+            <div class="hero-content">
+                <span class="hero-tag">Smart Agriculture Platform</span>
+                <h1 class="hero-title">Grow Smart With</h1>
+                <h1 class="hero-title-large">FARMITY</h1>
+                <p class="hero-description">Your Smart Agro Hub connecting farmers, vendors, and experts. Access real-time market prices, expert consultation, and quality agricultural products all in one place.</p>
+                <div class="hero-buttons">
+                    <a href="/role-selection/" class="btn-primary-large">
+                        Get Started
+                        <span class="btn-arrow">→</span>
+                    </a>
+                    <a href="/role-selection/?role=farmer" class="btn-secondary-large">I'm a Farmer</a>
+                </div>
+            </div>
+            <div class="hero-image">
+                <div class="stat-card">
+                    <span class="stat-icon">🌾</span>
+                    <div>
+                        <div class="stat-label">Active farmers</div>
+                        <div class="stat-value">10,000+</div>
+                    </div>
+                </div>
+                <div class="hero-img-placeholder">
+                    <div class="field-image">🌾🌾🌾</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Key Features Section -->
+    <section class="features-section">
+        <div class="features-container">
+            <div class="feature-card">
+                <div class="feature-icon purple">🛒</div>
+                <h3>Marketplace</h3>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon purple">🏢</div>
+                <h3>Vendors</h3>
+                <p>Connect with trusted suppliers and buyers</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon green">💬</div>
+                <h3>Experts</h3>
+                <p>Get timely advice and consultations</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon green">📈</div>
+                <h3>Advisory</h3>
+                <p>Access market insights and forecasts</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Marketplace Section -->
+    <section class="marketplace-section" id="marketplace">
+        <div class="section-container">
+            <h2 class="section-title">Marketplace</h2>
+            <p class="section-subtitle">Fresh produce directly from farms</p>
+            <div class="products-grid">
+                <div class="product-card">
+                    <div class="product-image">🍅</div>
+                    <h4>Organic Tomatoes</h4>
+                    <p class="vendor-name">Green Farm Co.</p>
+                    <div class="product-footer">
+                        <span class="price">₹45/kg</span>
+                        <span class="rating">⭐ 4.3</span>
+                        <span class="cart-icon">🛒</span>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="product-image">🧅</div>
+                    <h4>Fresh Onions</h4>
+                    <p class="vendor-name">Valley Farms</p>
+                    <div class="product-footer">
+                        <span class="price">₹32/kg</span>
+                        <span class="rating">⭐ 4.3</span>
+                        <span class="cart-icon">🛒</span>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="product-image">🥔</div>
+                    <h4>Premium Potatoes</h4>
+                    <p class="vendor-name">Harvest Hub</p>
+                    <div class="product-footer">
+                        <span class="price">₹28/kg</span>
+                        <span class="rating">⭐ 4.3</span>
+                        <span class="cart-icon">🛒</span>
+                    </div>
+                </div>
+                <div class="product-card">
+                    <div class="product-image">🥬</div>
+                    <h4>Garden Cabbage</h4>
+                    <p class="vendor-name">Organic Heals</p>
+                    <div class="product-footer">
+                        <span class="price">₹20/kg</span>
+                        <span class="rating">⭐ 4.4</span>
+                        <span class="cart-icon">🛒</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Vendor Spotlight Section -->
+    <section class="vendors-section" id="vendors">
+        <div class="section-container">
+            <h2 class="section-title">Vendor Spotlight</h2>
+            <p class="section-subtitle">Trusted agricultural suppliers across India</p>
+            <div class="vendors-grid">
+                <div class="vendor-card">
+                    <div class="vendor-image">🧀</div>
+                    <h4>Green Valley Farms</h4>
+                    <p class="vendor-location">📍 Punjab, India</p>
+                    <p class="vendor-products">150 Products</p>
+                    <div class="vendor-rating">⭐ 4.8</div>
+                    <button class="btn-view-store">View Store</button>
+                </div>
+                <div class="vendor-card">
+                    <div class="vendor-image">🫘</div>
+                    <h4>Organic Harvest Co.</h4>
+                    <p class="vendor-location">📍 Maharashtra, India</p>
+                    <p class="vendor-products">200 Products</p>
+                    <div class="vendor-rating">⭐ 4.9</div>
+                    <button class="btn-view-store">View Store</button>
+                </div>
+                <div class="vendor-card">
+                    <div class="vendor-image">🌾</div>
+                    <h4>Fresh Fields Ltd.</h4>
+                    <p class="vendor-location">📍 Karnataka, India</p>
+                    <p class="vendor-products">180 Products</p>
+                    <div class="vendor-rating">⭐ 4.7</div>
+                    <button class="btn-view-store">View Store</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Learning Hub Section -->
+    <section class="learning-section" id="learning">
+        <div class="section-container">
+            <h2 class="section-title">Learning Hub</h2>
+            <p class="section-subtitle">Enhance your agricultural knowledge</p>
+            <div class="courses-grid">
+                <div class="course-card">
+                    <div class="course-image">💧</div>
+                    <h4>Modern Irrigation Techniques</h4>
+                    <p class="instructor">Dr. Rajesh Kumar</p>
+                    <div class="course-meta">
+                        <span>⏱️ 2 hours</span>
+                        <span>👥 1050 learners</span>
+                    </div>
+                    <button class="btn-start-learning">Start Learning</button>
+                </div>
+                <div class="course-card">
+                    <div class="course-image">🌱</div>
+                    <h4>Organic Farming Essentials</h4>
+                    <p class="instructor">A Priya Sharma</p>
+                    <div class="course-meta">
+                        <span>⏱️ 3 hours</span>
+                        <span>👥 2100 learners</span>
+                    </div>
+                    <button class="btn-start-learning">Start Learning</button>
+                </div>
+                <div class="course-card">
+                    <div class="course-image">🐛</div>
+                    <h4>Pest Management Strategies</h4>
+                    <p class="instructor">A Amit Patal</p>
+                    <div class="course-meta">
+                        <span>⏱️ 1.5 hours</span>
+                        <span>👥 980 learners</span>
+                    </div>
+                    <button class="btn-start-learning">Start Learning</button>
+                </div>
+                <div class="course-card">
+                    <div class="course-image">🌿</div>
+                    <h4>Soil Health & Nutrition</h4>
+                    <p class="instructor">A Dr. Meena Singh</p>
+                    <div class="course-meta">
+                        <span>⏱️ 2.5 hours</span>
+                        <span>👥 1580 learners</span>
+                    </div>
+                    <button class="btn-start-learning">Start Learning</button>
+                </div>
+            </div>
+            <div class="view-all-link">
+                <a href="#">View All Courses <span>→</span></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Chat with Experts Section -->
+    <section class="experts-section" id="experts">
+        <div class="experts-container">
+            <div class="experts-image">
+                <div class="expert-img-placeholder">👩‍🔬</div>
+            </div>
+            <div class="experts-content">
+                <h2>Chat with Agricultural Experts</h2>
+                <p>Get instant guidance from certified agricultural experts. Solve your farming challenges with professional consultation.</p>
+                <ul class="experts-features">
+                    <li>✓ Ask questions about crops, soil, and farming techniques</li>
+                    <li>✓ Send crop photos for disease diagnosis</li>
+                    <li>✓ Get personalized farming recommendations</li>
+                </ul>
+                <div class="experts-buttons">
+                    <button class="btn-consult">Consult Now</button>
+                    <button class="btn-upload">📤 Upload Photo</button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Live Market Prices Section -->
+    <section class="prices-section">
+        <div class="section-container">
+            <h2 class="section-title">Live Market Prices</h2>
+            <div class="prices-grid">
+                <div class="price-card">
+                    <div class="price-image">🍅</div>
+                    <h4>Tomato</h4>
+                    <div class="price-info">
+                        <span class="price-value">₹45/kg</span>
+                        <span class="price-change up">↑ 5.2%</span>
+                    </div>
+                </div>
+                <div class="price-card">
+                    <div class="price-image">🥬</div>
+                    <h4>Cabbage</h4>
+                    <div class="price-info">
+                        <span class="price-value">₹20/kg</span>
+                        <span class="price-change down">↓ 1.8%</span>
+                    </div>
+                </div>
+                <div class="price-card">
+                    <div class="price-image">🥔</div>
+                    <h4>Potato</h4>
+                    <div class="price-info">
+                        <span class="price-value">₹28/kg</span>
+                        <span class="price-change up">↑ 3.4%</span>
+                    </div>
+                </div>
+                <div class="price-card">
+                    <div class="price-image">🧅</div>
+                    <h4>Onion</h4>
+                    <div class="price-info">
+                        <span class="price-value">₹32/kg</span>
+                        <span class="price-change down">↓ 2.1%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="view-all-link">
+                <a href="#">View All <span>→</span></a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+            <div class="footer-logo">
+                <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                    <span class="logo-icon">🌾</span>
+                    <span class="logo-text">Farmity</span>
+                </span>
+            </div>
+                <p class="footer-tagline">Connecting agriculture for a sustainable future</p>
+            </div>
+            <div class="footer-section">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Contact</a></li>
+                    <li><a href="#">Careers</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Products</h4>
+                <ul>
+                    <li><a href="#">Marketplace</a></li>
+                    <li><a href="#">Live Prices</a></li>
+                    <li><a href="#">Advisory</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact Us</h4>
+                <p>📧 info@farmity.com</p>
+                <p>📞 +91-9800000000</p>
+                <p>📍 Nepal</p>
+                <div class="social-icons">
+                    <a href="#">📘</a>
+                    <a href="#">🐦</a>
+                    <a href="#">📷</a>
+                    <a href="#">💼</a>
+                </div>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 Farmity. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Check if user is logged in
+        document.addEventListener('DOMContentLoaded', function() {
+            const isLoggedIn = localStorage.getItem('isLoggedIn');
+            if (isLoggedIn === 'true') {
+                const loginLink = document.querySelector('a[href="/login/"]');
+                if (loginLink) {
+                    loginLink.textContent = 'Dashboard';
+                    loginLink.href = '/dashboard/';
+                }
+            }
+        });
+    </script>
+</body>
+</html>
