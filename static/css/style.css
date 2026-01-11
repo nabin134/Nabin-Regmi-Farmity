@@ -19,6 +19,34 @@
     --light-gray: #f5f5f5;
 }
 
+/* Dark Mode Variables */
+body.dark-mode {
+    --white: #1f1f1f;
+    --text-dark: #ffffff;
+    --text-gray: #e0e0e0;
+    --border-gray: #444444;
+    --light-gray: #2d2d2d;
+    --athens-gray: #121212;
+    background-color: var(--athens-gray);
+}
+
+body.dark-mode .main-header,
+body.dark-mode .modal-content,
+body.dark-mode .profile-card,
+body.dark-mode .stat-card,
+body.dark-mode .product-item,
+body.dark-mode .expert-list-item,
+body.dark-mode .tips-card {
+    background-color: var(--white);
+    color: var(--text-dark);
+}
+
+body.dark-mode .form-control {
+    background-color: #333;
+    border-color: #555;
+    color: white;
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
@@ -198,6 +226,120 @@ body {
     padding: 1rem 2rem;
     border-radius: 30px;
     text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: transform 0.3s, background 0.3s;
+}
+
+.btn-primary-large:hover {
+    transform: translateY(-2px);
+    background: var(--sushi);
+}
+
+/* Profile Dropdown */
+.auth-buttons {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.profile-menu {
+    position: relative;
+    cursor: pointer;
+}
+
+.profile-icon-btn {
+    width: 40px;
+    height: 40px;
+    background: var(--athens-gray);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    color: var(--sea-green);
+    border: 2px solid var(--sea-green);
+    transition: all 0.3s;
+}
+
+.profile-icon-btn:hover {
+    background: var(--sea-green);
+    color: var(--white);
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 120%;
+    right: 0;
+    background: var(--white);
+    min-width: 200px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    border-radius: 10px;
+    padding: 0.5rem 0;
+    display: none;
+    z-index: 1000;
+    border: 1px solid var(--athens-gray);
+}
+
+.dropdown-menu.show {
+    display: block;
+    animation: fadeIn 0.2s ease;
+}
+
+.dropdown-item {
+    padding: 0.8rem 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    color: var(--text-dark);
+    text-decoration: none;
+    transition: background 0.2s;
+    font-size: 0.95rem;
+}
+
+.dropdown-item:hover {
+    background: var(--athens-gray);
+    color: var(--sea-green);
+}
+
+.dropdown-divider {
+    height: 1px;
+    background: var(--border-gray);
+    margin: 0.5rem 0;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Welcome Section */
+.welcome-section {
+    padding: 4rem 2rem;
+    min-height: 60vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    background: linear-gradient(135deg, var(--athens-gray) 0%, var(--white) 100%);
+}
+
+.welcome-title {
+    font-size: 2.5rem;
+    color: var(--sea-green);
+    margin-bottom: 1rem;
+}
+
+.welcome-subtitle {
+    font-size: 1.2rem;
+    color: var(--text-gray);
+    margin-bottom: 2rem;
+    max-width: 600px;
+}
+
     font-weight: 600;
     display: inline-flex;
     align-items: center;
@@ -1517,3 +1659,338 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+/* Login Page Specific Styles - New Design */
+html, body {
+    height: 100%;
+    margin: 0;
+    padding: 0;
+}
+
+.login-page-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    background: linear-gradient(135deg, var(--sea-green), var(--sushi));
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    padding: 1rem;
+    box-sizing: border-box;
+}
+
+.login-card {
+    background: var(--white);
+    padding: 2.5rem 2rem;
+    border-radius: 15px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+    width: 100%;
+    max-width: 380px;
+    text-align: center;
+    position: relative;
+}
+
+/* Signup Card - Wider for more content */
+.signup-card {
+    max-width: 450px; /* Slightly wider for signup */
+}
+
+.login-header {
+    margin-bottom: 2rem;
+}
+
+.user-avatar {
+    font-size: 5rem;
+    color: var(--sea-green);
+    margin-bottom: 0.5rem;
+}
+
+.login-title {
+    color: #444;
+    font-size: 1.8rem;
+    font-weight: bold;
+    margin: 0;
+    letter-spacing: 1px;
+}
+
+.login-form .input-group, .auth-form .input-group {
+    position: relative;
+    margin-bottom: 1.2rem;
+    text-align: left;
+}
+
+.login-form .input-group input, .auth-form .input-wrapper input, .auth-form .input-group input, .auth-form select {
+    width: 100%;
+    padding: 12px 15px 12px 40px;
+    background: #f1f1f1;
+    border: 2px solid transparent;
+    border-radius: 25px;
+    font-size: 0.95rem;
+    color: #333;
+    outline: none;
+    transition: all 0.3s;
+    box-shadow: inset 0 1px 3px rgba(0,0,0,0.05);
+    box-sizing: border-box;
+}
+
+.login-form .input-group input:focus, .auth-form .input-wrapper input:focus, .auth-form .input-group input:focus, .auth-form select:focus {
+    background: #fff;
+    border-color: var(--sea-green);
+    box-shadow: 0 0 0 4px rgba(53, 141, 88, 0.1);
+}
+
+.login-form .input-group input::placeholder, .auth-form .input-group input::placeholder {
+    color: #999;
+}
+
+.login-form .input-group .input-icon, .auth-form .input-wrapper .input-icon, .auth-form .input-group .input-icon {
+    position: absolute;
+    left: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    font-size: 1rem;
+    z-index: 10;
+    pointer-events: none;
+}
+
+.login-form .input-group .toggle-password {
+    position: absolute;
+    right: 15px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #888;
+    cursor: pointer;
+    z-index: 10;
+    transition: color 0.3s;
+}
+
+.login-form .input-group .toggle-password:hover {
+    color: var(--sea-green);
+}
+
+.form-options-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
+    font-size: 0.85rem;
+}
+
+.login-form .checkbox-container, .checkbox-group {
+    display: flex;
+    align-items: center;
+    cursor: pointer;
+    color: #666;
+    position: relative;
+    padding-left: 24px;
+    user-select: none;
+    font-weight: 500;
+}
+
+.login-form .checkbox-container input, .checkbox-group input {
+    position: absolute;
+    opacity: 0;
+    cursor: pointer;
+    height: 0;
+    width: 0;
+}
+
+.login-form .checkmark {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 16px;
+    width: 16px;
+    background-color: #ddd;
+    border-radius: 3px;
+    transition: background-color 0.2s;
+}
+
+.login-form .checkbox-container:hover input ~ .checkmark {
+    background-color: #ccc;
+}
+
+.login-form .checkbox-container input:checked ~ .checkmark {
+    background-color: var(--sushi);
+}
+
+.login-form .checkmark:after {
+    content: "";
+    position: absolute;
+    display: none;
+}
+
+.login-form .checkbox-container input:checked ~ .checkmark:after {
+    display: block;
+}
+
+.login-form .checkbox-container .checkmark:after {
+    left: 5px;
+    top: 2px;
+    width: 4px;
+    height: 8px;
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
+.forgot-link {
+    color: #666;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.3s;
+}
+
+.forgot-link:hover {
+    color: var(--sea-green);
+}
+
+.btn-login, .btn-primary {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 25px;
+    background: linear-gradient(to right, var(--sushi), var(--paarl)); 
+    color: white;
+    font-size: 1.1rem;
+    font-weight: bold;
+    cursor: pointer;
+    margin-bottom: 1.5rem;
+    transition: transform 0.2s, opacity 0.2s;
+    text-transform: uppercase;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    letter-spacing: 1px;
+}
+
+.btn-login:hover, .btn-primary:hover {
+    transform: translateY(-2px);
+    opacity: 0.95;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+}
+
+.signup-link {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.signup-link a, .auth-link a, .link {
+    color: var(--sea-green); 
+    text-decoration: none;
+    font-weight: bold;
+}
+
+.signup-link a:hover, .auth-link a:hover, .link:hover {
+    text-decoration: underline;
+}
+
+/* Ensure message div is styled */
+.message {
+    margin-top: 1rem;
+    padding: 10px;
+    border-radius: 5px;
+    font-size: 0.9rem;
+}
+
+/* Styles for Signup Page Specifics */
+.auth-form .form-group {
+    margin-bottom: 1rem;
+    text-align: left;
+}
+
+.auth-form label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: #444;
+    font-size: 0.9rem;
+}
+
+.auth-form .input-wrapper {
+    position: relative;
+}
+
+.phone-input {
+    display: flex;
+    gap: 10px;
+}
+
+.country-code {
+    width: 80px !important;
+    padding-left: 10px !important;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 1.5rem 0;
+    color: #aaa;
+    font-size: 0.8rem;
+}
+
+.divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #ddd;
+}
+
+.divider span {
+    padding: 0 10px;
+}
+
+.social-buttons {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.social-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px;
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    background: white;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-weight: 500;
+    color: #555;
+}
+
+.social-btn:hover {
+    background: #f9f9f9;
+    border-color: #ccc;
+}
+
+.social-icon {
+    font-weight: bold;
+    font-size: 1.1rem;
+}
+
+.google-btn .social-icon {
+    color: #DB4437;
+}
+
+.facebook-btn .social-icon {
+    color: #4267B2;
+}
+
+/* Responsive Design */
+@media (max-width: 480px) {
+    .login-card {
+        padding: 2rem 1.5rem;
+    }
+}
+.message.error {
+    background-color: #ffebee;
+    color: #c62828;
+}
+.message.success {
+    background-color: #e8f5e9;
+    color: #2e7d32;
+}
+
+

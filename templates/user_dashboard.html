@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buyer Dashboard - Farmity</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: var(--athens-gray);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            flex: 1;
+        }
+
+        /* Header Stats */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stat-content h4 {
+            margin: 0;
+            color: #666;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .stat-content span {
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--sea-green);
+            display: block;
+            margin-top: 0.5rem;
+        }
+
+        .stat-icon {
+            font-size: 2.5rem;
+            color: rgba(53, 141, 88, 0.2);
+        }
+
+        /* Tabs Navigation */
+        .tabs-nav {
+            background: white;
+            border-radius: 12px;
+            padding: 0.5rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 0.5rem;
+            overflow-x: auto;
+        }
+
+        .tab-nav-btn {
+            padding: 0.75rem 1.5rem;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            color: #666;
+            cursor: pointer;
+            border-radius: 8px;
+            transition: all 0.3s;
+            white-space: nowrap;
+            font-weight: 500;
+        }
+
+        .tab-nav-btn:hover {
+            background: var(--athens-gray);
+            color: var(--sea-green);
+        }
+
+        .tab-nav-btn.active {
+            background: var(--sea-green);
+            color: white;
+        }
+
+        /* Tab Content */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* Product/Tool Grid */
+        .products-grid, .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .product-card, .tool-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .product-card:hover, .tool-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .product-image, .tool-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: var(--athens-gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+        }
+
+        .product-card-body, .tool-card-body {
+            padding: 1.5rem;
+        }
+
+        .product-card-body h4, .tool-card-body h4 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .product-vendor, .tool-vendor {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 1rem;
+        }
+
+        .product-footer, .tool-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 1rem;
+        }
+
+        .price {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: var(--sea-green);
+        }
+
+        .btn-buy {
+            background: var(--sea-green);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: background 0.3s;
+        }
+
+        .btn-buy:hover {
+            background: var(--sushi);
+        }
+
+        /* Expert Cards */
+        .experts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .expert-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+        }
+
+        .expert-avatar {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--athens-gray);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            flex-shrink: 0;
+        }
+
+        .expert-info {
+            flex: 1;
+        }
+
+        .expert-info h4 {
+            margin: 0 0 0.25rem 0;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .expert-info p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .expert-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .btn-chat, .btn-appoint {
+            padding: 0.5rem 1rem;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            font-size: 0.9rem;
+            transition: all 0.3s;
+        }
+
+        .btn-chat {
+            background: #5B5FEF;
+            color: white;
+        }
+
+        .btn-chat:hover {
+            background: #4a4fd8;
+        }
+
+        .btn-appoint {
+            background: #F29900;
+            color: white;
+        }
+
+        .btn-appoint:hover {
+            background: #d68900;
+        }
+
+        /* Tips/Content Cards */
+        .tips-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .tip-card {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-left: 4px solid var(--sea-green);
+        }
+
+        .tip-card h4 {
+            margin: 0 0 0.75rem 0;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .tip-card p {
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .tip-author {
+            color: var(--sea-green);
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        /* Appointments List */
+        .appointments-list {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            margin-bottom: 2rem;
+        }
+
+        .appointment-item {
+            padding: 1.5rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .appointment-item:last-child {
+            border-bottom: none;
+        }
+
+        .appointment-info h4 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+
+        .appointment-info p {
+            margin: 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .appointment-status {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: #FFF3CD;
+            color: #856404;
+        }
+
+        .status-accepted {
+            background: #D4EDDA;
+            color: #155724;
+        }
+
+        .status-rejected {
+            background: #F8D7DA;
+            color: #721C24;
+        }
+
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .close-modal {
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #666;
+            background: none;
+            border: none;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            display: block;
+            margin-bottom: 1rem;
+            opacity: 0.5;
+        }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo">
+                <a href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                        <span class="logo-icon">🌾</span>
+                        <span class="logo-text">Farmity</span>
+                    </span>
+                </a>
+            </div>
+            <nav class="main-nav">
+                <a href="{% url 'user_dashboard' %}" class="active">Dashboard</a>
+                <a href="{% url 'profile' %}">Profile</a>
+                <a href="{% url 'settings' %}">Settings</a>
+            </nav>
+            <div class="header-actions" id="headerActions">
+                <div id="authButtons" class="auth-buttons"></div>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-container">
+        <!-- Stats Header -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-content">
+                    <h4>Available Crops</h4>
+                    <span>{{ crops_count|default:crops|length }}</span>
+                </div>
+                <i class="fas fa-seedling stat-icon"></i>
+            </div>
+            <div class="stat-card">
+                <div class="stat-content">
+                    <h4>Available Tools</h4>
+                    <span>{{ tools_count|default:tools|length }}</span>
+                </div>
+                <i class="fas fa-tools stat-icon"></i>
+            </div>
+            <div class="stat-card">
+                <div class="stat-content">
+                    <h4>Agricultural Experts</h4>
+                    <span>{{ experts_count|default:experts|length }}</span>
+                </div>
+                <i class="fas fa-user-graduate stat-icon"></i>
+            </div>
+            <div class="stat-card">
+                <div class="stat-content">
+                    <h4>Expert Tips</h4>
+                    <span>{{ tips_count|default:tips|length }}</span>
+                </div>
+                <i class="fas fa-lightbulb stat-icon"></i>
+            </div>
+        </div>
+
+        <!-- Tabs Navigation -->
+        <div class="tabs-nav">
+            <button class="tab-nav-btn active" onclick="switchTab('crops')">
+                <i class="fas fa-seedling"></i> Crops
+            </button>
+            <button class="tab-nav-btn" onclick="switchTab('tools')">
+                <i class="fas fa-tools"></i> Tools
+            </button>
+            <button class="tab-nav-btn" onclick="switchTab('experts')">
+                <i class="fas fa-user-graduate"></i> Experts
+            </button>
+            <button class="tab-nav-btn" onclick="switchTab('tips')">
+                <i class="fas fa-lightbulb"></i> Expert Content
+            </button>
+            <button class="tab-nav-btn" onclick="switchTab('appointments')">
+                <i class="fas fa-calendar-check"></i> Appointments
+            </button>
+            <button class="tab-nav-btn" onclick="switchTab('chat')">
+                <i class="fas fa-comments"></i> Chat
+            </button>
+        </div>
+
+        <!-- Crops Tab -->
+        <div id="crops" class="tab-content active">
+            <div class="products-grid">
+                {% for crop in crops %}
+                <div class="product-card">
+                    {% if crop.image %}
+                    <img src="{{ crop.image.url }}" alt="{{ crop.name }}" class="product-image">
+                    {% else %}
+                    <div class="product-image">🌾</div>
+                    {% endif %}
+                    <div class="product-card-body">
+                        <h4>{{ crop.name }}</h4>
+                        <p class="product-vendor">Farmer: {{ crop.farmer.name|default:crop.farmer.user.email }}</p>
+                        <div class="product-footer">
+                            <span class="price">Rs. {{ crop.price_per_unit }}/{{ crop.unit }}</span>
+                            <button class="btn-buy" onclick="buyCrop({{ crop.id }})">Buy Now</button>
+                        </div>
+                        <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+                            Available: {{ crop.quantity }} {{ crop.unit }}
+                        </p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state" style="grid-column: 1/-1;">
+                    <i class="fas fa-seedling"></i>
+                    <h3>No crops available</h3>
+                    <p>Check back later for fresh produce from our farmers</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Tools Tab -->
+        <div id="tools" class="tab-content">
+            <div class="tools-grid">
+                {% for tool in tools %}
+                <div class="tool-card">
+                    <div class="tool-image">🔧</div>
+                    <div class="tool-card-body">
+                        <h4>{{ tool.name }}</h4>
+                        <p class="tool-vendor">Vendor: {{ tool.vendor.company_name|default:tool.vendor.user.email }}</p>
+                        {% if tool.description %}
+                        <p style="font-size: 0.9rem; color: #666; margin: 0.5rem 0;">{{ tool.description|truncatewords:20 }}</p>
+                        {% endif %}
+                        <div class="tool-footer">
+                            <span class="price">Rs. {{ tool.price }}</span>
+                            <button class="btn-buy" onclick="buyTool({{ tool.id }})">Buy Now</button>
+                        </div>
+                        <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
+                            Stock: {{ tool.stock_quantity }} units
+                        </p>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state" style="grid-column: 1/-1;">
+                    <i class="fas fa-tools"></i>
+                    <h3>No tools available</h3>
+                    <p>Check back later for agricultural tools from our vendors</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Experts Tab -->
+        <div id="experts" class="tab-content">
+            <div class="experts-grid">
+                {% for expert in experts %}
+                <div class="expert-card">
+                    {% if expert.photo %}
+                    <img src="{{ expert.photo.url }}" alt="{{ expert.name }}" class="expert-avatar">
+                    {% else %}
+                    <div class="expert-avatar">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    {% endif %}
+                    <div class="expert-info">
+                        <h4>{{ expert.name|default:expert.user.email }}</h4>
+                        <p>{{ expert.specialization|default:"General Expert" }}</p>
+                        <p style="font-size: 0.85rem; color: #999; margin-top: 0.25rem;">
+                            {{ expert.experience|default:"5+ years" }} experience
+                        </p>
+                    </div>
+                    <div class="expert-actions">
+                        <a href="{% url 'chat_threads' %}" class="btn-chat">
+                            <i class="fas fa-comments"></i> Chat
+                        </a>
+                        <button class="btn-appoint" onclick="openAppointmentModal({{ expert.id }}, '{{ expert.name|default:expert.user.email }}')">
+                            <i class="fas fa-calendar"></i> Appoint
+                        </button>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="empty-state" style="grid-column: 1/-1;">
+                    <i class="fas fa-user-graduate"></i>
+                    <h3>No experts available</h3>
+                    <p>Check back later for agricultural experts</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Tips/Content Tab -->
+        <div id="tips" class="tab-content">
+            <div class="tips-grid">
+                {% for tip in tips %}
+                <div class="tip-card">
+                    <h4>{{ tip.title }}</h4>
+                    <p>{{ tip.content|truncatewords:50 }}</p>
+                    <p class="tip-author">
+                        — {{ tip.expert.name|default:"Expert" }} • {{ tip.expert.specialization|default:"Agriculturalist" }}
+                    </p>
+                </div>
+                {% empty %}
+                <div class="empty-state" style="grid-column: 1/-1;">
+                    <i class="fas fa-lightbulb"></i>
+                    <h3>No expert content available</h3>
+                    <p>Check back later for tips and content from our experts</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Appointments Tab -->
+        <div id="appointments" class="tab-content">
+            <div class="appointments-list">
+                {% for appointment in appointments %}
+                <div class="appointment-item">
+                    <div class="appointment-info">
+                        <h4>With {{ appointment.expert.name|default:appointment.expert.user.email }}</h4>
+                        <p>
+                            <i class="far fa-calendar"></i> {{ appointment.requested_date }} at {{ appointment.requested_time }}
+                        </p>
+                        {% if appointment.message %}
+                        <p style="margin-top: 0.5rem;">{{ appointment.message }}</p>
+                        {% endif %}
+                    </div>
+                    <span class="appointment-status status-{{ appointment.status }}">
+                        {{ appointment.status|title }}
+                    </span>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <i class="fas fa-calendar-check"></i>
+                    <h3>No appointments</h3>
+                    <p>Book an appointment with an expert to get started</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+
+        <!-- Chat Tab -->
+        <div id="chat" class="tab-content">
+            <div class="appointments-list">
+                {% for thread in chat_threads %}
+                <a href="{% url 'chat_thread' thread.id %}" style="text-decoration: none; color: inherit;">
+                    <div class="appointment-item" style="cursor: pointer;">
+                        <div class="appointment-info">
+                            <h4>Chat with {{ thread.expert.name|default:thread.expert.user.email }}</h4>
+                            <p>
+                                <i class="fas fa-comments"></i> Click to open chat
+                            </p>
+                        </div>
+                        <i class="fas fa-chevron-right" style="color: #999;"></i>
+                    </div>
+                </a>
+                {% empty %}
+                <div class="empty-state">
+                    <i class="fas fa-comments"></i>
+                    <h3>No chat threads</h3>
+                    <p>Start a conversation with an expert</p>
+                </div>
+                {% endfor %}
+                <div style="padding: 1.5rem; text-align: center;">
+                    <a href="{% url 'chat_threads' %}" class="btn-buy" style="display: inline-block; text-decoration: none;">
+                        <i class="fas fa-plus"></i> Start New Chat
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Appointment Modal -->
+    <div id="appointmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Book Appointment</h3>
+                <button class="close-modal" onclick="closeModal('appointmentModal')">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'appointment_request' %}">
+                {% csrf_token %}
+                <input type="hidden" name="expert_id" id="apptExpertId">
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Expert</label>
+                    <input type="text" id="apptExpertName" class="form-control" readonly style="background: #f5f5f5;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Date</label>
+                    <input type="date" name="requested_date" class="form-control" required>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Time</label>
+                    <input type="time" name="requested_time" class="form-control" required>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Message (Optional)</label>
+                    <textarea name="message" class="form-control" rows="3" placeholder="Describe your issue..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary btn-full">Book Appointment</button>
+            </form>
+        </div>
+    </div>
+
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                        <span class="logo-icon">🌾</span>
+                        <span class="logo-text">Farmity</span>
+                    </span>
+                </div>
+                <p class="footer-tagline">Connecting agriculture for a sustainable future</p>
+            </div>
+            <div class="footer-section">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Contact</a></li>
+                    <li><a href="#">Careers</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Products</h4>
+                <ul>
+                    <li><a href="#">Marketplace</a></li>
+                    <li><a href="#">Live Prices</a></li>
+                    <li><a href="#">Advisory</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact Us</h4>
+                <p>📧 info@farmity.com</p>
+                <p>📞 +91-9800000000</p>
+                <p>📍 Nepal</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 Farmity. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        function switchTab(tabId) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            
+            // Show selected tab
+            document.getElementById(tabId).classList.add('active');
+            
+            // Update nav buttons
+            document.querySelectorAll('.tab-nav-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            event.target.classList.add('active');
+        }
+
+        function openAppointmentModal(expertId, expertName) {
+            document.getElementById('apptExpertId').value = expertId;
+            document.getElementById('apptExpertName').value = expertName;
+            document.getElementById('appointmentModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function buyCrop(cropId) {
+            alert('Purchase functionality coming soon! Crop ID: ' + cropId);
+            // TODO: Implement purchase logic
+        }
+
+        function buyTool(toolId) {
+            alert('Purchase functionality coming soon! Tool ID: ' + toolId);
+            // TODO: Implement purchase logic
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+            }
+        }
+    </script>
+</body>
+</html>

@@ -24,7 +24,7 @@
                 <a href="#experts">Experts</a>
                 <a href="#learning">Learning Hub</a>
             </nav>
-            <div class="header-actions">
+            <div class="header-actions" id="headerActions">
                 <div class="search-bar">
                     <input type="text" placeholder="Search...">
                     <span class="search-icon">🔍</span>
@@ -33,8 +33,11 @@
                     <span class="weather-icon">☀️</span>
                     <span>29°C</span>
                 </div>
-                <a href="/login/" class="nav-link">Login</a>
-                <a href="/role-selection/" class="btn-signup">Sign Up</a>
+                <!-- Auth buttons will be injected here by JS -->
+                <div id="authButtons" class="auth-buttons">
+                    <a href="/login/" class="nav-link">Login</a>
+                    <a href="/role-selection/" class="btn-signup">Sign Up</a>
+                </div>
             </div>
         </div>
     </header>
@@ -354,18 +357,5 @@
     </footer>
 
     <script src="/static/js/main.js"></script>
-    <script>
-        // Check if user is logged in
-        document.addEventListener('DOMContentLoaded', function() {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            if (isLoggedIn === 'true') {
-                const loginLink = document.querySelector('a[href="/login/"]');
-                if (loginLink) {
-                    loginLink.textContent = 'Dashboard';
-                    loginLink.href = '/dashboard/';
-                }
-            }
-        });
-    </script>
 </body>
 </html>

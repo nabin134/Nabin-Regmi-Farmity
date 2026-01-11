@@ -1,0 +1,516 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vendor Dashboard - Farmity</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: var(--athens-gray);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            flex: 1;
+        }
+
+        /* KYC Alert Banner */
+        .kyc-alert {
+            background: linear-gradient(135deg, #FFF3CD 0%, #FFE69C 100%);
+            border-left: 4px solid #FFC107;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .kyc-alert.rejected {
+            background: linear-gradient(135deg, #F8D7DA 0%, #F5C6CB 100%);
+            border-left-color: #DC3545;
+        }
+
+        .kyc-alert.pending {
+            background: linear-gradient(135deg, #D1ECF1 0%, #BEE5EB 100%);
+            border-left-color: #0C5460;
+        }
+
+        .kyc-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .kyc-text h3 {
+            margin: 0 0 0.5rem 0;
+            color: #856404;
+            font-size: 1.2rem;
+        }
+
+        .kyc-alert.rejected .kyc-text h3 {
+            color: #721C24;
+        }
+
+        .kyc-alert.pending .kyc-text h3 {
+            color: #0C5460;
+        }
+
+        .kyc-text p {
+            margin: 0;
+            color: #856404;
+            font-size: 0.95rem;
+        }
+
+        .kyc-btn {
+            background: var(--sea-green);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: background 0.3s;
+        }
+
+        .kyc-btn:hover {
+            background: var(--sushi);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .stat-content h4 {
+            margin: 0;
+            color: #666;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .stat-content span {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--sea-green);
+            display: block;
+            margin-top: 0.5rem;
+        }
+
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            background: var(--athens-gray);
+            color: var(--sea-green);
+        }
+
+        /* Section Headers */
+        .section-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .section-header h2 {
+            margin: 0;
+            color: #333;
+            font-size: 1.5rem;
+        }
+
+        .btn-primary {
+            background: var(--sea-green);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            border: none;
+            font-weight: 500;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: background 0.3s;
+        }
+
+        .btn-primary:hover {
+            background: var(--sushi);
+        }
+
+        /* Tools Grid */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .tool-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .tool-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+        }
+
+        .tool-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: var(--athens-gray);
+        }
+
+        .tool-content {
+            padding: 1.5rem;
+        }
+
+        .tool-content h3 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+            font-size: 1.1rem;
+        }
+
+        .tool-content p {
+            margin: 0 0 1rem 0;
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .tool-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid #eee;
+        }
+
+        .tool-price {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: var(--sea-green);
+        }
+
+        .tool-actions {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .btn-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: none;
+            background: var(--athens-gray);
+            color: #666;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.3s;
+        }
+
+        .btn-icon:hover {
+            background: var(--sea-green);
+            color: white;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .empty-state i {
+            font-size: 4rem;
+            color: #ccc;
+            margin-bottom: 1rem;
+        }
+
+        .empty-state h3 {
+            color: #666;
+            margin-bottom: 0.5rem;
+        }
+
+        .empty-state p {
+            color: #999;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo">
+                <a href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                        <span class="logo-icon">🌾</span>
+                        <span class="logo-text">Farmity</span>
+                    </span>
+                </a>
+            </div>
+            <nav class="main-nav">
+                <a href="{% url 'vendor_dashboard' %}">Dashboard</a>
+                <a href="{% url 'profile' %}">Profile</a>
+                <a href="{% url 'chat_threads' %}">Chat</a>
+                <a href="{% url 'settings' %}">Settings</a>
+            </nav>
+            <div class="header-actions" id="headerActions">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <select id="languageSelect" class="language-selector" onchange="changeLanguage(this.value)">
+                        <option value="en">English</option>
+                        <option value="np">नेपाली (Nepali)</option>
+                    </select>
+                    <div id="authButtons" class="auth-buttons"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-container">
+        <!-- KYC Alert (if not verified) -->
+        {% if not user.is_verified %}
+        <div class="kyc-alert {% if kyc_status == 'rejected' %}rejected{% elif kyc_status == 'pending' %}pending{% endif %}">
+            <div class="kyc-content">
+                <div class="kyc-text">
+                    <h3>
+                        {% if kyc_status == 'rejected' %}
+                            KYC Verification Rejected
+                        {% elif kyc_status == 'pending' %}
+                            KYC Verification Pending
+                        {% else %}
+                            KYC Verification Required
+                        {% endif %}
+                    </h3>
+                    <p>
+                        {% if kyc_status == 'rejected' %}
+                            Your KYC verification was rejected. Please resubmit your documents.
+                        {% elif kyc_status == 'pending' %}
+                            Your KYC verification is under review. Please wait for approval.
+                        {% else %}
+                            Please complete KYC verification to access all features.
+                        {% endif %}
+                    </p>
+                </div>
+                <a href="/kyc/" class="kyc-btn">
+                    {% if kyc_status == 'rejected' %}
+                        Resubmit KYC
+                    {% else %}
+                        Complete KYC
+                    {% endif %}
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Stats Grid -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-content">
+                    <h4>Total Tools</h4>
+                    <span id="tools-count">0</span>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-tools"></i>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-content">
+                    <h4>Available Tools</h4>
+                    <span id="available-tools-count">0</span>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-check-circle"></i>
+                </div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-content">
+                    <h4>Sold Tools</h4>
+                    <span id="sold-tools-count">0</span>
+                </div>
+                <div class="stat-icon">
+                    <i class="fas fa-shopping-cart"></i>
+                </div>
+            </div>
+        </div>
+
+        <!-- My Tools Section -->
+        <div class="section-header">
+            <h2>My Tools</h2>
+            <button class="btn-primary" onclick="openAddToolModal()">
+                <i class="fas fa-plus"></i>
+                Add New Tool
+            </button>
+        </div>
+
+        <div id="tools-container" class="tools-grid">
+            <div class="empty-state">
+                <i class="fas fa-tools"></i>
+                <h3>No Tools Added Yet</h3>
+                <p>Start by adding your first tool to sell</p>
+                <button class="btn-primary" onclick="openAddToolModal()">
+                    <i class="fas fa-plus"></i>
+                    Add Tool
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add/Edit Tool Modal -->
+    <div id="toolModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Add New Tool</h2>
+                <button class="modal-close" onclick="closeToolModal()">&times;</button>
+            </div>
+            <form id="toolForm" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" id="tool-id" name="tool_id">
+                
+                <div class="form-group">
+                    <label for="tool-name">Tool Name *</label>
+                    <input type="text" id="tool-name" name="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="tool-description">Description *</label>
+                    <textarea id="tool-description" name="description" rows="4" required></textarea>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="tool-price">Price (NPR) *</label>
+                        <input type="number" id="tool-price" name="price" step="0.01" min="0" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="tool-stock">Stock Quantity *</label>
+                        <input type="number" id="tool-stock" name="stock" min="0" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="tool-image">Tool Image</label>
+                    <input type="file" id="tool-image" name="image" accept="image/*">
+                    <div id="tool-image-preview" style="margin-top: 1rem; display: none;">
+                        <img id="tool-preview-img" src="" alt="Preview" style="max-width: 200px; border-radius: 8px;">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="checkbox-container">
+                        <input type="checkbox" id="tool-available" name="is_available" checked>
+                        <span class="checkmark"></span>
+                        Available for Sale
+                    </label>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeToolModal()">Cancel</button>
+                    <button type="submit" class="btn-primary">Save Tool</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Load tools on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadTools();
+        });
+
+        function loadTools() {
+            // TODO: Implement API call to load vendor tools
+            // For now, show empty state
+        }
+
+        function openAddToolModal() {
+            document.getElementById('toolModal').style.display = 'flex';
+            document.getElementById('toolForm').reset();
+            document.getElementById('tool-id').value = '';
+            document.getElementById('modal-title').textContent = 'Add New Tool';
+            document.getElementById('tool-image-preview').style.display = 'none';
+        }
+
+        function closeToolModal() {
+            document.getElementById('toolModal').style.display = 'none';
+        }
+
+        // Handle image preview
+        document.getElementById('tool-image').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('tool-preview-img').src = e.target.result;
+                    document.getElementById('tool-image-preview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle form submission
+        document.getElementById('toolForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            // TODO: Implement API call to save tool
+            alert('Tool save functionality will be implemented');
+        });
+
+        // Language Functions
+        function changeLanguage(lang) {
+            localStorage.setItem('language', lang);
+            // Language changes can be applied here if needed
+        }
+
+        // Initialize language selector
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('language') || 'en';
+            const select = document.getElementById('languageSelect');
+            if (select) {
+                select.value = savedLang;
+            }
+            
+            // Update auth buttons (from main.js)
+            if (typeof updateAuthHeader === 'function') {
+                updateAuthHeader();
+            }
+        });
+    </script>
+</body>
+</html>

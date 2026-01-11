@@ -5,119 +5,626 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Create Account - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+
+        .register-container {
+            background: white;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            width: 100%;
+            max-width: 1000px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            min-height: 650px;
+        }
+
+        .register-left {
+            background: linear-gradient(135deg, var(--sea-green) 0%, #2d7550 100%);
+            color: white;
+            padding: 3.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .register-left::before {
+            content: '';
+            position: absolute;
+            top: -50px;
+            right: -50px;
+            width: 200px;
+            height: 200px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .register-left::after {
+            content: '';
+            position: absolute;
+            bottom: -50px;
+            left: -50px;
+            width: 150px;
+            height: 150px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 50%;
+        }
+
+        .register-left-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .logo-img {
+            width: 45px;
+            height: 45px;
+            filter: brightness(0) invert(1);
+        }
+
+        .logo-text {
+            font-size: 1.75rem;
+            font-weight: 700;
+        }
+
+        .register-left h1 {
+            font-size: 2.75rem;
+            font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .register-left p {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            opacity: 0.95;
+            margin-bottom: 2rem;
+        }
+
+        .features-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .feature-icon {
+            width: 45px;
+            height: 45px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            flex-shrink: 0;
+        }
+
+        .feature-text {
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+
+        .copyright {
+            position: relative;
+            z-index: 1;
+            font-size: 0.85rem;
+            opacity: 0.85;
+            margin-top: 2rem;
+        }
+
+        .register-right {
+            padding: 3.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            overflow-y: auto;
+        }
+
+        .form-header {
+            margin-bottom: 2.5rem;
+        }
+
+        .form-header h2 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-header p {
+            color: #6b7280;
+            font-size: 0.95rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #9ca3af;
+            font-size: 1rem;
+            z-index: 1;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.9375rem 1rem 0.9375rem 2.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: white;
+            color: #1a1a1a;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--sea-green);
+            background: white;
+            box-shadow: 0 0 0 4px rgba(53, 141, 88, 0.1);
+        }
+
+        .form-control:hover {
+            border-color: #d1d5db;
+        }
+
+        .form-control::placeholder {
+            color: #9ca3af;
+        }
+
+        select.form-control {
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath fill='%23374151' d='M7 10L2 5h10z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            padding-right: 2.5rem;
+            cursor: pointer;
+        }
+
+        .phone-wrapper {
+            display: grid;
+            grid-template-columns: 100px 1fr;
+            gap: 0.75rem;
+        }
+
+        .checkbox-wrapper {
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            margin-bottom: 2rem;
+            padding: 1rem;
+            background: #f9fafb;
+            border-radius: 12px;
+            border: 2px solid #e5e7eb;
+            transition: all 0.3s;
+        }
+
+        .checkbox-wrapper:hover {
+            border-color: var(--sea-green);
+            background: #f0fdf4;
+        }
+
+        .custom-checkbox {
+            width: 22px;
+            height: 22px;
+            border: 2px solid #d1d5db;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            margin-top: 2px;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: white;
+        }
+
+        .custom-checkbox i {
+            display: none;
+            color: white;
+            font-size: 0.75rem;
+        }
+
+        #terms:checked ~ label .custom-checkbox {
+            background: var(--sea-green);
+            border-color: var(--sea-green);
+        }
+
+        #terms:checked ~ label .custom-checkbox i {
+            display: block;
+        }
+
+        .checkbox-wrapper input {
+            display: none;
+        }
+
+        .checkbox-wrapper label {
+            font-size: 0.875rem;
+            color: #4b5563;
+            line-height: 1.6;
+            cursor: pointer;
+            user-select: none;
+            margin: 0;
+        }
+
+        .checkbox-wrapper a {
+            color: var(--sea-green);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .checkbox-wrapper a:hover {
+            text-decoration: underline;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 1.125rem;
+            background: linear-gradient(135deg, var(--sea-green) 0%, #2d7550 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            box-shadow: 0 4px 14px rgba(53, 141, 88, 0.3);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: linear-gradient(135deg, #2d7550 0%, var(--sea-green) 100%);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(53, 141, 88, 0.4);
+        }
+
+        .btn-primary:active:not(:disabled) {
+            transform: translateY(0);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+        }
+
+        .divider {
+            text-align: center;
+            margin: 2.5rem 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: linear-gradient(to right, transparent, #e5e7eb 20%, #e5e7eb 80%, transparent);
+        }
+
+        .divider span {
+            background: white;
+            padding: 0 1.25rem;
+            color: #9ca3af;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .social-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .social-btn {
+            padding: 0.9375rem;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .social-btn:hover {
+            border-color: var(--sea-green);
+            background: #f9fafb;
+            transform: translateY(-1px);
+        }
+
+        .social-icon {
+            font-size: 1.15rem;
+        }
+
+        .auth-link {
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .auth-link a {
+            color: var(--sea-green);
+            text-decoration: none;
+            font-weight: 600;
+        }
+
+        .auth-link a:hover {
+            text-decoration: underline;
+        }
+
+        .message {
+            padding: 1rem 1.25rem;
+            border-radius: 12px;
+            margin-bottom: 1.25rem;
+            font-size: 0.9rem;
+            font-weight: 500;
+            display: none;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 2px solid #a7f3d0;
+            display: block;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 2px solid #fca5a5;
+            display: block;
+        }
+
+        .role-indicator {
+            margin-top: 0.75rem;
+            font-size: 0.875rem;
+            color: var(--sea-green);
+            display: none;
+            font-weight: 600;
+            padding: 0.5rem 0.75rem;
+            background: #f0fdf4;
+            border-radius: 8px;
+            border: 1px solid #d1fae5;
+        }
+
+        .role-indicator i {
+            margin-right: 0.5rem;
+        }
+
+        @media (max-width: 968px) {
+            .register-container {
+                grid-template-columns: 1fr;
+                max-width: 600px;
+            }
+
+            .register-left {
+                display: none;
+            }
+
+            .register-right {
+                padding: 2.5rem 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1rem;
+            }
+
+            .register-right {
+                padding: 2rem 1.5rem;
+            }
+
+            .form-header h2 {
+                font-size: 1.75rem;
+            }
+
+            .phone-wrapper {
+                grid-template-columns: 80px 1fr;
+            }
+
+            .social-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="auth-container">
-        <div class="auth-left">
-            <div class="auth-left-content">
+    <div class="register-container">
+        <div class="register-left">
+            <div class="register-left-content">
                 <div class="logo">
-                    <img src="" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
-                        <span class="logo-icon">🌾</span>
-                        <span class="logo-text">Farmity</span>
-                    </span>
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity" class="logo-img" onerror="this.style.display='none';">
+                    <span class="logo-text">Farmity</span>
                 </div>
-                <h1>Join Farmity Today</h1>
-                <p>Create your account and become part of India's fastest growing agricultural community. Connect, learn, and grow with us.</p>
-                <div class="features-list">
-                    <div class="feature-item">
-                        {% comment %} <span class="feature-icon">👥</span>
-                        <span>10,000+ Farmers: Active Community</span> {% endcomment %}
-                    </div>
-                    <div class="feature-item">
-                        {% comment %} <span class="feature-icon">✅</span>
-                        <span>500+ Vendors: Verified Suppliers</span> {% endcomment %}
-                    </div>
-                    <div class="feature-item">
-                        {% comment %} <span class="feature-icon">👨‍🔬</span>
-                        <span>100+ Experts: Agricultural specialists</span> {% endcomment %}
-                    </div>
-                </div>
-                <p class="copyright">© 2025 Farmity. All rights reserved.</p>
+                <h1>Join Our Community</h1>
+                <p>Connect with farmers, buyers, vendors, and experts in one unified platform</p>
+                <ul class="features-list">
+                    <li class="feature-item">
+                        <div class="feature-icon">🌾</div>
+                        <div class="feature-text">Direct access to verified farmers</div>
+                    </li>
+                    <li class="feature-item">
+                        <div class="feature-icon">🛒</div>
+                        <div class="feature-text">Buy fresh, organic produce</div>
+                    </li>
+                    <li class="feature-item">
+                        <div class="feature-icon">👨‍🔬</div>
+                        <div class="feature-text">Expert agricultural advice</div>
+                    </li>
+                    <li class="feature-item">
+                        <div class="feature-icon">🛠️</div>
+                        <div class="feature-text">Quality tools and equipment</div>
+                    </li>
+                </ul>
             </div>
+            <div class="copyright">© 2025 Farmity. All rights reserved.</div>
         </div>
-        <div class="auth-right">
-            <div class="auth-form-container">
+
+        <div class="register-right">
+            <div class="form-header">
                 <h2>Create Account</h2>
-                <p class="subtitle">Fill in your details to get started</p>
-                
-                <form id="registerForm" class="auth-form">
-                    <input type="hidden" id="role" name="role" value="{{ role }}">
-                    
-                    <div class="form-group">
-                        <label for="fullName">Full Name</label>
+                <p>Fill in your details to get started</p>
+            </div>
+
+            <form id="registerForm">
+                {% csrf_token %}
+                <input type="hidden" id="role" name="role" value="{{ role }}">
+
+                <div class="form-group">
+                    <label for="fullName">Full Name <span style="color: #dc3545;">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user input-icon"></i>
+                        <input type="text" id="fullName" name="fullName" class="form-control" placeholder="Enter your full name" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email Address <span style="color: #dc3545;">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-envelope input-icon"></i>
+                        <input type="email" id="email" name="email" class="form-control" placeholder="your@email.com" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="phone">Phone Number <span style="color: #dc3545;">*</span></label>
+                    <div class="phone-wrapper">
+                        <select id="countryCode" name="countryCode" class="form-control">
+                            <option value="+91">+91</option>
+                            <option value="+977">+977</option>
+                            <option value="+1">+1</option>
+                        </select>
                         <div class="input-wrapper">
-                            <span class="input-icon">👤</span>
-                            <input type="text" id="fullName" name="fullName" placeholder="Enter your full name" required>
+                            <i class="fas fa-phone input-icon"></i>
+                            <input type="tel" id="phone" name="phone" class="form-control" placeholder="Phone number" required>
                         </div>
                     </div>
+                </div>
 
-                    <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <div class="input-wrapper">
-                            <span class="input-icon">✉️</span>
-                            <input type="email" id="email" name="email" placeholder="your@email.com" required>
-                        </div>
+                <div class="form-group">
+                    <label for="location">Location <span style="color: #dc3545;">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-map-marker-alt input-icon"></i>
+                        <input type="text" id="location" name="location" class="form-control" placeholder="City, State" required>
                     </div>
+                </div>
 
-                    <div class="form-group">
-                        <label for="phone">Phone Number</label>
-                        <div class="phone-input">
-                            <select id="countryCode" name="countryCode" class="country-code">
-                                <option value="+91">+977</option>
-                                <option value="+1">+1</option>
-                                 <option value="+1">+91</option>
-                            </select>
-                            <div class="input-wrapper">
-                                <span class="input-icon">📞</span>
-                                <input type="tel" id="phone" name="phone" placeholder="Phone number" required>
-                            </div>
-                        </div>
+                <div class="form-group">
+                    <label for="userRole">Select Your Role <span style="color: #dc3545;">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-user-tag input-icon"></i>
+                        <select id="userRole" name="userRole" class="form-control" required>
+                            <option value="">Select your role</option>
+                            <option value="farmer" {% if role == 'farmer' %}selected{% endif %}>Farmer</option>
+                            <option value="buyer" {% if role == 'buyer' %}selected{% endif %}>Buyer</option>
+                            <option value="vendor" {% if role == 'vendor' %}selected{% endif %}>Vendor</option>
+                            <option value="agricultural_expert" {% if role == 'agricultural_expert' %}selected{% endif %}>Agricultural Expert</option>
+                        </select>
                     </div>
-
-                    <div class="form-group">
-                        <label for="location">Location</label>
-                        <div class="input-wrapper">
-                            <span class="input-icon">📍</span>
-                            <input type="text" id="location" name="location" placeholder="City, State" required>
-                        </div>
+                    <div id="roleIndicator" class="role-indicator">
+                        <i class="fas fa-check-circle"></i> <span id="selectedRoleText"></span>
                     </div>
+                </div>
 
-                    <div class="form-group">
-                        <label for="userRole">I am a</label>
-                        <div class="input-wrapper">
-                            <select id="userRole" name="userRole" required>
-                                <option value="buyer" {% if role == 'buyer' %}selected{% endif %}>Buyer</option>
-                                <option value="farmer" {% if role == 'farmer' %}selected{% endif %}>Farmer</option>
-                                <option value="agricultural_expert" {% if role == 'agricultural_expert' %}selected{% endif %}>Agricultural Expert</option>
-                                <option value="vendor" {% if role == 'vendor' %}selected{% endif %}>Vendor</option>
-                            </select>
-                        </div>
+                <div class="form-group">
+                    <label for="password">Password <span style="color: #dc3545;">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="password" name="password" class="form-control" placeholder="Create a password (min. 8 characters)" required minlength="8">
                     </div>
+                </div>
 
-                    <div class="form-group">
-                        <label for="password">Password</label>
-                        <div class="input-wrapper">
-                            <span class="input-icon">🔒</span>
-                            <input type="password" id="password" name="password" placeholder="Create a password" required>
-                        </div>
+                <div class="form-group">
+                    <label for="confirmPassword">Confirm Password <span style="color: #dc3545;">*</span></label>
+                    <div class="input-wrapper">
+                        <i class="fas fa-lock input-icon"></i>
+                        <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" placeholder="Confirm your password" required minlength="8">
                     </div>
+                </div>
 
-                    <div class="form-group">
-                        <label for="confirmPassword">Confirm Password</label>
-                        <div class="input-wrapper">
-                            <span class="input-icon">🔒</span>
-                            <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm your password" required>
-                        </div>
-                    </div>
+                <div class="checkbox-wrapper">
+                    <input type="checkbox" id="terms" name="terms" required>
+                    <label for="terms">
+                        <span class="custom-checkbox">
+                            <i class="fas fa-check"></i>
+                        </span>
+                        I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a>
+                    </label>
+                </div>
 
-                    <div class="form-group checkbox-group">
-                        <input type="checkbox" id="terms" name="terms" required>
-                        <label for="terms">I agree to the <a href="#" class="link">Terms of Service</a> and <a href="#" class="link">Privacy Policy</a></label>
-                    </div>
-
-                    <button type="submit" class="btn-primary btn-full">Create Account</button>
-                </form>
+                <button type="submit" class="btn-primary" id="submitBtn">Create Account</button>
 
                 <div id="message" class="message"></div>
 
@@ -126,32 +633,109 @@
                 </div>
 
                 <div class="social-buttons">
-                    <button class="social-btn google-btn">
-                        <span class="social-icon">G</span>
+                    <a href="/accounts/google/login/" class="social-btn" style="text-decoration: none;">
+                        <i class="fab fa-google social-icon"></i>
                         <span>Google</span>
-                    </button>
-                    <button class="social-btn facebook-btn">
-                        <span class="social-icon">f</span>
+                    </a>
+                    <button type="button" class="social-btn" onclick="alert('Facebook signup coming soon!')">
+                        <i class="fab fa-facebook-f social-icon"></i>
                         <span>Facebook</span>
                     </button>
                 </div>
 
                 <div class="auth-link">
-                    <p>Already have an account? <a href="/login/" class="link">Sign In</a></p>
+                    Already have an account? <a href="/login/">Sign In</a>
                 </div>
-            </div>
+            </form>
         </div>
     </div>
+
     <script src="/static/js/main.js"></script>
     <script>
-        // Check if already logged in
+        // Role selection mapping
+        const roleLabels = {
+            'farmer': 'Farmer',
+            'buyer': 'Buyer',
+            'vendor': 'Vendor',
+            'agricultural_expert': 'Agricultural Expert'
+        };
+
+        // Auto-select role from URL parameter
         document.addEventListener('DOMContentLoaded', function() {
-            const isLoggedIn = localStorage.getItem('isLoggedIn');
-            if (isLoggedIn === 'true') {
-                window.location.href = '/dashboard/';
+            const urlParams = new URLSearchParams(window.location.search);
+            const roleParam = urlParams.get('role');
+            const roleSelect = document.getElementById('userRole');
+            const roleIndicator = document.getElementById('roleIndicator');
+            const selectedRoleText = document.getElementById('selectedRoleText');
+            const hiddenRoleInput = document.getElementById('role');
+            
+            // Auto-select role from URL
+            if (roleParam && roleSelect) {
+                const option = roleSelect.querySelector(`option[value="${roleParam}"]`);
+                if (option) {
+                    roleSelect.value = roleParam;
+                    if (hiddenRoleInput) {
+                        hiddenRoleInput.value = roleParam;
+                    }
+                    if (selectedRoleText && roleIndicator) {
+                        selectedRoleText.textContent = roleLabels[roleParam] || roleParam;
+                        roleIndicator.style.display = 'block';
+                    }
+                    roleSelect.style.borderColor = 'var(--sea-green)';
+                    roleSelect.style.background = '#f0fdf4';
+                }
+            }
+            
+            // Update indicator when role changes manually
+            if (roleSelect) {
+                roleSelect.addEventListener('change', function() {
+                    const value = this.value;
+                    if (value) {
+                        if (selectedRoleText && roleIndicator) {
+                            selectedRoleText.textContent = roleLabels[value] || value;
+                            roleIndicator.style.display = 'block';
+                        }
+                        if (hiddenRoleInput) {
+                            hiddenRoleInput.value = value;
+                        }
+                        this.style.borderColor = 'var(--sea-green)';
+                        this.style.background = '#f0fdf4';
+                    } else {
+                        if (roleIndicator) {
+                            roleIndicator.style.display = 'none';
+                        }
+                        this.style.borderColor = '#e5e7eb';
+                        this.style.background = 'white';
+                    }
+                });
+            }
+
+            // Password confirmation validation
+            const password = document.getElementById('password');
+            const confirmPassword = document.getElementById('confirmPassword');
+            
+            if (confirmPassword && password) {
+                confirmPassword.addEventListener('input', function() {
+                    if (this.value && this.value !== password.value) {
+                        this.setCustomValidity('Passwords do not match');
+                        this.style.borderColor = '#dc3545';
+                    } else {
+                        this.setCustomValidity('');
+                        this.style.borderColor = '#e5e7eb';
+                    }
+                });
+
+                password.addEventListener('input', function() {
+                    if (confirmPassword.value && this.value !== confirmPassword.value) {
+                        confirmPassword.setCustomValidity('Passwords do not match');
+                        confirmPassword.style.borderColor = '#dc3545';
+                    } else {
+                        confirmPassword.setCustomValidity('');
+                        confirmPassword.style.borderColor = '#e5e7eb';
+                    }
+                });
             }
         });
     </script>
 </body>
 </html>
-

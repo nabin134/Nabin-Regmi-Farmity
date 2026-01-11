@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - Farmity</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+        }
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .settings-container {
+            display: grid;
+            gap: 2rem;
+        }
+        .settings-card {
+            background: white;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        .settings-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+        }
+        .settings-header {
+            background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+        }
+        .settings-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin: 0 0 0.5rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .settings-header p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            margin: 0;
+        }
+        .settings-body {
+            padding: 3rem;
+        }
+        .setting-section {
+            margin-bottom: 3rem;
+            padding-bottom: 3rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .setting-section:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+        .section-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .section-header i {
+            font-size: 1.75rem;
+            color: var(--sea-green);
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #e8f5e9;
+            border-radius: 12px;
+        }
+        .section-header h2 {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 0;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.75rem;
+            color: #333;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .form-control {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            background: white;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--sea-green);
+            box-shadow: 0 0 0 4px rgba(53, 141, 88, 0.1);
+            background: #fafafa;
+        }
+        .form-control:read-only {
+            background: #f8f9fa;
+            cursor: not-allowed;
+        }
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+        .toggle-container {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 1.5rem;
+            background: #f8f9fa;
+            border-radius: 12px;
+            border: 2px solid #e9ecef;
+            transition: all 0.3s;
+        }
+        .toggle-container:hover {
+            border-color: var(--sea-green);
+            background: #f0f0f0;
+        }
+        .toggle-info {
+            flex: 1;
+        }
+        .toggle-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            margin-bottom: 0.25rem;
+        }
+        .toggle-description {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 64px;
+            height: 36px;
+        }
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 36px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 28px;
+            width: 28px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+        input:checked + .slider {
+            background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
+        }
+        input:focus + .slider {
+            box-shadow: 0 0 1px var(--sea-green);
+        }
+        input:checked + .slider:before {
+            transform: translateX(28px);
+        }
+        .btn-primary {
+            background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            box-shadow: 0 4px 16px rgba(53, 141, 88, 0.3);
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(53, 141, 88, 0.4);
+        }
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+        .message-container {
+            margin-bottom: 2rem;
+        }
+        .message {
+            padding: 1.25rem 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            font-weight: 500;
+            border-left: 4px solid;
+        }
+        .message.success {
+            background: #D4EDDA;
+            color: #155724;
+            border-color: #28A745;
+        }
+        .message.error {
+            background: #F8D7DA;
+            color: #721C24;
+            border-color: #DC3545;
+        }
+        .message.info {
+            background: #D1ECF1;
+            color: #0C5460;
+            border-color: #17A2B8;
+        }
+        .select-wrapper {
+            position: relative;
+        }
+        .select-wrapper::after {
+            content: '\f107';
+            font-family: 'Font Awesome 6 Free';
+            font-weight: 900;
+            position: absolute;
+            right: 1.25rem;
+            top: 50%;
+            transform: translateY(-50%);
+            pointer-events: none;
+            color: #6c757d;
+        }
+        .select-wrapper select {
+            appearance: none;
+            padding-right: 3rem;
+        }
+        .info-box {
+            background: #E3F2FD;
+            border-left: 4px solid #2196F3;
+            border-radius: 12px;
+            padding: 1.25rem;
+            margin-top: 1rem;
+        }
+        .info-box-text {
+            color: #1565C0;
+            font-size: 0.9rem;
+            margin: 0;
+        }
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            .settings-body {
+                padding: 2rem 1.5rem;
+            }
+            .settings-header h1 {
+                font-size: 2rem;
+            }
+            .toggle-container {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo">
+                <a href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                        <span class="logo-icon">🌾</span>
+                        <span class="logo-text">Farmity</span>
+                    </span>
+                </a>
+            </div>
+            <nav class="main-nav">
+                {% if request.user.role == 'farmer' %}
+                <a href="{% url 'farmer_dashboard' %}">Dashboard</a>
+                {% elif request.user.role == 'buyer' %}
+                <a href="{% url 'user_dashboard' %}">Dashboard</a>
+                {% else %}
+                <a href="{% url 'dashboard' %}">Dashboard</a>
+                {% endif %}
+                <a href="{% url 'profile' %}">Profile</a>
+                <a href="{% url 'settings' %}">Settings</a>
+            </nav>
+            <div class="header-actions" id="headerActions">
+                <div id="authButtons" class="auth-buttons"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="settings-container">
+            <div class="settings-card">
+                <div class="settings-header">
+                    <h1>
+                        <i class="fas fa-cog"></i>
+                        Settings
+                    </h1>
+                    <p>Manage your account preferences and security</p>
+                </div>
+
+                <div class="settings-body">
+                    <!-- Messages -->
+                    {% if messages %}
+                    <div class="message-container">
+                        {% for message in messages %}
+                        <div class="message {{ message.tags }}">
+                            <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
+                            {{ message }}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Security Section -->
+                    <div class="setting-section">
+                        <div class="section-header">
+                            <i class="fas fa-lock"></i>
+                            <h2>Security</h2>
+                        </div>
+                        <form method="POST" action="{% url 'change_password' %}">
+                            {% csrf_token %}
+                            <div class="form-group">
+                                <label>Current Password</label>
+                                <input type="password" name="current_password" class="form-control" 
+                                       placeholder="Enter your current password" required>
+                            </div>
+                            <div class="form-group">
+                                <label>New Password</label>
+                                <input type="password" name="new_password" class="form-control" 
+                                       placeholder="Enter your new password" required 
+                                       pattern=".{8,}" title="Password must be at least 8 characters">
+                                <div class="info-box">
+                                    <p class="info-box-text">
+                                        <i class="fas fa-info-circle"></i>
+                                        Password must be at least 8 characters long
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>Confirm New Password</label>
+                                <input type="password" name="confirm_password" class="form-control" 
+                                       placeholder="Confirm your new password" required>
+                            </div>
+                            <button type="submit" class="btn-primary">
+                                <i class="fas fa-key"></i> Update Password
+                            </button>
+                        </form>
+                    </div>
+
+                    <!-- Language Section -->
+                    <div class="setting-section">
+                        <div class="section-header">
+                            <i class="fas fa-globe"></i>
+                            <h2>Language & Region</h2>
+                        </div>
+                        <div class="form-group">
+                            <label>Preferred Language</label>
+                            <div class="select-wrapper">
+                                <select id="languageSelect" class="form-control">
+                                    <option value="en">English</option>
+                                    <option value="np">नेपाली (Nepali)</option>
+                                    <option value="hi">हिंदी (Hindi)</option>
+                                </select>
+                            </div>
+                            <div class="info-box">
+                                <p class="info-box-text">
+                                    <i class="fas fa-info-circle"></i>
+                                    Your language preference will be saved and applied across the platform
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Appearance Section -->
+                    <div class="setting-section">
+                        <div class="section-header">
+                            <i class="fas fa-palette"></i>
+                            <h2>Appearance</h2>
+                        </div>
+                        <div class="toggle-container">
+                            <div class="toggle-info">
+                                <div class="toggle-title">Dark Mode</div>
+                                <div class="toggle-description">Switch between light and dark themes for better viewing experience</div>
+                            </div>
+                            <label class="toggle-switch">
+                                <input type="checkbox" id="darkModeToggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                        <span class="logo-icon">🌾</span>
+                        <span class="logo-text">Farmity</span>
+                    </span>
+                </div>
+                <p class="footer-tagline">Connecting agriculture for a sustainable future</p>
+            </div>
+            <div class="footer-section">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Contact</a></li>
+                    <li><a href="#">Careers</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Products</h4>
+                <ul>
+                    <li><a href="#">Marketplace</a></li>
+                    <li><a href="#">Live Prices</a></li>
+                    <li><a href="#">Advisory</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 Farmity. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Dark Mode Logic
+        const toggle = document.getElementById('darkModeToggle');
+        const body = document.body;
+
+        // Check saved preference
+        if (localStorage.getItem('darkMode') === 'true') {
+            toggle.checked = true;
+            body.classList.add('dark-mode');
+        }
+
+        toggle.addEventListener('change', function() {
+            if (this.checked) {
+                localStorage.setItem('darkMode', 'true');
+                body.classList.add('dark-mode');
+            } else {
+                localStorage.setItem('darkMode', 'false');
+                body.classList.remove('dark-mode');
+            }
+        });
+
+        // Language Logic
+        const langSelect = document.getElementById('languageSelect');
+        if(langSelect) {
+            const savedLang = localStorage.getItem('language') || 'en';
+            langSelect.value = savedLang;
+            
+            langSelect.addEventListener('change', function() {
+                localStorage.setItem('language', this.value);
+                // Show success message
+                const messageContainer = document.querySelector('.message-container');
+                if (messageContainer) {
+                    messageContainer.innerHTML = `
+                        <div class="message success">
+                            <i class="fas fa-check-circle"></i>
+                            Language preference saved! Changes will apply on next page load.
+                        </div>
+                    `;
+                    setTimeout(() => {
+                        messageContainer.innerHTML = '';
+                    }, 3000);
+                }
+            });
+        }
+    </script>
+</body>
+</html>

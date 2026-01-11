@@ -5,51 +5,72 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Select Your Role - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
-    <div class="role-selection-container">
-        <div class="role-selection-content">
-            <div class="logo-section">
-                <div class="logo">
-                    <img src="" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
-                        <span class="logo-icon">🌾</span>
-                        <span class="logo-text">Farmity</span>
-                    </span>
+    <div class="login-page-wrapper" style="flex-direction: column; height: auto; min-height: 100vh; padding: 2rem;">
+        
+        <div class="logo-section" style="margin-bottom: 2rem;">
+            <div class="logo" style="justify-content: center; font-size: 2.5rem; color: var(--white); display: flex; align-items: center; gap: 10px; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                <span class="logo-icon" style="background: white; border-radius: 50%; width: 50px; height: 50px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">🌾</span>
+                <span class="logo-text" style="font-family: 'Brush Script MT', cursive;">Farmity</span>
+            </div>
+        </div>
+
+        <div class="role-selection-content" style="max-width: 1000px; width: 100%;">
+            <h1 style="color: white; font-size: 2.5rem; margin-bottom: 0.5rem; text-align: center; text-shadow: 0 2px 4px rgba(0,0,0,0.1);">Join Farmity Today</h1>
+            <p style="color: rgba(255,255,255,0.9); font-size: 1.1rem; text-align: center; margin-bottom: 3rem;">Select your role to get started with our community</p>
+
+            <div class="role-cards" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
+                <div class="role-card" onclick="window.location.href='/register/?role=buyer'" style="background: white; padding: 2rem; border-radius: 15px; text-align: center; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
+                    <div class="role-icon" style="font-size: 3.5rem; margin-bottom: 1rem; color: var(--sea-green);">
+                        <i class="fas fa-shopping-cart"></i>
+                    </div>
+                    <h3 style="color: #333; margin-bottom: 0.5rem; font-size: 1.25rem;">Buyer</h3>
+                    <p style="color: #666; font-size: 0.9rem; line-height: 1.5;">Purchase fresh agricultural products directly from farmers.</p>
                 </div>
-                <h1>Join Farmity Today</h1>
-                <p>Select your role to get started</p>
+
+                <div class="role-card" onclick="window.location.href='/register/?role=farmer'" style="background: white; padding: 2rem; border-radius: 15px; text-align: center; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
+                    <div class="role-icon" style="font-size: 3.5rem; margin-bottom: 1rem; color: var(--sea-green);">
+                        <i class="fas fa-tractor"></i>
+                    </div>
+                    <h3 style="color: #333; margin-bottom: 0.5rem; font-size: 1.25rem;">Farmer</h3>
+                    <p style="color: #666; font-size: 0.9rem; line-height: 1.5;">Sell your produce to a wide network of buyers and vendors.</p>
+                </div>
+
+                <div class="role-card" onclick="window.location.href='/register/?role=agricultural_expert'" style="background: white; padding: 2rem; border-radius: 15px; text-align: center; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
+                    <div class="role-icon" style="font-size: 3.5rem; margin-bottom: 1rem; color: var(--sea-green);">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <h3 style="color: #333; margin-bottom: 0.5rem; font-size: 1.25rem;">Expert</h3>
+                    <p style="color: #666; font-size: 0.9rem; line-height: 1.5;">Provide expert advice and consultation to farmers.</p>
+                </div>
+
+                <div class="role-card" onclick="window.location.href='/register/?role=vendor'" style="background: white; padding: 2rem; border-radius: 15px; text-align: center; cursor: pointer; transition: transform 0.3s, box-shadow 0.3s; box-shadow: 0 10px 20px rgba(0,0,0,0.1);">
+                    <div class="role-icon" style="font-size: 3.5rem; margin-bottom: 1rem; color: var(--sea-green);">
+                        <i class="fas fa-store"></i>
+                    </div>
+                    <h3 style="color: #333; margin-bottom: 0.5rem; font-size: 1.25rem;">Vendor</h3>
+                    <p style="color: #666; font-size: 0.9rem; line-height: 1.5;">Supply agricultural equipment and seeds to farmers.</p>
+                </div>
             </div>
 
-            <div class="role-cards">
-                <div class="role-card" data-role="buyer">
-                    <div class="role-icon">🛒</div>
-                    <h3>Buyer</h3>
-                    <p>Purchase agricultural products and connect with farmers</p>
-                </div>
-                <div class="role-card" data-role="farmer">
-                    <div class="role-icon">👨‍🌾</div>
-                    <h3>Farmer</h3>
-                    <p>Sell your produce and connect with buyers</p>
-                </div>
-                <div class="role-card" data-role="agricultural_expert">
-                    <div class="role-icon">👨‍🔬</div>
-                    <h3>Agricultural Expert</h3>
-                    <p>Provide expert advice and consultation</p>
-                </div>
-                <div class="role-card" data-role="vendor">
-                    <div class="role-icon">🏪</div>
-                    <h3>Vendor</h3>
-                    <p>Sell agricultural supplies and equipment</p>
-                </div>
-            </div>
-
-            <div class="back-link">
-                <a href="/">← Back to Home</a>
+            <div class="back-link" style="margin-top: 3rem; text-align: center;">
+                <a href="/" style="color: white; text-decoration: none; font-weight: 500; font-size: 1rem; display: inline-flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.2); padding: 10px 20px; border-radius: 25px; transition: background 0.3s;">
+                    <i class="fas fa-arrow-left"></i> Back to Home
+                </a>
             </div>
         </div>
     </div>
     <script src="/static/js/main.js"></script>
+    <style>
+        .role-card:hover {
+            transform: translateY(-10px) !important;
+            box-shadow: 0 15px 30px rgba(0,0,0,0.2) !important;
+        }
+        .back-link a:hover {
+            background: rgba(255,255,255,0.3) !important;
+        }
+    </style>
 </body>
 </html>
-

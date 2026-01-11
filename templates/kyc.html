@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KYC Verification - Farmity</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+        }
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .kyc-card {
+            background: white;
+            border-radius: 20px;
+            padding: 3rem;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+        .kyc-header {
+            text-align: center;
+            margin-bottom: 3rem;
+            padding-bottom: 2rem;
+            border-bottom: 3px solid var(--sea-green);
+        }
+        .kyc-header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 0 0 1rem 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .kyc-header h1 i {
+            color: var(--sea-green);
+        }
+        .kyc-header p {
+            font-size: 1.1rem;
+            color: #666;
+            line-height: 1.6;
+            margin: 0;
+        }
+        .status-section {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            border-radius: 16px;
+            padding: 2rem;
+            margin-bottom: 3rem;
+            border-left: 5px solid var(--sea-green);
+        }
+        .status-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 1rem;
+        }
+        .status-title {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            border-radius: 25px;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .status-pending {
+            background: #FFF3CD;
+            color: #856404;
+            border: 2px solid #FFE69C;
+        }
+        .status-approved {
+            background: #D4EDDA;
+            color: #155724;
+            border: 2px solid #C3E6CB;
+        }
+        .status-rejected {
+            background: #F8D7DA;
+            color: #721C24;
+            border: 2px solid #F5C6CB;
+        }
+        .status-info {
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 2px solid #dee2e6;
+        }
+        .status-info p {
+            margin: 0.5rem 0;
+            color: #495057;
+            font-size: 0.95rem;
+        }
+        .status-info strong {
+            color: #1a1a1a;
+        }
+        .form-section {
+            margin-bottom: 2.5rem;
+        }
+        .form-section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 1.5rem;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #e9ecef;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .form-section-title i {
+            color: var(--sea-green);
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.75rem;
+            color: #333;
+            font-weight: 600;
+            font-size: 1rem;
+        }
+        .form-group label .required {
+            color: #DC3545;
+            margin-left: 0.25rem;
+        }
+        .form-group .help-text {
+            font-size: 0.85rem;
+            color: #6c757d;
+            margin-top: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .form-control {
+            width: 100%;
+            padding: 1rem 1.25rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            background: white;
+            box-sizing: border-box;
+            font-family: inherit;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--sea-green);
+            box-shadow: 0 0 0 4px rgba(53, 141, 88, 0.1);
+            background: #fafafa;
+        }
+        .form-control:read-only {
+            background: #f8f9fa;
+            cursor: not-allowed;
+        }
+        textarea.form-control {
+            resize: vertical;
+            min-height: 120px;
+        }
+        .file-upload-area {
+            border: 3px dashed #dee2e6;
+            border-radius: 16px;
+            padding: 3rem 2rem;
+            text-align: center;
+            background: #f8f9fa;
+            cursor: pointer;
+            transition: all 0.3s;
+            position: relative;
+        }
+        .file-upload-area:hover {
+            border-color: var(--sea-green);
+            background: #f0f0f0;
+        }
+        .file-upload-area.drag-over {
+            border-color: var(--sea-green);
+            background: #e8f5e9;
+        }
+        .file-upload-icon {
+            font-size: 3.5rem;
+            color: #adb5bd;
+            margin-bottom: 1rem;
+        }
+        .file-upload-area:hover .file-upload-icon {
+            color: var(--sea-green);
+        }
+        .file-upload-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        .file-upload-hint {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+        .file-input {
+            position: absolute;
+            opacity: 0;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            cursor: pointer;
+        }
+        .file-preview {
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #e8f5e9;
+            border-radius: 12px;
+            display: none;
+        }
+        .file-preview.active {
+            display: block;
+        }
+        .file-preview-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 0.5rem;
+        }
+        .file-preview-item:last-child {
+            margin-bottom: 0;
+        }
+        .file-preview-icon {
+            font-size: 1.5rem;
+            color: var(--sea-green);
+        }
+        .file-preview-info {
+            flex: 1;
+        }
+        .file-preview-name {
+            font-weight: 600;
+            color: #1a1a1a;
+        }
+        .file-preview-size {
+            font-size: 0.85rem;
+            color: #6c757d;
+        }
+        .current-file-link {
+            margin-top: 0.75rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: var(--sea-green);
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .current-file-link:hover {
+            text-decoration: underline;
+        }
+        .btn-submit {
+            width: 100%;
+            padding: 1.25rem 2rem;
+            background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            box-shadow: 0 4px 16px rgba(53, 141, 88, 0.3);
+        }
+        .btn-submit:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 24px rgba(53, 141, 88, 0.4);
+        }
+        .btn-submit:active {
+            transform: translateY(0);
+        }
+        .info-box {
+            background: #E3F2FD;
+            border-left: 4px solid #2196F3;
+            border-radius: 8px;
+            padding: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        .info-box-title {
+            font-weight: 600;
+            color: #1565C0;
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .info-box ul {
+            margin: 0.5rem 0 0 0;
+            padding-left: 1.5rem;
+            color: #424242;
+        }
+        .info-box li {
+            margin: 0.5rem 0;
+        }
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            .kyc-card {
+                padding: 2rem 1.5rem;
+            }
+            .kyc-header h1 {
+                font-size: 2rem;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .status-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo">
+                <a href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                        <span class="logo-icon">🌾</span>
+                        <span class="logo-text">Farmity</span>
+                    </span>
+                </a>
+            </div>
+            <nav class="main-nav">
+                {% if request.user.role == 'farmer' %}
+                <a href="{% url 'farmer_dashboard' %}">Dashboard</a>
+                {% elif request.user.role == 'buyer' %}
+                <a href="{% url 'user_dashboard' %}">Dashboard</a>
+                {% else %}
+                <a href="{% url 'dashboard' %}">Dashboard</a>
+                {% endif %}
+                <a href="{% url 'profile' %}">Profile</a>
+                <a href="{% url 'settings' %}">Settings</a>
+            </nav>
+            <div class="header-actions" id="headerActions">
+                <div id="authButtons" class="auth-buttons"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="kyc-card">
+            <div class="kyc-header">
+                <h1>
+                    <i class="fas fa-file-contract"></i>
+                    KYC Verification
+                </h1>
+                <p>Verify your identity as a farmer to access all platform features and build trust with buyers</p>
+            </div>
+
+            {% if kyc %}
+            <div class="status-section">
+                <div class="status-header">
+                    <div class="status-title">
+                        <i class="fas fa-info-circle"></i>
+                        Current Status
+                    </div>
+                    <span class="status-badge status-{{ kyc.status }}">
+                        {% if kyc.status == 'pending' %}
+                            <i class="fas fa-clock"></i> Under Review
+                        {% elif kyc.status == 'approved' %}
+                            <i class="fas fa-check-circle"></i> Approved
+                        {% elif kyc.status == 'rejected' %}
+                            <i class="fas fa-times-circle"></i> Rejected
+                        {% endif %}
+                    </span>
+                </div>
+                <div class="status-info">
+                    <p><strong>Submitted on:</strong> {{ kyc.created_at|date:"F d, Y \a\t g:i A" }}</p>
+                    {% if kyc.status == 'rejected' and kyc.rejection_reason %}
+                    <p style="color: #DC3545; font-weight: 600; margin-top: 1rem;">
+                        <i class="fas fa-exclamation-triangle"></i> 
+                        <strong>Rejection Reason:</strong> {{ kyc.rejection_reason }}
+                    </p>
+                    {% elif kyc.status == 'approved' %}
+                    <p style="color: #155724; font-weight: 600; margin-top: 1rem;">
+                        <i class="fas fa-check-circle"></i> 
+                        Your KYC has been verified successfully!
+                    </p>
+                    {% elif kyc.status == 'pending' %}
+                    <p style="color: #856404; font-weight: 600; margin-top: 1rem;">
+                        <i class="fas fa-hourglass-half"></i> 
+                        Your documents are being reviewed. This usually takes 1-3 business days.
+                    </p>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <div class="info-box">
+                <div class="info-box-title">
+                    <i class="fas fa-info-circle"></i>
+                    Required Documents
+                </div>
+                <ul>
+                    <li><strong>Identity Document:</strong> Citizenship certificate, National ID, or Land Ownership Certificate</li>
+                    <li><strong>Photo:</strong> A clear selfie or recent photograph</li>
+                    <li>All documents must be clear, readable, and in PDF or image format (JPG, PNG)</li>
+                    <li>Maximum file size: 5MB per document</li>
+                </ul>
+            </div>
+
+            <form method="POST" enctype="multipart/form-data" id="kycForm">
+                {% csrf_token %}
+                
+                <div class="form-section">
+                    <h2 class="form-section-title">
+                        <i class="fas fa-user"></i>
+                        Personal Information
+                    </h2>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>
+                                Full Name <span class="required">*</span>
+                            </label>
+                            <input type="text" name="full_name" class="form-control" 
+                                   value="{{ kyc.full_name|default:request.user.get_full_name|default:'' }}" 
+                                   required placeholder="Enter your full name as per ID">
+                            <div class="help-text">
+                                <i class="fas fa-info-circle"></i>
+                                Must match the name on your ID document
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                ID/Citizenship Number <span class="required">*</span>
+                            </label>
+                            <input type="text" name="id_number" class="form-control" 
+                                   value="{{ kyc.id_number|default:'' }}" 
+                                   required placeholder="Enter your ID number">
+                            <div class="help-text">
+                                <i class="fas fa-shield-alt"></i>
+                                This information will be kept confidential
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="form-section">
+                    <h2 class="form-section-title">
+                        <i class="fas fa-file-upload"></i>
+                        Document Upload
+                    </h2>
+                    
+                    <div class="form-group">
+                        <label>
+                            Identity Document <span class="required">*</span>
+                        </label>
+                        <div class="file-upload-area" onclick="document.getElementById('id_document').click()">
+                            <input type="file" id="id_document" name="id_document" 
+                                   class="file-input" accept=".pdf,.jpg,.jpeg,.png"
+                                   {% if not kyc %}required{% endif %}
+                                   onchange="handleFileSelect(this, 'id-preview')">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-cloud-upload-alt"></i>
+                            </div>
+                            <div class="file-upload-text">Click to upload or drag and drop</div>
+                            <div class="file-upload-hint">PDF, JPG, or PNG (Max 5MB)</div>
+                            <div class="file-preview" id="id-preview"></div>
+                        </div>
+                        {% if kyc.id_document %}
+                        <a href="{{ kyc.id_document.url }}" target="_blank" class="current-file-link">
+                            <i class="fas fa-file-pdf"></i>
+                            View Current Document
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label>
+                            Your Photo (Selfie) <span class="required">*</span>
+                        </label>
+                        <div class="file-upload-area" onclick="document.getElementById('selfie').click()">
+                            <input type="file" id="selfie" name="selfie" 
+                                   class="file-input" accept=".jpg,.jpeg,.png"
+                                   {% if not kyc %}required{% endif %}
+                                   onchange="handleFileSelect(this, 'selfie-preview')">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-camera"></i>
+                            </div>
+                            <div class="file-upload-text">Click to upload your photo</div>
+                            <div class="file-upload-hint">JPG or PNG (Max 5MB)</div>
+                            <div class="file-preview" id="selfie-preview"></div>
+                        </div>
+                        {% if kyc.selfie %}
+                        <a href="{{ kyc.selfie.url }}" target="_blank" class="current-file-link">
+                            <i class="fas fa-image"></i>
+                            View Current Photo
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-paper-plane"></i>
+                    {% if kyc.status == 'rejected' %}Resubmit KYC{% else %}Submit KYC Verification{% endif %}
+                </button>
+            </form>
+        </div>
+    </main>
+
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                        <span class="logo-icon">🌾</span>
+                        <span class="logo-text">Farmity</span>
+                    </span>
+                </div>
+                <p class="footer-tagline">Connecting agriculture for a sustainable future</p>
+            </div>
+            <div class="footer-section">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Contact</a></li>
+                    <li><a href="#">Careers</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Products</h4>
+                <ul>
+                    <li><a href="#">Marketplace</a></li>
+                    <li><a href="#">Live Prices</a></li>
+                    <li><a href="#">Advisory</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 Farmity. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        function handleFileSelect(input, previewId) {
+            const file = input.files[0];
+            if (file) {
+                const preview = document.getElementById(previewId);
+                const fileSize = (file.size / 1024 / 1024).toFixed(2);
+                const fileName = file.name;
+                const fileType = fileName.split('.').pop().toUpperCase();
+                
+                preview.innerHTML = `
+                    <div class="file-preview-item">
+                        <i class="fas fa-file ${fileType === 'PDF' ? 'fa-file-pdf' : 'fa-file-image'} file-preview-icon"></i>
+                        <div class="file-preview-info">
+                            <div class="file-preview-name">${fileName}</div>
+                            <div class="file-preview-size">${fileSize} MB</div>
+                        </div>
+                    </div>
+                `;
+                preview.classList.add('active');
+            }
+        }
+
+        // Drag and drop functionality
+        document.querySelectorAll('.file-upload-area').forEach(area => {
+            const input = area.querySelector('.file-input');
+            
+            area.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                area.classList.add('drag-over');
+            });
+            
+            area.addEventListener('dragleave', () => {
+                area.classList.remove('drag-over');
+            });
+            
+            area.addEventListener('drop', (e) => {
+                e.preventDefault();
+                area.classList.remove('drag-over');
+                if (e.dataTransfer.files.length > 0) {
+                    input.files = e.dataTransfer.files;
+                    input.dispatchEvent(new Event('change', { bubbles: true }));
+                }
+            });
+        });
+
+        // Form validation
+        document.getElementById('kycForm').addEventListener('submit', function(e) {
+            const idDoc = document.getElementById('id_document').files[0];
+            const selfie = document.getElementById('selfie').files[0];
+            
+            if (!idDoc && !{{ kyc.id_document|yesno:"true,false" }}) {
+                e.preventDefault();
+                alert('Please upload an identity document');
+                return false;
+            }
+            
+            if (idDoc && idDoc.size > 5 * 1024 * 1024) {
+                e.preventDefault();
+                alert('Identity document must be less than 5MB');
+                return false;
+            }
+            
+            if (selfie && selfie.size > 5 * 1024 * 1024) {
+                e.preventDefault();
+                alert('Photo must be less than 5MB');
+                return false;
+            }
+        });
+    </script>
+</body>
+</html>

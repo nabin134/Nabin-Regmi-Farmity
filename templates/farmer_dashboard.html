@@ -1,0 +1,1188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farmer Dashboard - Farmity</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: var(--athens-gray);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: 2rem auto;
+            padding: 0 1.5rem;
+            flex: 1;
+        }
+
+        /* KYC Alert Banner */
+        .kyc-alert {
+            background: linear-gradient(135deg, #FFF3CD 0%, #FFE69C 100%);
+            border-left: 4px solid #FFC107;
+            padding: 1.5rem;
+            border-radius: 12px;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .kyc-alert.rejected {
+            background: linear-gradient(135deg, #F8D7DA 0%, #F5C6CB 100%);
+            border-left-color: #DC3545;
+        }
+
+        .kyc-alert.pending {
+            background: linear-gradient(135deg, #D1ECF1 0%, #BEE5EB 100%);
+            border-left-color: #0C5460;
+        }
+
+        .kyc-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .kyc-text h3 {
+            margin: 0 0 0.5rem 0;
+            color: #856404;
+            font-size: 1.2rem;
+        }
+
+        .kyc-alert.rejected .kyc-text h3 {
+            color: #721C24;
+        }
+
+        .kyc-alert.pending .kyc-text h3 {
+            color: #0C5460;
+        }
+
+        .kyc-text p {
+            margin: 0;
+            color: #856404;
+            font-size: 0.95rem;
+        }
+
+        .kyc-alert.rejected .kyc-text p {
+            color: #721C24;
+        }
+
+        .kyc-alert.pending .kyc-text p {
+            color: #0C5460;
+        }
+
+        .kyc-btn {
+            background: var(--sea-green);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            white-space: nowrap;
+            transition: background 0.3s;
+        }
+
+        .kyc-btn:hover {
+            background: var(--sushi);
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+
+        .stat-content h4 {
+            margin: 0;
+            color: #666;
+            font-weight: 500;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .stat-content span {
+            font-size: 2.2rem;
+            font-weight: bold;
+            color: var(--sea-green);
+            display: block;
+            margin-top: 0.5rem;
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            color: rgba(53, 141, 88, 0.15);
+        }
+
+        /* Main Content Card */
+        .main-card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            overflow: hidden;
+        }
+
+        .card-header {
+            background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
+            color: white;
+            padding: 1.5rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h2 {
+            margin: 0;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .btn-add {
+            background: white;
+            color: var(--sea-green);
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-add:hover {
+            background: rgba(255,255,255,0.9);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        .card-body {
+            padding: 2rem;
+        }
+
+        /* Products Grid - Right to Left Layout */
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.5rem;
+            direction: rtl;
+        }
+
+        .products-grid > * {
+            direction: ltr;
+        }
+
+        .product-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .product-card:hover {
+            border-color: var(--sea-green);
+            box-shadow: 0 4px 16px rgba(53, 141, 88, 0.15);
+            transform: translateY(-3px);
+        }
+
+        .product-image-wrapper {
+            width: 100%;
+            height: 220px;
+            background: var(--athens-gray);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .product-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .product-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 5rem;
+            color: #ccc;
+        }
+
+        .product-actions {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            display: flex;
+            gap: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .product-card:hover .product-actions {
+            opacity: 1;
+        }
+
+        .btn-action {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-action:hover {
+            transform: scale(1.1);
+        }
+
+        .btn-edit {
+            background: #FFC107;
+            color: white;
+        }
+
+        .btn-delete {
+            background: #DC3545;
+            color: white;
+        }
+
+        .product-info {
+            padding: 1.5rem;
+        }
+
+        .product-name {
+            font-size: 1.3rem;
+            font-weight: 700;
+            color: #333;
+            margin: 0 0 0.75rem 0;
+        }
+
+        .product-details {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .product-detail {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #666;
+            font-size: 0.95rem;
+        }
+
+        .product-detail i {
+            color: var(--sea-green);
+            width: 20px;
+        }
+
+        .product-price {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--sea-green);
+            margin-top: 0.5rem;
+        }
+
+        .product-status {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 0.75rem;
+        }
+
+        .status-available {
+            background: #D4EDDA;
+            color: #155724;
+        }
+
+        .status-unavailable {
+            background: #F8D7DA;
+            color: #721C24;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 5rem;
+            display: block;
+            margin-bottom: 1rem;
+            opacity: 0.4;
+        }
+
+        .empty-state h3 {
+            margin: 0 0 0.5rem 0;
+            color: #666;
+            font-size: 1.5rem;
+        }
+
+        .empty-state p {
+            margin: 0;
+            font-size: 1rem;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--sea-green);
+            font-size: 1.5rem;
+        }
+
+        .close-modal {
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #999;
+            background: none;
+            border: none;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .close-modal:hover {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--sea-green);
+            box-shadow: 0 0 0 3px rgba(53, 141, 88, 0.1);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .btn-submit {
+            background: var(--sea-green);
+            color: white;
+            border: none;
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            width: 100%;
+            transition: background 0.3s;
+        }
+
+        .btn-submit:hover {
+            background: var(--sushi);
+        }
+
+        .btn-danger {
+            background: #DC3545;
+            color: white;
+            border: none;
+            padding: 0.875rem 2rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            width: 100%;
+            transition: background 0.3s;
+        }
+
+        .btn-danger:hover {
+            background: #C82333;
+        }
+
+        /* Messages */
+        .messages {
+            margin-bottom: 2rem;
+        }
+
+        .message {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: #D4EDDA;
+            color: #155724;
+            border-left: 4px solid #28A745;
+        }
+
+        .message.error {
+            background: #F8D7DA;
+            color: #721C24;
+            border-left: 4px solid #DC3545;
+        }
+
+        .message.info {
+            background: #D1ECF1;
+            color: #0C5460;
+            border-left: 4px solid #17A2B8;
+        }
+
+        /* Language Selector */
+        .language-selector {
+            padding: 0.5rem 1rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: border-color 0.3s;
+        }
+
+        .language-selector:focus {
+            outline: none;
+            border-color: var(--sea-green);
+        }
+
+        /* Experts Section Styles */
+        .experts-listing {
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .expert-item-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 16px;
+            padding: 2rem;
+            transition: all 0.3s;
+        }
+
+        .expert-item-card:hover {
+            border-color: var(--sea-green);
+            box-shadow: 0 4px 16px rgba(53, 141, 88, 0.1);
+            transform: translateY(-2px);
+        }
+
+        .expert-main-info {
+            display: flex;
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+            align-items: flex-start;
+        }
+
+        .expert-photo {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--sea-green);
+            flex-shrink: 0;
+        }
+
+        .expert-photo-placeholder {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            color: white;
+            flex-shrink: 0;
+        }
+
+        .expert-details-main {
+            flex: 1;
+        }
+
+        .expert-name {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .expert-spec {
+            font-size: 1.1rem;
+            color: var(--sea-green);
+            font-weight: 600;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .expert-exp {
+            font-size: 0.95rem;
+            color: #666;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .expert-content-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid var(--sea-green);
+        }
+
+        .content-section-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .tip-item {
+            padding: 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .tip-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .tip-item h5 {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #333;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .tip-item p {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.6;
+            margin: 0 0 0.5rem 0;
+        }
+
+        .tip-date {
+            font-size: 0.85rem;
+            color: #999;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .no-content {
+            color: #999;
+            font-style: italic;
+            text-align: center;
+            padding: 1rem;
+        }
+
+        .expert-actions-main {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+        }
+
+        .btn-chat-expert,
+        .btn-appoint-expert {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            text-decoration: none;
+        }
+
+        .btn-chat-expert {
+            background: #5B5FEF;
+            color: white;
+        }
+
+        .btn-chat-expert:hover {
+            background: #4a4fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(91, 95, 239, 0.3);
+        }
+
+        .btn-appoint-expert {
+            background: #F29900;
+            color: white;
+        }
+
+        .btn-appoint-expert:hover {
+            background: #d68900;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(242, 153, 0, 0.3);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .products-grid {
+                grid-template-columns: 1fr;
+                direction: ltr;
+            }
+
+            .products-grid > * {
+                direction: ltr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .card-header {
+                flex-direction: column;
+                gap: 1rem;
+                align-items: flex-start;
+            }
+
+            .kyc-content {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .expert-main-info {
+                flex-direction: column;
+                align-items: center;
+                text-align: center;
+            }
+
+            .expert-actions-main {
+                justify-content: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo">
+                <a href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                        <span class="logo-icon">🌾</span>
+                        <span class="logo-text">Farmity</span>
+                    </span>
+                </a>
+            </div>
+            <nav class="main-nav">
+                <a href="{% url 'farmer_dashboard' %}">Dashboard</a>
+                <a href="#" onclick="scrollToSection('experts-section'); return false;">Find Expert</a>
+                <a href="{% url 'profile' %}">Profile</a>
+                <a href="{% url 'chat_threads' %}">Chat</a>
+            </nav>
+            <div class="header-actions" id="headerActions">
+                <div style="display: flex; align-items: center; gap: 1rem;">
+                    <select id="languageSelect" class="language-selector" onchange="changeLanguage(this.value)">
+                        <option value="en">English</option>
+                        <option value="np">नेपाली (Nepali)</option>
+                    </select>
+                    <div id="authButtons" class="auth-buttons"></div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="dashboard-container">
+        <!-- KYC Alert Banner -->
+        {% if kyc_status != 'approved' %}
+        <div class="kyc-alert {% if kyc_status == 'rejected' %}rejected{% elif kyc_status == 'pending' %}pending{% endif %}">
+            <div class="kyc-content">
+                <div class="kyc-text">
+                    <h3>
+                        <i class="fas fa-file-contract"></i>
+                        {% if kyc_status == 'pending' %}KYC Verification Pending
+                        {% elif kyc_status == 'rejected' %}KYC Verification Rejected
+                        {% else %}KYC Verification Required{% endif %}
+                    </h3>
+                    <p>
+                        {% if kyc_status == 'pending' %}Your KYC documents are under review. Please wait for approval.
+                        {% elif kyc_status == 'rejected' %}{% if kyc_request.rejection_reason %}Reason: {{ kyc_request.rejection_reason }}{% endif %} Please update your documents and resubmit.
+                        {% else %}Upload your documents to verify your farmer status and access all features.{% endif %}
+                    </p>
+                </div>
+                <a href="{% url 'kyc' %}" class="kyc-btn">
+                    <i class="fas fa-upload"></i> {% if kyc_status == 'rejected' or not kyc_status %}Upload KYC{% else %}View Status{% endif %}
+                </a>
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Messages -->
+        {% if messages %}
+        <div class="messages">
+            {% for message in messages %}
+            <div class="message {{ message.tags }}">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+        <!-- Main Products Card -->
+        <div class="main-card">
+            <div class="card-header">
+                <h2><i class="fas fa-seedling"></i> My Crops</h2>
+                <button class="btn-add" onclick="openAddModal()">
+                    <i class="fas fa-plus"></i> Add New Crop
+                </button>
+            </div>
+            <div class="card-body">
+                {% if products %}
+                <div class="products-grid">
+                    {% for product in products %}
+                    <div class="product-card">
+                        <div class="product-image-wrapper">
+                            {% if product.image %}
+                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+                            {% else %}
+                            <div class="product-placeholder">
+                                <i class="fas fa-seedling"></i>
+                            </div>
+                            {% endif %}
+                            <div class="product-actions">
+                                <button class="btn-action btn-edit" onclick="openEditModal({{ product.id }}, '{{ product.name|escapejs }}', {{ product.quantity }}, '{{ product.unit }}', {{ product.price_per_unit }}, {% if product.image %}'{{ product.image.url }}'{% else %}''{% endif %})" title="Edit">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn-action btn-delete" onclick="openDeleteModal({{ product.id }}, '{{ product.name|escapejs }}')" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="product-info">
+                            <h3 class="product-name">{{ product.name }}</h3>
+                            <div class="product-details">
+                                <div class="product-detail">
+                                    <i class="fas fa-weight"></i>
+                                    <span>{{ product.quantity }} {{ product.unit }}</span>
+                                </div>
+                                <div class="product-detail">
+                                    <i class="fas fa-tag"></i>
+                                    <span>Unit: {{ product.unit }}</span>
+                                </div>
+                                <div class="product-detail">
+                                    <i class="fas fa-calendar"></i>
+                                    <span>Added: {{ product.created_at|date:"M d, Y" }}</span>
+                                </div>
+                            </div>
+                            <div class="product-price">Rs. {{ product.price_per_unit }}/{{ product.unit }}</div>
+                            <span class="product-status status-{% if product.is_available %}available{% else %}unavailable{% endif %}">
+                                {% if product.is_available %}Available{% else %}Unavailable{% endif %}
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-seedling"></i>
+                    <h3>No Crops Added Yet</h3>
+                    <p>Start by adding your first crop to the marketplace</p>
+                    <button class="btn-add" onclick="openAddModal()" style="margin-top: 1.5rem;">
+                        <i class="fas fa-plus"></i> Add Your First Crop
+                    </button>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Crop Modal -->
+    <div id="addModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-plus-circle"></i> Add New Crop</h3>
+                <button class="close-modal" onclick="closeModal('addModal')">&times;</button>
+            </div>
+            <form method="POST" enctype="multipart/form-data" onsubmit="return validateForm(this)">
+                {% csrf_token %}
+                <input type="hidden" name="add_product" value="1">
+                
+                <div class="form-group">
+                    <label>Crop Name <span style="color: red;">*</span></label>
+                    <input type="text" name="product_name" class="form-control" placeholder="e.g., Organic Wheat" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Quantity <span style="color: red;">*</span></label>
+                        <input type="number" name="quantity" class="form-control" placeholder="e.g., 500" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Unit <span style="color: red;">*</span></label>
+                        <select name="unit" class="form-control" required>
+                            <option value="kg">kg</option>
+                            <option value="ton">ton</option>
+                            <option value="quintal">quintal</option>
+                            <option value="pcs">pcs</option>
+                            <option value="bags">bags</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Price per Unit (Rs.) <span style="color: red;">*</span></label>
+                    <input type="number" name="price" class="form-control" placeholder="e.g., 20" step="0.01" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Crop Image</label>
+                    <input type="file" name="product_image" class="form-control" accept="image/*">
+                    <small style="color: #666; font-size: 0.85rem;">Recommended: Square image, max 5MB</small>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-plus"></i> Add Crop
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Crop Modal -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Edit Crop</h3>
+                <button class="close-modal" onclick="closeModal('editModal')">&times;</button>
+            </div>
+            <form method="POST" enctype="multipart/form-data" onsubmit="return validateForm(this)">
+                {% csrf_token %}
+                <input type="hidden" name="edit_product" value="1">
+                <input type="hidden" name="product_id" id="edit_product_id">
+                
+                <div class="form-group">
+                    <label>Crop Name <span style="color: red;">*</span></label>
+                    <input type="text" name="product_name" id="edit_product_name" class="form-control" required>
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Quantity <span style="color: red;">*</span></label>
+                        <input type="number" name="quantity" id="edit_quantity" class="form-control" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Unit <span style="color: red;">*</span></label>
+                        <select name="unit" id="edit_unit" class="form-control" required>
+                            <option value="kg">kg</option>
+                            <option value="ton">ton</option>
+                            <option value="quintal">quintal</option>
+                            <option value="pcs">pcs</option>
+                            <option value="bags">bags</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Price per Unit (Rs.) <span style="color: red;">*</span></label>
+                    <input type="number" name="price" id="edit_price" class="form-control" step="0.01" min="0" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Crop Image</label>
+                    <input type="file" name="product_image" class="form-control" accept="image/*">
+                    <small style="color: #666; font-size: 0.85rem;">Leave empty to keep current image</small>
+                    <div id="edit_image_preview" style="margin-top: 0.5rem;"></div>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-save"></i> Update Crop
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Appointment Modal -->
+    <div id="appointmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-calendar-check"></i> Book Appointment</h3>
+                <button class="close-modal" onclick="closeModal('appointmentModal')">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'appointment_request' %}">
+                {% csrf_token %}
+                <input type="hidden" name="expert_id" id="apptExpertId">
+                
+                <div class="form-group">
+                    <label>Expert Name <span style="color: red;">*</span></label>
+                    <input type="text" id="apptExpertName" class="form-control" readonly style="background: #f5f5f5;">
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Date <span style="color: red;">*</span></label>
+                        <input type="date" name="requested_date" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Time <span style="color: red;">*</span></label>
+                        <input type="time" name="requested_time" class="form-control" required>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Message (Optional)</label>
+                    <textarea name="message" class="form-control" rows="4" placeholder="Describe your agricultural issue or question..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-submit">
+                    <i class="fas fa-calendar-check"></i> Book Appointment
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle" style="color: #DC3545;"></i> Delete Crop</h3>
+                <button class="close-modal" onclick="closeModal('deleteModal')">&times;</button>
+            </div>
+            <form method="POST" id="deleteForm">
+                {% csrf_token %}
+                <input type="hidden" name="delete_product" value="1">
+                <input type="hidden" name="product_id" id="delete_product_id">
+                
+                <p style="font-size: 1.1rem; color: #333; margin-bottom: 1.5rem;">
+                    Are you sure you want to delete <strong id="delete_product_name"></strong>? This action cannot be undone.
+                </p>
+
+                <div style="display: flex; gap: 1rem;">
+                    <button type="button" class="btn-submit" onclick="closeModal('deleteModal')" style="background: #6c757d; flex: 1;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn-danger" style="flex: 1;">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                        <span class="logo-icon">🌾</span>
+                        <span class="logo-text">Farmity</span>
+                    </span>
+                </div>
+                <p class="footer-tagline">Connecting agriculture for a sustainable future</p>
+            </div>
+            <div class="footer-section">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Contact</a></li>
+                    <li><a href="#">Careers</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Products</h4>
+                <ul>
+                    <li><a href="#">Marketplace</a></li>
+                    <li><a href="#">Live Prices</a></li>
+                    <li><a href="#">Advisory</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Contact Us</h4>
+                <p>📧 info@farmity.com</p>
+                <p>📞 +91-9800000000</p>
+                <p>📍 Nepal</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 Farmity. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        // Modal Functions
+        function openAddModal() {
+            document.getElementById('addModal').classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function openEditModal(id, name, quantity, unit, price, imageUrl) {
+            document.getElementById('edit_product_id').value = id;
+            document.getElementById('edit_product_name').value = name;
+            document.getElementById('edit_quantity').value = quantity;
+            document.getElementById('edit_unit').value = unit;
+            document.getElementById('edit_price').value = price;
+            
+            const preview = document.getElementById('edit_image_preview');
+            if (imageUrl) {
+                preview.innerHTML = `<img src="${imageUrl}" alt="${name}" style="max-width: 200px; border-radius: 8px; margin-top: 0.5rem;">`;
+            } else {
+                preview.innerHTML = '';
+            }
+            
+            document.getElementById('editModal').classList.add('active');
+        }
+
+        function openDeleteModal(id, name) {
+            document.getElementById('delete_product_id').value = id;
+            document.getElementById('delete_product_name').textContent = name;
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+            }
+        }
+
+        // Form Validation
+        function validateForm(form) {
+            const quantity = form.querySelector('input[name="quantity"]');
+            const price = form.querySelector('input[name="price"]');
+            
+            if (quantity && parseFloat(quantity.value) <= 0) {
+                alert('Quantity must be greater than 0');
+                quantity.focus();
+                return false;
+            }
+            
+            if (price && parseFloat(price.value) <= 0) {
+                alert('Price must be greater than 0');
+                price.focus();
+                return false;
+            }
+            
+            return true;
+        }
+
+        // Language Functions
+        function changeLanguage(lang) {
+            localStorage.setItem('language', lang);
+            // Language changes can be applied here if needed
+        }
+
+        // Initialize language selector
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedLang = localStorage.getItem('language') || 'en';
+            const select = document.getElementById('languageSelect');
+            if (select) {
+                select.value = savedLang;
+            }
+        });
+    </script>
+</body>
+</html>

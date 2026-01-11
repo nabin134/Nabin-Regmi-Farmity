@@ -29,10 +29,17 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'django.contrib.sites',  # Required for allauth
 
     'rest_framework',
+    'allauth',
+    'allauth.account',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
     'accounts',
 ]
+
+SITE_ID = 1
 
 
 # ======================
@@ -44,6 +51,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
@@ -93,6 +101,7 @@ AUTH_USER_MODEL = 'accounts.User'
 # 🔥 THIS WAS MISSING (VERY IMPORTANT)
 AUTHENTICATION_BACKENDS = [
     'django.contrib.auth.backends.ModelBackend',
+    'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
 
@@ -122,6 +131,12 @@ USE_TZ = True
 STATIC_URL = '/static/'   # 🔥 must start & end with /
 STATICFILES_DIRS = [BASE_DIR / 'static']
 
+# ======================
+# MEDIA FILES
+# ======================
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 
 # ======================
 # DEFAULT PRIMARY KEY
@@ -133,6 +148,42 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # EMAIL (DEV)
 # ======================
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+DEFAULT_FROM_EMAIL = 'noreply@farmity.com'
+
+# ======================
+# ALLAUTH SETTINGS
+# ======================
+LOGIN_REDIRECT_URL = '/dashboard/'  # Redirect to dashboard after login
+ACCOUNT_LOGOUT_REDIRECT_URL = '/login/'
+ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']  # Required fields for signup
+ACCOUNT_LOGIN_METHODS = ['email']  # Login using email
+ACCOUNT_EMAIL_VERIFICATION = 'none'  # Set to 'mandatory' in production
+ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
+
+# Social Account Settings
+SOCIALACCOUNT_AUTO_SIGNUP = True
+SOCIALACCOUNT_EMAIL_REQUIRED = False
+SOCIALACCOUNT_QUERY_EMAIL = True
+
+# Google OAuth Settings (set these in environment variables or .env file)
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'APP': {
+            'client_id': os.environ.get('GOOGLE_CLIENT_ID', ''),
+            'secret': os.environ.get('GOOGLE_CLIENT_SECRET', ''),
+            'key': ''
+        }
+    }
+}
 
 
 # ======================

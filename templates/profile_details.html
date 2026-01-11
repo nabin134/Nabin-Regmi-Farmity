@@ -1,0 +1,624 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile Details - Farmity</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-color: var(--athens-gray);
+        }
+        .main-content {
+            flex: 1;
+            padding: 2rem;
+            max-width: 1000px;
+            margin: 0 auto;
+            width: 100%;
+        }
+        .profile-card {
+            background: white;
+            border-radius: 16px;
+            padding: 2.5rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+        }
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 2.5rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+        .profile-img-large {
+            width: 140px;
+            height: 140px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 5px solid var(--sea-green);
+            box-shadow: 0 4px 20px rgba(53, 141, 88, 0.2);
+        }
+        .profile-header-info h2 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin: 0 0 0.75rem 0;
+        }
+        .profile-badges {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+        .role-badge {
+            background: linear-gradient(135deg, var(--sushi) 0%, var(--sea-green) 100%);
+            color: white;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+        .verified-badge {
+            background: #D4EDDA;
+            color: #155724;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .unverified-badge {
+            background: #FFF3CD;
+            color: #856404;
+            padding: 0.5rem 1rem;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .profile-info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+        }
+        .info-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+        .info-card:hover {
+            border-color: var(--sea-green);
+            box-shadow: 0 4px 12px rgba(53, 141, 88, 0.1);
+        }
+        .info-label {
+            font-size: 0.85rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            font-weight: 600;
+            display: block;
+            margin-bottom: 0.5rem;
+        }
+        .info-value {
+            font-weight: 600;
+            color: #1a1a1a;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .info-value i {
+            color: var(--sea-green);
+            font-size: 1rem;
+        }
+        .btn-edit-profile {
+            background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 4px 12px rgba(53, 141, 88, 0.25);
+        }
+        .btn-edit-profile:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(53, 141, 88, 0.35);
+        }
+        .edit-form {
+            display: none;
+            margin-top: 2.5rem;
+            padding-top: 2.5rem;
+            border-top: 2px solid #f0f0f0;
+        }
+        .edit-form.active {
+            display: block;
+        }
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 600;
+            font-size: 0.95rem;
+        }
+        .form-control {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: all 0.3s;
+            background: white;
+            box-sizing: border-box;
+        }
+        .form-control:focus {
+            outline: none;
+            border-color: var(--sea-green);
+            box-shadow: 0 0 0 4px rgba(53, 141, 88, 0.1);
+        }
+        .form-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: flex-end;
+            margin-top: 2rem;
+        }
+        .btn-cancel {
+            padding: 0.875rem 1.5rem;
+            background: #f3f4f6;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-cancel:hover {
+            background: #e5e7eb;
+        }
+        .btn-save {
+            padding: 0.875rem 1.5rem;
+            background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(53, 141, 88, 0.25);
+        }
+        .btn-save:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(53, 141, 88, 0.35);
+        }
+        .section-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        @media (max-width: 768px) {
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            .profile-info-grid {
+                grid-template-columns: 1fr;
+            }
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+            .form-actions {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo">
+                <a href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                        <span class="logo-icon">🌾</span>
+                        <span class="logo-text">Farmity</span>
+                    </span>
+                </a>
+            </div>
+            <nav class="main-nav">
+                {% if request.user.role == 'farmer' %}
+                <a href="{% url 'farmer_dashboard' %}">Dashboard</a>
+                {% elif request.user.role == 'buyer' %}
+                <a href="{% url 'user_dashboard' %}">Dashboard</a>
+                {% else %}
+                <a href="{% url 'dashboard' %}">Dashboard</a>
+                {% endif %}
+                <a href="{% url 'profile' %}">Profile</a>
+                <a href="{% url 'settings' %}">Settings</a>
+            </nav>
+            <div class="header-actions" id="headerActions">
+                <div id="authButtons" class="auth-buttons"></div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="profile-card">
+            <div class="section-title">
+                <span><i class="fas fa-user-circle" style="color: var(--sea-green); margin-right: 0.5rem;"></i>My Profile</span>
+                <button class="btn-edit-profile" onclick="toggleEdit()">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </button>
+            </div>
+
+            <div class="profile-header">
+                {% if request.user.role == 'vendor' %}
+                    {% if profile.logo %}
+                        <img src="{{ profile.logo.url }}" alt="Profile" class="profile-img-large">
+                    {% else %}
+                        <div class="profile-img-large" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);font-size:3.5rem;color:white;">
+                            <i class="fas fa-building"></i>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    {% if profile.photo %}
+                        <img src="{{ profile.photo.url }}" alt="Profile" class="profile-img-large">
+                    {% else %}
+                        <div class="profile-img-large" style="display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);font-size:3.5rem;color:white;">
+                            <i class="fas fa-user"></i>
+                        </div>
+                    {% endif %}
+                {% endif %}
+                <div class="profile-header-info">
+                    <h2>
+                        {% if request.user.role == 'vendor' %}
+                            {{ profile.company_name|default:request.user.email }}
+                        {% else %}
+                            {{ profile.name|default:request.user.email }}
+                        {% endif %}
+                    </h2>
+                    <div class="profile-badges">
+                        <span class="role-badge">{{ request.user.role|title }}</span>
+                        {% if request.user.is_verified %}
+                            <span class="verified-badge">
+                                <i class="fas fa-check-circle"></i> Verified
+                            </span>
+                        {% else %}
+                            <span class="unverified-badge">
+                                <i class="fas fa-exclamation-circle"></i> Unverified
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <div class="profile-info-grid">
+                <div class="info-card">
+                    <span class="info-label">Email Address</span>
+                    <span class="info-value">
+                        <i class="fas fa-envelope"></i>
+                        {{ request.user.email }}
+                    </span>
+                </div>
+                
+                {% if request.user.role == 'farmer' %}
+                <div class="info-card">
+                    <span class="info-label">Contact Number</span>
+                    <span class="info-value">
+                        <i class="fas fa-phone"></i>
+                        {{ profile.contact|default:"Not set" }}
+                    </span>
+                </div>
+                <div class="info-card">
+                    <span class="info-label">Location</span>
+                    <span class="info-value">
+                        <i class="fas fa-map-marker-alt"></i>
+                        {{ profile.location|default:"Not set" }}
+                    </span>
+                </div>
+                <div class="info-card">
+                    <span class="info-label">Farm Size</span>
+                    <span class="info-value">
+                        <i class="fas fa-tractor"></i>
+                        {{ profile.farm_size|default:"Not set" }}
+                    </span>
+                </div>
+                <div class="info-card">
+                    <span class="info-label">Main Crops</span>
+                    <span class="info-value">
+                        <i class="fas fa-seedling"></i>
+                        {{ profile.crop_types|default:"Not set" }}
+                    </span>
+                </div>
+                {% elif request.user.role == 'vendor' %}
+                <div class="info-card">
+                    <span class="info-label">Company Name</span>
+                    <span class="info-value">
+                        <i class="fas fa-building"></i>
+                        {{ profile.company_name|default:"Not set" }}
+                    </span>
+                </div>
+                <div class="info-card">
+                    <span class="info-label">Contact Number</span>
+                    <span class="info-value">
+                        <i class="fas fa-phone"></i>
+                        {{ profile.contact|default:"Not set" }}
+                    </span>
+                </div>
+                <div class="info-card">
+                    <span class="info-label">Address</span>
+                    <span class="info-value">
+                        <i class="fas fa-map-marker-alt"></i>
+                        {{ profile.address|default:"Not set" }}
+                    </span>
+                </div>
+                {% elif request.user.role == 'agricultural_expert' %}
+                <div class="info-card">
+                    <span class="info-label">Name</span>
+                    <span class="info-value">
+                        <i class="fas fa-user"></i>
+                        {{ profile.name|default:"Not set" }}
+                    </span>
+                </div>
+                <div class="info-card">
+                    <span class="info-label">Specialization</span>
+                    <span class="info-value">
+                        <i class="fas fa-user-graduate"></i>
+                        {{ profile.specialization|default:"Not set" }}
+                    </span>
+                </div>
+                <div class="info-card">
+                    <span class="info-label">Experience</span>
+                    <span class="info-value">
+                        <i class="fas fa-briefcase"></i>
+                        {{ profile.experience|default:"Not set" }}
+                    </span>
+                </div>
+                <div class="info-card">
+                    <span class="info-label">Qualification</span>
+                    <span class="info-value">
+                        <i class="fas fa-graduation-cap"></i>
+                        {{ profile.qualification|default:"Not set" }}
+                    </span>
+                </div>
+                {% elif request.user.role == 'buyer' %}
+                <div class="info-card">
+                    <span class="info-label">Name</span>
+                    <span class="info-value">
+                        <i class="fas fa-user"></i>
+                        {{ profile.name|default:"Not set" }}
+                    </span>
+                </div>
+                <div class="info-card">
+                    <span class="info-label">Phone</span>
+                    <span class="info-value">
+                        <i class="fas fa-phone"></i>
+                        {{ profile.phone|default:"Not set" }}
+                    </span>
+                </div>
+                <div class="info-card">
+                    <span class="info-label">Address</span>
+                    <span class="info-value">
+                        <i class="fas fa-map-marker-alt"></i>
+                        {{ profile.address|default:"Not set" }}
+                    </span>
+                </div>
+                {% endif %}
+                
+                <div class="info-card">
+                    <span class="info-label">Member Since</span>
+                    <span class="info-value">
+                        <i class="fas fa-calendar"></i>
+                        {{ request.user.date_joined|date:"M d, Y" }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Edit Form -->
+            <form method="POST" enctype="multipart/form-data" class="edit-form" id="editForm">
+                {% csrf_token %}
+                <input type="hidden" name="update_profile" value="true">
+                
+                <h3 style="margin-bottom: 1.5rem; color: var(--sea-green);">
+                    <i class="fas fa-edit"></i> Edit Profile Details
+                </h3>
+                
+                {% if request.user.role == 'farmer' %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Full Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Number</label>
+                        <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Location</label>
+                        <input type="text" name="location" class="form-control" value="{{ profile.location|default:'' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Farm Size</label>
+                        <input type="text" name="farm_size" class="form-control" value="{{ profile.farm_size|default:'' }}" placeholder="e.g., 5 acres">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Main Crops (comma separated)</label>
+                    <input type="text" name="crop_types" class="form-control" value="{{ profile.crop_types|default:'' }}" placeholder="e.g., Wheat, Rice, Corn">
+                </div>
+                <div class="form-group">
+                    <label>Profile Photo</label>
+                    <input type="file" name="photo" class="form-control" accept="image/*">
+                    <small style="color: #666; font-size: 0.85rem;">Recommended: Square image, max 5MB</small>
+                </div>
+                {% elif request.user.role == 'vendor' %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Company Name</label>
+                        <input type="text" name="company_name" class="form-control" value="{{ profile.company_name|default:'' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Contact Number</label>
+                        <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <textarea name="address" class="form-control" rows="3">{{ profile.address|default:'' }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Logo</label>
+                    <input type="file" name="photo" class="form-control" accept="image/*">
+                    <small style="color: #666; font-size: 0.85rem;">Recommended: Square image, max 5MB</small>
+                </div>
+                {% elif request.user.role == 'agricultural_expert' %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Specialization</label>
+                        <input type="text" name="specialization" class="form-control" value="{{ profile.specialization|default:'' }}" placeholder="e.g., Crop Management">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Experience</label>
+                        <input type="text" name="experience" class="form-control" value="{{ profile.experience|default:'' }}" placeholder="e.g., 5+ years">
+                    </div>
+                    <div class="form-group">
+                        <label>Qualification</label>
+                        <input type="text" name="qualifications" class="form-control" value="{{ profile.qualification|default:'' }}" placeholder="e.g., B.Sc Agriculture">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Profile Photo</label>
+                    <input type="file" name="photo" class="form-control" accept="image/*">
+                    <small style="color: #666; font-size: 0.85rem;">Recommended: Square image, max 5MB</small>
+                </div>
+                {% elif request.user.role == 'buyer' %}
+                <div class="form-row">
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" name="contact" class="form-control" value="{{ profile.phone|default:'' }}">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Address</label>
+                    <textarea name="location" class="form-control" rows="3">{{ profile.address|default:'' }}</textarea>
+                </div>
+                <div class="form-group">
+                    <label>Profile Photo</label>
+                    <input type="file" name="photo" class="form-control" accept="image/*">
+                    <small style="color: #666; font-size: 0.85rem;">Recommended: Square image, max 5MB</small>
+                </div>
+                {% else %}
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}">
+                </div>
+                <div class="form-group">
+                    <label>Profile Photo</label>
+                    <input type="file" name="photo" class="form-control" accept="image/*">
+                </div>
+                {% endif %}
+
+                <div class="form-actions">
+                    <button type="button" class="btn-cancel" onclick="toggleEdit()">Cancel</button>
+                    <button type="submit" class="btn-save">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </main>
+
+    <footer class="main-footer">
+        <div class="footer-container">
+            <div class="footer-section">
+                <div class="footer-logo">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
+                        <span class="logo-icon">🌾</span>
+                        <span class="logo-text">Farmity</span>
+                    </span>
+                </div>
+                <p class="footer-tagline">Connecting agriculture for a sustainable future</p>
+            </div>
+            <div class="footer-section">
+                <h4>Company</h4>
+                <ul>
+                    <li><a href="#">About Us</a></li>
+                    <li><a href="#">Contact</a></li>
+                    <li><a href="#">Careers</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Products</h4>
+                <ul>
+                    <li><a href="#">Marketplace</a></li>
+                    <li><a href="#">Live Prices</a></li>
+                    <li><a href="#">Advisory</a></li>
+                </ul>
+            </div>
+            <div class="footer-section">
+                <h4>Support</h4>
+                <ul>
+                    <li><a href="#">Help Center</a></li>
+                    <li><a href="#">Privacy Policy</a></li>
+                    <li><a href="#">Terms of Service</a></li>
+                </ul>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>© 2025 Farmity. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="/static/js/main.js"></script>
+    <script>
+        function toggleEdit() {
+            const form = document.getElementById('editForm');
+            form.classList.toggle('active');
+            if (form.classList.contains('active')) {
+                form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            }
+        }
+    </script>
+</body>
+</html>
