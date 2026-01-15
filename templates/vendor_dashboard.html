@@ -6,42 +6,181 @@
     <title>Vendor Dashboard - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #358D58;
+            --primary-dark: #2a6f45;
+            --secondary: #F29900;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+        }
+
         body {
-            background-color: var(--athens-gray);
-            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
         }
 
-        .dashboard-container {
-            max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-            flex: 1;
+        .sidebar-logo {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
         }
 
-        /* KYC Alert Banner */
+        .sidebar-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 1rem 1.5rem;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255,255,255,0.1);
+            border-left-color: white;
+            color: white;
+        }
+
+        .nav-item i {
+            width: 20px;
+            font-size: 1.1rem;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Top Header */
+        .top-header {
+            background: white;
+            height: var(--header-height);
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--primary);
+            cursor: pointer;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+
+        .user-profile:hover {
+            background: var(--light);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Dashboard Content */
+        .dashboard-content {
+            padding: 2rem;
+        }
+
+        /* KYC Alert */
         .kyc-alert {
             background: linear-gradient(135deg, #FFF3CD 0%, #FFE69C 100%);
-            border-left: 4px solid #FFC107;
+            border-left: 4px solid var(--warning);
             padding: 1.5rem;
             border-radius: 12px;
             margin-bottom: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .kyc-alert.rejected {
-            background: linear-gradient(135deg, #F8D7DA 0%, #F5C6CB 100%);
-            border-left-color: #DC3545;
-        }
-
-        .kyc-alert.pending {
-            background: linear-gradient(135deg, #D1ECF1 0%, #BEE5EB 100%);
-            border-left-color: #0C5460;
-        }
-
-        .kyc-content {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -49,10 +188,20 @@
             gap: 1rem;
         }
 
+        .kyc-alert.rejected {
+            background: linear-gradient(135deg, #F8D7DA 0%, #F5C6CB 100%);
+            border-left-color: var(--danger);
+        }
+
+        .kyc-alert.pending {
+            background: linear-gradient(135deg, #D1ECF1 0%, #BEE5EB 100%);
+            border-left-color: var(--info);
+        }
+
         .kyc-text h3 {
             margin: 0 0 0.5rem 0;
             color: #856404;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
         }
 
         .kyc-alert.rejected .kyc-text h3 {
@@ -63,31 +212,24 @@
             color: #0C5460;
         }
 
-        .kyc-text p {
-            margin: 0;
-            color: #856404;
-            font-size: 0.95rem;
-        }
-
         .kyc-btn {
-            background: var(--sea-green);
+            background: var(--primary);
             color: white;
             padding: 0.75rem 1.5rem;
             border-radius: 8px;
             text-decoration: none;
-            font-weight: 500;
-            white-space: nowrap;
+            font-weight: 600;
             transition: background 0.3s;
         }
 
         .kyc-btn:hover {
-            background: var(--sushi);
+            background: var(--primary-dark);
         }
 
-        /* Stats Grid */
+        /* Summary Cards */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
@@ -95,73 +237,106 @@
         .stat-card {
             background: white;
             padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+
+        .stat-card.earnings {
+            border-left-color: var(--success);
+        }
+
+        .stat-card.orders {
+            border-left-color: var(--info);
+        }
+
+        .stat-card.tools {
+            border-left-color: var(--secondary);
         }
 
         .stat-content h4 {
             margin: 0;
             color: #666;
             font-weight: 500;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .stat-content span {
+        .stat-content .stat-value {
             font-size: 2rem;
-            font-weight: 700;
-            color: var(--sea-green);
-            display: block;
+            font-weight: bold;
+            color: var(--primary);
             margin-top: 0.5rem;
         }
 
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            background: var(--athens-gray);
-            color: var(--sea-green);
+        .stat-card.earnings .stat-value {
+            color: var(--success);
         }
 
-        /* Section Headers */
+        .stat-card.orders .stat-value {
+            color: var(--info);
+        }
+
+        .stat-card.tools .stat-value {
+            color: var(--secondary);
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            opacity: 0.2;
+        }
+
+        /* Content Sections */
+        .content-section {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
         .section-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid var(--light);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
         }
 
         .section-header h2 {
             margin: 0;
-            color: #333;
             font-size: 1.5rem;
-        }
-
-        .btn-primary {
-            background: var(--sea-green);
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            border: none;
-            font-weight: 500;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
+            color: var(--dark);
+            display: flex;
             align-items: center;
-            gap: 0.5rem;
-            transition: background 0.3s;
+            gap: 0.75rem;
         }
 
-        .btn-primary:hover {
-            background: var(--sushi);
+        .section-body {
+            padding: 2rem;
+        }
+
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
         }
 
         /* Tools Grid */
@@ -169,43 +344,103 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 1.5rem;
-            margin-bottom: 2rem;
         }
 
         .tool-card {
-            background: white;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            transition: transform 0.3s, box-shadow 0.3s;
+            transition: all 0.3s;
         }
 
         .tool-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            border-color: var(--primary);
+            box-shadow: 0 4px 16px rgba(53, 141, 88, 0.15);
+            transform: translateY(-3px);
+        }
+
+        .tool-image-wrapper {
+            width: 100%;
+            height: 200px;
+            background: var(--light);
+            position: relative;
+            overflow: hidden;
         }
 
         .tool-image {
             width: 100%;
-            height: 200px;
+            height: 100%;
             object-fit: cover;
-            background: var(--athens-gray);
         }
 
-        .tool-content {
+        .tool-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: #ccc;
+        }
+
+        .tool-actions {
+            position: absolute;
+            top: 0.75rem;
+            right: 0.75rem;
+            display: flex;
+            gap: 0.5rem;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .tool-card:hover .tool-actions {
+            opacity: 1;
+        }
+
+        .btn-action {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            border: none;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+
+        .btn-action:hover {
+            transform: scale(1.1);
+        }
+
+        .btn-edit {
+            background: var(--warning);
+            color: white;
+        }
+
+        .btn-delete {
+            background: var(--danger);
+            color: white;
+        }
+
+        .tool-info {
             padding: 1.5rem;
         }
 
-        .tool-content h3 {
-            margin: 0 0 0.5rem 0;
+        .tool-name {
+            font-size: 1.2rem;
+            font-weight: 700;
             color: #333;
-            font-size: 1.1rem;
+            margin: 0 0 0.75rem 0;
         }
 
-        .tool-content p {
-            margin: 0 0 1rem 0;
-            color: #666;
+        .tool-description {
             font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 1rem;
             line-height: 1.5;
         }
 
@@ -213,230 +448,920 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            margin-top: 1rem;
             padding-top: 1rem;
-            border-top: 1px solid #eee;
+            border-top: 1px solid #e9ecef;
         }
 
         .tool-price {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: var(--sea-green);
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
         }
 
-        .tool-actions {
-            display: flex;
+        .tool-stock {
+            font-size: 0.85rem;
+            color: #666;
+        }
+
+        .tool-status {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            margin-top: 0.75rem;
+        }
+
+        .status-available {
+            background: #D4EDDA;
+            color: #155724;
+        }
+
+        .status-unavailable {
+            background: #F8D7DA;
+            color: #721C24;
+        }
+
+        /* Orders Table */
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .orders-table th,
+        .orders-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .orders-table th {
+            background: var(--light);
+            font-weight: 600;
+            color: #333;
+        }
+
+        .order-status {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: #FFF3CD;
+            color: #856404;
+        }
+
+        .status-confirmed {
+            background: #D1ECF1;
+            color: #0C5460;
+        }
+
+        .status-shipped {
+            background: #D4EDDA;
+            color: #155724;
+        }
+
+        .status-delivered {
+            background: #D4EDDA;
+            color: #155724;
+        }
+
+        .status-cancelled {
+            background: #F8D7DA;
+            color: #721C24;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: inline-flex;
+            align-items: center;
             gap: 0.5rem;
         }
 
-        .btn-icon {
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .close-modal {
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #999;
+            background: none;
+            border: none;
             width: 36px;
             height: 36px;
-            border-radius: 8px;
-            border: none;
-            background: var(--athens-gray);
-            color: #666;
-            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
+            border-radius: 50%;
             transition: all 0.3s;
         }
 
-        .btn-icon:hover {
-            background: var(--sea-green);
-            color: white;
+        .close-modal:hover {
+            background: #f0f0f0;
+            color: #666;
         }
 
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(53, 141, 88, 0.1);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid #eee;
+        }
+
+        /* Empty State */
         .empty-state {
             text-align: center;
-            padding: 3rem;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 4rem 2rem;
+            color: #999;
         }
 
         .empty-state i {
-            font-size: 4rem;
-            color: #ccc;
+            font-size: 5rem;
+            display: block;
             margin-bottom: 1rem;
+            opacity: 0.4;
         }
 
         .empty-state h3 {
+            margin: 0 0 0.5rem 0;
             color: #666;
-            margin-bottom: 0.5rem;
+            font-size: 1.5rem;
         }
 
-        .empty-state p {
-            color: #999;
-            margin-bottom: 1.5rem;
+        /* Messages */
+        .messages {
+            margin-bottom: 2rem;
+        }
+
+        .message-alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+
+        .message-alert.success {
+            background: #D4EDDA;
+            color: #155724;
+            border-left: 4px solid #28A745;
+        }
+
+        .message-alert.error {
+            background: #F8D7DA;
+            color: #721C24;
+            border-left: 4px solid #DC3545;
+        }
+
+        .message-alert.info {
+            background: #D1ECF1;
+            color: #0C5460;
+            border-left: 4px solid #17A2B8;
+        }
+
+        /* Language Selector */
+        .language-selector {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: border-color 0.3s;
+        }
+
+        .language-selector:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .tools-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .orders-table {
+                font-size: 0.85rem;
+            }
+
+            .orders-table th,
+            .orders-table td {
+                padding: 0.5rem;
+            }
+        }
+
+        /* Dashboard Section */
+        .dashboard-section {
+            display: none;
+        }
+
+        .dashboard-section:first-of-type {
+            display: block;
         }
     </style>
 </head>
 <body>
-    <header class="main-header">
-        <div class="header-container">
-            <div class="logo">
-                <a href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
-                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
-                        <span class="logo-icon">🌾</span>
-                        <span class="logo-text">Farmity</span>
-                    </span>
-                </a>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🌾</div>
+            <div class="sidebar-title">Farmity</div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#dashboard" class="nav-item active" onclick="showSection('dashboard'); return false;">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#tools" class="nav-item" onclick="showSection('tools'); return false;">
+                <i class="fas fa-tools"></i>
+                <span>My Tools</span>
+            </a>
+            <a href="#orders" class="nav-item" onclick="showSection('orders'); return false;">
+                <i class="fas fa-shopping-cart"></i>
+                <span>Orders</span>
+            </a>
+            <a href="#analytics" class="nav-item" onclick="showSection('analytics'); return false;">
+                <i class="fas fa-chart-bar"></i>
+                <span>Analytics</span>
+            </a>
+            <a href="#profile" class="nav-item" onclick="showSection('profile'); return false;">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+            <a href="#settings" class="nav-item" onclick="showSection('settings'); return false;">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+            <a href="{% url 'logout' %}" class="nav-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 style="margin: 0; font-size: 1.5rem; color: var(--primary);">Vendor Dashboard</h1>
             </div>
-            <nav class="main-nav">
-                <a href="{% url 'vendor_dashboard' %}">Dashboard</a>
-                <a href="{% url 'profile' %}">Profile</a>
-                <a href="{% url 'chat_threads' %}">Chat</a>
-                <a href="{% url 'settings' %}">Settings</a>
-            </nav>
-            <div class="header-actions" id="headerActions">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <select id="languageSelect" class="language-selector" onchange="changeLanguage(this.value)">
-                        <option value="en">English</option>
-                        <option value="np">नेपाली (Nepali)</option>
-                    </select>
-                    <div id="authButtons" class="auth-buttons"></div>
+            <div class="header-right">
+                <select id="languageSelect" class="language-selector" onchange="changeLanguage(this.value)">
+                    <option value="en">English</option>
+                    <option value="np">नेपाली (Nepali)</option>
+                </select>
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        {% if profile.logo %}
+                        <img src="{{ profile.logo.url }}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        {% else %}
+                        {% if profile.company_name %}{{ profile.company_name|first|upper }}{% else %}V{% endif %}
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div style="font-weight: 600;">{{ profile.company_name|default:user.email }}</div>
+                        <div style="font-size: 0.85rem; color: #666;">Vendor</div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </header>
+        </header>
 
-    <div class="dashboard-container">
-        <!-- KYC Alert (if not verified) -->
-        {% if not user.is_verified %}
-        <div class="kyc-alert {% if kyc_status == 'rejected' %}rejected{% elif kyc_status == 'pending' %}pending{% endif %}">
-            <div class="kyc-content">
-                <div class="kyc-text">
-                    <h3>
-                        {% if kyc_status == 'rejected' %}
-                            KYC Verification Rejected
-                        {% elif kyc_status == 'pending' %}
-                            KYC Verification Pending
-                        {% else %}
-                            KYC Verification Required
-                        {% endif %}
-                    </h3>
-                    <p>
-                        {% if kyc_status == 'rejected' %}
-                            Your KYC verification was rejected. Please resubmit your documents.
-                        {% elif kyc_status == 'pending' %}
-                            Your KYC verification is under review. Please wait for approval.
-                        {% else %}
-                            Please complete KYC verification to access all features.
-                        {% endif %}
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+            <!-- KYC Alert -->
+            {% if kyc_status != 'approved' %}
+            <div class="kyc-alert {% if kyc_status == 'rejected' %}rejected{% elif kyc_status == 'pending' %}pending{% endif %}">
+                <div class="kyc-content">
+                    <div class="kyc-text">
+                        <h3>
+                            <i class="fas fa-file-contract"></i>
+                            {% if kyc_status == 'pending' %}KYC Verification Pending
+                            {% elif kyc_status == 'rejected' %}KYC Verification Rejected
+                            {% else %}KYC Verification Required{% endif %}
+                        </h3>
+                        <p>
+                            {% if kyc_status == 'pending' %}Your KYC documents are under review. Please wait for approval.
+                            {% elif kyc_status == 'rejected' %}{% if kyc_request.rejection_reason %}Reason: {{ kyc_request.rejection_reason }}{% endif %} Please update your documents and resubmit.
+                            {% else %}Upload your documents to verify your vendor status and access all features.{% endif %}
+                        </p>
+                    </div>
+                    <a href="{% url 'kyc' %}" class="kyc-btn">
+                        <i class="fas fa-upload"></i> {% if kyc_status == 'rejected' or not kyc_status %}Upload KYC{% else %}View Status{% endif %}
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Messages -->
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="message-alert {{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="dashboard-section">
+                <!-- Summary Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card tools">
+                        <div class="stat-content">
+                            <h4>Total Tools</h4>
+                            <div class="stat-value">{{ tools_count }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-tools"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <h4>Available Tools</h4>
+                            <div class="stat-value">{{ available_tools_count }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card orders">
+                        <div class="stat-content">
+                            <h4>Total Orders</h4>
+                            <div class="stat-value">{{ total_orders }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-shopping-bag"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card earnings">
+                        <div class="stat-content">
+                            <h4>Total Revenue</h4>
+                            <div class="stat-value">Rs. {{ total_revenue|floatformat:2 }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-rupee-sign"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <h4>Pending Orders</h4>
+                            <div class="stat-value" style="color: var(--warning);">{{ pending_orders }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <h4>Delivered</h4>
+                            <div class="stat-value" style="color: var(--success);">{{ delivered_orders }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if features_restricted %}
+                <div style="background: #FFF3CD; border-left: 4px solid var(--warning); padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+                    <p style="margin: 0; color: #856404; font-weight: 500;">
+                        <i class="fas fa-info-circle"></i> Some features are restricted until KYC verification is approved. Complete your KYC to unlock all features.
                     </p>
                 </div>
-                <a href="/kyc/" class="kyc-btn">
-                    {% if kyc_status == 'rejected' %}
-                        Resubmit KYC
-                    {% else %}
-                        Complete KYC
-                    {% endif %}
-                </a>
-            </div>
-        </div>
-        {% endif %}
+                {% endif %}
 
-        <!-- Stats Grid -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-content">
-                    <h4>Total Tools</h4>
-                    <span id="tools-count">0</span>
-                </div>
-                <div class="stat-icon">
-                    <i class="fas fa-tools"></i>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-content">
-                    <h4>Available Tools</h4>
-                    <span id="available-tools-count">0</span>
-                </div>
-                <div class="stat-icon">
-                    <i class="fas fa-check-circle"></i>
-                </div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-content">
-                    <h4>Sold Tools</h4>
-                    <span id="sold-tools-count">0</span>
-                </div>
-                <div class="stat-icon">
-                    <i class="fas fa-shopping-cart"></i>
+                <!-- Charts -->
+                <div class="charts-grid">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-chart-line"></i> Revenue Trend</h2>
+                        </div>
+                        <div class="section-body">
+                            <div class="chart-container">
+                                <canvas id="revenueChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="content-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-chart-bar"></i> Orders Trend</h2>
+                        </div>
+                        <div class="section-body">
+                            <div class="chart-container">
+                                <canvas id="ordersChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- My Tools Section -->
-        <div class="section-header">
-            <h2>My Tools</h2>
-            <button class="btn-primary" onclick="openAddToolModal()">
-                <i class="fas fa-plus"></i>
-                Add New Tool
-            </button>
-        </div>
+            <!-- Tools Section -->
+            <div id="tools-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-tools"></i> My Tools</h2>
+                        <button class="btn-primary" onclick="openAddToolModal()" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;" title="KYC verification required"{% endif %}>
+                            <i class="fas fa-plus"></i> Add New Tool
+                        </button>
+                    </div>
+                    <div class="section-body">
+                        {% if tools %}
+                        <div class="tools-grid">
+                            {% for tool in tools %}
+                            <div class="tool-card">
+                                <div class="tool-image-wrapper">
+                                    {% if tool.image %}
+                                    <img src="{{ tool.image.url }}" alt="{{ tool.name }}" class="tool-image">
+                                    {% else %}
+                                    <div class="tool-placeholder">
+                                        <i class="fas fa-tools"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div class="tool-actions">
+                                        <button class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', '{{ tool.description|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}, {{ tool.is_available|yesno:"true,false" }}, {% if tool.image %}'{{ tool.image.url }}'{% else %}''{% endif %}){% else %}alert('KYC verification required to edit tools'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-action btn-delete" onclick="{% if kyc_status == 'approved' %}openDeleteToolModal({{ tool.id }}, '{{ tool.name|escapejs }}'){% else %}alert('KYC verification required to delete tools'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Delete{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="tool-info">
+                                    <h3 class="tool-name">{{ tool.name }}</h3>
+                                    {% if tool.description %}
+                                    <p class="tool-description">{{ tool.description|truncatewords:20 }}</p>
+                                    {% endif %}
+                                    <div class="tool-footer">
+                                        <div>
+                                            <div class="tool-price">Rs. {{ tool.price }}</div>
+                                            <div class="tool-stock">Stock: {{ tool.stock_quantity }} units</div>
+                                        </div>
+                                        <span class="tool-status status-{% if tool.is_available %}available{% else %}unavailable{% endif %}">
+                                            {% if tool.is_available %}Available{% else %}Unavailable{% endif %}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-tools"></i>
+                            <h3>No Tools Added Yet</h3>
+                            <p>Start by adding your first tool to sell</p>
+                            <button class="btn-primary" onclick="openAddToolModal()" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+                                <i class="fas fa-plus"></i> Add Tool
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
 
-        <div id="tools-container" class="tools-grid">
-            <div class="empty-state">
-                <i class="fas fa-tools"></i>
-                <h3>No Tools Added Yet</h3>
-                <p>Start by adding your first tool to sell</p>
-                <button class="btn-primary" onclick="openAddToolModal()">
-                    <i class="fas fa-plus"></i>
-                    Add Tool
-                </button>
+            <!-- Orders Section -->
+            <div id="orders-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-shopping-cart"></i> Customer Orders</h2>
+                    </div>
+                    <div class="section-body">
+                        {% if orders %}
+                        <table class="orders-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Tool</th>
+                                    <th>Buyer</th>
+                                    <th>Quantity</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in orders %}
+                                <tr>
+                                    <td>#{{ order.id }}</td>
+                                    <td>{{ order.tool.name|default:"N/A" }}</td>
+                                    <td>{{ order.buyer.email }}</td>
+                                    <td>{{ order.quantity }}</td>
+                                    <td>Rs. {{ order.total_amount }}</td>
+                                    <td>
+                                        <span class="order-status status-{{ order.status }}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                    <td>
+                                        {% if kyc_status == 'approved' and order.status != 'delivered' and order.status != 'cancelled' %}
+                                        <form method="POST" style="display: inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="order_id" value="{{ order.id }}">
+                                            <input type="hidden" name="update_order_status" value="1">
+                                            {% if order.status == 'pending' or order.status == 'confirmed' %}
+                                            <select name="status" style="padding: 0.5rem; border-radius: 6px; border: 1px solid #ddd; font-size: 0.9rem; margin-right: 0.5rem;">
+                                                <option value="confirmed" {% if order.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                                                <option value="shipped" {% if order.status == 'shipped' %}selected{% endif %}>Shipped</option>
+                                                <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>Delivered</option>
+                                            </select>
+                                            <input type="text" name="tracking_number" placeholder="Tracking #" value="{{ order.tracking_number|default:'' }}" style="padding: 0.5rem; border-radius: 6px; border: 1px solid #ddd; font-size: 0.9rem; width: 150px; margin-right: 0.5rem;">
+                                            <button type="submit" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                                                <i class="fas fa-save"></i> Update
+                                            </button>
+                                            {% elif order.status == 'shipped' %}
+                                            <select name="status" style="padding: 0.5rem; border-radius: 6px; border: 1px solid #ddd; font-size: 0.9rem; margin-right: 0.5rem;">
+                                                <option value="shipped" selected>Shipped</option>
+                                                <option value="delivered">Delivered</option>
+                                            </select>
+                                            <button type="submit" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+                                                <i class="fas fa-save"></i> Update
+                                            </button>
+                                            {% endif %}
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-shopping-cart"></i>
+                            <h3>No Orders Yet</h3>
+                            <p>Orders for your tools will appear here</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Analytics Section -->
+            <div id="analytics-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chart-bar"></i> Analytics</h2>
+                    </div>
+                    <div class="section-body">
+                        <div class="charts-grid">
+                            <div class="content-section">
+                                <div class="section-header">
+                                    <h3><i class="fas fa-chart-line"></i> Revenue by Month</h3>
+                                </div>
+                                <div class="section-body">
+                                    <div class="chart-container">
+                                        <canvas id="analyticsRevenueChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="content-section">
+                                <div class="section-header">
+                                    <h3><i class="fas fa-chart-bar"></i> Orders by Month</h3>
+                                </div>
+                                <div class="section-body">
+                                    <div class="chart-container">
+                                        <canvas id="analyticsOrdersChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Section -->
+            <div id="profile-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-user"></i> My Profile</h2>
+                    </div>
+                    <div class="section-body">
+                        <form method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="1">
+                            
+                            <div style="display: flex; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                                <div style="flex: 0 0 200px;">
+                                    <div style="width: 200px; height: 200px; border-radius: 50%; overflow: hidden; border: 4px solid var(--primary); margin: 0 auto;">
+                                        {% if profile.logo %}
+                                        <img src="{{ profile.logo.url }}" alt="Logo" style="width: 100%; height: 100%; object-fit: cover;">
+                                        {% else %}
+                                        <div style="width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 4rem;">
+                                            <i class="fas fa-building"></i>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div style="margin-top: 1rem; text-align: center;">
+                                        <label for="logo" class="btn-primary" style="cursor: pointer; display: inline-block;">
+                                            <i class="fas fa-camera"></i> Change Logo
+                                        </label>
+                                        <input type="file" name="photo" id="logo" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                                    </div>
+                                </div>
+                                <div style="flex: 1; min-width: 300px;">
+                                    <h3 style="margin: 0 0 1rem 0; font-size: 1.5rem; color: #333;">{{ profile.company_name|default:user.email }}</h3>
+                                    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                                        <span class="role-badge" style="padding: 0.5rem 1rem; background: var(--primary); color: white; border-radius: 20px; font-weight: 600;">Vendor</span>
+                                        {% if kyc_status == 'approved' %}
+                                        <span style="padding: 0.5rem 1rem; background: #D4EDDA; color: #155724; border-radius: 20px; font-weight: 600;">
+                                            <i class="fas fa-check-circle"></i> Verified
+                                        </span>
+                                        {% else %}
+                                        <span style="padding: 0.5rem 1rem; background: #FFF3CD; color: #856404; border-radius: 20px; font-weight: 600;">
+                                            <i class="fas fa-exclamation-circle"></i> Unverified
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                                <div class="form-group">
+                                    <label>Company Name</label>
+                                    <input type="text" name="company_name" class="form-control" value="{{ profile.company_name|default:'' }}" placeholder="Enter company name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Contact</label>
+                                    <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Enter contact number">
+                                </div>
+                                <div class="form-group" style="grid-column: 1/-1;">
+                                    <label>Address</label>
+                                    <textarea name="address" class="form-control" rows="3" placeholder="Enter company address">{{ profile.address|default:'' }}</textarea>
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 2rem;">
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-save"></i> Update Profile
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div id="settings-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-cog"></i> Settings</h2>
+                    </div>
+                    <div class="section-body">
+                        <!-- Security Section -->
+                        <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                                <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-lock" style="font-size: 1.75rem; color: var(--primary);"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 1.5rem;">Security</h3>
+                            </div>
+                            <form method="POST" action="{% url 'change_password' %}">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label>Current Password</label>
+                                    <input type="password" name="current_password" class="form-control" placeholder="Enter your current password" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>New Password</label>
+                                    <input type="password" name="new_password" class="form-control" placeholder="Enter your new password" required pattern=".{8,}" title="Password must be at least 8 characters">
+                                    <small style="color: #666; font-size: 0.85rem; margin-top: 0.5rem; display: block;">Password must be at least 8 characters long</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Confirm New Password</label>
+                                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your new password" required>
+                                </div>
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-key"></i> Update Password
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Language Section -->
+                        <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                                <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-globe" style="font-size: 1.75rem; color: var(--primary);"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 1.5rem;">Language & Region</h3>
+                            </div>
+                            <div class="form-group">
+                                <label>Preferred Language</label>
+                                <select id="settingsLanguageSelect" class="form-control" onchange="changeLanguage(this.value)">
+                                    <option value="en">English</option>
+                                    <option value="np">नेपाली (Nepali)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Add/Edit Tool Modal -->
-    <div id="toolModal" class="modal" style="display: none;">
+    <div id="toolModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modal-title">Add New Tool</h2>
-                <button class="modal-close" onclick="closeToolModal()">&times;</button>
+                <h3 id="modalTitle">Add New Tool</h3>
+                <button class="close-modal" onclick="closeToolModal()">&times;</button>
             </div>
-            <form id="toolForm" enctype="multipart/form-data">
+            <form id="toolForm" method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
-                <input type="hidden" id="tool-id" name="tool_id">
+                <input type="hidden" id="tool_id" name="tool_id">
+                <input type="hidden" id="form_action" name="add_tool" value="1">
                 
                 <div class="form-group">
-                    <label for="tool-name">Tool Name *</label>
-                    <input type="text" id="tool-name" name="name" required>
+                    <label for="tool_name">Tool Name *</label>
+                    <input type="text" id="tool_name" name="name" class="form-control" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="tool-description">Description *</label>
-                    <textarea id="tool-description" name="description" rows="4" required></textarea>
+                    <label for="tool_description">Description</label>
+                    <textarea id="tool_description" name="description" class="form-control" rows="4"></textarea>
                 </div>
 
                 <div class="form-row">
                     <div class="form-group">
-                        <label for="tool-price">Price (NPR) *</label>
-                        <input type="number" id="tool-price" name="price" step="0.01" min="0" required>
+                        <label for="tool_price">Price (NPR) *</label>
+                        <input type="number" id="tool_price" name="price" class="form-control" step="0.01" min="0" required>
                     </div>
 
                     <div class="form-group">
-                        <label for="tool-stock">Stock Quantity *</label>
-                        <input type="number" id="tool-stock" name="stock" min="0" required>
+                        <label for="tool_stock">Stock Quantity *</label>
+                        <input type="number" id="tool_stock" name="stock" class="form-control" min="0" required>
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label for="tool-image">Tool Image</label>
-                    <input type="file" id="tool-image" name="image" accept="image/*">
-                    <div id="tool-image-preview" style="margin-top: 1rem; display: none;">
-                        <img id="tool-preview-img" src="" alt="Preview" style="max-width: 200px; border-radius: 8px;">
+                    <label for="tool_image">Tool Image</label>
+                    <input type="file" id="tool_image" name="image" accept="image/*" class="form-control" onchange="previewToolImage(this)">
+                    <div id="tool_image_preview" style="margin-top: 1rem; display: none;">
+                        <img id="tool_preview_img" src="" alt="Preview" style="max-width: 200px; border-radius: 8px;">
                     </div>
                 </div>
 
                 <div class="form-group">
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="tool-available" name="is_available" checked>
-                        <span class="checkmark"></span>
-                        Available for Sale
+                    <label class="form-checkbox">
+                        <input type="checkbox" id="tool_available" name="is_available" checked>
+                        <span>Available for Sale</span>
                     </label>
                 </div>
 
@@ -448,54 +1373,127 @@
         </div>
     </div>
 
+    <!-- Delete Tool Modal -->
+    <div id="deleteToolModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Delete Tool</h3>
+                <button class="close-modal" onclick="closeDeleteToolModal()">&times;</button>
+            </div>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" id="delete_tool_id" name="tool_id">
+                <input type="hidden" name="delete_tool" value="1">
+                <p>Are you sure you want to delete <strong id="delete_tool_name"></strong>? This action cannot be undone.</p>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeDeleteToolModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" style="background: var(--danger);">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="/static/js/main.js"></script>
     <script>
-        // Load tools on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadTools();
-        });
-
-        function loadTools() {
-            // TODO: Implement API call to load vendor tools
-            // For now, show empty state
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.dashboard-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById(sectionId + '-section').style.display = 'block';
+            
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.nav-item').classList.add('active');
         }
 
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
+        // Modal Functions
         function openAddToolModal() {
-            document.getElementById('toolModal').style.display = 'flex';
+            document.getElementById('toolModal').classList.add('active');
+            document.getElementById('modalTitle').textContent = 'Add New Tool';
             document.getElementById('toolForm').reset();
-            document.getElementById('tool-id').value = '';
-            document.getElementById('modal-title').textContent = 'Add New Tool';
-            document.getElementById('tool-image-preview').style.display = 'none';
+            document.getElementById('tool_id').value = '';
+            document.getElementById('form_action').name = 'add_tool';
+            document.getElementById('form_action').value = '1';
+            document.getElementById('tool_image_preview').style.display = 'none';
         }
 
         function closeToolModal() {
-            document.getElementById('toolModal').style.display = 'none';
+            document.getElementById('toolModal').classList.remove('active');
         }
 
-        // Handle image preview
-        document.getElementById('tool-image').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
+        function openEditToolModal(id, name, description, price, stock, isAvailable, imageUrl) {
+            document.getElementById('toolModal').classList.add('active');
+            document.getElementById('modalTitle').textContent = 'Edit Tool';
+            document.getElementById('tool_id').value = id;
+            document.getElementById('tool_name').value = name;
+            document.getElementById('tool_description').value = description || '';
+            document.getElementById('tool_price').value = price;
+            document.getElementById('tool_stock').value = stock;
+            document.getElementById('tool_available').checked = isAvailable;
+            document.getElementById('form_action').name = 'edit_tool';
+            document.getElementById('form_action').value = '1';
+            
+            // Show existing image if available
+            const preview = document.getElementById('tool_image_preview');
+            if (imageUrl) {
+                document.getElementById('tool_preview_img').src = imageUrl;
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        function openDeleteToolModal(id, name) {
+            document.getElementById('deleteToolModal').classList.add('active');
+            document.getElementById('delete_tool_id').value = id;
+            document.getElementById('delete_tool_name').textContent = name;
+        }
+
+        function closeDeleteToolModal() {
+            document.getElementById('deleteToolModal').classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+            }
+        }
+
+        // Image Preview
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    document.getElementById('tool-preview-img').src = e.target.result;
-                    document.getElementById('tool-image-preview').style.display = 'block';
+                    const img = input.closest('div').querySelector('img');
+                    if (img) {
+                        img.src = e.target.result;
+                    }
                 };
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(input.files[0]);
             }
-        });
+        }
 
-        // Handle form submission
-        document.getElementById('toolForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            // TODO: Implement API call to save tool
-            alert('Tool save functionality will be implemented');
-        });
+        function previewToolImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('tool_preview_img').src = e.target.result;
+                    document.getElementById('tool_image_preview').style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
 
         // Language Functions
         function changeLanguage(lang) {
             localStorage.setItem('language', lang);
-            // Language changes can be applied here if needed
         }
 
         // Initialize language selector
@@ -505,10 +1503,141 @@
             if (select) {
                 select.value = savedLang;
             }
+            const settingsSelect = document.getElementById('settingsLanguageSelect');
+            if (settingsSelect) {
+                settingsSelect.value = savedLang;
+            }
+
+            // Charts
+            const revenueData = {{ revenue_data|safe }};
             
-            // Update auth buttons (from main.js)
-            if (typeof updateAuthHeader === 'function') {
-                updateAuthHeader();
+            // Revenue Chart
+            const revenueCtx = document.getElementById('revenueChart');
+            if (revenueCtx) {
+                new Chart(revenueCtx, {
+                    type: 'line',
+                    data: {
+                        labels: revenueData.map(d => d.month || 'N/A'),
+                        datasets: [{
+                            label: 'Revenue (Rs.)',
+                            data: revenueData.map(d => d.total_revenue || 0),
+                            borderColor: 'rgb(53, 141, 88)',
+                            backgroundColor: 'rgba(53, 141, 88, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Orders Chart
+            const ordersCtx = document.getElementById('ordersChart');
+            if (ordersCtx) {
+                new Chart(ordersCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: revenueData.map(d => d.month || 'N/A'),
+                        datasets: [{
+                            label: 'Orders',
+                            data: revenueData.map(d => d.order_count || 0),
+                            backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                            borderColor: 'rgb(40, 167, 69)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Analytics Charts
+            const analyticsRevenueCtx = document.getElementById('analyticsRevenueChart');
+            if (analyticsRevenueCtx) {
+                new Chart(analyticsRevenueCtx, {
+                    type: 'line',
+                    data: {
+                        labels: revenueData.map(d => d.month || 'N/A'),
+                        datasets: [{
+                            label: 'Revenue (Rs.)',
+                            data: revenueData.map(d => d.total_revenue || 0),
+                            borderColor: 'rgb(53, 141, 88)',
+                            backgroundColor: 'rgba(53, 141, 88, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            const analyticsOrdersCtx = document.getElementById('analyticsOrdersChart');
+            if (analyticsOrdersCtx) {
+                new Chart(analyticsOrdersCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: revenueData.map(d => d.month || 'N/A'),
+                        datasets: [{
+                            label: 'Orders',
+                            data: revenueData.map(d => d.order_count || 0),
+                            backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                            borderColor: 'rgb(40, 167, 69)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
             }
         });
     </script>

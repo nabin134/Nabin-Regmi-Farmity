@@ -274,8 +274,8 @@
 
                 <form id="otpForm">
                     {% csrf_token %}
-                    <input type="hidden" id="email" name="email" value="{{ email }}">
-                    <input type="hidden" id="token" name="token" value="{{ token }}">
+                    <input type="hidden" id="email" name="email" value="{{ email|default:'' }}">
+                    <input type="hidden" id="token" name="token" value="{{ token|default:'' }}">
                     
                     <div class="otp-inputs">
                         <input type="text" class="otp-input" maxlength="1" pattern="[0-9]" inputmode="numeric" id="otp1" required>
@@ -330,19 +330,47 @@
             });
         });
 
+        // Get email from URL if not in form
+        function getEmailFromURL() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('email') || '';
+        }
+
+        // Set email if not already set
+        const emailInput = document.getElementById('email');
+        if (emailInput && !emailInput.value) {
+            const emailFromURL = getEmailFromURL();
+            if (emailFromURL) {
+                emailInput.value = emailFromURL;
+            }
+        }
+
         // Form submission
         document.getElementById('otpForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const otp = Array.from(otpInputs).map(input => input.value).join('');
-            const email = document.getElementById('email').value;
-            const token = document.getElementById('token').value;
+            let email = document.getElementById('email').value.trim().toLowerCase();
+            const token = document.getElementById('token').value.trim();
             const submitButton = document.getElementById('verifyBtn');
             const messageDiv = document.getElementById('message');
+            
+            // Get email from URL if still not set
+            if (!email) {
+                email = getEmailFromURL();
+            }
             
             if (otp.length !== 6) {
                 if (messageDiv) {
                     messageDiv.textContent = 'Please enter the complete 6-digit code.';
+                    messageDiv.className = 'message error';
+                }
+                return;
+            }
+            
+            if (!email) {
+                if (messageDiv) {
+                    messageDiv.textContent = 'Email is required. Please go back and try again.';
                     messageDiv.className = 'message error';
                 }
                 return;
@@ -385,7 +413,17 @@
                     }
                     // Redirect to reset password page
                     setTimeout(() => {
-                        window.location.href = `/reset-password/?token=${data.reset_token || token}`;
+                        const resetToken = data.reset_token || token;
+                        if (resetToken) {
+                            window.location.href = `/reset-password/?token=${encodeURIComponent(resetToken)}`;
+                        } else {
+                            messageDiv.textContent = 'Error: No reset token received. Please try again.';
+                            messageDiv.className = 'message error';
+                            if (submitButton) {
+                                submitButton.disabled = false;
+                                submitButton.textContent = 'Verify';
+                            }
+                        }
                     }, 1000);
                 } else {
                     if (messageDiv) {
@@ -395,6 +433,10 @@
                     // Clear OTP inputs
                     otpInputs.forEach(input => input.value = '');
                     otpInputs[0].focus();
+                    if (submitButton) {
+                        submitButton.disabled = false;
+                        submitButton.textContent = 'Verify';
+                    }
                 }
             } catch (error) {
                 console.error('Error:', error);
@@ -402,7 +444,6 @@
                     messageDiv.textContent = 'Network error. Please check your connection.';
                     messageDiv.className = 'message error';
                 }
-            } finally {
                 if (submitButton) {
                     submitButton.disabled = false;
                     submitButton.textContent = 'Verify';
@@ -414,8 +455,25 @@
         document.getElementById('resendLink').addEventListener('click', async function(e) {
             e.preventDefault();
             
-            const email = document.getElementById('email').value;
+            let email = document.getElementById('email').value.trim().toLowerCase();
             const messageDiv = document.getElementById('message');
+            
+            // Get email from URL if not in form
+            if (!email) {
+                email = getEmailFromURL();
+            }
+            
+            if (!email) {
+                if (messageDiv) {
+                    messageDiv.textContent = 'Email is required. Please go back and try again.';
+                    messageDiv.className = 'message error';
+                }
+                return;
+            }
+            
+            // Disable resend link temporarily
+            this.style.pointerEvents = 'none';
+            this.style.opacity = '0.6';
             
             try {
                 const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
@@ -436,6 +494,10 @@
                         messageDiv.textContent = 'New OTP has been sent to your email.';
                         messageDiv.className = 'message success';
                     }
+                    // Update token if provided
+                    if (data.token) {
+                        document.getElementById('token').value = data.token;
+                    }
                     // Clear OTP inputs
                     otpInputs.forEach(input => input.value = '');
                     otpInputs[0].focus();
@@ -451,6 +513,12 @@
                     messageDiv.textContent = 'Network error. Please check your connection.';
                     messageDiv.className = 'message error';
                 }
+            } finally {
+                // Re-enable resend link after 5 seconds
+                setTimeout(() => {
+                    this.style.pointerEvents = 'auto';
+                    this.style.opacity = '1';
+                }, 5000);
             }
         });
     </script>

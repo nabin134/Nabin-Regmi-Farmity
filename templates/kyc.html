@@ -525,6 +525,66 @@
                         </a>
                         {% endif %}
                     </div>
+
+                    {% if request.user.role == 'vendor' %}
+                    <div class="form-group">
+                        <label>
+                            Company Registration Document <span class="required">*</span>
+                        </label>
+                        <div class="file-upload-area" onclick="document.getElementById('company_document').click()">
+                            <input type="file" id="company_document" name="company_document" 
+                                   class="file-input" accept=".pdf,.jpg,.jpeg,.png"
+                                   {% if not kyc %}required{% endif %}
+                                   onchange="handleFileSelect(this, 'company-preview')">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-building"></i>
+                            </div>
+                            <div class="file-upload-text">Click to upload company document</div>
+                            <div class="file-upload-hint">PDF, JPG, or PNG (Max 5MB) - Company registration, business license, or trade license</div>
+                            <div class="file-preview" id="company-preview"></div>
+                        </div>
+                        {% if kyc.company_document %}
+                        <a href="{{ kyc.company_document.url }}" target="_blank" class="current-file-link">
+                            <i class="fas fa-file-pdf"></i>
+                            View Current Company Document
+                        </a>
+                        {% endif %}
+                        <div class="help-text">
+                            <i class="fas fa-info-circle"></i>
+                            Upload your company registration certificate, business license, or trade license document
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    {% if request.user.role == 'agricultural_expert' %}
+                    <div class="form-group">
+                        <label>
+                            Professional Certificate <span class="required">*</span>
+                        </label>
+                        <div class="file-upload-area" onclick="document.getElementById('certificate_document').click()">
+                            <input type="file" id="certificate_document" name="certificate_document" 
+                                   class="file-input" accept=".pdf,.jpg,.jpeg,.png"
+                                   {% if not kyc %}required{% endif %}
+                                   onchange="handleFileSelect(this, 'certificate-preview')">
+                            <div class="file-upload-icon">
+                                <i class="fas fa-certificate"></i>
+                            </div>
+                            <div class="file-upload-text">Click to upload certificate</div>
+                            <div class="file-upload-hint">PDF, JPG, or PNG (Max 5MB) - Professional certificate, degree, or qualification document</div>
+                            <div class="file-preview" id="certificate-preview"></div>
+                        </div>
+                        {% if kyc.certificate_document %}
+                        <a href="{{ kyc.certificate_document.url }}" target="_blank" class="current-file-link">
+                            <i class="fas fa-file-pdf"></i>
+                            View Current Certificate
+                        </a>
+                        {% endif %}
+                        <div class="help-text">
+                            <i class="fas fa-info-circle"></i>
+                            Upload your professional certificate, degree, or qualification document proving your expertise
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
 
                 <button type="submit" class="btn-submit">

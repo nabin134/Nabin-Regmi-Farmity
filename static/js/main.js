@@ -210,13 +210,22 @@ async function handleLogin(e) {
                     messageDiv.className = 'message success';
                 }
                 
-                setTimeout(() => {
-                    if (data.redirect_url) {
-                        window.location.href = data.redirect_url;
-                    } else {
-                        window.location.href = '/dashboard/';
+                // Redirect immediately to prevent any issues
+                if (data.redirect_url) {
+                    // Ensure URL starts with / if it's a relative path
+                    let redirectUrl = data.redirect_url;
+                    if (!redirectUrl.startsWith('http') && !redirectUrl.startsWith('/')) {
+                        redirectUrl = '/' + redirectUrl;
                     }
-                }, 1000);
+                    // Remove trailing slash if present (except for root)
+                    if (redirectUrl !== '/' && redirectUrl.endsWith('/')) {
+                        redirectUrl = redirectUrl.slice(0, -1);
+                    }
+                    window.location.href = redirectUrl;
+                } else {
+                    // Fallback to dashboard which will redirect based on role
+                    window.location.href = '/dashboard/';
+                }
             }
         } else {
             const errorMsg = data.error || data.message || 'Login failed.';
@@ -254,8 +263,9 @@ async function handleRegister(e) {
     const confirmPassword = confirmPasswordInput.value;
     
     let role = 'buyer';
-    if (roleSelect && roleSelect.value) role = roleSelect.value;
-    else if (roleHidden && roleHidden.value) role = roleHidden.value;
+    // Priority: hidden input (pre-selected) > select dropdown
+    if (roleHidden && roleHidden.value) role = roleHidden.value;
+    else if (roleSelect && roleSelect.value) role = roleSelect.value;
     
     const messageDiv = document.getElementById('message');
     if (messageDiv) {
@@ -319,9 +329,9 @@ async function handleRegister(e) {
                 messageDiv.className = 'message success';
             }
             
+            // Redirect to login page after signup
             setTimeout(() => {
-                // Always redirect to login page after signup
-                window.location.href = '/login/';
+                window.location.href = '/login/?registered=true';
             }, 1500);
         } else {
             let errorMsg = data.error || 'Registration failed.';

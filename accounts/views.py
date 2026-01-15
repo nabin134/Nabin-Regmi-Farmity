@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.permissions import AllowAny
-from django.contrib.auth import authenticate, login, get_user_model
+from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
 from django.contrib import messages
@@ -10,9 +10,13 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db.models import Sum, Count, Q
+from django.db.models.functions import TruncMonth
+from django.urls import reverse
 import secrets
 import hashlib
-from datetime import timedelta
+import json
+from datetime import timedelta, datetime
 
 from .models import (
     KYCRequest,
@@ -26,8 +30,11 @@ from .models import (
     ExpertChatThread,
     ExpertChatMessage,
     UserProfile,
+    Order,
+    CropSale,
 )
 from .serializers import SignupSerializer, LoginSerializer, UserSerializer
+from .decorators import kyc_required, kyc_optional
 
 # Password reset tokens storage (in production, use Redis or database)
 password_reset_tokens = {}
@@ -45,19 +52,40 @@ def _ensure_role_profile(user):
         ExpertProfile.objects.get_or_create(user=user)
 
 def _redirect_to_role_home(user):
-    # Allow access to dashboards even without KYC - they'll see the KYC alert
-    # KYC verification can be done from the dashboard
+    """
+    Redirect user to their role-specific dashboard.
+    For roles requiring KYC, check status and redirect to KYC if needed.
+    Returns the URL path as a string for API responses.
+    """
+    # Check KYC status for roles that require it
+    if user.role in {'farmer', 'vendor', 'agricultural_expert'}:
+        kyc_request = user.kyc_requests.first()
+        kyc_status = kyc_request.status if kyc_request else None
+        
+        # If no KYC submitted, redirect to KYC page
+        if kyc_status is None:
+            return reverse('kyc')
+    
+    # Redirect to appropriate dashboard - return URL path
     if user.role == 'farmer':
-        return redirect('farmer_dashboard')
+        return reverse('farmer_dashboard')
     if user.role == 'vendor':
-        return redirect('vendor_dashboard')
+        return reverse('vendor_dashboard')
     if user.role == 'agricultural_expert':
-        return redirect('expert_dashboard')
+        return reverse('expert_dashboard')
     if user.role == 'admin':
-        return redirect('admin_dashboard')
+        return reverse('admin_dashboard')
     if user.role == 'buyer':
-        return redirect('user_dashboard')
-    return redirect('landing')
+        return reverse('user_dashboard')
+    return reverse('landing')
+
+
+def _redirect_to_role_home_response(user):
+    """
+    Returns a redirect response object (for use in views that render templates).
+    """
+    url_path = _redirect_to_role_home(user)
+    return redirect(url_path)
 
 
 # ======================
@@ -196,9 +224,20 @@ class LoginView(APIView):
             # Continue with login if user is now active
             login(request, user)
 
-            # Get redirect URL
-            redirect_response = _redirect_to_role_home(user)
-            redirect_url = redirect_response.url
+            # Check KYC status for roles that require it
+            if user.role in {'farmer', 'vendor', 'agricultural_expert'}:
+                kyc_request = user.kyc_requests.first()
+                kyc_status = kyc_request.status if kyc_request else None
+                
+                # If no KYC submitted, redirect to KYC page
+                if kyc_status is None:
+                    redirect_url = reverse('kyc')
+                else:
+                    # Get normal redirect URL (dashboard will show KYC alert if not approved)
+                    redirect_url = _redirect_to_role_home(user)
+            else:
+                # Buyers and admins - no KYC required, normal redirect
+                redirect_url = _redirect_to_role_home(user)
 
             return Response(
                 {
@@ -321,9 +360,21 @@ class VerifyOTPView(APIView):
             otp = request.data.get('otp', '').strip()
             token = request.data.get('token', '').strip()
             
-            if not email or not otp:
+            if not otp:
                 return Response(
-                    {"error": "Email and OTP are required"},
+                    {"error": "OTP is required"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            # If email is not provided, try to find it from token
+            if not email and token:
+                # Try to find email from password_reset_tokens
+                if token in password_reset_tokens:
+                    email = password_reset_tokens[token].get('email', '').lower()
+            
+            if not email:
+                return Response(
+                    {"error": "Email is required"},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             
@@ -352,7 +403,16 @@ class VerifyOTPView(APIView):
                 )
             
             # OTP verified - return reset token
-            reset_token = otp_data['token']
+            reset_token = otp_data.get('token', token)
+            # Ensure token is stored in password_reset_tokens
+            if reset_token not in password_reset_tokens and reset_token:
+                # Store token if it doesn't exist
+                password_reset_tokens[reset_token] = {
+                    'user_id': otp_data['user_id'],
+                    'email': email,
+                    'created_at': timezone.now()
+                }
+            
             del otp_storage[email]
             
             return Response(
@@ -454,16 +514,36 @@ def role_selection(request):
 
 
 def register_page(request):
-    role = request.GET.get('role', 'buyer')
-    return render(request, 'register.html', {'role': role})
+    from django.conf import settings
+    role = request.GET.get('role', '')
+    # Clean up role - ensure no None/null values
+    if role in ['None', 'null', 'undefined', None]:
+        role = ''
+    # Check if Google OAuth is configured
+    google_oauth_enabled = 'google' in getattr(settings, 'SOCIALACCOUNT_PROVIDERS', {})
+    
+    context = {
+        'role': role,
+        'google_oauth_enabled': google_oauth_enabled
+    }
+    return render(request, 'register.html', context)
 
 
 def login_page(request):
-    return render(request, 'login.html')
+    from django.conf import settings
+    # Check if Google OAuth is configured
+    google_oauth_enabled = 'google' in getattr(settings, 'SOCIALACCOUNT_PROVIDERS', {})
+    
+    context = {
+        'google_oauth_enabled': google_oauth_enabled
+    }
+    return render(request, 'login.html', context)
 
 
 def forgot_password_page(request):
-    return render(request, 'forgot_password.html')
+    # Check for messages from redirects
+    context = {}
+    return render(request, 'forgot_password.html', context)
 
 
 def otp_verification_page(request):
@@ -478,10 +558,18 @@ def reset_password_page(request):
         messages.error(request, 'Invalid reset link.')
         return redirect('forgot_password')
     
-    # Check if token exists (basic validation)
-    if token not in password_reset_tokens:
-        messages.error(request, 'Invalid or expired reset link.')
-        return redirect('forgot_password')
+    # Check if token exists and is valid (not expired)
+    if token in password_reset_tokens:
+        token_data = password_reset_tokens[token]
+        # Check token expiry (1 hour)
+        if timezone.now() - token_data['created_at'] > timedelta(hours=1):
+            del password_reset_tokens[token]
+            messages.error(request, 'Reset link has expired. Please request a new password reset.')
+            return redirect('forgot_password')
+    else:
+        # Token doesn't exist, but still render the page
+        # The frontend will handle the error when submitting
+        messages.warning(request, 'Please verify your reset token is valid.')
     
     return render(request, 'reset_password.html', {'token': token})
 
@@ -492,20 +580,39 @@ def home_page(request):
 
 @login_required
 def dashboard(request):
-    return _redirect_to_role_home(request.user)
+    return _redirect_to_role_home_response(request.user)
 
 
 @login_required
 def kyc_page(request):
     if not _user_requires_kyc(request.user):
-        return _redirect_to_role_home(request.user)
+        return _redirect_to_role_home_response(request.user)
 
+    # Ensure profile exists for get_full_name() to work
+    _ensure_role_profile(request.user)
+    
     existing = request.user.kyc_requests.first()
+    
+    # Prevent duplicate submissions - only allow new submission if no existing request or if rejected
+    if existing and existing.status not in [KYCRequest.STATUS_REJECTED]:
+        # If there's a pending or approved KYC, don't allow new submission
+        if existing.status == KYCRequest.STATUS_PENDING:
+            messages.info(request, 'Your KYC verification is already pending. Please wait for approval.')
+        elif existing.status == KYCRequest.STATUS_APPROVED:
+            messages.success(request, 'Your KYC is already approved!')
+        context = {
+            'kyc': existing,
+            'can_submit': False,
+        }
+        return render(request, 'kyc.html', context)
+    
     if request.method == 'POST':
         full_name = (request.POST.get('full_name') or '').strip()
         id_number = (request.POST.get('id_number') or '').strip()
         id_document = request.FILES.get('id_document')
         selfie = request.FILES.get('selfie')
+        company_document = request.FILES.get('company_document')
+        certificate_document = request.FILES.get('certificate_document')
 
         errors = {}
         if not full_name:
@@ -514,22 +621,61 @@ def kyc_page(request):
             errors['id_number'] = 'ID number is required.'
         if not id_document:
             errors['id_document'] = 'ID document is required.'
+        
+        # Validate role-specific documents
+        if request.user.role == 'vendor':
+            if not company_document and not (existing and existing.company_document):
+                errors['company_document'] = 'Company registration document is required for vendors.'
+        elif request.user.role == 'agricultural_expert':
+            if not certificate_document and not (existing and existing.certificate_document):
+                errors['certificate_document'] = 'Professional certificate is required for agricultural experts.'
 
         if not errors:
-            KYCRequest.objects.create(
-                user=request.user,
-                full_name=full_name,
-                id_number=id_number,
-                id_document=id_document,
-                selfie=selfie,
-                status=KYCRequest.STATUS_PENDING,
-            )
+            # Only create if no existing request or if previous was rejected
+            if existing and existing.status == KYCRequest.STATUS_REJECTED:
+                # Update existing rejected request
+                existing.full_name = full_name
+                existing.id_number = id_number
+                if id_document:
+                    existing.id_document = id_document
+                if selfie:
+                    existing.selfie = selfie
+                if company_document:
+                    existing.company_document = company_document
+                if certificate_document:
+                    existing.certificate_document = certificate_document
+                existing.status = KYCRequest.STATUS_PENDING
+                existing.rejection_reason = None
+                existing.save()
+                messages.success(request, 'KYC resubmitted successfully!')
+            else:
+                # Create new request only if none exists
+                if not existing:
+                    KYCRequest.objects.create(
+                        user=request.user,
+                        full_name=full_name,
+                        id_number=id_number,
+                        id_document=id_document,
+                        selfie=selfie,
+                        company_document=company_document,
+                        certificate_document=certificate_document,
+                        status=KYCRequest.STATUS_PENDING,
+                    )
+                    messages.success(request, 'KYC submitted successfully!')
+                else:
+                    messages.error(request, 'An error occurred. Please contact support.')
+            
             request.user.is_verified = False
             request.user.save(update_fields=['is_verified'])
             existing = request.user.kyc_requests.first()
+        else:
+            # If there are validation errors, pass them to the template
+            for field, error_msg in errors.items():
+                messages.error(request, f"{field.replace('_', ' ').title()}: {error_msg}")
 
     context = {
         'kyc': existing,
+        'can_submit': True,
     }
     return render(request, 'kyc.html', context)
 
@@ -642,14 +788,19 @@ def change_password(request):
 @login_required
 def farmer_dashboard(request):
     if request.user.role != 'farmer':
-        return _redirect_to_role_home(request.user)
+        return _redirect_to_role_home_response(request.user)
     
     # Ensure profile exists
     profile, created = FarmerProfile.objects.get_or_create(user=request.user)
     
-    # Check KYC status
+    # Check KYC status - prevent duplicate submissions
     kyc_request = request.user.kyc_requests.first()
     kyc_status = kyc_request.status if kyc_request else None
+    
+    # Only allow access if KYC is approved
+    if kyc_status != 'approved':
+        # Still show dashboard but with KYC alert
+        pass
     
     # Handle Profile Update
     if request.method == 'POST' and 'update_profile' in request.POST:
@@ -665,8 +816,12 @@ def farmer_dashboard(request):
         messages.success(request, 'Profile updated successfully!')
         return redirect('farmer_dashboard')
 
-    # Handle Add Product
+    # Handle Add Product - Require KYC approval
     if request.method == 'POST' and 'add_product' in request.POST:
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to add crops. Please complete your KYC verification first.')
+            return redirect('farmer_dashboard')
+        
         name = request.POST.get('product_name')
         quantity = request.POST.get('quantity')
         price = request.POST.get('price')
@@ -685,8 +840,12 @@ def farmer_dashboard(request):
             messages.success(request, 'Crop added successfully!')
         return redirect('farmer_dashboard')
 
-    # Handle Edit Product
+    # Handle Edit Product - Require KYC approval
     if request.method == 'POST' and 'edit_product' in request.POST:
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to edit crops. Please complete your KYC verification first.')
+            return redirect('farmer_dashboard')
+        
         product_id = request.POST.get('product_id')
         try:
             product = FarmerProduct.objects.get(id=product_id, farmer=profile)
@@ -694,6 +853,7 @@ def farmer_dashboard(request):
             product.quantity = request.POST.get('quantity')
             product.price_per_unit = request.POST.get('price')
             product.unit = request.POST.get('unit', 'kg')
+            product.is_available = request.POST.get('is_available') == 'on'
             if request.FILES.get('product_image'):
                 product.image = request.FILES.get('product_image')
             product.save()
@@ -702,8 +862,12 @@ def farmer_dashboard(request):
             messages.error(request, 'Product not found!')
         return redirect('farmer_dashboard')
 
-    # Handle Delete Product
+    # Handle Delete Product - Require KYC approval
     if request.method == 'POST' and 'delete_product' in request.POST:
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to delete crops. Please complete your KYC verification first.')
+            return redirect('farmer_dashboard')
+        
         product_id = request.POST.get('product_id')
         try:
             product = FarmerProduct.objects.get(id=product_id, farmer=profile)
@@ -713,8 +877,106 @@ def farmer_dashboard(request):
             messages.error(request, 'Product not found!')
         return redirect('farmer_dashboard')
 
+    # Handle Tool Purchase - Require KYC approval for farmers
+    if request.method == 'POST' and 'purchase_tool' in request.POST:
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to purchase tools. Please complete your KYC verification first.')
+            return redirect('farmer_dashboard')
+        
+        from .models import Order, VendorTool
+        tool_id = request.POST.get('tool_id')
+        quantity = int(request.POST.get('quantity', 1))
+        payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
+        shipping_address = request.POST.get('shipping_address', '')
+        notes = request.POST.get('notes', '')
+        total_amount = request.POST.get('total_amount')
+        
+        try:
+            tool = VendorTool.objects.get(id=tool_id, is_available=True)
+            if tool.stock_quantity >= quantity:
+                if not total_amount:
+                    total_amount = tool.price * quantity
+                else:
+                    total_amount = float(total_amount)
+                
+                # Create order with payment method
+                order = Order.objects.create(
+                    buyer=request.user,
+                    tool=tool,
+                    quantity=quantity,
+                    total_amount=total_amount,
+                    status=Order.STATUS_CONFIRMED,
+                    payment_method=payment_method,
+                    payment_status='pending',
+                    shipping_address=shipping_address,
+                    notes=notes
+                )
+                
+                # Update stock
+                tool.stock_quantity -= quantity
+                if tool.stock_quantity == 0:
+                    tool.is_available = False
+                tool.save()
+                
+                if payment_method == Order.PAYMENT_ESEWA:
+                    messages.success(request, f'Order #{order.id} placed successfully! Payment method: eSewa.')
+                else:
+                    messages.success(request, f'Order #{order.id} placed successfully! You will pay Rs. {total_amount:.2f} on delivery.')
+            else:
+                messages.error(request, 'Insufficient stock!')
+        except VendorTool.DoesNotExist:
+            messages.error(request, 'Tool not found!')
+        except Exception as e:
+            messages.error(request, f'An error occurred: {str(e)}')
+        return redirect('farmer_dashboard')
+
     # Get products
     products = FarmerProduct.objects.filter(farmer=profile).order_by('-created_at')
+    
+    # Calculate statistics
+    from .models import CropSale, Order
+    
+    total_crops_added = products.count()
+    total_crops_sold = CropSale.objects.filter(crop__farmer=profile).aggregate(
+        total=Sum('quantity_sold')
+    )['total'] or 0
+    
+    total_earnings = CropSale.objects.filter(crop__farmer=profile).aggregate(
+        total=Sum('total_amount')
+    )['total'] or 0
+    
+    active_listings = products.filter(is_available=True).count()
+    
+    # Get sales data for charts (last 6 months)
+    six_months_ago = timezone.now() - timedelta(days=180)
+    sales_data_raw = CropSale.objects.filter(
+        crop__farmer=profile,
+        sold_at__gte=six_months_ago
+    ).annotate(
+        month=TruncMonth('sold_at')
+    ).values('month').annotate(
+        total_sales=Sum('total_amount'),
+        total_quantity=Sum('quantity_sold')
+    ).order_by('month')
+    
+    # Convert to list for template
+    sales_data = []
+    for item in sales_data_raw:
+        sales_data.append({
+            'month': item['month'].strftime('%Y-%m') if item['month'] else 'N/A',
+            'total_sales': float(item['total_sales'] or 0),
+            'total_quantity': float(item['total_quantity'] or 0)
+        })
+    
+    # If no sales data, create empty structure for charts
+    if not sales_data:
+        current_month = datetime.now().strftime('%Y-%m')
+        sales_data = [
+            {'month': current_month, 'total_sales': 0, 'total_quantity': 0},
+        ]
+    
+    # Serialize for JavaScript
+    sales_data_json = json.dumps(sales_data)
     
     # Get experts
     experts = ExpertProfile.objects.select_related('user').all()
@@ -727,7 +989,17 @@ def farmer_dashboard(request):
     
     # Get chat threads
     chat_threads = ExpertChatThread.objects.filter(created_by=request.user).select_related('expert', 'expert__user').order_by('-created_at')[:5]
+    
+    # Get available tools from vendors
+    from .models import VendorTool
+    available_tools = VendorTool.objects.filter(is_available=True, stock_quantity__gt=0).select_related('vendor', 'vendor__user').order_by('-created_at')[:12]
+    
+    # Get purchase history (orders)
+    purchase_history = Order.objects.filter(buyer=request.user).select_related('tool', 'crop').order_by('-created_at')[:10]
 
+    # Determine if features should be restricted
+    features_restricted = (kyc_status != 'approved')
+    
     context = {
         'profile': profile,
         'products': products,
@@ -737,7 +1009,17 @@ def farmer_dashboard(request):
         'chat_threads': chat_threads,
         'kyc_request': kyc_request,
         'kyc_status': kyc_status,
+        'features_restricted': features_restricted,
         'products_count': products.count(),
+        # Statistics
+        'total_crops_added': total_crops_added,
+        'total_crops_sold': float(total_crops_sold),
+        'total_earnings': float(total_earnings),
+        'active_listings': active_listings,
+        'sales_data': sales_data_json,
+        # Tools and orders
+        'available_tools': available_tools,
+        'purchase_history': purchase_history,
     }
     return render(request, 'farmer_dashboard.html', context)
 
@@ -745,7 +1027,7 @@ def farmer_dashboard(request):
 @login_required
 def vendor_dashboard(request):
     if request.user.role != 'vendor':
-        return _redirect_to_role_home(request.user)
+        return _redirect_to_role_home_response(request.user)
     
     # Ensure profile exists
     profile, created = VendorProfile.objects.get_or_create(user=request.user)
@@ -754,17 +1036,161 @@ def vendor_dashboard(request):
     kyc_request = request.user.kyc_requests.first()
     kyc_status = kyc_request.status if kyc_request else None
     
+    # Handle Profile Update
+    if request.method == 'POST' and 'update_profile' in request.POST:
+        profile.company_name = request.POST.get('company_name', profile.company_name)
+        profile.address = request.POST.get('address', profile.address)
+        profile.contact = request.POST.get('contact', profile.contact)
+        if request.FILES.get('photo'):
+            profile.logo = request.FILES.get('photo')
+        profile.save()
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('vendor_dashboard')
+    
+    # Handle Add Tool - Require KYC approval
+    if request.method == 'POST' and 'add_tool' in request.POST:
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to add tools. Please complete your KYC verification first.')
+            return redirect('vendor_dashboard')
+        
+        name = request.POST.get('name')
+        description = request.POST.get('description')
+        price = request.POST.get('price')
+        stock = request.POST.get('stock')
+        is_available = request.POST.get('is_available') == 'on'
+        
+        if name and price and stock:
+            tool = VendorTool.objects.create(
+                vendor=profile,
+                name=name,
+                description=description,
+                price=price,
+                stock_quantity=int(stock),
+                is_available=is_available
+            )
+            if request.FILES.get('image'):
+                tool.image = request.FILES.get('image')
+                tool.save()
+            messages.success(request, 'Tool added successfully!')
+        return redirect('vendor_dashboard')
+    
+    # Handle Edit Tool - Require KYC approval
+    if request.method == 'POST' and 'edit_tool' in request.POST:
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to edit tools. Please complete your KYC verification first.')
+            return redirect('vendor_dashboard')
+        
+        tool_id = request.POST.get('tool_id')
+        try:
+            tool = VendorTool.objects.get(id=tool_id, vendor=profile)
+            tool.name = request.POST.get('name')
+            tool.description = request.POST.get('description')
+            tool.price = request.POST.get('price')
+            tool.stock_quantity = int(request.POST.get('stock', 0))
+            tool.is_available = request.POST.get('is_available') == 'on'
+            if request.FILES.get('image'):
+                tool.image = request.FILES.get('image')
+            tool.save()
+            messages.success(request, 'Tool updated successfully!')
+        except VendorTool.DoesNotExist:
+            messages.error(request, 'Tool not found!')
+        return redirect('vendor_dashboard')
+    
+    # Handle Delete Tool - Require KYC approval
+    if request.method == 'POST' and 'delete_tool' in request.POST:
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to delete tools. Please complete your KYC verification first.')
+            return redirect('vendor_dashboard')
+        
+        tool_id = request.POST.get('tool_id')
+        try:
+            tool = VendorTool.objects.get(id=tool_id, vendor=profile)
+            tool.delete()
+            messages.success(request, 'Tool deleted successfully!')
+        except VendorTool.DoesNotExist:
+            messages.error(request, 'Tool not found!')
+        return redirect('vendor_dashboard')
+    
+    # Handle Order Status Update
+    if request.method == 'POST' and 'update_order_status' in request.POST:
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to manage orders. Please complete your KYC verification first.')
+            return redirect('vendor_dashboard')
+        
+        order_id = request.POST.get('order_id')
+        new_status = request.POST.get('status')
+        tracking_number = request.POST.get('tracking_number', '').strip()
+        
+        try:
+            order = Order.objects.get(id=order_id, tool__vendor=profile)
+            order.status = new_status
+            if tracking_number:
+                order.tracking_number = tracking_number
+            order.save()
+            messages.success(request, f'Order #{order_id} status updated to {order.get_status_display()}')
+        except Order.DoesNotExist:
+            messages.error(request, 'Order not found!')
+        return redirect('vendor_dashboard')
+    
     # Get vendor tools
     tools = VendorTool.objects.filter(vendor=profile).order_by('-created_at')
+    
+    # Get orders for vendor's tools
+    orders = Order.objects.filter(tool__vendor=profile).select_related('buyer', 'tool').order_by('-created_at')
+    
+    # Calculate statistics
+    total_revenue = orders.aggregate(total=Sum('total_amount'))['total'] or 0
+    total_orders = orders.count()
+    pending_orders = orders.filter(status=Order.STATUS_PENDING).count()
+    confirmed_orders = orders.filter(status=Order.STATUS_CONFIRMED).count()
+    shipped_orders = orders.filter(status=Order.STATUS_SHIPPED).count()
+    delivered_orders = orders.filter(status=Order.STATUS_DELIVERED).count()
+    
+    # Calculate revenue by month (last 6 months)
+    six_months_ago = timezone.now() - timedelta(days=180)
+    revenue_data_raw = orders.filter(
+        created_at__gte=six_months_ago
+    ).annotate(
+        month=TruncMonth('created_at')
+    ).values('month').annotate(
+        total_revenue=Sum('total_amount'),
+        order_count=Count('id')
+    ).order_by('month')
+    
+    revenue_data = []
+    for item in revenue_data_raw:
+        revenue_data.append({
+            'month': item['month'].strftime('%Y-%m') if item['month'] else 'N/A',
+            'total_revenue': float(item['total_revenue'] or 0),
+            'order_count': item['order_count']
+        })
+    
+    if not revenue_data:
+        current_month = datetime.now().strftime('%Y-%m')
+        revenue_data = [{'month': current_month, 'total_revenue': 0, 'order_count': 0}]
+    
+    revenue_data_json = json.dumps(revenue_data)
+    
+    # Determine if features should be restricted
+    features_restricted = (kyc_status != 'approved')
     
     context = {
         'profile': profile,
         'tools': tools,
+        'orders': orders[:20],  # Show last 20 orders
         'kyc_request': kyc_request,
         'kyc_status': kyc_status,
+        'features_restricted': features_restricted,
         'tools_count': tools.count(),
         'available_tools_count': tools.filter(is_available=True).count(),
         'sold_tools_count': tools.filter(is_available=False).count(),
+        'total_revenue': float(total_revenue),
+        'total_orders': total_orders,
+        'pending_orders': pending_orders,
+        'confirmed_orders': confirmed_orders,
+        'shipped_orders': shipped_orders,
+        'delivered_orders': delivered_orders,
+        'revenue_data': revenue_data_json,
     }
     return render(request, 'vendor_dashboard.html', context)
 
@@ -772,7 +1198,7 @@ def vendor_dashboard(request):
 @login_required
 def expert_dashboard(request):
     if request.user.role != 'agricultural_expert':
-        return _redirect_to_role_home(request.user)
+        return _redirect_to_role_home_response(request.user)
     
     # Ensure profile exists
     profile, created = ExpertProfile.objects.get_or_create(user=request.user)
@@ -781,6 +1207,91 @@ def expert_dashboard(request):
     kyc_request = request.user.kyc_requests.first()
     kyc_status = kyc_request.status if kyc_request else None
     
+    # Handle Profile Update
+    if request.method == 'POST' and 'update_profile' in request.POST:
+        profile.name = request.POST.get('name', profile.name)
+        profile.qualification = request.POST.get('qualification', profile.qualification)
+        profile.specialization = request.POST.get('specialization', profile.specialization)
+        profile.experience = request.POST.get('experience', profile.experience)
+        if request.FILES.get('photo'):
+            profile.photo = request.FILES.get('photo')
+        profile.save()
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('expert_dashboard')
+    
+    # Handle Add Tip/Content - Require KYC approval
+    if request.method == 'POST' and 'add_tip' in request.POST:
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to upload content. Please complete your KYC verification first.')
+            return redirect('expert_dashboard')
+        
+        title = request.POST.get('title')
+        content = request.POST.get('content')
+        is_published = request.POST.get('is_published') == 'on'
+        
+        if title and content:
+            FarmingTip.objects.create(
+                expert=profile,
+                title=title,
+                content=content,
+                is_published=is_published
+            )
+            messages.success(request, 'Content uploaded successfully!')
+        return redirect('expert_dashboard')
+    
+    # Handle Edit Tip - Require KYC approval
+    if request.method == 'POST' and 'edit_tip' in request.POST:
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to edit content. Please complete your KYC verification first.')
+            return redirect('expert_dashboard')
+        
+        tip_id = request.POST.get('tip_id')
+        try:
+            tip = FarmingTip.objects.get(id=tip_id, expert=profile)
+            tip.title = request.POST.get('title')
+            tip.content = request.POST.get('content')
+            tip.is_published = request.POST.get('is_published') == 'on'
+            tip.save()
+            messages.success(request, 'Content updated successfully!')
+        except FarmingTip.DoesNotExist:
+            messages.error(request, 'Content not found!')
+        return redirect('expert_dashboard')
+    
+    # Handle Delete Tip - Require KYC approval
+    if request.method == 'POST' and 'delete_tip' in request.POST:
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to delete content. Please complete your KYC verification first.')
+            return redirect('expert_dashboard')
+        
+        tip_id = request.POST.get('tip_id')
+        try:
+            tip = FarmingTip.objects.get(id=tip_id, expert=profile)
+            tip.delete()
+            messages.success(request, 'Content deleted successfully!')
+        except FarmingTip.DoesNotExist:
+            messages.error(request, 'Content not found!')
+        return redirect('expert_dashboard')
+    
+    # Handle Accept/Reject Appointment
+    if request.method == 'POST' and ('accept_appointment' in request.POST or 'reject_appointment' in request.POST):
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to manage appointments. Please complete your KYC verification first.')
+            return redirect('expert_dashboard')
+        
+        appointment_id = request.POST.get('appointment_id')
+        try:
+            appointment = ExpertAppointment.objects.get(id=appointment_id, expert=profile)
+            if 'accept_appointment' in request.POST:
+                appointment.status = ExpertAppointment.STATUS_ACCEPTED
+                messages.success(request, 'Appointment accepted!')
+            elif 'reject_appointment' in request.POST:
+                appointment.status = ExpertAppointment.STATUS_REJECTED
+                messages.info(request, 'Appointment rejected.')
+            appointment.save()
+        except ExpertAppointment.DoesNotExist:
+            messages.error(request, 'Appointment not found!')
+        return redirect('expert_dashboard')
+    
     # Get expert content/tips
     tips = FarmingTip.objects.filter(expert=profile).order_by('-created_at')
     
@@ -788,18 +1299,44 @@ def expert_dashboard(request):
     appointments = ExpertAppointment.objects.filter(expert=profile).select_related('requester').order_by('-created_at')
     
     # Get chat threads
-    chat_threads = ExpertChatThread.objects.filter(expert=profile).select_related('created_by').order_by('-created_at')[:5]
+    chat_threads = ExpertChatThread.objects.filter(expert=profile).select_related('created_by').order_by('-created_at')[:10]
+    
+    # Calculate appointment statistics
+    total_appointments = appointments.count()
+    pending_appointments = appointments.filter(status=ExpertAppointment.STATUS_PENDING).count()
+    accepted_appointments = appointments.filter(status=ExpertAppointment.STATUS_ACCEPTED).count()
+    rejected_appointments = appointments.filter(status=ExpertAppointment.STATUS_REJECTED).count()
+    
+    # Get published vs draft content count
+    published_content = tips.filter(is_published=True).count()
+    draft_content = tips.filter(is_published=False).count()
+    
+    # Get recent messages count
+    recent_messages = ExpertChatMessage.objects.filter(
+        thread__expert=profile,
+        created_at__gte=timezone.now() - timedelta(days=7)
+    ).count()
+    
+    # Determine if features should be restricted
+    features_restricted = (kyc_status != 'approved')
     
     context = {
         'profile': profile,
         'tips': tips,
-        'appointments': appointments,
+        'appointments': appointments[:20],  # Show last 20 appointments
         'chat_threads': chat_threads,
         'kyc_request': kyc_request,
         'kyc_status': kyc_status,
+        'features_restricted': features_restricted,
         'content_count': tips.count(),
-        'appointments_count': appointments.count(),
+        'published_content': published_content,
+        'draft_content': draft_content,
+        'appointments_count': total_appointments,
+        'pending_appointments': pending_appointments,
+        'accepted_appointments': accepted_appointments,
+        'rejected_appointments': rejected_appointments,
         'chats_count': chat_threads.count(),
+        'recent_messages': recent_messages,
     }
     return render(request, 'expert_dashboard.html', context)
 
@@ -807,10 +1344,109 @@ def expert_dashboard(request):
 @login_required
 def user_dashboard(request):
     if request.user.role != 'buyer':
-        return _redirect_to_role_home(request.user)
+        return _redirect_to_role_home_response(request.user)
     
+    # Handle Crop Purchase
+    if request.method == 'POST' and 'purchase_crop' in request.POST:
+        crop_id = request.POST.get('crop_id')
+        try:
+            quantity = float(request.POST.get('quantity', 1))
+        except (ValueError, TypeError):
+            messages.error(request, 'Invalid quantity!')
+            return redirect('user_dashboard')
+        
+        try:
+            crop = FarmerProduct.objects.get(id=crop_id, is_available=True)
+            if crop.quantity >= quantity:
+                total_amount = crop.price_per_unit * quantity
+                
+                # Get payment method
+                payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
+                
+                # Create order (quantity must be integer for Order model, but we store decimal in CropSale)
+                order = Order.objects.create(
+                    buyer=request.user,
+                    crop=crop,
+                    quantity=int(round(quantity)),  # Round and convert to int for Order model
+                    total_amount=total_amount,
+                    status=Order.STATUS_CONFIRMED,
+                    payment_method=payment_method,
+                    payment_status='pending',
+                    shipping_address=request.POST.get('shipping_address', ''),
+                    notes=request.POST.get('notes', '')
+                )
+                
+                # Update crop quantity (keep as decimal)
+                crop.quantity -= quantity
+                if crop.quantity <= 0:
+                    crop.is_available = False
+                crop.save()
+                
+                # Create crop sale record (with actual decimal quantity)
+                CropSale.objects.create(
+                    crop=crop,
+                    order=order,
+                    quantity_sold=quantity,
+                    price_per_unit=crop.price_per_unit,
+                    total_amount=total_amount,
+                    sold_to=request.user,
+                    sold_at=timezone.now()
+                )
+                
+                messages.success(request, f'Order placed successfully! Order #{order.id}')
+            else:
+                messages.error(request, f'Insufficient quantity. Available: {crop.quantity} {crop.unit}')
+        except FarmerProduct.DoesNotExist:
+            messages.error(request, 'Crop not found or no longer available!')
+        except Exception as e:
+            messages.error(request, f'An error occurred: {str(e)}')
+        return redirect('user_dashboard')
+    
+    # Handle Tool Purchase
+    if request.method == 'POST' and 'purchase_tool' in request.POST:
+        tool_id = request.POST.get('tool_id')
+        quantity = int(request.POST.get('quantity', 1))
+        payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
+        
+        try:
+            tool = VendorTool.objects.get(id=tool_id, is_available=True, stock_quantity__gt=0)
+            if tool.stock_quantity >= quantity:
+                total_amount = tool.price * quantity
+                
+                # Create order
+                order = Order.objects.create(
+                    buyer=request.user,
+                    tool=tool,
+                    quantity=quantity,
+                    total_amount=total_amount,
+                    status=Order.STATUS_CONFIRMED,
+                    payment_method=payment_method,
+                    payment_status='pending',
+                    shipping_address=request.POST.get('shipping_address', ''),
+                    notes=request.POST.get('notes', '')
+                )
+                
+                # Update tool stock
+                tool.stock_quantity -= quantity
+                if tool.stock_quantity == 0:
+                    tool.is_available = False
+                tool.save()
+                
+                if payment_method == Order.PAYMENT_ESEWA:
+                    messages.success(request, f'Order #{order.id} placed successfully! Payment method: eSewa.')
+                else:
+                    messages.success(request, f'Order #{order.id} placed successfully! You will pay Rs. {total_amount:.2f} on delivery.')
+            else:
+                messages.error(request, f'Insufficient stock. Available: {tool.stock_quantity} units')
+        except VendorTool.DoesNotExist:
+            messages.error(request, 'Tool not found or no longer available!')
+        except Exception as e:
+            messages.error(request, f'An error occurred: {str(e)}')
+        return redirect('user_dashboard')
+    
+    # Buyers don't require KYC - full access immediately
     # Get all available tools from vendors
-    tools = VendorTool.objects.filter(is_available=True).select_related('vendor', 'vendor__user').order_by('-created_at')
+    tools = VendorTool.objects.filter(is_available=True, stock_quantity__gt=0).select_related('vendor', 'vendor__user').order_by('-created_at')
     
     # Get all available crops from farmers
     crops = FarmerProduct.objects.filter(is_available=True).select_related('farmer', 'farmer__user').order_by('-created_at')
@@ -830,6 +1466,15 @@ def user_dashboard(request):
     # Get or create user profile
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     
+    # Get purchase history with statistics
+    purchase_history = Order.objects.filter(buyer=request.user).select_related('tool', 'crop', 'crop__farmer', 'tool__vendor').order_by('-created_at')
+    
+    # Calculate statistics
+    total_orders = purchase_history.count()
+    total_spent = purchase_history.aggregate(total=Sum('total_amount'))['total'] or 0
+    pending_orders = purchase_history.filter(status=Order.STATUS_PENDING).count()
+    completed_orders = purchase_history.filter(status=Order.STATUS_DELIVERED).count()
+    
     context = {
         'tools': tools,
         'crops': crops,
@@ -838,10 +1483,16 @@ def user_dashboard(request):
         'appointments': appointments,
         'chat_threads': chat_threads,
         'profile': profile,
+        'purchase_history': purchase_history[:20],  # Show last 20 orders
         'tools_count': tools.count(),
         'crops_count': crops.count(),
         'experts_count': experts.count(),
         'tips_count': tips.count(),
+        'total_orders': total_orders,
+        'total_spent': float(total_spent),
+        'pending_orders': pending_orders,
+        'completed_orders': completed_orders,
+        'kyc_status': None,  # Buyers don't need KYC
     }
     return render(request, 'user_dashboard.html', context)
 
@@ -849,14 +1500,29 @@ def user_dashboard(request):
 @login_required
 def admin_dashboard(request):
     if request.user.role != 'admin':
-        return _redirect_to_role_home(request.user)
+        return _redirect_to_role_home_response(request.user)
     return render(request, 'admin_dashboard.html')
+
+
+@login_required
+def logout_view(request):
+    logout(request)
+    messages.success(request, 'You have been logged out successfully.')
+    return redirect('landing')
 
 
 @login_required
 def appointment_request_page(request):
     if request.user.role not in {'buyer', 'farmer'}:
-        return _redirect_to_role_home(request.user)
+        return _redirect_to_role_home_response(request.user)
+
+    # Check KYC for farmers (buyers don't need KYC)
+    if request.user.role == 'farmer':
+        kyc_request = request.user.kyc_requests.first()
+        kyc_status = kyc_request.status if kyc_request else None
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to book appointments. Please complete your KYC verification first.')
+            return redirect('farmer_dashboard')
 
     if request.method == 'POST':
         expert_id = (request.POST.get('expert_id') or '').strip()
@@ -884,7 +1550,7 @@ def appointment_request_page(request):
 @login_required
 def chat_threads_page(request):
     if request.user.role not in {'buyer', 'farmer'}:
-        return _redirect_to_role_home(request.user)
+        return _redirect_to_role_home_response(request.user)
     
     threads = ExpertChatThread.objects.filter(created_by=request.user).select_related('expert', 'expert__user').order_by('-updated_at')
     context = {'threads': threads}
@@ -894,7 +1560,15 @@ def chat_threads_page(request):
 @login_required
 def chat_thread_detail(request, thread_id):
     if request.user.role not in {'buyer', 'farmer'}:
-        return _redirect_to_role_home(request.user)
+        return _redirect_to_role_home_response(request.user)
+    
+    # Check KYC for farmers (buyers don't need KYC)
+    if request.user.role == 'farmer':
+        kyc_request = request.user.kyc_requests.first()
+        kyc_status = kyc_request.status if kyc_request else None
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to chat with experts. Please complete your KYC verification first.')
+            return redirect('farmer_dashboard')
     
     try:
         thread = ExpertChatThread.objects.select_related('expert', 'expert__user', 'created_by').get(id=thread_id, created_by=request.user)

@@ -403,6 +403,58 @@
             margin-bottom: 1rem;
             opacity: 0.5;
         }
+
+        .form-group {
+            margin-bottom: 1rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--sea-green);
+        }
+
+        .btn-full {
+            width: 100%;
+        }
+
+        .message-alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+        }
+
+        .message-alert.success {
+            background: #D4EDDA;
+            color: #155724;
+            border-left: 4px solid #28A745;
+        }
+
+        .message-alert.error {
+            background: #F8D7DA;
+            color: #721C24;
+            border-left: 4px solid #DC3545;
+        }
+
+        .message-alert.info {
+            background: #D1ECF1;
+            color: #0C5460;
+            border-left: 4px solid #17A2B8;
+        }
+
+        .message-alert.warning {
+            background: #FFF3CD;
+            color: #856404;
+            border-left: 4px solid #FFC107;
+        }
     </style>
 </head>
 <body>
@@ -429,57 +481,71 @@
     </header>
 
     <div class="dashboard-container">
+        <!-- Messages -->
+        {% if messages %}
+        <div style="margin-bottom: 1.5rem;">
+            {% for message in messages %}
+            <div class="message-alert {{ message.tags }}" style="padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 0.5rem;">
+                {{ message }}
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
         <!-- Stats Header -->
         <div class="stats-grid">
             <div class="stat-card">
                 <div class="stat-content">
                     <h4>Available Crops</h4>
-                    <span>{{ crops_count|default:crops|length }}</span>
+                    <span>{{ crops_count }}</span>
                 </div>
                 <i class="fas fa-seedling stat-icon"></i>
             </div>
             <div class="stat-card">
                 <div class="stat-content">
                     <h4>Available Tools</h4>
-                    <span>{{ tools_count|default:tools|length }}</span>
+                    <span>{{ tools_count }}</span>
                 </div>
                 <i class="fas fa-tools stat-icon"></i>
             </div>
             <div class="stat-card">
                 <div class="stat-content">
-                    <h4>Agricultural Experts</h4>
-                    <span>{{ experts_count|default:experts|length }}</span>
+                    <h4>Total Orders</h4>
+                    <span>{{ total_orders }}</span>
                 </div>
-                <i class="fas fa-user-graduate stat-icon"></i>
+                <i class="fas fa-shopping-cart stat-icon"></i>
             </div>
             <div class="stat-card">
                 <div class="stat-content">
-                    <h4>Expert Tips</h4>
-                    <span>{{ tips_count|default:tips|length }}</span>
+                    <h4>Total Spent</h4>
+                    <span>Rs. {{ total_spent|floatformat:2 }}</span>
                 </div>
-                <i class="fas fa-lightbulb stat-icon"></i>
+                <i class="fas fa-rupee-sign stat-icon"></i>
             </div>
         </div>
 
         <!-- Tabs Navigation -->
         <div class="tabs-nav">
-            <button class="tab-nav-btn active" onclick="switchTab('crops')">
+            <button class="tab-nav-btn active" onclick="switchTab('crops', this)">
                 <i class="fas fa-seedling"></i> Crops
             </button>
-            <button class="tab-nav-btn" onclick="switchTab('tools')">
+            <button class="tab-nav-btn" onclick="switchTab('tools', this)">
                 <i class="fas fa-tools"></i> Tools
             </button>
-            <button class="tab-nav-btn" onclick="switchTab('experts')">
+            <button class="tab-nav-btn" onclick="switchTab('experts', this)">
                 <i class="fas fa-user-graduate"></i> Experts
             </button>
-            <button class="tab-nav-btn" onclick="switchTab('tips')">
+            <button class="tab-nav-btn" onclick="switchTab('tips', this)">
                 <i class="fas fa-lightbulb"></i> Expert Content
             </button>
-            <button class="tab-nav-btn" onclick="switchTab('appointments')">
+            <button class="tab-nav-btn" onclick="switchTab('appointments', this)">
                 <i class="fas fa-calendar-check"></i> Appointments
             </button>
-            <button class="tab-nav-btn" onclick="switchTab('chat')">
+            <button class="tab-nav-btn" onclick="switchTab('chat', this)">
                 <i class="fas fa-comments"></i> Chat
+            </button>
+            <button class="tab-nav-btn" onclick="switchTab('orders', this)">
+                <i class="fas fa-shopping-bag"></i> My Orders
             </button>
         </div>
 
@@ -498,7 +564,7 @@
                         <p class="product-vendor">Farmer: {{ crop.farmer.name|default:crop.farmer.user.email }}</p>
                         <div class="product-footer">
                             <span class="price">Rs. {{ crop.price_per_unit }}/{{ crop.unit }}</span>
-                            <button class="btn-buy" onclick="buyCrop({{ crop.id }})">Buy Now</button>
+                            <button class="btn-buy" onclick="openPurchaseCropModal({{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.price_per_unit }}, {{ crop.quantity }}, '{{ crop.unit }}')">Buy Now</button>
                         </div>
                         <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
                             Available: {{ crop.quantity }} {{ crop.unit }}
@@ -529,7 +595,7 @@
                         {% endif %}
                         <div class="tool-footer">
                             <span class="price">Rs. {{ tool.price }}</span>
-                            <button class="btn-buy" onclick="buyTool({{ tool.id }})">Buy Now</button>
+                            <button class="btn-buy" onclick="openPurchaseToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }})">Buy Now</button>
                         </div>
                         <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
                             Stock: {{ tool.stock_quantity }} units
@@ -662,6 +728,64 @@
                 </div>
             </div>
         </div>
+
+        <!-- Orders Tab -->
+        <div id="orders" class="tab-content">
+            <div class="appointments-list">
+                {% for order in purchase_history %}
+                <div class="appointment-item">
+                    <div class="appointment-info" style="flex: 1;">
+                        <h4>
+                            {% if order.crop %}
+                                <i class="fas fa-seedling"></i> {{ order.crop.name }}
+                            {% elif order.tool %}
+                                <i class="fas fa-tools"></i> {{ order.tool.name }}
+                            {% else %}
+                                Unknown Item
+                            {% endif %}
+                        </h4>
+                        <p style="margin: 0.5rem 0;">
+                            <strong>Order #{{ order.id }}</strong> • 
+                            Quantity: {{ order.quantity }} 
+                            {% if order.crop %}{{ order.crop.unit }}{% elif order.tool %}units{% endif %}
+                            • Total: <strong>Rs. {{ order.total_amount }}</strong>
+                        </p>
+                        {% if order.crop %}
+                        <p style="margin: 0.25rem 0; color: #666; font-size: 0.85rem;">
+                            From: {{ order.crop.farmer.name|default:order.crop.farmer.user.email }}
+                        </p>
+                        {% elif order.tool %}
+                        <p style="margin: 0.25rem 0; color: #666; font-size: 0.85rem;">
+                            From: {{ order.tool.vendor.company_name|default:order.tool.vendor.user.email }}
+                        </p>
+                        {% endif %}
+                        <p style="margin: 0.25rem 0; color: #666; font-size: 0.9rem;">
+                            <i class="far fa-calendar"></i> {{ order.created_at|date:"M d, Y h:i A" }}
+                        </p>
+                        {% if order.shipping_address %}
+                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.85rem;">
+                            <i class="fas fa-map-marker-alt"></i> {{ order.shipping_address|truncatewords:10 }}
+                        </p>
+                        {% endif %}
+                        {% if order.tracking_number %}
+                        <p style="margin: 0.5rem 0; color: var(--sea-green); font-size: 0.85rem;">
+                            <i class="fas fa-truck"></i> Tracking: {{ order.tracking_number }}
+                        </p>
+                        {% endif %}
+                    </div>
+                    <span class="appointment-status status-{{ order.status }}">
+                        {{ order.get_status_display }}
+                    </span>
+                </div>
+                {% empty %}
+                <div class="empty-state">
+                    <i class="fas fa-shopping-bag"></i>
+                    <h3>No orders yet</h3>
+                    <p>Your purchase history will appear here</p>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
     </div>
 
     <!-- Appointment Modal -->
@@ -696,6 +820,172 @@
                 </div>
 
                 <button type="submit" class="btn-primary btn-full">Book Appointment</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Purchase Crop Modal -->
+    <div id="purchaseCropModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Purchase Crop</h3>
+                <button class="close-modal" onclick="closeModal('purchaseCropModal')">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'user_dashboard' %}">
+                {% csrf_token %}
+                <input type="hidden" name="purchase_crop" value="1">
+                <input type="hidden" name="crop_id" id="purchaseCropId">
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666; font-weight: 600;">Crop</label>
+                    <input type="text" id="purchaseCropName" class="form-control" readonly style="background: #f5f5f5; font-weight: 600;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Price per Unit</label>
+                    <input type="text" id="purchaseCropPrice" class="form-control" readonly style="background: #f5f5f5;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Available Quantity</label>
+                    <input type="text" id="purchaseCropAvailable" class="form-control" readonly style="background: #f5f5f5;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Quantity to Purchase *</label>
+                    <input type="number" name="quantity" id="purchaseCropQuantity" class="form-control" step="0.01" min="0.01" required oninput="calculateCropTotal()">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666; font-weight: 600;">Total Amount</label>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--sea-green);" id="purchaseCropTotal">Rs. 0.00</div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.75rem; color: #666; font-weight: 600;">Payment Method <span style="color: red;">*</span></label>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <label style="flex: 1; min-width: 200px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--sea-green)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
+                            <input type="radio" name="payment_method" value="cod" checked style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-money-bill-wave" style="color: var(--sea-green); font-size: 1.2rem;"></i>
+                                <div>
+                                    <div style="font-weight: 600;">Cash on Delivery</div>
+                                    <div style="font-size: 0.85rem; color: #666;">Pay when you receive</div>
+                                </div>
+                            </div>
+                        </label>
+                        <label style="flex: 1; min-width: 200px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--sea-green)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
+                            <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-mobile-alt" style="color: #5B5FEF; font-size: 1.2rem;"></i>
+                                <div>
+                                    <div style="font-weight: 600;">eSewa</div>
+                                    <div style="font-size: 0.85rem; color: #666;">Pay online instantly</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <div id="esewa_crop_info" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: #E3F2FD; border-radius: 4px; color: #1565C0; font-size: 0.85rem;">
+                        <i class="fas fa-info-circle"></i> You will be redirected to eSewa payment gateway after order confirmation
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Shipping Address *</label>
+                    <textarea name="shipping_address" class="form-control" rows="3" required placeholder="Enter your delivery address..."></textarea>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Notes (Optional)</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="Any special instructions..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary btn-full" style="width: 100%; padding: 0.75rem;">
+                    <i class="fas fa-shopping-cart"></i> Place Order
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Purchase Tool Modal -->
+    <div id="purchaseToolModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Purchase Tool</h3>
+                <button class="close-modal" onclick="closeModal('purchaseToolModal')">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'user_dashboard' %}">
+                {% csrf_token %}
+                <input type="hidden" name="purchase_tool" value="1">
+                <input type="hidden" name="tool_id" id="purchaseToolId">
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666; font-weight: 600;">Tool</label>
+                    <input type="text" id="purchaseToolName" class="form-control" readonly style="background: #f5f5f5; font-weight: 600;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Price per Unit</label>
+                    <input type="text" id="purchaseToolPrice" class="form-control" readonly style="background: #f5f5f5;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Available Stock</label>
+                    <input type="text" id="purchaseToolStock" class="form-control" readonly style="background: #f5f5f5;">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Quantity to Purchase *</label>
+                    <input type="number" name="quantity" id="purchaseToolQuantity" class="form-control" min="1" required oninput="calculateToolTotal()">
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666; font-weight: 600;">Total Amount</label>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--sea-green);" id="purchaseToolTotal">Rs. 0.00</div>
+                </div>
+
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.75rem; color: #666; font-weight: 600;">Payment Method <span style="color: red;">*</span></label>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <label style="flex: 1; min-width: 200px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--sea-green)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
+                            <input type="radio" name="payment_method" value="cod" checked style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-money-bill-wave" style="color: var(--sea-green); font-size: 1.2rem;"></i>
+                                <div>
+                                    <div style="font-weight: 600;">Cash on Delivery</div>
+                                    <div style="font-size: 0.85rem; color: #666;">Pay when you receive</div>
+                                </div>
+                            </div>
+                        </label>
+                        <label style="flex: 1; min-width: 200px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--sea-green)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
+                            <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-mobile-alt" style="color: #5B5FEF; font-size: 1.2rem;"></i>
+                                <div>
+                                    <div style="font-weight: 600;">eSewa</div>
+                                    <div style="font-size: 0.85rem; color: #666;">Pay online instantly</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                    <div id="esewa_tool_info" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: #E3F2FD; border-radius: 4px; color: #1565C0; font-size: 0.85rem;">
+                        <i class="fas fa-info-circle"></i> You will be redirected to eSewa payment gateway after order confirmation
+                    </div>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Shipping Address *</label>
+                    <textarea name="shipping_address" class="form-control" rows="3" required placeholder="Enter your delivery address..."></textarea>
+                </div>
+                
+                <div class="form-group" style="margin-bottom: 1.5rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Notes (Optional)</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="Any special instructions..."></textarea>
+                </div>
+
+                <button type="submit" class="btn-primary btn-full" style="width: 100%; padding: 0.75rem;">
+                    <i class="fas fa-shopping-cart"></i> Place Order
+                </button>
             </form>
         </div>
     </div>
@@ -750,7 +1040,7 @@
 
     <script src="/static/js/main.js"></script>
     <script>
-        function switchTab(tabId) {
+        function switchTab(tabId, element) {
             // Hide all tabs
             document.querySelectorAll('.tab-content').forEach(tab => {
                 tab.classList.remove('active');
@@ -763,7 +1053,16 @@
             document.querySelectorAll('.tab-nav-btn').forEach(btn => {
                 btn.classList.remove('active');
             });
-            event.target.classList.add('active');
+            if (element) {
+                element.classList.add('active');
+            } else {
+                // Find button by tabId
+                document.querySelectorAll('.tab-nav-btn').forEach(btn => {
+                    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(tabId)) {
+                        btn.classList.add('active');
+                    }
+                });
+            }
         }
 
         function openAppointmentModal(expertId, expertName) {
@@ -776,14 +1075,54 @@
             document.getElementById(modalId).classList.remove('active');
         }
 
-        function buyCrop(cropId) {
-            alert('Purchase functionality coming soon! Crop ID: ' + cropId);
-            // TODO: Implement purchase logic
+        function openPurchaseCropModal(cropId, cropName, price, available, unit) {
+            document.getElementById('purchaseCropId').value = cropId;
+            document.getElementById('purchaseCropName').value = cropName;
+            document.getElementById('purchaseCropPrice').value = 'Rs. ' + price + ' per ' + unit;
+            document.getElementById('purchaseCropAvailable').value = available + ' ' + unit;
+            document.getElementById('purchaseCropQuantity').max = available;
+            document.getElementById('purchaseCropQuantity').value = '';
+            document.getElementById('purchaseCropTotal').textContent = 'Rs. 0.00';
+            document.getElementById('purchaseCropModal').classList.add('active');
         }
 
-        function buyTool(toolId) {
-            alert('Purchase functionality coming soon! Tool ID: ' + toolId);
-            // TODO: Implement purchase logic
+        function openPurchaseToolModal(toolId, toolName, price, stock) {
+            document.getElementById('purchaseToolId').value = toolId;
+            document.getElementById('purchaseToolName').value = toolName;
+            document.getElementById('purchaseToolPrice').value = 'Rs. ' + price;
+            document.getElementById('purchaseToolStock').value = stock + ' units';
+            document.getElementById('purchaseToolQuantity').max = stock;
+            document.getElementById('purchaseToolQuantity').value = 1;
+            calculateToolTotal();
+            document.getElementById('purchaseToolModal').classList.add('active');
+        }
+
+        function calculateCropTotal() {
+            const priceText = document.getElementById('purchaseCropPrice').value;
+            const price = parseFloat(priceText.match(/[\d.]+/)[0]);
+            const quantity = parseFloat(document.getElementById('purchaseCropQuantity').value) || 0;
+            const total = price * quantity;
+            document.getElementById('purchaseCropTotal').textContent = 'Rs. ' + total.toFixed(2);
+        }
+
+        function calculateToolTotal() {
+            const priceText = document.getElementById('purchaseToolPrice').value;
+            const price = parseFloat(priceText.match(/[\d.]+/)[0]);
+            const quantity = parseInt(document.getElementById('purchaseToolQuantity').value) || 0;
+            const total = price * quantity;
+            document.getElementById('purchaseToolTotal').textContent = 'Rs. ' + total.toFixed(2);
+        }
+
+        function updatePaymentMethod(radio) {
+            const esewaCropInfo = document.getElementById('esewa_crop_info');
+            const esewaToolInfo = document.getElementById('esewa_tool_info');
+            if (radio.value === 'esewa') {
+                if (esewaCropInfo) esewaCropInfo.style.display = 'block';
+                if (esewaToolInfo) esewaToolInfo.style.display = 'block';
+            } else {
+                if (esewaCropInfo) esewaCropInfo.style.display = 'none';
+                if (esewaToolInfo) esewaToolInfo.style.display = 'none';
+            }
         }
 
         // Close modal when clicking outside

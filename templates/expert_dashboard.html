@@ -6,42 +6,181 @@
     <title>Agricultural Expert Dashboard - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #358D58;
+            --primary-dark: #2a6f45;
+            --secondary: #F29900;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+        }
+
         body {
-            background-color: var(--athens-gray);
-            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
         }
 
-        .dashboard-container {
-            max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-            flex: 1;
+        .sidebar-logo {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
         }
 
-        /* KYC Alert Banner */
+        .sidebar-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 1rem 1.5rem;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255,255,255,0.1);
+            border-left-color: white;
+            color: white;
+        }
+
+        .nav-item i {
+            width: 20px;
+            font-size: 1.1rem;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Top Header */
+        .top-header {
+            background: white;
+            height: var(--header-height);
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--primary);
+            cursor: pointer;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+
+        .user-profile:hover {
+            background: var(--light);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Dashboard Content */
+        .dashboard-content {
+            padding: 2rem;
+        }
+
+        /* KYC Alert */
         .kyc-alert {
             background: linear-gradient(135deg, #FFF3CD 0%, #FFE69C 100%);
-            border-left: 4px solid #FFC107;
+            border-left: 4px solid var(--warning);
             padding: 1.5rem;
             border-radius: 12px;
             margin-bottom: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .kyc-alert.rejected {
-            background: linear-gradient(135deg, #F8D7DA 0%, #F5C6CB 100%);
-            border-left-color: #DC3545;
-        }
-
-        .kyc-alert.pending {
-            background: linear-gradient(135deg, #D1ECF1 0%, #BEE5EB 100%);
-            border-left-color: #0C5460;
-        }
-
-        .kyc-content {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -49,10 +188,20 @@
             gap: 1rem;
         }
 
+        .kyc-alert.rejected {
+            background: linear-gradient(135deg, #F8D7DA 0%, #F5C6CB 100%);
+            border-left-color: var(--danger);
+        }
+
+        .kyc-alert.pending {
+            background: linear-gradient(135deg, #D1ECF1 0%, #BEE5EB 100%);
+            border-left-color: var(--info);
+        }
+
         .kyc-text h3 {
             margin: 0 0 0.5rem 0;
             color: #856404;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
         }
 
         .kyc-alert.rejected .kyc-text h3 {
@@ -63,31 +212,24 @@
             color: #0C5460;
         }
 
-        .kyc-text p {
-            margin: 0;
-            color: #856404;
-            font-size: 0.95rem;
-        }
-
         .kyc-btn {
-            background: var(--sea-green);
+            background: var(--primary);
             color: white;
             padding: 0.75rem 1.5rem;
             border-radius: 8px;
             text-decoration: none;
-            font-weight: 500;
-            white-space: nowrap;
+            font-weight: 600;
             transition: background 0.3s;
         }
 
         .kyc-btn:hover {
-            background: var(--sushi);
+            background: var(--primary-dark);
         }
 
-        /* Stats Grid */
+        /* Summary Cards */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
@@ -95,73 +237,93 @@
         .stat-card {
             background: white;
             padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border-left: 4px solid var(--primary);
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+
+        .stat-card.content {
+            border-left-color: var(--secondary);
+        }
+
+        .stat-card.appointments {
+            border-left-color: var(--info);
+        }
+
+        .stat-card.chats {
+            border-left-color: var(--success);
         }
 
         .stat-content h4 {
             margin: 0;
             color: #666;
             font-weight: 500;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .stat-content span {
+        .stat-content .stat-value {
             font-size: 2rem;
-            font-weight: 700;
-            color: var(--sea-green);
-            display: block;
+            font-weight: bold;
+            color: var(--primary);
             margin-top: 0.5rem;
         }
 
-        .stat-icon {
-            width: 60px;
-            height: 60px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.5rem;
-            background: var(--athens-gray);
-            color: var(--sea-green);
+        .stat-card.content .stat-value {
+            color: var(--secondary);
         }
 
-        /* Section Headers */
+        .stat-card.appointments .stat-value {
+            color: var(--info);
+        }
+
+        .stat-card.chats .stat-value {
+            color: var(--success);
+        }
+
+        .stat-icon {
+            font-size: 3rem;
+            opacity: 0.2;
+        }
+
+        /* Content Sections */
+        .content-section {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
+            overflow: hidden;
+        }
+
         .section-header {
+            padding: 1.5rem 2rem;
+            border-bottom: 2px solid var(--light);
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
-            flex-wrap: wrap;
-            gap: 1rem;
         }
 
         .section-header h2 {
             margin: 0;
-            color: #333;
             font-size: 1.5rem;
-        }
-
-        .btn-primary {
-            background: var(--sea-green);
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            border: none;
-            font-weight: 500;
-            cursor: pointer;
-            text-decoration: none;
-            display: inline-flex;
+            color: var(--dark);
+            display: flex;
             align-items: center;
-            gap: 0.5rem;
-            transition: background 0.3s;
+            gap: 0.75rem;
         }
 
-        .btn-primary:hover {
-            background: var(--sushi);
+        .section-body {
+            padding: 2rem;
         }
 
         /* Content Grid */
@@ -169,52 +331,36 @@
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
             gap: 1.5rem;
-            margin-bottom: 2rem;
         }
 
         .content-card {
-            background: white;
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
             border-radius: 12px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            transition: transform 0.3s, box-shadow 0.3s;
+            transition: all 0.3s;
         }
 
         .content-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+            border-color: var(--primary);
+            box-shadow: 0 4px 16px rgba(53, 141, 88, 0.15);
+            transform: translateY(-3px);
         }
 
-        .content-image {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            background: var(--athens-gray);
-        }
-
-        .content-body {
+        .content-header {
             padding: 1.5rem;
-        }
-
-        .content-body h3 {
-            margin: 0 0 0.5rem 0;
-            color: #333;
-            font-size: 1.1rem;
-        }
-
-        .content-body p {
-            margin: 0 0 1rem 0;
-            color: #666;
-            font-size: 0.9rem;
-            line-height: 1.5;
-        }
-
-        .content-footer {
+            border-bottom: 1px solid #e9ecef;
             display: flex;
             justify-content: space-between;
-            align-items: center;
-            padding-top: 1rem;
-            border-top: 1px solid #eee;
+            align-items: start;
+        }
+
+        .content-header h3 {
+            margin: 0;
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
+            flex: 1;
         }
 
         .content-actions {
@@ -222,47 +368,69 @@
             gap: 0.5rem;
         }
 
-        .btn-icon {
+        .btn-action {
             width: 36px;
             height: 36px;
-            border-radius: 8px;
+            border-radius: 50%;
             border: none;
-            background: var(--athens-gray);
-            color: #666;
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            transition: all 0.3s;
+            font-size: 0.9rem;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
         }
 
-        .btn-icon:hover {
-            background: var(--sea-green);
+        .btn-action:hover {
+            transform: scale(1.1);
+        }
+
+        .btn-edit {
+            background: var(--warning);
             color: white;
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 3rem;
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        .btn-delete {
+            background: var(--danger);
+            color: white;
         }
 
-        .empty-state i {
-            font-size: 4rem;
-            color: #ccc;
+        .content-body {
+            padding: 1.5rem;
+        }
+
+        .content-text {
+            font-size: 0.9rem;
+            color: #666;
+            line-height: 1.6;
             margin-bottom: 1rem;
         }
 
-        .empty-state h3 {
-            color: #666;
-            margin-bottom: 0.5rem;
+        .content-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 1rem;
+            border-top: 1px solid #e9ecef;
         }
 
-        .empty-state p {
-            color: #999;
-            margin-bottom: 1.5rem;
+        .content-status {
+            display: inline-block;
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-published {
+            background: #D4EDDA;
+            color: #155724;
+        }
+
+        .status-draft {
+            background: #FFF3CD;
+            color: #856404;
         }
 
         /* Appointments List */
@@ -278,11 +446,18 @@
             border-bottom: 1px solid #eee;
             display: flex;
             justify-content: space-between;
-            align-items: center;
+            align-items: start;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
 
         .appointment-item:last-child {
             border-bottom: none;
+        }
+
+        .appointment-info {
+            flex: 1;
+            min-width: 250px;
         }
 
         .appointment-info h4 {
@@ -291,7 +466,7 @@
         }
 
         .appointment-info p {
-            margin: 0;
+            margin: 0.25rem 0;
             color: #666;
             font-size: 0.9rem;
         }
@@ -301,6 +476,7 @@
             border-radius: 20px;
             font-size: 0.85rem;
             font-weight: 500;
+            display: inline-block;
         }
 
         .status-pending {
@@ -308,183 +484,806 @@
             color: #856404;
         }
 
-        .status-approved {
-            background: #D1ECF1;
-            color: #0C5460;
+        .status-accepted {
+            background: #D4EDDA;
+            color: #155724;
         }
 
         .status-rejected {
             background: #F8D7DA;
             color: #721C24;
         }
+
+        .appointment-actions {
+            display: flex;
+            gap: 0.5rem;
+            flex-wrap: wrap;
+            margin-top: 1rem;
+        }
+
+        /* Chat Threads */
+        .chat-item {
+            padding: 1.5rem;
+            border-bottom: 1px solid #eee;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            transition: background 0.3s;
+        }
+
+        .chat-item:hover {
+            background: var(--light);
+        }
+
+        .chat-item:last-child {
+            border-bottom: none;
+        }
+
+        .chat-info h4 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+
+        .chat-info p {
+            margin: 0.25rem 0;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: #5a6268;
+        }
+
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 2rem;
+            border-radius: 16px;
+            width: 90%;
+            max-width: 600px;
+            max-height: 90vh;
+            overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #eee;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: var(--primary);
+            font-size: 1.5rem;
+        }
+
+        .close-modal {
+            font-size: 1.8rem;
+            cursor: pointer;
+            color: #999;
+            background: none;
+            border: none;
+            width: 36px;
+            height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .close-modal:hover {
+            background: #f0f0f0;
+            color: #666;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 500;
+            font-size: 0.95rem;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+            box-sizing: border-box;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(53, 141, 88, 0.1);
+        }
+
+        textarea.form-control {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .form-checkbox {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .form-checkbox input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 1rem;
+            margin-top: 2rem;
+            padding-top: 1.5rem;
+            border-top: 2px solid #eee;
+        }
+
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #999;
+        }
+
+        .empty-state i {
+            font-size: 5rem;
+            display: block;
+            margin-bottom: 1rem;
+            opacity: 0.4;
+        }
+
+        .empty-state h3 {
+            margin: 0 0 0.5rem 0;
+            color: #666;
+            font-size: 1.5rem;
+        }
+
+        /* Messages */
+        .messages {
+            margin-bottom: 2rem;
+        }
+
+        .message-alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+
+        .message-alert.success {
+            background: #D4EDDA;
+            color: #155724;
+            border-left: 4px solid #28A745;
+        }
+
+        .message-alert.error {
+            background: #F8D7DA;
+            color: #721C24;
+            border-left: 4px solid #DC3545;
+        }
+
+        .message-alert.info {
+            background: #D1ECF1;
+            color: #0C5460;
+            border-left: 4px solid #17A2B8;
+        }
+
+        /* Language Selector */
+        .language-selector {
+            padding: 0.5rem 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: border-color 0.3s;
+        }
+
+        .language-selector:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Dashboard Section */
+        .dashboard-section {
+            display: none;
+        }
+
+        .dashboard-section:first-of-type {
+            display: block;
+        }
     </style>
 </head>
 <body>
-    <header class="main-header">
-        <div class="header-container">
-            <div class="logo">
-                <a href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
-                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
-                        <span class="logo-icon">🌾</span>
-                        <span class="logo-text">Farmity</span>
-                    </span>
-                </a>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🌾</div>
+            <div class="sidebar-title">Farmity</div>
+        </div>
+        <nav class="sidebar-nav">
+            <a href="#dashboard" class="nav-item active" onclick="showSection('dashboard'); return false;">
+                <i class="fas fa-home"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="#content" class="nav-item" onclick="showSection('content'); return false;">
+                <i class="fas fa-file-alt"></i>
+                <span>My Content</span>
+            </a>
+            <a href="#appointments" class="nav-item" onclick="showSection('appointments'); return false;">
+                <i class="fas fa-calendar-check"></i>
+                <span>Appointments</span>
+            </a>
+            <a href="#chat" class="nav-item" onclick="showSection('chat'); return false;">
+                <i class="fas fa-comments"></i>
+                <span>Chat</span>
+            </a>
+            <a href="#profile" class="nav-item" onclick="showSection('profile'); return false;">
+                <i class="fas fa-user"></i>
+                <span>Profile</span>
+            </a>
+            <a href="#settings" class="nav-item" onclick="showSection('settings'); return false;">
+                <i class="fas fa-cog"></i>
+                <span>Settings</span>
+            </a>
+            <a href="{% url 'logout' %}" class="nav-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <h1 style="margin: 0; font-size: 1.5rem; color: var(--primary);">Expert Dashboard</h1>
             </div>
-            <nav class="main-nav">
-                <a href="{% url 'expert_dashboard' %}">Dashboard</a>
-                <a href="{% url 'profile' %}">Profile</a>
-                <a href="{% url 'chat_threads' %}">Chat</a>
-                <a href="{% url 'settings' %}">Settings</a>
-            </nav>
-            <div class="header-actions" id="headerActions">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <select id="languageSelect" class="language-selector" onchange="changeLanguage(this.value)">
-                        <option value="en">English</option>
-                        <option value="np">नेपाली (Nepali)</option>
-                    </select>
-                    <div id="authButtons" class="auth-buttons"></div>
+            <div class="header-right">
+                <select id="languageSelect" class="language-selector" onchange="changeLanguage(this.value)">
+                    <option value="en">English</option>
+                    <option value="np">नेपाली (Nepali)</option>
+                </select>
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        {% if profile.photo %}
+                        <img src="{{ profile.photo.url }}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        {% else %}
+                        {% if profile.name %}{{ profile.name|first|upper }}{% else %}E{% endif %}
+                        {% endif %}
+                    </div>
+                    <div>
+                        <div style="font-weight: 600;">{{ profile.name|default:user.email }}</div>
+                        <div style="font-size: 0.85rem; color: #666;">Agricultural Expert</div>
+                    </div>
                 </div>
             </div>
-        </div>
-    </header>
+        </header>
 
-    <div class="dashboard-container">
-        <!-- KYC Alert (if not verified) -->
-        {% if not user.is_verified %}
-        <div class="kyc-alert {% if kyc_status == 'rejected' %}rejected{% elif kyc_status == 'pending' %}pending{% endif %}">
-            <div class="kyc-content">
-                <div class="kyc-text">
-                    <h3>
-                        {% if kyc_status == 'rejected' %}
-                            KYC Verification Rejected
-                        {% elif kyc_status == 'pending' %}
-                            KYC Verification Pending
-                        {% else %}
-                            KYC Verification Required
-                        {% endif %}
-                    </h3>
-                    <p>
-                        {% if kyc_status == 'rejected' %}
-                            Your KYC verification was rejected. Please resubmit your documents.
-                        {% elif kyc_status == 'pending' %}
-                            Your KYC verification is under review. Please wait for approval.
-                        {% else %}
-                            Please complete KYC verification to access all features.
-                        {% endif %}
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+            <!-- KYC Alert -->
+            {% if kyc_status != 'approved' %}
+            <div class="kyc-alert {% if kyc_status == 'rejected' %}rejected{% elif kyc_status == 'pending' %}pending{% endif %}">
+                <div class="kyc-content">
+                    <div class="kyc-text">
+                        <h3>
+                            <i class="fas fa-file-contract"></i>
+                            {% if kyc_status == 'pending' %}KYC Verification Pending
+                            {% elif kyc_status == 'rejected' %}KYC Verification Rejected
+                            {% else %}KYC Verification Required{% endif %}
+                        </h3>
+                        <p>
+                            {% if kyc_status == 'pending' %}Your KYC documents are under review. Please wait for approval.
+                            {% elif kyc_status == 'rejected' %}{% if kyc_request.rejection_reason %}Reason: {{ kyc_request.rejection_reason }}{% endif %} Please update your documents and resubmit.
+                            {% else %}Upload your documents to verify your expert status and access all features.{% endif %}
+                        </p>
+                    </div>
+                    <a href="{% url 'kyc' %}" class="kyc-btn">
+                        <i class="fas fa-upload"></i> {% if kyc_status == 'rejected' or not kyc_status %}Upload KYC{% else %}View Status{% endif %}
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Messages -->
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="message-alert {{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="dashboard-section">
+                <!-- Summary Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card content">
+                        <div class="stat-content">
+                            <h4>Total Content</h4>
+                            <div class="stat-value">{{ content_count }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <h4>Published Content</h4>
+                            <div class="stat-value" style="color: var(--success);">{{ published_content }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card appointments">
+                        <div class="stat-content">
+                            <h4>Total Appointments</h4>
+                            <div class="stat-value">{{ appointments_count }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <h4>Pending Appointments</h4>
+                            <div class="stat-value" style="color: var(--warning);">{{ pending_appointments }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <h4>Accepted Appointments</h4>
+                            <div class="stat-value" style="color: var(--success);">{{ accepted_appointments }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card chats">
+                        <div class="stat-content">
+                            <h4>Active Chats</h4>
+                            <div class="stat-value">{{ chats_count }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if features_restricted %}
+                <div style="background: #FFF3CD; border-left: 4px solid var(--warning); padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+                    <p style="margin: 0; color: #856404; font-weight: 500;">
+                        <i class="fas fa-info-circle"></i> Some features are restricted until KYC verification is approved. Complete your KYC to unlock all features.
                     </p>
                 </div>
-                <a href="/kyc/" class="kyc-btn">
-                    {% if kyc_status == 'rejected' %}
-                        Resubmit KYC
-                    {% else %}
-                        Complete KYC
-                    {% endif %}
-                </a>
+                {% endif %}
             </div>
-        </div>
-        {% endif %}
 
-        <!-- Stats Grid -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-content">
-                    <h4>Total Content</h4>
-                    <span id="content-count">0</span>
-                </div>
-                <div class="stat-icon">
-                    <i class="fas fa-file-alt"></i>
+            <!-- Content Section -->
+            <div id="content-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-file-alt"></i> My Content</h2>
+                        <button class="btn-primary" onclick="openAddContentModal()" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;" title="KYC verification required"{% endif %}>
+                            <i class="fas fa-plus"></i> Share New Content
+                        </button>
+                    </div>
+                    <div class="section-body">
+                        {% if tips %}
+                        <div class="content-grid">
+                            {% for tip in tips %}
+                            <div class="content-card">
+                                <div class="content-header">
+                                    <h3>{{ tip.title }}</h3>
+                                    <div class="content-actions">
+                                        <button class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditContentModal({{ tip.id }}, '{{ tip.title|escapejs }}', '{{ tip.content|escapejs }}', {{ tip.is_published|yesno:"true,false" }}){% else %}alert('KYC verification required to edit content'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-action btn-delete" onclick="{% if kyc_status == 'approved' %}openDeleteContentModal({{ tip.id }}, '{{ tip.title|escapejs }}'){% else %}alert('KYC verification required to delete content'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Delete{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="content-body">
+                                    <p class="content-text">{{ tip.content|truncatewords:50 }}</p>
+                                    <div class="content-footer">
+                                        <span class="content-status status-{% if tip.is_published %}published{% else %}draft{% endif %}">
+                                            {% if tip.is_published %}Published{% else %}Draft{% endif %}
+                                        </span>
+                                        <span style="font-size: 0.85rem; color: #666;">{{ tip.created_at|date:"M d, Y" }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-file-alt"></i>
+                            <h3>No Content Shared Yet</h3>
+                            <p>Start sharing agricultural tips and knowledge</p>
+                            <button class="btn-primary" onclick="openAddContentModal()" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+                                <i class="fas fa-plus"></i> Share Content
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-content">
-                    <h4>Appointments</h4>
-                    <span id="appointments-count">0</span>
-                </div>
-                <div class="stat-icon">
-                    <i class="fas fa-calendar-check"></i>
+
+            <!-- Appointments Section -->
+            <div id="appointments-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-calendar-check"></i> Appointment Requests</h2>
+                    </div>
+                    <div class="section-body">
+                        {% if appointments %}
+                        <div class="appointments-list">
+                            {% for appointment in appointments %}
+                            <div class="appointment-item">
+                                <div class="appointment-info">
+                                    <h4>
+                                        <i class="fas fa-user"></i> {{ appointment.requester.email }}
+                                    </h4>
+                                    <p>
+                                        <i class="fas fa-calendar"></i> <strong>Date:</strong> {{ appointment.requested_date|date:"M d, Y" }}
+                                    </p>
+                                    <p>
+                                        <i class="fas fa-clock"></i> <strong>Time:</strong> {{ appointment.requested_time|time:"g:i A" }}
+                                    </p>
+                                    {% if appointment.message %}
+                                    <p style="margin-top: 0.5rem; padding: 0.75rem; background: var(--light); border-radius: 8px;">
+                                        <strong>Message:</strong> {{ appointment.message }}
+                                    </p>
+                                    {% endif %}
+                                    <p style="font-size: 0.85rem; color: #999; margin-top: 0.5rem;">
+                                        <i class="far fa-calendar"></i> Requested on {{ appointment.created_at|date:"M d, Y" }}
+                                    </p>
+                                </div>
+                                <div style="display: flex; flex-direction: column; gap: 1rem; align-items: flex-end;">
+                                    <span class="appointment-status status-{{ appointment.status }}">
+                                        {{ appointment.get_status_display }}
+                                    </span>
+                                    {% if appointment.status == 'pending' and kyc_status == 'approved' %}
+                                    <div class="appointment-actions">
+                                        <form method="POST" style="display: inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
+                                            <button type="submit" name="accept_appointment" class="btn-primary" style="background: #28a745;">
+                                                <i class="fas fa-check"></i> Accept
+                                            </button>
+                                        </form>
+                                        <form method="POST" style="display: inline;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
+                                            <button type="submit" name="reject_appointment" class="btn-primary" style="background: #dc3545;">
+                                                <i class="fas fa-times"></i> Reject
+                                            </button>
+                                        </form>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-check"></i>
+                            <h3>No Appointment Requests</h3>
+                            <p>Appointment requests from farmers and buyers will appear here</p>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-            <div class="stat-card">
-                <div class="stat-content">
-                    <h4>Active Chats</h4>
-                    <span id="chats-count">0</span>
-                </div>
-                <div class="stat-icon">
-                    <i class="fas fa-comments"></i>
+
+            <!-- Chat Section -->
+            <div id="chat-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-comments"></i> Chat Threads</h2>
+                    </div>
+                    <div class="section-body">
+                        {% if chat_threads %}
+                        <div class="appointments-list">
+                            {% for thread in chat_threads %}
+                            <div class="chat-item">
+                                <div class="chat-info">
+                                    <h4>
+                                        <i class="fas fa-comments"></i> Chat with {{ thread.created_by.email }}
+                                    </h4>
+                                    <p>
+                                        <i class="far fa-calendar"></i> Started: {{ thread.created_at|date:"M d, Y" }}
+                                    </p>
+                                    <p>
+                                        <i class="fas fa-sync"></i> Last updated: {{ thread.updated_at|date:"M d, Y h:i A" }}
+                                    </p>
+                                </div>
+                                <a href="{% url 'chat_thread' thread.id %}" class="btn-primary" style="text-decoration: none;">
+                                    <i class="fas fa-comment-dots"></i> Open Chat
+                                </a>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-comments"></i>
+                            <h3>No Chat Threads Yet</h3>
+                            <p>Chat conversations with farmers and buyers will appear here</p>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- My Content Section -->
-        <div class="section-header">
-            <h2>My Content</h2>
-            <button class="btn-primary" onclick="openAddContentModal()">
-                <i class="fas fa-plus"></i>
-                Share New Content
-            </button>
-        </div>
+            <!-- Profile Section -->
+            <div id="profile-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-user"></i> My Profile</h2>
+                    </div>
+                    <div class="section-body">
+                        <form method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="1">
+                            
+                            <div style="display: flex; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                                <div style="flex: 0 0 200px;">
+                                    <div style="width: 200px; height: 200px; border-radius: 50%; overflow: hidden; border: 4px solid var(--primary); margin: 0 auto;">
+                                        {% if profile.photo %}
+                                        <img src="{{ profile.photo.url }}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">
+                                        {% else %}
+                                        <div style="width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 4rem;">
+                                            <i class="fas fa-user-graduate"></i>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div style="margin-top: 1rem; text-align: center;">
+                                        <label for="photo" class="btn-primary" style="cursor: pointer; display: inline-block;">
+                                            <i class="fas fa-camera"></i> Change Photo
+                                        </label>
+                                        <input type="file" name="photo" id="photo" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                                    </div>
+                                </div>
+                                <div style="flex: 1; min-width: 300px;">
+                                    <h3 style="margin: 0 0 1rem 0; font-size: 1.5rem; color: #333;">{{ profile.name|default:user.email }}</h3>
+                                    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                                        <span class="role-badge" style="padding: 0.5rem 1rem; background: var(--primary); color: white; border-radius: 20px; font-weight: 600;">Agricultural Expert</span>
+                                        {% if kyc_status == 'approved' %}
+                                        <span style="padding: 0.5rem 1rem; background: #D4EDDA; color: #155724; border-radius: 20px; font-weight: 600;">
+                                            <i class="fas fa-check-circle"></i> Verified
+                                        </span>
+                                        {% else %}
+                                        <span style="padding: 0.5rem 1rem; background: #FFF3CD; color: #856404; border-radius: 20px; font-weight: 600;">
+                                            <i class="fas fa-exclamation-circle"></i> Unverified
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
 
-        <div id="content-container" class="content-grid">
-            <div class="empty-state">
-                <i class="fas fa-file-alt"></i>
-                <h3>No Content Shared Yet</h3>
-                <p>Start sharing agricultural tips and knowledge</p>
-                <button class="btn-primary" onclick="openAddContentModal()">
-                    <i class="fas fa-plus"></i>
-                    Share Content
-                </button>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                                <div class="form-group">
+                                    <label>Full Name</label>
+                                    <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Enter your full name">
+                                </div>
+                                <div class="form-group">
+                                    <label>Qualification</label>
+                                    <input type="text" name="qualification" class="form-control" value="{{ profile.qualification|default:'' }}" placeholder="Enter your qualification">
+                                </div>
+                                <div class="form-group">
+                                    <label>Specialization</label>
+                                    <input type="text" name="specialization" class="form-control" value="{{ profile.specialization|default:'' }}" placeholder="Enter your specialization">
+                                </div>
+                                <div class="form-group">
+                                    <label>Experience</label>
+                                    <input type="text" name="experience" class="form-control" value="{{ profile.experience|default:'' }}" placeholder="e.g., 5 years">
+                                </div>
+                            </div>
+
+                            <div style="margin-top: 2rem;">
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-save"></i> Update Profile
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
-        </div>
 
-        <!-- Appointments Section -->
-        <div class="section-header">
-            <h2>Appointment Requests</h2>
-        </div>
+            <!-- Settings Section -->
+            <div id="settings-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-cog"></i> Settings</h2>
+                    </div>
+                    <div class="section-body">
+                        <!-- Security Section -->
+                        <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                                <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-lock" style="font-size: 1.75rem; color: var(--primary);"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 1.5rem;">Security</h3>
+                            </div>
+                            <form method="POST" action="{% url 'change_password' %}">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label>Current Password</label>
+                                    <input type="password" name="current_password" class="form-control" placeholder="Enter your current password" required>
+                                </div>
+                                <div class="form-group">
+                                    <label>New Password</label>
+                                    <input type="password" name="new_password" class="form-control" placeholder="Enter your new password" required pattern=".{8,}" title="Password must be at least 8 characters">
+                                    <small style="color: #666; font-size: 0.85rem; margin-top: 0.5rem; display: block;">Password must be at least 8 characters long</small>
+                                </div>
+                                <div class="form-group">
+                                    <label>Confirm New Password</label>
+                                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your new password" required>
+                                </div>
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-key"></i> Update Password
+                                </button>
+                            </form>
+                        </div>
 
-        <div id="appointments-container" class="appointments-list">
-            <div class="empty-state">
-                <i class="fas fa-calendar-check"></i>
-                <h3>No Appointment Requests</h3>
-                <p>Appointment requests from farmers and buyers will appear here</p>
+                        <!-- Language Section -->
+                        <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                                <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-globe" style="font-size: 1.75rem; color: var(--primary);"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 1.5rem;">Language & Region</h3>
+                            </div>
+                            <div class="form-group">
+                                <label>Preferred Language</label>
+                                <select id="settingsLanguageSelect" class="form-control" onchange="changeLanguage(this.value)">
+                                    <option value="en">English</option>
+                                    <option value="np">नेपाली (Nepali)</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- Add/Edit Content Modal -->
-    <div id="contentModal" class="modal" style="display: none;">
+    <div id="contentModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modal-title">Share New Content</h2>
-                <button class="modal-close" onclick="closeContentModal()">&times;</button>
+                <h3 id="contentModalTitle">Share New Content</h3>
+                <button class="close-modal" onclick="closeContentModal()">&times;</button>
             </div>
-            <form id="contentForm" enctype="multipart/form-data">
+            <form id="contentForm" method="POST">
                 {% csrf_token %}
-                <input type="hidden" id="content-id" name="content_id">
+                <input type="hidden" id="content_id" name="tip_id">
+                <input type="hidden" id="content_action" name="add_tip" value="1">
                 
                 <div class="form-group">
-                    <label for="content-title">Title *</label>
-                    <input type="text" id="content-title" name="title" required>
+                    <label for="content_title">Title *</label>
+                    <input type="text" id="content_title" name="title" class="form-control" required>
                 </div>
 
                 <div class="form-group">
-                    <label for="content-description">Content *</label>
-                    <textarea id="content-description" name="description" rows="6" required></textarea>
+                    <label for="content_text">Content *</label>
+                    <textarea id="content_text" name="content" class="form-control" rows="6" required></textarea>
                 </div>
 
                 <div class="form-group">
-                    <label for="content-image">Image (Optional)</label>
-                    <input type="file" id="content-image" name="image" accept="image/*">
-                    <div id="content-image-preview" style="margin-top: 1rem; display: none;">
-                        <img id="content-preview-img" src="" alt="Preview" style="max-width: 200px; border-radius: 8px;">
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label class="checkbox-container">
-                        <input type="checkbox" id="content-published" name="is_published" checked>
-                        <span class="checkmark"></span>
-                        Publish Immediately
+                    <label class="form-checkbox">
+                        <input type="checkbox" id="content_published" name="is_published" checked>
+                        <span>Publish Immediately</span>
                     </label>
                 </div>
 
@@ -496,58 +1295,104 @@
         </div>
     </div>
 
+    <!-- Delete Content Modal -->
+    <div id="deleteContentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Delete Content</h3>
+                <button class="close-modal" onclick="closeDeleteContentModal()">&times;</button>
+            </div>
+            <form method="POST">
+                {% csrf_token %}
+                <input type="hidden" id="delete_content_id" name="tip_id">
+                <input type="hidden" name="delete_tip" value="1">
+                <p>Are you sure you want to delete <strong id="delete_content_title"></strong>? This action cannot be undone.</p>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeDeleteContentModal()">Cancel</button>
+                    <button type="submit" class="btn-primary" style="background: var(--danger);">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="/static/js/main.js"></script>
     <script>
-        // Load content and appointments on page load
-        document.addEventListener('DOMContentLoaded', function() {
-            loadContent();
-            loadAppointments();
-        });
-
-        function loadContent() {
-            // TODO: Implement API call to load expert content
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.dashboard-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById(sectionId + '-section').style.display = 'block';
+            
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.nav-item').classList.add('active');
         }
 
-        function loadAppointments() {
-            // TODO: Implement API call to load appointments
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
         }
 
+        // Modal Functions
         function openAddContentModal() {
-            document.getElementById('contentModal').style.display = 'flex';
+            document.getElementById('contentModal').classList.add('active');
+            document.getElementById('contentModalTitle').textContent = 'Share New Content';
             document.getElementById('contentForm').reset();
-            document.getElementById('content-id').value = '';
-            document.getElementById('modal-title').textContent = 'Share New Content';
-            document.getElementById('content-image-preview').style.display = 'none';
+            document.getElementById('content_id').value = '';
+            document.getElementById('content_action').name = 'add_tip';
+            document.getElementById('content_action').value = '1';
         }
 
         function closeContentModal() {
-            document.getElementById('contentModal').style.display = 'none';
+            document.getElementById('contentModal').classList.remove('active');
         }
 
-        // Handle image preview
-        document.getElementById('content-image').addEventListener('change', function(e) {
-            const file = e.target.files[0];
-            if (file) {
+        function openEditContentModal(id, title, content, isPublished) {
+            document.getElementById('contentModal').classList.add('active');
+            document.getElementById('contentModalTitle').textContent = 'Edit Content';
+            document.getElementById('content_id').value = id;
+            document.getElementById('content_title').value = title;
+            document.getElementById('content_text').value = content;
+            document.getElementById('content_published').checked = isPublished;
+            document.getElementById('content_action').name = 'edit_tip';
+            document.getElementById('content_action').value = '1';
+        }
+
+        function openDeleteContentModal(id, title) {
+            document.getElementById('deleteContentModal').classList.add('active');
+            document.getElementById('delete_content_id').value = id;
+            document.getElementById('delete_content_title').textContent = title;
+        }
+
+        function closeDeleteContentModal() {
+            document.getElementById('deleteContentModal').classList.remove('active');
+        }
+
+        // Close modal when clicking outside
+        window.onclick = function(event) {
+            if (event.target.classList.contains('modal')) {
+                event.target.classList.remove('active');
+            }
+        }
+
+        // Image Preview
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    document.getElementById('content-preview-img').src = e.target.result;
-                    document.getElementById('content-image-preview').style.display = 'block';
+                    const img = input.closest('div').querySelector('img');
+                    if (img) {
+                        img.src = e.target.result;
+                    }
                 };
-                reader.readAsDataURL(file);
+                reader.readAsDataURL(input.files[0]);
             }
-        });
-
-        // Handle form submission
-        document.getElementById('contentForm').addEventListener('submit', function(e) {
-            e.preventDefault();
-            // TODO: Implement API call to save content
-            alert('Content save functionality will be implemented');
-        });
+        }
 
         // Language Functions
         function changeLanguage(lang) {
             localStorage.setItem('language', lang);
-            // Language changes can be applied here if needed
         }
 
         // Initialize language selector
@@ -557,10 +1402,9 @@
             if (select) {
                 select.value = savedLang;
             }
-            
-            // Update auth buttons (from main.js)
-            if (typeof updateAuthHeader === 'function') {
-                updateAuthHeader();
+            const settingsSelect = document.getElementById('settingsLanguageSelect');
+            if (settingsSelect) {
+                settingsSelect.value = savedLang;
             }
         });
     </script>

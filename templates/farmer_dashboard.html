@@ -6,42 +6,181 @@
     <title>Farmer Dashboard - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #358D58;
+            --primary-dark: #2a6f45;
+            --secondary: #F29900;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+        }
+
         body {
-            background-color: var(--athens-gray);
-            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+            overflow-x: hidden;
+        }
+
+        /* Sidebar Navigation */
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            z-index: 1000;
+            overflow-y: auto;
+            transition: transform 0.3s ease;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            padding: 1.5rem;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
             display: flex;
-            flex-direction: column;
+            align-items: center;
+            gap: 0.75rem;
         }
 
-        .dashboard-container {
-            max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
-            flex: 1;
+        .sidebar-logo {
+            width: 40px;
+            height: 40px;
+            background: white;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
         }
 
-        /* KYC Alert Banner */
+        .sidebar-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+        }
+
+        .sidebar-nav {
+            padding: 1rem 0;
+        }
+
+        .nav-item {
+            display: block;
+            padding: 1rem 1.5rem;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .nav-item:hover, .nav-item.active {
+            background: rgba(255,255,255,0.1);
+            border-left-color: white;
+            color: white;
+        }
+
+        .nav-item i {
+            width: 20px;
+            font-size: 1.1rem;
+        }
+
+        /* Main Content Area */
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            transition: margin-left 0.3s ease;
+        }
+
+        /* Top Header */
+        .top-header {
+            background: white;
+            height: var(--header-height);
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .mobile-menu-btn {
+            display: none;
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            color: var(--primary);
+            cursor: pointer;
+        }
+
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+        }
+
+        .user-profile {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            cursor: pointer;
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            transition: background 0.3s;
+        }
+
+        .user-profile:hover {
+            background: var(--light);
+        }
+
+        .user-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 600;
+        }
+
+        /* Dashboard Content */
+        .dashboard-content {
+            padding: 2rem;
+        }
+
+        /* KYC Alert */
         .kyc-alert {
             background: linear-gradient(135deg, #FFF3CD 0%, #FFE69C 100%);
-            border-left: 4px solid #FFC107;
+            border-left: 4px solid var(--warning);
             padding: 1.5rem;
             border-radius: 12px;
             margin-bottom: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .kyc-alert.rejected {
-            background: linear-gradient(135deg, #F8D7DA 0%, #F5C6CB 100%);
-            border-left-color: #DC3545;
-        }
-
-        .kyc-alert.pending {
-            background: linear-gradient(135deg, #D1ECF1 0%, #BEE5EB 100%);
-            border-left-color: #0C5460;
-        }
-
-        .kyc-content {
             display: flex;
             justify-content: space-between;
             align-items: center;
@@ -49,10 +188,20 @@
             gap: 1rem;
         }
 
+        .kyc-alert.rejected {
+            background: linear-gradient(135deg, #F8D7DA 0%, #F5C6CB 100%);
+            border-left-color: var(--danger);
+        }
+
+        .kyc-alert.pending {
+            background: linear-gradient(135deg, #D1ECF1 0%, #BEE5EB 100%);
+            border-left-color: var(--info);
+        }
+
         .kyc-text h3 {
             margin: 0 0 0.5rem 0;
             color: #856404;
-            font-size: 1.2rem;
+            font-size: 1.1rem;
         }
 
         .kyc-alert.rejected .kyc-text h3 {
@@ -63,39 +212,24 @@
             color: #0C5460;
         }
 
-        .kyc-text p {
-            margin: 0;
-            color: #856404;
-            font-size: 0.95rem;
-        }
-
-        .kyc-alert.rejected .kyc-text p {
-            color: #721C24;
-        }
-
-        .kyc-alert.pending .kyc-text p {
-            color: #0C5460;
-        }
-
         .kyc-btn {
-            background: var(--sea-green);
+            background: var(--primary);
             color: white;
             padding: 0.75rem 1.5rem;
             border-radius: 8px;
             text-decoration: none;
-            font-weight: 500;
-            white-space: nowrap;
+            font-weight: 600;
             transition: background 0.3s;
         }
 
         .kyc-btn:hover {
-            background: var(--sushi);
+            background: var(--primary-dark);
         }
 
-        /* Stats Grid */
+        /* Summary Cards */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
@@ -109,11 +243,24 @@
             align-items: center;
             justify-content: space-between;
             transition: transform 0.3s, box-shadow 0.3s;
+            border-left: 4px solid var(--primary);
         }
 
         .stat-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+        }
+
+        .stat-card.earnings {
+            border-left-color: var(--success);
+        }
+
+        .stat-card.sold {
+            border-left-color: var(--info);
+        }
+
+        .stat-card.listings {
+            border-left-color: var(--secondary);
         }
 
         .stat-content h4 {
@@ -125,77 +272,78 @@
             letter-spacing: 0.5px;
         }
 
-        .stat-content span {
-            font-size: 2.2rem;
+        .stat-content .stat-value {
+            font-size: 2rem;
             font-weight: bold;
-            color: var(--sea-green);
-            display: block;
+            color: var(--primary);
             margin-top: 0.5rem;
+        }
+
+        .stat-card.earnings .stat-value {
+            color: var(--success);
+        }
+
+        .stat-card.sold .stat-value {
+            color: var(--info);
+        }
+
+        .stat-card.listings .stat-value {
+            color: var(--secondary);
         }
 
         .stat-icon {
             font-size: 3rem;
-            color: rgba(53, 141, 88, 0.15);
+            opacity: 0.2;
         }
 
-        /* Main Content Card */
-        .main-card {
+        /* Content Sections */
+        .content-section {
             background: white;
             border-radius: 16px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            margin-bottom: 2rem;
             overflow: hidden;
         }
 
-        .card-header {
-            background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
-            color: white;
+        .section-header {
             padding: 1.5rem 2rem;
+            border-bottom: 2px solid var(--light);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
 
-        .card-header h2 {
+        .section-header h2 {
             margin: 0;
             font-size: 1.5rem;
-            font-weight: 600;
-        }
-
-        .btn-add {
-            background: white;
-            color: var(--sea-green);
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s;
+            color: var(--dark);
             display: flex;
             align-items: center;
-            gap: 0.5rem;
+            gap: 0.75rem;
         }
 
-        .btn-add:hover {
-            background: rgba(255,255,255,0.9);
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }
-
-        .card-body {
+        .section-body {
             padding: 2rem;
         }
 
-        /* Products Grid - Right to Left Layout */
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
+        /* Products Grid */
         .products-grid {
             display: grid;
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
             gap: 1.5rem;
-            direction: rtl;
-        }
-
-        .products-grid > * {
-            direction: ltr;
         }
 
         .product-card {
@@ -204,19 +352,18 @@
             border-radius: 12px;
             overflow: hidden;
             transition: all 0.3s;
-            position: relative;
         }
 
         .product-card:hover {
-            border-color: var(--sea-green);
+            border-color: var(--primary);
             box-shadow: 0 4px 16px rgba(53, 141, 88, 0.15);
             transform: translateY(-3px);
         }
 
         .product-image-wrapper {
             width: 100%;
-            height: 220px;
-            background: var(--athens-gray);
+            height: 200px;
+            background: var(--light);
             position: relative;
             overflow: hidden;
         }
@@ -233,7 +380,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 5rem;
+            font-size: 4rem;
             color: #ccc;
         }
 
@@ -270,12 +417,12 @@
         }
 
         .btn-edit {
-            background: #FFC107;
+            background: var(--warning);
             color: white;
         }
 
         .btn-delete {
-            background: #DC3545;
+            background: var(--danger);
             color: white;
         }
 
@@ -284,7 +431,7 @@
         }
 
         .product-name {
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             font-weight: 700;
             color: #333;
             margin: 0 0 0.75rem 0;
@@ -295,25 +442,14 @@
             flex-direction: column;
             gap: 0.5rem;
             margin-bottom: 1rem;
-        }
-
-        .product-detail {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
+            font-size: 0.9rem;
             color: #666;
-            font-size: 0.95rem;
-        }
-
-        .product-detail i {
-            color: var(--sea-green);
-            width: 20px;
         }
 
         .product-price {
             font-size: 1.5rem;
             font-weight: bold;
-            color: var(--sea-green);
+            color: var(--primary);
             margin-top: 0.5rem;
         }
 
@@ -336,29 +472,291 @@
             color: #721C24;
         }
 
-        /* Empty State */
-        .empty-state {
+        /* Tools Grid */
+        .tools-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .tool-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .tool-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 16px rgba(53, 141, 88, 0.15);
+        }
+
+        .tool-icon {
+            font-size: 3rem;
             text-align: center;
-            padding: 4rem 2rem;
+            margin-bottom: 1rem;
+        }
+
+        .tool-name {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .tool-vendor {
+            font-size: 0.9rem;
+            color: #666;
+            margin-bottom: 1rem;
+        }
+
+        .tool-price {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .btn-buy {
+            width: 100%;
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-buy:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Chat Interface */
+        .chat-container {
+            display: flex;
+            height: 500px;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .chat-sidebar {
+            width: 300px;
+            background: var(--light);
+            border-right: 2px solid #e9ecef;
+            overflow-y: auto;
+        }
+
+        .chat-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .chat-item {
+            padding: 1rem;
+            border-bottom: 1px solid #e9ecef;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .chat-item:hover, .chat-item.active {
+            background: white;
+        }
+
+        .chat-main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-header {
+            padding: 1rem 1.5rem;
+            background: var(--primary);
+            color: white;
+            font-weight: 600;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 1.5rem;
+            overflow-y: auto;
+            background: white;
+        }
+
+        .message {
+            margin-bottom: 1rem;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .message.sent {
+            align-items: flex-end;
+        }
+
+        .message.received {
+            align-items: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 70%;
+            padding: 0.75rem 1rem;
+            border-radius: 12px;
+            font-size: 0.95rem;
+        }
+
+        .message.sent .message-bubble {
+            background: var(--primary);
+            color: white;
+        }
+
+        .message.received .message-bubble {
+            background: var(--light);
+            color: #333;
+        }
+
+        .chat-input-area {
+            padding: 1rem 1.5rem;
+            background: var(--light);
+            border-top: 2px solid #e9ecef;
+            display: flex;
+            gap: 1rem;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            font-size: 0.95rem;
+        }
+
+        .btn-send {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .btn-send:hover {
+            background: var(--primary-dark);
+        }
+
+        /* Educational Content */
+        .tips-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .tip-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .tip-card:hover {
+            border-color: var(--primary);
+            box-shadow: 0 4px 16px rgba(53, 141, 88, 0.15);
+        }
+
+        .tip-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
+            margin-bottom: 0.5rem;
+        }
+
+        .tip-expert {
+            font-size: 0.9rem;
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+
+        .tip-content {
+            font-size: 0.95rem;
+            color: #666;
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+
+        .tip-date {
+            font-size: 0.85rem;
             color: #999;
         }
 
-        .empty-state i {
-            font-size: 5rem;
-            display: block;
-            margin-bottom: 1rem;
-            opacity: 0.4;
+        /* Orders Table */
+        .orders-table {
+            width: 100%;
+            border-collapse: collapse;
         }
 
-        .empty-state h3 {
-            margin: 0 0 0.5rem 0;
-            color: #666;
-            font-size: 1.5rem;
+        .orders-table th,
+        .orders-table td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
         }
 
-        .empty-state p {
-            margin: 0;
-            font-size: 1rem;
+        .orders-table th {
+            background: var(--light);
+            font-weight: 600;
+            color: #333;
+        }
+
+        .order-status {
+            padding: 0.4rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 500;
+        }
+
+        .status-pending {
+            background: #FFF3CD;
+            color: #856404;
+        }
+
+        .status-confirmed {
+            background: #D1ECF1;
+            color: #0C5460;
+        }
+
+        .status-shipped {
+            background: #D4EDDA;
+            color: #155724;
+        }
+
+        .status-delivered {
+            background: #D4EDDA;
+            color: #155724;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary:hover {
+            background: var(--primary-dark);
         }
 
         /* Modal */
@@ -370,7 +768,7 @@
             width: 100%;
             height: 100%;
             background: rgba(0,0,0,0.6);
-            z-index: 1000;
+            z-index: 2000;
             justify-content: center;
             align-items: center;
             backdrop-filter: blur(4px);
@@ -402,7 +800,7 @@
 
         .modal-header h3 {
             margin: 0;
-            color: var(--sea-green);
+            color: var(--primary);
             font-size: 1.5rem;
         }
 
@@ -450,7 +848,7 @@
 
         .form-control:focus {
             outline: none;
-            border-color: var(--sea-green);
+            border-color: var(--primary);
             box-shadow: 0 0 0 3px rgba(53, 141, 88, 0.1);
         }
 
@@ -460,74 +858,30 @@
             gap: 1rem;
         }
 
-        .btn-submit {
-            background: var(--sea-green);
-            color: white;
-            border: none;
-            padding: 0.875rem 2rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1rem;
-            width: 100%;
-            transition: background 0.3s;
+        /* Empty State */
+        .empty-state {
+            text-align: center;
+            padding: 4rem 2rem;
+            color: #999;
         }
 
-        .btn-submit:hover {
-            background: var(--sushi);
+        .empty-state i {
+            font-size: 5rem;
+            display: block;
+            margin-bottom: 1rem;
+            opacity: 0.4;
         }
 
-        .btn-danger {
-            background: #DC3545;
-            color: white;
-            border: none;
-            padding: 0.875rem 2rem;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1rem;
-            width: 100%;
-            transition: background 0.3s;
-        }
-
-        .btn-danger:hover {
-            background: #C82333;
-        }
-
-        /* Messages */
-        .messages {
-            margin-bottom: 2rem;
-        }
-
-        .message {
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            margin-bottom: 0.75rem;
-            font-weight: 500;
-        }
-
-        .message.success {
-            background: #D4EDDA;
-            color: #155724;
-            border-left: 4px solid #28A745;
-        }
-
-        .message.error {
-            background: #F8D7DA;
-            color: #721C24;
-            border-left: 4px solid #DC3545;
-        }
-
-        .message.info {
-            background: #D1ECF1;
-            color: #0C5460;
-            border-left: 4px solid #17A2B8;
+        .empty-state h3 {
+            margin: 0 0 0.5rem 0;
+            color: #666;
+            font-size: 1.5rem;
         }
 
         /* Language Selector */
         .language-selector {
             padding: 0.5rem 1rem;
-            border: 1px solid #ddd;
+            border: 2px solid #e5e7eb;
             border-radius: 8px;
             background: white;
             cursor: pointer;
@@ -537,354 +891,834 @@
 
         .language-selector:focus {
             outline: none;
-            border-color: var(--sea-green);
+            border-color: var(--primary);
         }
 
-        /* Experts Section Styles */
-        .experts-listing {
-            display: flex;
-            flex-direction: column;
-            gap: 1.5rem;
+        /* Dark Mode Toggle Switch */
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 64px;
+            height: 36px;
         }
 
-        .expert-item-card {
-            background: #f8f9fa;
-            border: 2px solid #e9ecef;
-            border-radius: 16px;
-            padding: 2rem;
-            transition: all 0.3s;
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
         }
 
-        .expert-item-card:hover {
-            border-color: var(--sea-green);
-            box-shadow: 0 4px 16px rgba(53, 141, 88, 0.1);
-            transform: translateY(-2px);
-        }
-
-        .expert-main-info {
-            display: flex;
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-            align-items: flex-start;
-        }
-
-        .expert-photo {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 3px solid var(--sea-green);
-            flex-shrink: 0;
-        }
-
-        .expert-photo-placeholder {
-            width: 100px;
-            height: 100px;
-            border-radius: 50%;
-            background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            color: white;
-            flex-shrink: 0;
-        }
-
-        .expert-details-main {
-            flex: 1;
-        }
-
-        .expert-name {
-            font-size: 1.5rem;
-            font-weight: 700;
-            color: #1a1a1a;
-            margin: 0 0 0.5rem 0;
-        }
-
-        .expert-spec {
-            font-size: 1.1rem;
-            color: var(--sea-green);
-            font-weight: 600;
-            margin: 0 0 0.5rem 0;
-        }
-
-        .expert-exp {
-            font-size: 0.95rem;
-            color: #666;
-            margin: 0;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .expert-content-section {
-            background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
-            border-left: 4px solid var(--sea-green);
-        }
-
-        .content-section-title {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #333;
-            margin: 0 0 1rem 0;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .tip-item {
-            padding: 1rem;
-            background: #f8f9fa;
-            border-radius: 8px;
-            margin-bottom: 1rem;
-        }
-
-        .tip-item:last-child {
-            margin-bottom: 0;
-        }
-
-        .tip-item h5 {
-            font-size: 1rem;
-            font-weight: 600;
-            color: #333;
-            margin: 0 0 0.5rem 0;
-        }
-
-        .tip-item p {
-            font-size: 0.9rem;
-            color: #666;
-            line-height: 1.6;
-            margin: 0 0 0.5rem 0;
-        }
-
-        .tip-date {
-            font-size: 0.85rem;
-            color: #999;
-            display: flex;
-            align-items: center;
-            gap: 0.25rem;
-        }
-
-        .no-content {
-            color: #999;
-            font-style: italic;
-            text-align: center;
-            padding: 1rem;
-        }
-
-        .expert-actions-main {
-            display: flex;
-            gap: 1rem;
-            justify-content: flex-end;
-        }
-
-        .btn-chat-expert,
-        .btn-appoint-expert {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 1rem;
+        .toggle-switch .slider {
+            position: absolute;
             cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 36px;
         }
 
-        .btn-chat-expert {
-            background: #5B5FEF;
-            color: white;
+        .toggle-switch .slider:before {
+            position: absolute;
+            content: "";
+            height: 28px;
+            width: 28px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
         }
 
-        .btn-chat-expert:hover {
-            background: #4a4fd8;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(91, 95, 239, 0.3);
+        .toggle-switch input:checked + .slider {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
         }
 
-        .btn-appoint-expert {
-            background: #F29900;
-            color: white;
+        .toggle-switch input:focus + .slider {
+            box-shadow: 0 0 1px var(--primary);
         }
 
-        .btn-appoint-expert:hover {
-            background: #d68900;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(242, 153, 0, 0.3);
+        .toggle-switch input:checked + .slider:before {
+            transform: translateX(28px);
         }
 
         /* Responsive */
         @media (max-width: 768px) {
-            .products-grid {
-                grid-template-columns: 1fr;
-                direction: ltr;
+            .sidebar {
+                transform: translateX(-100%);
             }
 
-            .products-grid > * {
-                direction: ltr;
+            .sidebar.active {
+                transform: translateX(0);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .mobile-menu-btn {
+                display: block;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .products-grid,
+            .tools-grid,
+            .tips-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .chat-container {
+                flex-direction: column;
+                height: auto;
+            }
+
+            .chat-sidebar {
+                width: 100%;
+                max-height: 200px;
             }
 
             .form-row {
                 grid-template-columns: 1fr;
             }
-
-            .card-header {
-                flex-direction: column;
-                gap: 1rem;
-                align-items: flex-start;
-            }
-
-            .kyc-content {
-                flex-direction: column;
-                align-items: flex-start;
-            }
-
-            .expert-main-info {
-                flex-direction: column;
-                align-items: center;
-                text-align: center;
-            }
-
-            .expert-actions-main {
-                justify-content: center;
-            }
         }
+
+        /* Messages */
+        .messages {
+            margin-bottom: 2rem;
+        }
+
+        .message-alert {
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 0.75rem;
+            font-weight: 500;
+        }
+
+        .message-alert.success {
+            background: #D4EDDA;
+            color: #155724;
+            border-left: 4px solid #28A745;
+        }
+
+        .message-alert.error {
+            background: #F8D7DA;
+            color: #721C24;
+            border-left: 4px solid #DC3545;
+        }
+
+        /* Disabled State */
+        .disabled-feature {
+            opacity: 0.6;
+            cursor: not-allowed;
+            position: relative;
+        }
+
+        .disabled-feature::after {
+            content: '🔒 KYC Required';
+            position: absolute;
+            top: -25px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--warning);
+            color: #856404;
+            padding: 0.25rem 0.5rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            white-space: nowrap;
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+        }
+
+        .disabled-feature:hover::after {
+            opacity: 1;
+        }
+
+        /* Restricted Content Overlay */
+        .restricted-overlay {
+            position: relative;
+        }
+
+        .restricted-overlay::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(255, 255, 255, 0.8);
+            z-index: 1;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .restricted-overlay::after {
+            content: '🔒 KYC Verification Required';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: var(--warning);
+            color: #856404;
+            padding: 1rem 2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            z-index: 2;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
     </style>
 </head>
 <body>
-    <header class="main-header">
-        <div class="header-container">
-            <div class="logo">
-                <a href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
-                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
-                        <span class="logo-icon">🌾</span>
-                        <span class="logo-text">Farmity</span>
-                    </span>
-                </a>
-            </div>
-            <nav class="main-nav">
-                <a href="{% url 'farmer_dashboard' %}">Dashboard</a>
-                <a href="#" onclick="scrollToSection('experts-section'); return false;">Find Expert</a>
-                <a href="{% url 'profile' %}">Profile</a>
-                <a href="{% url 'chat_threads' %}">Chat</a>
-            </nav>
-            <div class="header-actions" id="headerActions">
-                <div style="display: flex; align-items: center; gap: 1rem;">
-                    <select id="languageSelect" class="language-selector" onchange="changeLanguage(this.value)">
-                        <option value="en">English</option>
-                        <option value="np">नेपाली (Nepali)</option>
-                    </select>
-                    <div id="authButtons" class="auth-buttons"></div>
-                </div>
-            </div>
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">🌾</div>
+            <div class="sidebar-title">Farmity</div>
         </div>
-    </header>
+        <nav class="sidebar-nav">
+            <a href="#dashboard" class="nav-item active" onclick="showSection('dashboard'); return false;">
+                <i class="fas fa-home"></i>
+                <span data-translate="nav.dashboard">Dashboard</span>
+            </a>
+            <a href="#crops" class="nav-item" onclick="showSection('crops'); return false;">
+                <i class="fas fa-seedling"></i>
+                <span data-translate="nav.crops">My Crops</span>
+            </a>
+            <a href="#tools" class="nav-item" onclick="showSection('tools'); return false;">
+                <i class="fas fa-tools"></i>
+                <span data-translate="nav.tools">Buy Tools</span>
+            </a>
+            <a href="#experts" class="nav-item" onclick="showSection('experts'); return false;">
+                <i class="fas fa-user-graduate"></i>
+                <span data-translate="nav.experts">Experts</span>
+            </a>
+            <a href="#chat" class="nav-item" onclick="showSection('chat'); return false;">
+                <i class="fas fa-comments"></i>
+                <span data-translate="nav.chat">Chat</span>
+            </a>
+            <a href="#education" class="nav-item" onclick="showSection('education'); return false;">
+                <i class="fas fa-book"></i>
+                <span data-translate="nav.education">Education</span>
+            </a>
+            <a href="#orders" class="nav-item" onclick="showSection('orders'); return false;">
+                <i class="fas fa-shopping-cart"></i>
+                <span data-translate="nav.orders">Orders</span>
+            </a>
+            <a href="#profile" class="nav-item" onclick="showSection('profile'); return false;">
+                <i class="fas fa-user"></i>
+                <span data-translate="nav.profile">Profile</span>
+            </a>
+            <a href="#settings" class="nav-item" onclick="showSection('settings'); return false;">
+                <i class="fas fa-cog"></i>
+                <span data-translate="nav.settings">Settings</span>
+            </a>
+            <a href="{% url 'logout' %}" class="nav-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span data-translate="nav.logout">Logout</span>
+            </a>
+        </nav>
+    </aside>
 
-    <div class="dashboard-container">
-        <!-- KYC Alert Banner -->
-        {% if kyc_status != 'approved' %}
-        <div class="kyc-alert {% if kyc_status == 'rejected' %}rejected{% elif kyc_status == 'pending' %}pending{% endif %}">
-            <div class="kyc-content">
-                <div class="kyc-text">
-                    <h3>
-                        <i class="fas fa-file-contract"></i>
-                        {% if kyc_status == 'pending' %}KYC Verification Pending
-                        {% elif kyc_status == 'rejected' %}KYC Verification Rejected
-                        {% else %}KYC Verification Required{% endif %}
-                    </h3>
-                    <p>
-                        {% if kyc_status == 'pending' %}Your KYC documents are under review. Please wait for approval.
-                        {% elif kyc_status == 'rejected' %}{% if kyc_request.rejection_reason %}Reason: {{ kyc_request.rejection_reason }}{% endif %} Please update your documents and resubmit.
-                        {% else %}Upload your documents to verify your farmer status and access all features.{% endif %}
-                    </p>
-                </div>
-                <a href="{% url 'kyc' %}" class="kyc-btn">
-                    <i class="fas fa-upload"></i> {% if kyc_status == 'rejected' or not kyc_status %}Upload KYC{% else %}View Status{% endif %}
-                </a>
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Messages -->
-        {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-            <div class="message {{ message.tags }}">
-                {{ message }}
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-        <!-- Main Products Card -->
-        <div class="main-card">
-            <div class="card-header">
-                <h2><i class="fas fa-seedling"></i> My Crops</h2>
-                <button class="btn-add" onclick="openAddModal()">
-                    <i class="fas fa-plus"></i> Add New Crop
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Header -->
+        <header class="top-header">
+            <div class="header-left">
+                <button class="mobile-menu-btn" onclick="toggleSidebar()">
+                    <i class="fas fa-bars"></i>
                 </button>
+                <h1 style="margin: 0; font-size: 1.5rem; color: var(--primary);" data-translate="header.title">Farmer Dashboard</h1>
             </div>
-            <div class="card-body">
-                {% if products %}
-                <div class="products-grid">
-                    {% for product in products %}
-                    <div class="product-card">
-                        <div class="product-image-wrapper">
-                            {% if product.image %}
-                            <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
-                            {% else %}
-                            <div class="product-placeholder">
-                                <i class="fas fa-seedling"></i>
-                            </div>
-                            {% endif %}
-                            <div class="product-actions">
-                                <button class="btn-action btn-edit" onclick="openEditModal({{ product.id }}, '{{ product.name|escapejs }}', {{ product.quantity }}, '{{ product.unit }}', {{ product.price_per_unit }}, {% if product.image %}'{{ product.image.url }}'{% else %}''{% endif %})" title="Edit">
-                                    <i class="fas fa-edit"></i>
-                                </button>
-                                <button class="btn-action btn-delete" onclick="openDeleteModal({{ product.id }}, '{{ product.name|escapejs }}')" title="Delete">
-                                    <i class="fas fa-trash"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="product-info">
-                            <h3 class="product-name">{{ product.name }}</h3>
-                            <div class="product-details">
-                                <div class="product-detail">
-                                    <i class="fas fa-weight"></i>
-                                    <span>{{ product.quantity }} {{ product.unit }}</span>
-                                </div>
-                                <div class="product-detail">
-                                    <i class="fas fa-tag"></i>
-                                    <span>Unit: {{ product.unit }}</span>
-                                </div>
-                                <div class="product-detail">
-                                    <i class="fas fa-calendar"></i>
-                                    <span>Added: {{ product.created_at|date:"M d, Y" }}</span>
-                                </div>
-                            </div>
-                            <div class="product-price">Rs. {{ product.price_per_unit }}/{{ product.unit }}</div>
-                            <span class="product-status status-{% if product.is_available %}available{% else %}unavailable{% endif %}">
-                                {% if product.is_available %}Available{% else %}Unavailable{% endif %}
+            <div class="header-right">
+                <select id="languageSelect" class="language-selector" onchange="changeLanguage(this.value)" style="padding: 0.5rem 1rem; border: 2px solid #e5e7eb; border-radius: 8px; background: white; cursor: pointer; font-size: 0.9rem; margin-right: 1rem;">
+                    <option value="en">English</option>
+                    <option value="np">नेपाली (Nepali)</option>
+                </select>
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        {% if profile.name %}{{ profile.name|first|upper }}{% else %}F{% endif %}
+                    </div>
+                    <div>
+                        <div style="font-weight: 600;">{{ profile.name|default:user.email }}</div>
+                        <div style="font-size: 0.85rem; color: #666;" data-translate="header.farmer">Farmer</div>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+
+        <!-- Dashboard Content -->
+        <div class="dashboard-content">
+            <!-- KYC Alert -->
+            {% if kyc_status != 'approved' %}
+            <div class="kyc-alert {% if kyc_status == 'rejected' %}rejected{% elif kyc_status == 'pending' %}pending{% endif %}" style="margin-bottom: 2rem;">
+                <div class="kyc-content">
+                    <div class="kyc-text">
+                        <h3>
+                            <i class="fas fa-file-contract"></i>
+                            <span data-translate="kyc.{% if kyc_status == 'pending' %}pending{% elif kyc_status == 'rejected' %}rejected{% else %}required{% endif %}">
+                                {% if kyc_status == 'pending' %}KYC Verification Pending
+                                {% elif kyc_status == 'rejected' %}KYC Verification Rejected
+                                {% else %}KYC Verification Required{% endif %}
                             </span>
+                        </h3>
+                        <p data-translate="kyc.{% if kyc_status == 'pending' %}pendingDesc{% elif kyc_status == 'rejected' %}rejectedDesc{% else %}requiredDesc{% endif %}">
+                            {% if kyc_status == 'pending' %}Your KYC documents are under review. Please wait for approval.
+                            {% elif kyc_status == 'rejected' %}{% if kyc_request.rejection_reason %}Reason: {{ kyc_request.rejection_reason }}{% endif %} Please update your documents and resubmit.
+                            {% else %}Upload your documents to verify your farmer status and access all features.{% endif %}
+                        </p>
+                    </div>
+                    <a href="{% url 'kyc' %}" class="kyc-btn">
+                        <i class="fas fa-upload"></i> {% if kyc_status == 'rejected' or not kyc_status %}Upload KYC{% else %}View Status{% endif %}
+                    </a>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Messages -->
+            {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                <div class="message-alert {{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Dashboard Section -->
+            <div id="dashboard-section" class="dashboard-section">
+                <!-- Summary Cards -->
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-content">
+                            <h4 data-translate="dashboard.totalCrops">Total Crops Added</h4>
+                            <div class="stat-value">{{ total_crops_added }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-seedling"></i>
                         </div>
                     </div>
-                    {% endfor %}
+                    <div class="stat-card sold">
+                        <div class="stat-content">
+                            <h4 data-translate="dashboard.totalSold">Total Crops Sold</h4>
+                            <div class="stat-value">{{ total_crops_sold|floatformat:2 }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-chart-line"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card earnings">
+                        <div class="stat-content">
+                            <h4 data-translate="dashboard.totalEarnings">Total Earnings</h4>
+                            <div class="stat-value">Rs. {{ total_earnings|floatformat:2 }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-rupee-sign"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card listings">
+                        <div class="stat-content">
+                            <h4 data-translate="dashboard.activeListings">Active Listings</h4>
+                            <div class="stat-value">{{ active_listings }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-list"></i>
+                        </div>
+                    </div>
                 </div>
-                {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-seedling"></i>
-                    <h3>No Crops Added Yet</h3>
-                    <p>Start by adding your first crop to the marketplace</p>
-                    <button class="btn-add" onclick="openAddModal()" style="margin-top: 1.5rem;">
-                        <i class="fas fa-plus"></i> Add Your First Crop
-                    </button>
+                
+                {% if features_restricted %}
+                <div style="background: #FFF3CD; border-left: 4px solid var(--warning); padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+                    <p style="margin: 0; color: #856404; font-weight: 500;">
+                        <i class="fas fa-info-circle"></i> Some features are restricted until KYC verification is approved. Complete your KYC to unlock all features.
+                    </p>
                 </div>
                 {% endif %}
+
+                <!-- Charts -->
+                <div class="charts-grid">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-chart-area"></i> <span data-translate="dashboard.salesTrend">Sales Trend</span></h2>
+                        </div>
+                        <div class="section-body">
+                            <div class="chart-container">
+                                <canvas id="salesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="content-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-chart-line"></i> <span data-translate="dashboard.incomeTrend">Income Trend</span></h2>
+                        </div>
+                        <div class="section-body">
+                            <div class="chart-container">
+                                <canvas id="incomeChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Crops Section -->
+            <div id="crops-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-seedling"></i> <span data-translate="crops.title">My Crops</span></h2>
+                        <button class="btn-primary" onclick="openAddModal()" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;" title="KYC verification required"{% endif %}>
+                            <i class="fas fa-plus"></i> <span data-translate="crops.addNew">Add New Crop</span>
+                        </button>
+                    </div>
+                    <div class="section-body">
+                        {% if products %}
+                        <div class="products-grid">
+                            {% for product in products %}
+                            <div class="product-card">
+                                <div class="product-image-wrapper">
+                                    {% if product.image %}
+                                    <img src="{{ product.image.url }}" alt="{{ product.name }}" class="product-image">
+                                    {% else %}
+                                    <div class="product-placeholder">
+                                        <i class="fas fa-seedling"></i>
+                                    </div>
+                                    {% endif %}
+                                    <div class="product-actions">
+                                        <button class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditModal({{ product.id }}, '{{ product.name|escapejs }}', {{ product.quantity }}, '{{ product.unit }}', {{ product.price_per_unit }}, {% if product.image %}'{{ product.image.url }}'{% else %}''{% endif %}, {{ product.is_available|yesno:"true,false" }}){% else %}alert('KYC verification required to edit crops'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn-action btn-delete" onclick="{% if kyc_status == 'approved' %}openDeleteModal({{ product.id }}, '{{ product.name|escapejs }}'){% else %}alert('KYC verification required to delete crops'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Delete{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="product-info">
+                                    <h3 class="product-name">{{ product.name }}</h3>
+                                    <div class="product-details">
+                                        <div><i class="fas fa-weight"></i> Quantity: {{ product.quantity }} {{ product.unit }}</div>
+                                        <div><i class="fas fa-calendar"></i> Added: {{ product.created_at|date:"M d, Y" }}</div>
+                                    </div>
+                                    <div class="product-price">Rs. {{ product.price_per_unit }}/{{ product.unit }}</div>
+                                    <span class="product-status status-{% if product.is_available %}available{% else %}unavailable{% endif %}">
+                                        {% if product.is_available %}Available{% else %}Unavailable{% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-seedling"></i>
+                            <h3 data-translate="crops.noCrops">No Crops Added Yet</h3>
+                            <p data-translate="crops.noCropsDesc">Start by adding your first crop to the marketplace</p>
+                            <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openAddModal(){% else %}alert('KYC verification required to add crops'){% endif %}" style="margin-top: 1.5rem;" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; margin-top: 1.5rem;"{% endif %}>
+                                <i class="fas fa-plus"></i> <span data-translate="crops.addFirst">Add Your First Crop</span>
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tools Section -->
+            <div id="tools-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-tools"></i> Farming Tools & Equipment</h2>
+                    </div>
+                    <div class="section-body">
+                        {% if available_tools %}
+                        <div class="tools-grid">
+                            {% for tool in available_tools %}
+                            <div class="tool-card">
+                                <div class="tool-icon">🔧</div>
+                                <h3 class="tool-name">{{ tool.name }}</h3>
+                                <p class="tool-vendor">Vendor: {{ tool.vendor.company_name|default:tool.vendor.user.email }}</p>
+                                {% if tool.description %}
+                                <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">{{ tool.description|truncatewords:20 }}</p>
+                                {% endif %}
+                                <div class="tool-price">Rs. {{ tool.price }}</div>
+                                <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">Stock: {{ tool.stock_quantity }} units</p>
+                                <button class="btn-buy" onclick="{% if kyc_status == 'approved' %}openPurchaseModal({{ tool.id }}, '{{ tool.name|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}){% else %}alert('KYC verification required to purchase tools'){% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>Buy Now</button>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-tools"></i>
+                            <h3>No Tools Available</h3>
+                            <p>Check back later for agricultural tools from our vendors</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Experts Section -->
+            <div id="experts-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-user-graduate"></i> Agricultural Experts</h2>
+                    </div>
+                    <div class="section-body">
+                        {% if experts %}
+                        <div style="display: grid; gap: 1.5rem;">
+                            {% for expert in experts %}
+                            <div style="background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 1.5rem; display: flex; gap: 1.5rem; align-items: center;">
+                                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; flex-shrink: 0;">
+                                    {% if expert.photo %}
+                                    <img src="{{ expert.photo.url }}" alt="{{ expert.name }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                                    {% else %}
+                                    {{ expert.name|first|upper }}
+                                    {% endif %}
+                                </div>
+                                <div style="flex: 1;">
+                                    <h3 style="margin: 0 0 0.5rem 0; font-size: 1.3rem;">{{ expert.name|default:expert.user.email }}</h3>
+                                    <p style="margin: 0 0 0.5rem 0; color: var(--primary); font-weight: 600;">{{ expert.specialization|default:"Agricultural Expert" }}</p>
+                                    <p style="margin: 0; color: #666; font-size: 0.9rem;">{{ expert.qualification|default:"" }} {% if expert.experience %}• {{ expert.experience }} years experience{% endif %}</p>
+                                </div>
+                                <div style="display: flex; gap: 1rem;">
+                                    <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openChatWithExpert({{ expert.id }}, '{{ expert.name|escapejs }}'){% else %}alert('KYC verification required to chat with experts'){% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+                                        <i class="fas fa-comments"></i> Chat
+                                    </button>
+                                    <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openAppointmentModal({{ expert.id }}, '{{ expert.name|escapejs }}'){% else %}alert('KYC verification required to book appointments'){% endif %}" style="background: var(--secondary);" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; background: var(--secondary);"{% endif %}>
+                                        <i class="fas fa-calendar"></i> Appointment
+                                    </button>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-user-graduate"></i>
+                            <h3>No Experts Available</h3>
+                            <p>Check back later for agricultural experts</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chat Section -->
+            <div id="chat-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-comments"></i> Chat with Experts</h2>
+                    </div>
+                    <div class="section-body">
+                        <div class="chat-container">
+                            <div class="chat-sidebar">
+                                <ul class="chat-list">
+                                    {% for thread in chat_threads %}
+                                    <li class="chat-item" onclick="loadChatThread({{ thread.id }}, '{{ thread.expert.name|escapejs }}')">
+                                        <div style="font-weight: 600;">{{ thread.expert.name|default:thread.expert.user.email }}</div>
+                                        <div style="font-size: 0.85rem; color: #666;">{{ thread.expert.specialization|default:"Expert" }}</div>
+                                    </li>
+                                    {% empty %}
+                                    <li style="padding: 1rem; text-align: center; color: #999;">No chat threads yet. Start chatting with an expert!</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            <div class="chat-main">
+                                <div class="chat-header" id="chatHeader">Select an expert to start chatting</div>
+                                <div class="chat-messages" id="chatMessages">
+                                    <div style="text-align: center; color: #999; padding: 2rem;">
+                                        Select an expert from the sidebar to start a conversation
+                                    </div>
+                                </div>
+                                <div class="chat-input-area" id="chatInputArea" style="display: none;">
+                                    <input type="text" class="chat-input" id="chatInput" placeholder="Type your message..." {% if kyc_status != 'approved' %}disabled{% endif %}>
+                                    <button class="btn-send" onclick="sendMessage()" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+                                        <i class="fas fa-paper-plane"></i> Send
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Education Section -->
+            <div id="education-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-book"></i> Educational Content</h2>
+                    </div>
+                    <div class="section-body">
+                        {% if tips %}
+                        <div class="tips-grid">
+                            {% for tip in tips %}
+                            <div class="tip-card">
+                                <h3 class="tip-title">{{ tip.title }}</h3>
+                                <p class="tip-expert">By: {{ tip.expert.name|default:tip.expert.user.email }}</p>
+                                <p class="tip-content">{{ tip.content|truncatewords:50 }}</p>
+                                <p class="tip-date">
+                                    <i class="fas fa-calendar"></i> {{ tip.created_at|date:"M d, Y" }}
+                                </p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-book"></i>
+                            <h3>No Educational Content Available</h3>
+                            <p>Check back later for farming tips and guidance from experts</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Appointments Section -->
+            <div id="appointments-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-calendar-check"></i> My Appointments</h2>
+                    </div>
+                    <div class="section-body">
+                        <p>Appointment management coming soon...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Orders Section -->
+            <div id="orders-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-shopping-cart"></i> <span data-translate="orders.title">Purchase History</span></h2>
+                    </div>
+                    <div class="section-body">
+                        {% if purchase_history %}
+                        <table class="orders-table">
+                            <thead>
+                                <tr>
+                                    <th data-translate="orders.orderId">Order ID</th>
+                                    <th data-translate="orders.item">Item</th>
+                                    <th data-translate="orders.quantity">Quantity</th>
+                                    <th data-translate="orders.amount">Amount</th>
+                                    <th data-translate="orders.status">Status</th>
+                                    <th data-translate="orders.date">Date</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in purchase_history %}
+                                <tr>
+                                    <td>#{{ order.id }}</td>
+                                    <td>{% if order.tool %}{{ order.tool.name }}{% elif order.crop %}{{ order.crop.name }}{% else %}N/A{% endif %}</td>
+                                    <td>{{ order.quantity }}</td>
+                                    <td>Rs. {{ order.total_amount }}</td>
+                                    <td>
+                                        <span class="order-status status-{{ order.status }}">
+                                            {{ order.get_status_display }}
+                                        </span>
+                                        {% if order.payment_method %}
+                                        <br>
+                                        <small style="color: #666; font-size: 0.8rem;">
+                                            {% if order.payment_method == 'esewa' %}
+                                                <i class="fas fa-mobile-alt"></i> eSewa
+                                            {% else %}
+                                                <i class="fas fa-money-bill-wave"></i> Cash on Delivery
+                                            {% endif %}
+                                        </small>
+                                        {% endif %}
+                                    </td>
+                                    </td>
+                                    <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-shopping-cart"></i>
+                            <h3 data-translate="orders.noOrders">No Orders Yet</h3>
+                            <p data-translate="orders.noOrdersDesc">Your purchase history will appear here</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Profile Section -->
+            <div id="profile-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-user"></i> <span data-translate="profile.title">My Profile</span></h2>
+                    </div>
+                    <div class="section-body">
+                        <form method="POST" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="1">
+                            
+                            <div style="display: flex; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                                <div style="flex: 0 0 200px;">
+                                    <div style="width: 200px; height: 200px; border-radius: 50%; overflow: hidden; border: 4px solid var(--primary); margin: 0 auto;">
+                                        {% if profile.photo %}
+                                        <img src="{{ profile.photo.url }}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">
+                                        {% else %}
+                                        <div style="width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 4rem;">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div style="margin-top: 1rem; text-align: center;">
+                                        <label for="photo" class="btn-primary" style="cursor: pointer; display: inline-block;">
+                                            <i class="fas fa-camera"></i> <span data-translate="profile.changePhoto">Change Photo</span>
+                                        </label>
+                                        <input type="file" name="photo" id="photo" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                                    </div>
+                                </div>
+                                <div style="flex: 1; min-width: 300px;">
+                                    <h3 style="margin: 0 0 1rem 0; font-size: 1.5rem; color: #333;">{{ profile.name|default:user.email }}</h3>
+                                    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
+                                        <span class="role-badge" style="padding: 0.5rem 1rem; background: var(--primary); color: white; border-radius: 20px; font-weight: 600;" data-translate="profile.farmer">Farmer</span>
+                                        {% if user.is_verified %}
+                                        <span style="padding: 0.5rem 1rem; background: #D4EDDA; color: #155724; border-radius: 20px; font-weight: 600;">
+                                            <i class="fas fa-check-circle"></i> <span data-translate="profile.verified">Verified</span>
+                                        </span>
+                                        {% else %}
+                                        <span style="padding: 0.5rem 1rem; background: #FFF3CD; color: #856404; border-radius: 20px; font-weight: 600;">
+                                            <i class="fas fa-exclamation-circle"></i> <span data-translate="profile.unverified">Unverified</span>
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                                <div class="form-group">
+                                    <label data-translate="profile.fullName">Full Name</label>
+                                    <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Enter your full name">
+                                </div>
+                                <div class="form-group">
+                                    <label data-translate="profile.email">Email Address</label>
+                                    <input type="email" class="form-control" value="{{ user.email }}" readonly style="background: #f5f5f5;">
+                                </div>
+                                <div class="form-group">
+                                    <label data-translate="profile.contact">Contact Number</label>
+                                    <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Enter contact number">
+                                </div>
+                                <div class="form-group">
+                                    <label data-translate="profile.location">Location</label>
+                                    <input type="text" name="location" class="form-control" value="{{ profile.location|default:'' }}" placeholder="Enter your location">
+                                </div>
+                                <div class="form-group">
+                                    <label data-translate="profile.farmSize">Farm Size</label>
+                                    <input type="text" name="farm_size" class="form-control" value="{{ profile.farm_size|default:'' }}" placeholder="e.g., 5 acres">
+                                </div>
+                                <div class="form-group">
+                                    <label data-translate="profile.cropTypes">Main Crops</label>
+                                    <input type="text" name="crop_types" class="form-control" value="{{ profile.crop_types|default:'' }}" placeholder="e.g., Wheat, Rice, Corn">
+                                </div>
+                            </div>
+
+                            <div class="form-group">
+                                <label data-translate="profile.livestock">Livestock Details</label>
+                                <textarea name="livestock_details" class="form-control" rows="4" placeholder="Enter livestock details if any">{{ profile.livestock_details|default:'' }}</textarea>
+                            </div>
+
+                            <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1.5rem;">
+                                <i class="fas fa-save"></i> <span data-translate="profile.save">Save Profile</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div id="settings-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-cog"></i> <span data-translate="settings.title">Settings</span></h2>
+                    </div>
+                    <div class="section-body">
+                        <!-- Security Section -->
+                        <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                                <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-lock" style="font-size: 1.75rem; color: var(--primary);"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 1.5rem;" data-translate="settings.security">Security</h3>
+                            </div>
+                            <form method="POST" action="{% url 'change_password' %}">
+                                {% csrf_token %}
+                                <div class="form-group">
+                                    <label data-translate="settings.currentPassword">Current Password</label>
+                                    <input type="password" name="current_password" class="form-control" placeholder="Enter your current password" required>
+                                </div>
+                                <div class="form-group">
+                                    <label data-translate="settings.newPassword">New Password</label>
+                                    <input type="password" name="new_password" class="form-control" placeholder="Enter your new password" required pattern=".{8,}" title="Password must be at least 8 characters">
+                                    <small style="color: #666; font-size: 0.85rem; margin-top: 0.5rem; display: block;" data-translate="settings.passwordHint">Password must be at least 8 characters long</small>
+                                </div>
+                                <div class="form-group">
+                                    <label data-translate="settings.confirmPassword">Confirm New Password</label>
+                                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your new password" required>
+                                </div>
+                                <button type="submit" class="btn-primary">
+                                    <i class="fas fa-key"></i> <span data-translate="settings.updatePassword">Update Password</span>
+                                </button>
+                            </form>
+                        </div>
+
+                        <!-- Language Section -->
+                        <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                                <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-globe" style="font-size: 1.75rem; color: var(--primary);"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 1.5rem;" data-translate="settings.language">Language & Region</h3>
+                            </div>
+                            <div class="form-group">
+                                <label data-translate="settings.preferredLanguage">Preferred Language</label>
+                                <select id="settingsLanguageSelect" class="form-control" onchange="changeLanguage(this.value)">
+                                    <option value="en">English</option>
+                                    <option value="np">नेपाली (Nepali)</option>
+                                </select>
+                                <div style="background: #E3F2FD; border-left: 4px solid #2196F3; border-radius: 12px; padding: 1rem; margin-top: 1rem;">
+                                    <p style="color: #1565C0; font-size: 0.9rem; margin: 0;" data-translate="settings.languageHint">
+                                        <i class="fas fa-info-circle"></i> Your language preference will be saved and applied across the platform
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Appearance Section -->
+                        <div>
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                                <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-palette" style="font-size: 1.75rem; color: var(--primary);"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 1.5rem;" data-translate="settings.appearance">Appearance</h3>
+                            </div>
+                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 1.5rem; background: #f8f9fa; border-radius: 12px; border: 2px solid #e9ecef;">
+                                <div>
+                                    <div style="font-size: 1.1rem; font-weight: 600; color: #1a1a1a; margin-bottom: 0.25rem;" data-translate="settings.darkMode">Dark Mode</div>
+                                    <div style="font-size: 0.9rem; color: #6c757d;" data-translate="settings.darkModeDesc">Switch between light and dark themes for better viewing experience</div>
+                                </div>
+                                <label class="toggle-switch">
+                                    <input type="checkbox" id="darkModeToggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -933,7 +1767,7 @@
                     <small style="color: #666; font-size: 0.85rem;">Recommended: Square image, max 5MB</small>
                 </div>
 
-                <button type="submit" class="btn-submit">
+                <button type="submit" class="btn-primary" style="width: 100%;">
                     <i class="fas fa-plus"></i> Add Crop
                 </button>
             </form>
@@ -980,14 +1814,137 @@
                 </div>
 
                 <div class="form-group">
+                    <label>
+                        <input type="checkbox" name="is_available" id="edit_is_available" style="margin-right: 0.5rem;">
+                        Available for Sale
+                    </label>
+                </div>
+
+                <div class="form-group">
                     <label>Crop Image</label>
                     <input type="file" name="product_image" class="form-control" accept="image/*">
                     <small style="color: #666; font-size: 0.85rem;">Leave empty to keep current image</small>
                     <div id="edit_image_preview" style="margin-top: 0.5rem;"></div>
                 </div>
 
-                <button type="submit" class="btn-submit">
+                <button type="submit" class="btn-primary" style="width: 100%;">
                     <i class="fas fa-save"></i> Update Crop
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-exclamation-triangle" style="color: var(--danger);"></i> Delete Crop</h3>
+                <button class="close-modal" onclick="closeModal('deleteModal')">&times;</button>
+            </div>
+            <form method="POST" id="deleteForm">
+                {% csrf_token %}
+                <input type="hidden" name="delete_product" value="1">
+                <input type="hidden" name="product_id" id="delete_product_id">
+                
+                <p style="font-size: 1.1rem; color: #333; margin-bottom: 1.5rem;">
+                    Are you sure you want to delete <strong id="delete_product_name"></strong>? This action cannot be undone.
+                </p>
+
+                <div style="display: flex; gap: 1rem;">
+                    <button type="button" class="btn-primary" onclick="closeModal('deleteModal')" style="background: #6c757d; flex: 1;">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn-primary" style="background: var(--danger); flex: 1;">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Purchase Tool Modal -->
+    <div id="purchaseModal" class="modal">
+        <div class="modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-shopping-cart"></i> Purchase Tool</h3>
+                <button class="close-modal" onclick="closeModal('purchaseModal')">&times;</button>
+            </div>
+            <form method="POST" id="purchaseForm" action="{% url 'farmer_dashboard' %}">
+                {% csrf_token %}
+                <input type="hidden" name="purchase_tool" value="1">
+                <input type="hidden" name="tool_id" id="purchase_tool_id">
+                
+                <div class="form-group">
+                    <label style="font-weight: 600;">Tool Name</label>
+                    <input type="text" id="purchase_tool_name" class="form-control" readonly style="background: #f5f5f5; font-weight: 600;">
+                </div>
+
+                <div class="form-group">
+                    <label>Price per Unit</label>
+                    <input type="text" id="purchase_tool_price" class="form-control" readonly style="background: #f5f5f5;">
+                </div>
+
+                <div class="form-group">
+                    <label>Available Stock</label>
+                    <input type="text" id="purchase_stock_display" class="form-control" readonly style="background: #f5f5f5;">
+                </div>
+
+                <div class="form-group">
+                    <label>Quantity <span style="color: red;">*</span></label>
+                    <input type="number" name="quantity" id="purchase_quantity" class="form-control" min="1" value="1" required oninput="updatePurchaseTotal()">
+                    <small style="color: #666; font-size: 0.85rem;">Available: <span id="purchase_stock">0</span> units</small>
+                </div>
+
+                <div class="form-group" style="padding: 1rem; background: #f8f9fa; border-radius: 8px; margin: 1rem 0;">
+                    <label style="font-weight: 600; margin-bottom: 0.5rem;">Total Amount</label>
+                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--sea-green);" id="purchase_total_display">Rs. 0.00</div>
+                    <input type="hidden" name="total_amount" id="purchase_total">
+                </div>
+
+                <div class="form-group">
+                    <label style="font-weight: 600; margin-bottom: 0.75rem;">Payment Method <span style="color: red;">*</span></label>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <label style="flex: 1; min-width: 200px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--sea-green)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
+                            <input type="radio" name="payment_method" value="cod" checked style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-money-bill-wave" style="color: var(--sea-green); font-size: 1.2rem;"></i>
+                                <div>
+                                    <div style="font-weight: 600;">Cash on Delivery</div>
+                                    <div style="font-size: 0.85rem; color: #666;">Pay when you receive</div>
+                                </div>
+                            </div>
+                        </label>
+                        <label style="flex: 1; min-width: 200px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--sea-green)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
+                            <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-mobile-alt" style="color: #5B5FEF; font-size: 1.2rem;"></i>
+                                <div>
+                                    <div style="font-weight: 600;">eSewa</div>
+                                    <div style="font-size: 0.85rem; color: #666;">Pay online instantly</div>
+                                </div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Shipping Address <span style="color: red;">*</span></label>
+                    <textarea name="shipping_address" class="form-control" rows="3" required placeholder="Enter your delivery address..."></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Notes (Optional)</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="Any special instructions..."></textarea>
+                </div>
+
+                <div id="esewa_payment_info" style="display: none; padding: 1rem; background: #E3F2FD; border-left: 4px solid #2196F3; border-radius: 8px; margin: 1rem 0;">
+                    <p style="margin: 0; color: #1565C0; font-size: 0.9rem;">
+                        <i class="fas fa-info-circle"></i> You will be redirected to eSewa payment gateway after clicking "Place Order"
+                    </p>
+                </div>
+
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
+                    <i class="fas fa-shopping-cart"></i> Place Order
                 </button>
             </form>
         </div>
@@ -1025,91 +1982,32 @@
                     <textarea name="message" class="form-control" rows="4" placeholder="Describe your agricultural issue or question..."></textarea>
                 </div>
 
-                <button type="submit" class="btn-submit">
+                <button type="submit" class="btn-primary" style="width: 100%;">
                     <i class="fas fa-calendar-check"></i> Book Appointment
                 </button>
             </form>
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-exclamation-triangle" style="color: #DC3545;"></i> Delete Crop</h3>
-                <button class="close-modal" onclick="closeModal('deleteModal')">&times;</button>
-            </div>
-            <form method="POST" id="deleteForm">
-                {% csrf_token %}
-                <input type="hidden" name="delete_product" value="1">
-                <input type="hidden" name="product_id" id="delete_product_id">
-                
-                <p style="font-size: 1.1rem; color: #333; margin-bottom: 1.5rem;">
-                    Are you sure you want to delete <strong id="delete_product_name"></strong>? This action cannot be undone.
-                </p>
-
-                <div style="display: flex; gap: 1rem;">
-                    <button type="button" class="btn-submit" onclick="closeModal('deleteModal')" style="background: #6c757d; flex: 1;">
-                        Cancel
-                    </button>
-                    <button type="submit" class="btn-danger" style="flex: 1;">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <footer class="main-footer">
-        <div class="footer-container">
-            <div class="footer-section">
-                <div class="footer-logo">
-                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
-                        <span class="logo-icon">🌾</span>
-                        <span class="logo-text">Farmity</span>
-                    </span>
-                </div>
-                <p class="footer-tagline">Connecting agriculture for a sustainable future</p>
-            </div>
-            <div class="footer-section">
-                <h4>Company</h4>
-                <ul>
-                    <li><a href="#">About Us</a></li>
-                    <li><a href="#">Contact</a></li>
-                    <li><a href="#">Careers</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h4>Products</h4>
-                <ul>
-                    <li><a href="#">Marketplace</a></li>
-                    <li><a href="#">Live Prices</a></li>
-                    <li><a href="#">Advisory</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h4>Support</h4>
-                <ul>
-                    <li><a href="#">Help Center</a></li>
-                    <li><a href="#">Privacy Policy</a></li>
-                    <li><a href="#">Terms of Service</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h4>Contact Us</h4>
-                <p>📧 info@farmity.com</p>
-                <p>📞 +91-9800000000</p>
-                <p>📍 Nepal</p>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>© 2025 Farmity. All rights reserved.</p>
-        </div>
-    </footer>
-
     <script src="/static/js/main.js"></script>
     <script>
+        // Navigation
+        function showSection(sectionId) {
+            document.querySelectorAll('.dashboard-section').forEach(section => {
+                section.style.display = 'none';
+            });
+            document.getElementById(sectionId + '-section').style.display = 'block';
+            
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            event.target.closest('.nav-item').classList.add('active');
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('active');
+        }
+
         // Modal Functions
         function openAddModal() {
             document.getElementById('addModal').classList.add('active');
@@ -1119,12 +2017,13 @@
             document.getElementById(modalId).classList.remove('active');
         }
 
-        function openEditModal(id, name, quantity, unit, price, imageUrl) {
+        function openEditModal(id, name, quantity, unit, price, imageUrl, isAvailable) {
             document.getElementById('edit_product_id').value = id;
             document.getElementById('edit_product_name').value = name;
             document.getElementById('edit_quantity').value = quantity;
             document.getElementById('edit_unit').value = unit;
             document.getElementById('edit_price').value = price;
+            document.getElementById('edit_is_available').checked = isAvailable;
             
             const preview = document.getElementById('edit_image_preview');
             if (imageUrl) {
@@ -1140,6 +2039,90 @@
             document.getElementById('delete_product_id').value = id;
             document.getElementById('delete_product_name').textContent = name;
             document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function openPurchaseModal(toolId, toolName, price, stock) {
+            document.getElementById('purchase_tool_id').value = toolId;
+            document.getElementById('purchase_tool_name').value = toolName;
+            document.getElementById('purchase_tool_price').value = 'Rs. ' + price;
+            document.getElementById('purchase_stock').textContent = stock;
+            document.getElementById('purchase_stock_display').value = stock + ' units';
+            document.getElementById('purchase_quantity').max = stock;
+            document.getElementById('purchase_quantity').value = 1;
+            updatePurchaseTotal();
+            document.getElementById('purchaseModal').classList.add('active');
+        }
+
+        function updatePurchaseTotal() {
+            const quantity = parseInt(document.getElementById('purchase_quantity').value) || 1;
+            const priceText = document.getElementById('purchase_tool_price').value;
+            const price = parseFloat(priceText.replace('Rs. ', '')) || 0;
+            const total = quantity * price;
+            document.getElementById('purchase_total').value = total.toFixed(2);
+            document.getElementById('purchase_total_display').textContent = 'Rs. ' + total.toFixed(2);
+        }
+
+        function updatePaymentMethod(radio) {
+            const esewaInfo = document.getElementById('esewa_payment_info');
+            const esewaInfo2 = document.getElementById('esewa_info');
+            if (radio.value === 'esewa') {
+                if (esewaInfo) esewaInfo.style.display = 'block';
+                if (esewaInfo2) esewaInfo2.style.display = 'block';
+            } else {
+                if (esewaInfo) esewaInfo.style.display = 'none';
+                if (esewaInfo2) esewaInfo2.style.display = 'none';
+            }
+        }
+
+        // Initialize payment method on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const purchaseQuantity = document.getElementById('purchase_quantity');
+            if (purchaseQuantity) {
+                purchaseQuantity.addEventListener('input', updatePurchaseTotal);
+            }
+            
+            // Set default payment method
+            const codRadio = document.querySelector('input[name="payment_method"][value="cod"]');
+            if (codRadio) {
+                codRadio.checked = true;
+            }
+        });
+
+        function openAppointmentModal(expertId, expertName) {
+            document.getElementById('apptExpertId').value = expertId;
+            document.getElementById('apptExpertName').value = expertName;
+            document.getElementById('appointmentModal').classList.add('active');
+        }
+
+        function openChatWithExpert(expertId, expertName) {
+            showSection('chat');
+            document.getElementById('chatHeader').textContent = 'Chat with ' + expertName;
+            document.getElementById('chatInputArea').style.display = 'flex';
+            // Load chat thread or create new one
+            loadChatThread(null, expertName, expertId);
+        }
+
+        function loadChatThread(threadId, expertName, expertId) {
+            document.getElementById('chatHeader').textContent = 'Chat with ' + expertName;
+            document.getElementById('chatInputArea').style.display = 'flex';
+            // TODO: Load messages via AJAX
+            document.getElementById('chatMessages').innerHTML = '<div style="text-align: center; color: #999; padding: 2rem;">Loading messages...</div>';
+        }
+
+        function sendMessage() {
+            const input = document.getElementById('chatInput');
+            const message = input.value.trim();
+            if (message) {
+                // TODO: Send message via AJAX
+                const messagesDiv = document.getElementById('chatMessages');
+                messagesDiv.innerHTML += `
+                    <div class="message sent">
+                        <div class="message-bubble">${message}</div>
+                    </div>
+                `;
+                input.value = '';
+                messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            }
         }
 
         // Close modal when clicking outside
@@ -1169,20 +2152,332 @@
             return true;
         }
 
-        // Language Functions
-        function changeLanguage(lang) {
-            localStorage.setItem('language', lang);
-            // Language changes can be applied here if needed
-        }
-
-        // Initialize language selector
+        // Charts
         document.addEventListener('DOMContentLoaded', function() {
-            const savedLang = localStorage.getItem('language') || 'en';
-            const select = document.getElementById('languageSelect');
-            if (select) {
-                select.value = savedLang;
+            // Sales Chart
+            const salesCtx = document.getElementById('salesChart');
+            if (salesCtx) {
+                const salesData = {{ sales_data|safe }};
+                new Chart(salesCtx, {
+                    type: 'line',
+                    data: {
+                        labels: salesData.map(d => d.month || 'N/A'),
+                        datasets: [{
+                            label: 'Quantity Sold',
+                            data: salesData.map(d => d.total_quantity || 0),
+                            borderColor: 'rgb(53, 141, 88)',
+                            backgroundColor: 'rgba(53, 141, 88, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Income Chart
+            const incomeCtx = document.getElementById('incomeChart');
+            if (incomeCtx) {
+                const salesData = {{ sales_data|safe }};
+                new Chart(incomeCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: salesData.map(d => d.month || 'N/A'),
+                        datasets: [{
+                            label: 'Total Earnings (Rs.)',
+                            data: salesData.map(d => d.total_sales || 0),
+                            backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                            borderColor: 'rgb(40, 167, 69)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
             }
         });
+
+        // Enter key for chat
+        document.getElementById('chatInput')?.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                sendMessage();
+            }
+        });
+
+        // Translation System
+        const translations = {
+            en: {
+                // Navigation
+                'nav.dashboard': 'Dashboard',
+                'nav.crops': 'My Crops',
+                'nav.tools': 'Buy Tools',
+                'nav.experts': 'Experts',
+                'nav.chat': 'Chat',
+                'nav.education': 'Education',
+                'nav.orders': 'Orders',
+                'nav.profile': 'Profile',
+                'nav.settings': 'Settings',
+                'nav.logout': 'Logout',
+                // Header
+                'header.title': 'Farmer Dashboard',
+                'header.farmer': 'Farmer',
+                // Dashboard
+                'dashboard.totalCrops': 'Total Crops Added',
+                'dashboard.totalSold': 'Total Crops Sold',
+                'dashboard.totalEarnings': 'Total Earnings',
+                'dashboard.activeListings': 'Active Listings',
+                'dashboard.salesTrend': 'Sales Trend',
+                'dashboard.incomeTrend': 'Income Trend',
+                // Crops
+                'crops.title': 'My Crops',
+                'crops.addNew': 'Add New Crop',
+                'crops.noCrops': 'No Crops Added Yet',
+                'crops.noCropsDesc': 'Start by adding your first crop to the marketplace',
+                'crops.addFirst': 'Add Your First Crop',
+                // Profile
+                'profile.title': 'My Profile',
+                'profile.changePhoto': 'Change Photo',
+                'profile.farmer': 'Farmer',
+                'profile.verified': 'Verified',
+                'profile.unverified': 'Unverified',
+                'profile.fullName': 'Full Name',
+                'profile.email': 'Email Address',
+                'profile.contact': 'Contact Number',
+                'profile.location': 'Location',
+                'profile.farmSize': 'Farm Size',
+                'profile.cropTypes': 'Main Crops',
+                'profile.livestock': 'Livestock Details',
+                'profile.save': 'Save Profile',
+                // Settings
+                'settings.title': 'Settings',
+                'settings.security': 'Security',
+                'settings.currentPassword': 'Current Password',
+                'settings.newPassword': 'New Password',
+                'settings.confirmPassword': 'Confirm New Password',
+                'settings.passwordHint': 'Password must be at least 8 characters long',
+                'settings.updatePassword': 'Update Password',
+                'settings.language': 'Language & Region',
+                'settings.preferredLanguage': 'Preferred Language',
+                'settings.languageHint': 'Your language preference will be saved and applied across the platform',
+                'settings.appearance': 'Appearance',
+                'settings.darkMode': 'Dark Mode',
+                'settings.darkModeDesc': 'Switch between light and dark themes for better viewing experience',
+                // Orders
+                'orders.title': 'Purchase History',
+                'orders.orderId': 'Order ID',
+                'orders.item': 'Item',
+                'orders.quantity': 'Quantity',
+                'orders.amount': 'Amount',
+                'orders.status': 'Status',
+                'orders.date': 'Date',
+                'orders.noOrders': 'No Orders Yet',
+                'orders.noOrdersDesc': 'Your purchase history will appear here',
+                // KYC
+                'kyc.pending': 'KYC Verification Pending',
+                'kyc.rejected': 'KYC Verification Rejected',
+                'kyc.required': 'KYC Verification Required',
+                'kyc.pendingDesc': 'Your KYC documents are under review. Please wait for approval.',
+                'kyc.rejectedDesc': 'Please update your documents and resubmit.',
+                'kyc.requiredDesc': 'Upload your documents to verify your farmer status and access all features.',
+                // Common
+                'common.save': 'Save',
+                'common.cancel': 'Cancel',
+                'common.delete': 'Delete',
+                'common.edit': 'Edit',
+                'common.add': 'Add',
+                'common.update': 'Update',
+                'common.close': 'Close',
+            },
+            np: {
+                // Navigation
+                'nav.dashboard': 'ड्यासबोर्ड',
+                'nav.crops': 'मेरो बालीहरू',
+                'nav.tools': 'उपकरण खरिद गर्नुहोस्',
+                'nav.experts': 'विशेषज्ञहरू',
+                'nav.chat': 'च्याट',
+                'nav.education': 'शिक्षा',
+                'nav.orders': 'अर्डरहरू',
+                'nav.profile': 'प्रोफाइल',
+                'nav.settings': 'सेटिङहरू',
+                'nav.logout': 'लगआउट',
+                // Header
+                'header.title': 'किसान ड्यासबोर्ड',
+                'header.farmer': 'किसान',
+                // Dashboard
+                'dashboard.totalCrops': 'कुल बालीहरू थपिएको',
+                'dashboard.totalSold': 'कुल बालीहरू बिक्री भएको',
+                'dashboard.totalEarnings': 'कुल आम्दानी',
+                'dashboard.activeListings': 'सक्रिय सूचीहरू',
+                'dashboard.salesTrend': 'बिक्री प्रवृत्ति',
+                'dashboard.incomeTrend': 'आम्दानी प्रवृत्ति',
+                // Crops
+                'crops.title': 'मेरो बालीहरू',
+                'crops.addNew': 'नयाँ बाली थप्नुहोस्',
+                'crops.noCrops': 'अझै बाली थपिएको छैन',
+                'crops.noCropsDesc': 'बजारमा आफ्नो पहिलो बाली थपेर सुरु गर्नुहोस्',
+                'crops.addFirst': 'आफ्नो पहिलो बाली थप्नुहोस्',
+                // Profile
+                'profile.title': 'मेरो प्रोफाइल',
+                'profile.changePhoto': 'फोटो परिवर्तन गर्नुहोस्',
+                'profile.farmer': 'किसान',
+                'profile.verified': 'प्रमाणित',
+                'profile.unverified': 'अप्रमाणित',
+                'profile.fullName': 'पूर्ण नाम',
+                'profile.email': 'इमेल ठेगाना',
+                'profile.contact': 'सम्पर्क नम्बर',
+                'profile.location': 'स्थान',
+                'profile.farmSize': 'खेतीको आकार',
+                'profile.cropTypes': 'मुख्य बालीहरू',
+                'profile.livestock': 'पशुधन विवरण',
+                'profile.save': 'प्रोफाइल सेभ गर्नुहोस्',
+                // Settings
+                'settings.title': 'सेटिङहरू',
+                'settings.security': 'सुरक्षा',
+                'settings.currentPassword': 'हालको पासवर्ड',
+                'settings.newPassword': 'नयाँ पासवर्ड',
+                'settings.confirmPassword': 'नयाँ पासवर्ड पुष्टि गर्नुहोस्',
+                'settings.passwordHint': 'पासवर्ड कम्तिमा ८ वर्णको हुनुपर्छ',
+                'settings.updatePassword': 'पासवर्ड अपडेट गर्नुहोस्',
+                'settings.language': 'भाषा र क्षेत्र',
+                'settings.preferredLanguage': 'मनपर्ने भाषा',
+                'settings.languageHint': 'तपाईंको भाषा प्राथमिकता सेभ हुनेछ र प्लेटफर्मभरि लागू हुनेछ',
+                'settings.appearance': 'देखावट',
+                'settings.darkMode': 'डार्क मोड',
+                'settings.darkModeDesc': 'राम्रो हेर्नको लागि हल्का र अँध्यारो थिमहरू बीच स्विच गर्नुहोस्',
+                // Orders
+                'orders.title': 'खरिद इतिहास',
+                'orders.orderId': 'अर्डर आईडी',
+                'orders.item': 'वस्तु',
+                'orders.quantity': 'मात्रा',
+                'orders.amount': 'रकम',
+                'orders.status': 'स्थिति',
+                'orders.date': 'मिति',
+                'orders.noOrders': 'अझै अर्डर छैन',
+                'orders.noOrdersDesc': 'तपाईंको खरिद इतिहास यहाँ देखिनेछ',
+                // KYC
+                'kyc.pending': 'KYC प्रमाणीकरण बाँकी',
+                'kyc.rejected': 'KYC प्रमाणीकरण अस्वीकार',
+                'kyc.required': 'KYC प्रमाणीकरण आवश्यक',
+                'kyc.pendingDesc': 'तपाईंको KYC कागजातहरू समीक्षामा छन्। कृपया स्वीकृतिको लागि प्रतीक्षा गर्नुहोस्।',
+                'kyc.rejectedDesc': 'कृपया आफ्ना कागजातहरू अपडेट गर्नुहोस् र पुनः पेश गर्नुहोस्।',
+                'kyc.requiredDesc': 'आफ्नो किसान स्थिति प्रमाणित गर्न र सबै सुविधाहरू पहुँच गर्न आफ्ना कागजातहरू अपलोड गर्नुहोस्।',
+                // Common
+                'common.save': 'सेभ गर्नुहोस्',
+                'common.cancel': 'रद्द गर्नुहोस्',
+                'common.delete': 'मेटाउनुहोस्',
+                'common.edit': 'सम्पादन गर्नुहोस्',
+                'common.add': 'थप्नुहोस्',
+                'common.update': 'अपडेट गर्नुहोस्',
+                'common.close': 'बन्द गर्नुहोस्',
+            }
+        };
+
+        let currentLanguage = localStorage.getItem('language') || 'en';
+
+        function changeLanguage(lang) {
+            currentLanguage = lang;
+            localStorage.setItem('language', lang);
+            
+            // Update language selector
+            document.getElementById('languageSelect').value = lang;
+            if (document.getElementById('settingsLanguageSelect')) {
+                document.getElementById('settingsLanguageSelect').value = lang;
+            }
+            
+            // Translate all elements
+            document.querySelectorAll('[data-translate]').forEach(element => {
+                const key = element.getAttribute('data-translate');
+                if (translations[lang] && translations[lang][key]) {
+                    element.textContent = translations[lang][key];
+                }
+            });
+        }
+
+        // Initialize language on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set language selector value
+            const langSelect = document.getElementById('languageSelect');
+            if (langSelect) {
+                langSelect.value = currentLanguage;
+            }
+            
+            // Apply translations
+            changeLanguage(currentLanguage);
+        });
+
+        // Image preview for profile photo
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = input.closest('.form-group').querySelector('img') || 
+                                   input.closest('div').querySelector('img');
+                    if (preview) {
+                        preview.src = e.target.result;
+                    } else {
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.style.cssText = 'width: 200px; height: 200px; border-radius: 50%; object-fit: cover; margin-top: 1rem;';
+                        input.closest('div').appendChild(img);
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        // Dark mode toggle
+        const darkModeToggle = document.getElementById('darkModeToggle');
+        if (darkModeToggle) {
+            // Check saved preference
+            if (localStorage.getItem('darkMode') === 'true') {
+                darkModeToggle.checked = true;
+                document.body.classList.add('dark-mode');
+            }
+            
+            darkModeToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    localStorage.setItem('darkMode', 'true');
+                    document.body.classList.add('dark-mode');
+                } else {
+                    localStorage.setItem('darkMode', 'false');
+                    document.body.classList.remove('dark-mode');
+                }
+            });
+        }
+
+        // Sync language selector in settings with header
+        const settingsLangSelect = document.getElementById('settingsLanguageSelect');
+        if (settingsLangSelect) {
+            settingsLangSelect.value = currentLanguage;
+            settingsLangSelect.addEventListener('change', function() {
+                changeLanguage(this.value);
+            });
+        }
     </script>
 </body>
 </html>

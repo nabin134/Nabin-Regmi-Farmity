@@ -6,7 +6,8 @@ from .views import (
     kyc_page, profile_page, settings_page, change_password,
     appointment_request_page,
     chat_threads_page, chat_thread_detail,
-    forgot_password_page, reset_password_page, otp_verification_page
+    forgot_password_page, reset_password_page, otp_verification_page,
+    logout_view
 )
 urlpatterns = [
     # Frontend pages
@@ -31,6 +32,7 @@ urlpatterns = [
     path('appointments/request/', appointment_request_page, name='appointment_request'),
     path('chat/', chat_threads_page, name='chat_threads'),
     path('chat/<int:thread_id>/', chat_thread_detail, name='chat_thread'),
+    path('logout/', logout_view, name='logout'),
 ]
 
 api_urlpatterns = [
