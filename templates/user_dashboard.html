@@ -7,128 +7,219 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #358D58;
+            --primary-dark: #2a6f45;
+            --secondary: #A8AD3B;
+            --accent: #A04A24;
+            --light-bg: #E9EBF1;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+        }
+
         body {
-            background-color: var(--athens-gray);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
         }
 
-        .dashboard-container {
-            max-width: 1400px;
-            margin: 2rem auto;
-            padding: 0 1.5rem;
+        .dashboard-wrapper {
             flex: 1;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Header Stats */
+        .dashboard-hero {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            padding: 3rem 2rem;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .dashboard-hero::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            right: -10%;
+            width: 500px;
+            height: 500px;
+            background: rgba(255,255,255,0.1);
+            border-radius: 50%;
+        }
+
+        .dashboard-hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+            position: relative;
+            z-index: 1;
+        }
+
+        .dashboard-hero p {
+            font-size: 1.1rem;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+
+        .dashboard-container {
+            max-width: 1400px;
+            margin: -2rem auto 2rem;
+            padding: 0 1.5rem;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* Stats Cards */
         .stats-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
 
         .stat-card {
             background: white;
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            padding: 1.75rem;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
             display: flex;
             align-items: center;
             justify-content: space-between;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border-left: 4px solid var(--primary);
+            min-height: 120px;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 30px rgba(0,0,0,0.12);
         }
 
         .stat-content h4 {
             margin: 0;
             color: #666;
             font-weight: 500;
-            font-size: 0.95rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
         .stat-content span {
             font-size: 2rem;
             font-weight: bold;
-            color: var(--sea-green);
+            color: var(--primary);
             display: block;
             margin-top: 0.5rem;
+            line-height: 1.2;
         }
 
         .stat-icon {
-            font-size: 2.5rem;
-            color: rgba(53, 141, 88, 0.2);
+            font-size: 3rem;
+            opacity: 0.15;
+        }
+        
+        .stat-card[style*="border-left-color: var(--primary)"] .stat-icon {
+            color: var(--primary);
+        }
+        
+        .stat-card[style*="border-left-color: var(--secondary)"] .stat-icon {
+            color: var(--secondary);
+        }
+        
+        .stat-card[style*="border-left-color: var(--accent)"] .stat-icon {
+            color: var(--accent);
+        }
+        
+        .stat-card[style*="border-left-color: #2196F3"] .stat-icon {
+            color: #2196F3;
         }
 
-        /* Tabs Navigation */
-        .tabs-nav {
-            background: white;
-            border-radius: 12px;
-            padding: 0.5rem;
-            margin-bottom: 2rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            display: flex;
-            gap: 0.5rem;
-            overflow-x: auto;
-        }
-
-        .tab-nav-btn {
-            padding: 0.75rem 1.5rem;
-            background: none;
-            border: none;
-            font-size: 1rem;
-            color: #666;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: all 0.3s;
-            white-space: nowrap;
-            font-weight: 500;
-        }
-
-        .tab-nav-btn:hover {
-            background: var(--athens-gray);
-            color: var(--sea-green);
-        }
-
-        .tab-nav-btn.active {
-            background: var(--sea-green);
-            color: white;
-        }
-
-        /* Tab Content */
-        .tab-content {
+        /* Modern Tabs */
+        .content-section {
             display: none;
+            padding: 2rem 0;
+            animation: fadeIn 0.3s;
         }
 
-        .tab-content.active {
+        .content-section.active {
             display: block;
         }
 
-        /* Product/Tool Grid */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes slideOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(100%); opacity: 0; }
+        }
+
+        /* Product/Tool Grid - 4 items per row */
         .products-grid, .tools-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-auto-flow: row;
+        }
+        
+        @media (min-width: 1200px) {
+            .products-grid, .tools-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        @media (min-width: 768px) and (max-width: 1199px) {
+            .products-grid, .tools-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 767px) {
+            .products-grid, .tools-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .product-card, .tool-card {
             background: white;
-            border-radius: 12px;
+            border-radius: 20px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            transition: transform 0.3s, box-shadow 0.3s;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            transition: all 0.3s ease;
+            border: 1px solid #f0f0f0;
+            display: flex;
+            flex-direction: column;
         }
 
         .product-card:hover, .tool-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transform: translateY(-8px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+            border-color: var(--primary);
         }
 
         .product-image, .tool-image {
             width: 100%;
-            height: 200px;
+            height: 220px;
             object-fit: cover;
-            background: var(--athens-gray);
+            background: linear-gradient(135deg, var(--light-bg) 0%, #f0f0f0 100%);
             display: flex;
             align-items: center;
             justify-content: center;
@@ -136,19 +227,26 @@
         }
 
         .product-card-body, .tool-card-body {
-            padding: 1.5rem;
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            flex: 1;
         }
 
         .product-card-body h4, .tool-card-body h4 {
             margin: 0 0 0.5rem 0;
             color: #333;
-            font-size: 1.1rem;
+            font-size: 1.15rem;
+            font-weight: 600;
         }
 
         .product-vendor, .tool-vendor {
             color: #666;
             font-size: 0.9rem;
             margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
         .product-footer, .tool-footer {
@@ -156,58 +254,159 @@
             justify-content: space-between;
             align-items: center;
             margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid #f0f0f0;
         }
 
         .price {
-            font-size: 1.3rem;
+            font-size: 1.4rem;
             font-weight: bold;
-            color: var(--sea-green);
+            color: var(--primary);
         }
 
         .btn-buy {
-            background: var(--sea-green);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             color: white;
             border: none;
-            padding: 0.6rem 1.5rem;
-            border-radius: 8px;
+            padding: 0.75rem 1.5rem;
+            border-radius: 10px;
             cursor: pointer;
-            font-weight: 500;
-            transition: background 0.3s;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(53, 141, 88, 0.3);
         }
 
         .btn-buy:hover {
-            background: var(--sushi);
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(53, 141, 88, 0.4);
         }
 
-        /* Expert Cards */
+        /* Expert Cards - 4 items per row, bigger cards */
         .experts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-auto-flow: row;
+        }
+        
+        .expert-card {
+            background: white;
+            border-radius: 20px;
+            padding: 2rem;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            transition: all 0.3s ease;
+            border: 1px solid #f0f0f0;
+            min-height: 300px;
+        }
+
+        .expert-card:hover {
+            transform: translateY(-8px);
+            box-shadow: 0 12px 35px rgba(0,0,0,0.15);
+            border-color: var(--primary);
+        }
+        
+        .expert-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 2.5rem;
+            flex-shrink: 0;
+            margin-bottom: 1.25rem;
+            border: 4px solid var(--light-bg);
+        }
+        
+        .expert-info {
+            flex: 1;
+            width: 100%;
+            margin-bottom: 1.25rem;
+        }
+        
+        .expert-info h4 {
+            margin: 0 0 0.75rem 0;
+            color: #333;
+            font-weight: 700;
+            font-size: 1.25rem;
+        }
+        
+        .expert-info p {
+            margin: 0.5rem 0;
+            color: #666;
+            font-size: 1rem;
+        }
+        
+        .expert-info p:first-of-type {
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: var(--primary);
+        }
+        
+        .expert-actions {
+            display: flex;
+            gap: 0.75rem;
+            flex-shrink: 0;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        @media (min-width: 1200px) {
+            .experts-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        @media (min-width: 768px) and (max-width: 1199px) {
+            .experts-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 767px) {
+            .experts-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .expert-card {
             background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+            border-radius: 16px;
+            padding: 1.75rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
             display: flex;
-            gap: 1rem;
+            gap: 1.25rem;
             align-items: center;
+            transition: transform 0.3s, box-shadow 0.3s;
+            border: 1px solid #f0f0f0;
+        }
+
+        .expert-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
 
         .expert-avatar {
-            width: 70px;
-            height: 70px;
+            width: 80px;
+            height: 80px;
             border-radius: 50%;
             object-fit: cover;
-            background: var(--athens-gray);
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2rem;
+            font-size: 2.5rem;
+            color: white;
             flex-shrink: 0;
+            border: 3px solid white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
         }
 
         .expert-info {
@@ -217,11 +416,12 @@
         .expert-info h4 {
             margin: 0 0 0.25rem 0;
             color: #333;
-            font-size: 1.1rem;
+            font-size: 1.15rem;
+            font-weight: 600;
         }
 
         .expert-info p {
-            margin: 0;
+            margin: 0.25rem 0;
             color: #666;
             font-size: 0.9rem;
         }
@@ -229,108 +429,155 @@
         .expert-actions {
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0.75rem;
         }
 
         .btn-chat, .btn-appoint {
-            padding: 0.5rem 1rem;
+            padding: 0.625rem 1.25rem;
             border: none;
-            border-radius: 8px;
+            border-radius: 10px;
             cursor: pointer;
-            font-weight: 500;
+            font-weight: 600;
             font-size: 0.9rem;
             transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            justify-content: center;
         }
 
         .btn-chat {
             background: #5B5FEF;
             color: white;
+            box-shadow: 0 4px 12px rgba(91, 95, 239, 0.3);
         }
 
         .btn-chat:hover {
             background: #4a4fd8;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(91, 95, 239, 0.4);
         }
 
         .btn-appoint {
-            background: #F29900;
+            background: var(--accent);
             color: white;
+            box-shadow: 0 4px 12px rgba(160, 74, 36, 0.3);
         }
 
         .btn-appoint:hover {
-            background: #d68900;
+            background: #8a3f1f;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(160, 74, 36, 0.4);
         }
 
         /* Tips/Content Cards */
         .tips-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            grid-template-columns: repeat(4, 1fr);
             gap: 1.5rem;
-            margin-bottom: 2rem;
+            grid-auto-flow: row;
+        }
+        
+        @media (min-width: 1200px) {
+            .tips-grid {
+                grid-template-columns: repeat(4, 1fr);
+            }
+        }
+        
+        @media (min-width: 768px) and (max-width: 1199px) {
+            .tips-grid {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+        
+        @media (max-width: 767px) {
+            .tips-grid {
+                grid-template-columns: 1fr;
+            }
         }
 
         .tip-card {
             background: white;
-            border-radius: 12px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            border-left: 4px solid var(--sea-green);
+            border-radius: 16px;
+            padding: 1.75rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            border-left: 4px solid var(--primary);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .tip-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         }
 
         .tip-card h4 {
             margin: 0 0 0.75rem 0;
             color: #333;
-            font-size: 1.1rem;
+            font-size: 1.15rem;
+            font-weight: 600;
         }
 
         .tip-card p {
             color: #666;
-            line-height: 1.6;
+            line-height: 1.7;
             margin-bottom: 1rem;
         }
 
         .tip-author {
-            color: var(--sea-green);
+            color: var(--primary);
             font-size: 0.85rem;
-            font-weight: 500;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        /* Appointments List */
-        .appointments-list {
+        /* Lists */
+        .appointments-list, .orders-list {
             background: white;
-            border-radius: 12px;
+            border-radius: 16px;
             overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            margin-bottom: 2rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
         }
 
-        .appointment-item {
-            padding: 1.5rem;
-            border-bottom: 1px solid #eee;
+        .appointment-item, .order-item {
+            padding: 1.75rem;
+            border-bottom: 1px solid #f0f0f0;
             display: flex;
             justify-content: space-between;
             align-items: center;
+            transition: background 0.3s;
         }
 
-        .appointment-item:last-child {
+        .appointment-item:hover, .order-item:hover {
+            background: var(--light-bg);
+        }
+
+        .appointment-item:last-child, .order-item:last-child {
             border-bottom: none;
         }
 
-        .appointment-info h4 {
-            margin: 0 0 0.5rem 0;
-            color: #333;
+        .appointment-info, .order-info {
+            flex: 1;
         }
 
-        .appointment-info p {
-            margin: 0;
+        .appointment-info h4, .order-info h4 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .appointment-info p, .order-info p {
+            margin: 0.25rem 0;
             color: #666;
             font-size: 0.9rem;
         }
 
         .appointment-status {
-            padding: 0.4rem 0.8rem;
+            padding: 0.5rem 1rem;
             border-radius: 20px;
             font-size: 0.85rem;
-            font-weight: 500;
+            font-weight: 600;
         }
 
         .status-pending {
@@ -338,17 +585,111 @@
             color: #856404;
         }
 
-        .status-accepted {
+        .status-accepted, .status-confirmed {
             background: #D4EDDA;
             color: #155724;
         }
 
-        .status-rejected {
+        .status-rejected, .status-cancelled {
             background: #F8D7DA;
             color: #721C24;
         }
 
-        /* Modal Styles */
+        .status-delivered {
+            background: #D1ECF1;
+            color: #0C5460;
+        }
+
+        /* Profile Section - Keep Same as Farmer */
+        .profile-section {
+            background: white;
+            border-radius: 16px;
+            padding: 2rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+        }
+
+        .profile-header {
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            padding-bottom: 2rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .profile-avatar-wrapper {
+            position: relative;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid var(--primary);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        }
+
+        .profile-info h2 {
+            margin: 0 0 0.5rem 0;
+            color: #333;
+        }
+
+        .profile-info p {
+            color: #666;
+            margin: 0.25rem 0;
+        }
+
+        .profile-form {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #333;
+            font-weight: 600;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 0.875rem;
+            border: 2px solid #e9ecef;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px rgba(53, 141, 88, 0.1);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            border: none;
+            padding: 0.875rem 2rem;
+            border-radius: 10px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(53, 141, 88, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(53, 141, 88, 0.4);
+        }
+
+        /* Modal */
         .modal {
             display: none;
             position: fixed;
@@ -356,10 +697,11 @@
             left: 0;
             width: 100%;
             height: 100%;
-            background: rgba(0,0,0,0.5);
-            z-index: 1000;
+            background: rgba(0,0,0,0.6);
+            z-index: 2000;
             justify-content: center;
             align-items: center;
+            backdrop-filter: blur(4px);
         }
 
         .modal.active {
@@ -368,92 +710,309 @@
 
         .modal-content {
             background: white;
-            padding: 2rem;
-            border-radius: 12px;
+            padding: 2.5rem;
+            border-radius: 20px;
             width: 90%;
-            max-width: 500px;
+            max-width: 550px;
             max-height: 90vh;
             overflow-y: auto;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
         }
 
         .modal-header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 1.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid #f0f0f0;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            color: #333;
+            font-size: 1.5rem;
         }
 
         .close-modal {
-            font-size: 1.5rem;
+            font-size: 1.75rem;
             cursor: pointer;
             color: #666;
             background: none;
             border: none;
+            width: 35px;
+            height: 35px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            transition: all 0.3s;
+        }
+
+        .close-modal:hover {
+            background: var(--light-bg);
+            color: var(--primary);
         }
 
         .empty-state {
             text-align: center;
-            padding: 3rem;
+            padding: 4rem 2rem;
             color: #999;
         }
 
         .empty-state i {
-            font-size: 4rem;
+            font-size: 5rem;
             display: block;
             margin-bottom: 1rem;
             opacity: 0.5;
+            color: var(--primary);
         }
 
-        .form-group {
-            margin-bottom: 1rem;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            font-size: 1rem;
-            transition: border-color 0.3s;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--sea-green);
-        }
-
-        .btn-full {
-            width: 100%;
+        .empty-state h3 {
+            margin-bottom: 0.5rem;
+            color: #666;
         }
 
         .message-alert {
             padding: 1rem 1.5rem;
-            border-radius: 8px;
-            margin-bottom: 1rem;
+            border-radius: 12px;
+            margin-bottom: 1.5rem;
+            border-left: 4px solid;
         }
 
         .message-alert.success {
             background: #D4EDDA;
             color: #155724;
-            border-left: 4px solid #28A745;
+            border-left-color: #28A745;
         }
 
         .message-alert.error {
             background: #F8D7DA;
             color: #721C24;
-            border-left: 4px solid #DC3545;
+            border-left-color: #DC3545;
         }
 
         .message-alert.info {
             background: #D1ECF1;
             color: #0C5460;
-            border-left: 4px solid #17A2B8;
+            border-left-color: #17A2B8;
         }
 
         .message-alert.warning {
             background: #FFF3CD;
             color: #856404;
-            border-left: 4px solid #FFC107;
+            border-left-color: #FFC107;
+        }
+
+        /* Header Navigation Styles */
+        .main-header {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .header-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 2rem;
+        }
+
+        .main-nav {
+            display: flex;
+            gap: 1.5rem;
+            flex: 1;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .nav-link-item {
+            text-decoration: none;
+            color: #666;
+            font-weight: 500;
+            font-size: 0.95rem;
+            padding: 0.625rem 1.25rem;
+            border-radius: 10px;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+        }
+
+        .nav-link-item i {
+            font-size: 1rem;
+        }
+
+        .nav-link-item:hover {
+            background: var(--light-bg);
+            color: var(--primary);
+        }
+
+        .nav-link-item.active {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(53, 141, 88, 0.3);
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .profile-menu {
+            position: relative;
+        }
+
+        .profile-icon-btn {
+            width: 45px;
+            height: 45px;
+            background: var(--light-bg);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            color: var(--primary);
+            border: 2px solid var(--primary);
+            cursor: pointer;
+            transition: all 0.3s;
+            overflow: hidden;
+        }
+
+        .profile-icon-btn:hover {
+            background: var(--primary);
+            color: white;
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(53, 141, 88, 0.3);
+        }
+
+        .dropdown-menu {
+            position: absolute;
+            top: calc(100% + 0.75rem);
+            right: 0;
+            background: white;
+            min-width: 220px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            border-radius: 12px;
+            padding: 0.5rem 0;
+            display: none;
+            z-index: 1000;
+            border: 1px solid #f0f0f0;
+            animation: fadeIn 0.2s ease;
+        }
+
+        .dropdown-menu.show {
+            display: block;
+        }
+
+        .dropdown-item {
+            padding: 0.875rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            color: #333;
+            text-decoration: none;
+            transition: background 0.2s;
+            font-size: 0.95rem;
+        }
+
+        .dropdown-item:hover {
+            background: var(--light-bg);
+            color: var(--primary);
+        }
+
+        .dropdown-divider {
+            height: 1px;
+            background: #f0f0f0;
+            margin: 0.5rem 0;
+        }
+
+        /* Dark Mode Toggle */
+        .dark-mode-toggle {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+        .dark-mode-toggle input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 26px;
+            width: 26px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .dark-mode-toggle input:checked + .toggle-slider {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        }
+
+        .dark-mode-toggle input:checked + .toggle-slider:before {
+            transform: translateX(26px);
+        }
+
+        @media (max-width: 768px) {
+            .dashboard-hero h1 {
+                font-size: 2rem;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+
+            .products-grid, .tools-grid, .experts-grid, .tips-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .profile-header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .main-nav {
+                flex-wrap: wrap;
+                gap: 0.75rem;
+            }
+
+            .nav-link-item {
+                padding: 0.5rem 0.875rem;
+                font-size: 0.85rem;
+            }
+
+            .nav-link-item i {
+                font-size: 0.9rem;
+            }
         }
     </style>
 </head>
@@ -470,320 +1029,540 @@
                 </a>
             </div>
             <nav class="main-nav">
-                <a href="{% url 'user_dashboard' %}" class="active">Dashboard</a>
-                <a href="{% url 'profile' %}">Profile</a>
-                <a href="{% url 'settings' %}">Settings</a>
+                <a href="#crops" onclick="switchTab('crops', event); return false;" class="nav-link-item" data-tab="crops">
+                    <i class="fas fa-seedling"></i> Crops
+                </a>
+                <a href="#tools" onclick="switchTab('tools', event); return false;" class="nav-link-item" data-tab="tools">
+                    <i class="fas fa-tools"></i> Tools
+                </a>
+                <a href="#experts" onclick="switchTab('experts', event); return false;" class="nav-link-item" data-tab="experts">
+                    <i class="fas fa-user-graduate"></i> Experts
+                </a>
+                <a href="#tips" onclick="switchTab('tips', event); return false;" class="nav-link-item" data-tab="tips">
+                    <i class="fas fa-lightbulb"></i> Expert Content
+                </a>
+                <a href="#appointments" onclick="switchTab('appointments', event); return false;" class="nav-link-item" data-tab="appointments">
+                    <i class="fas fa-calendar-check"></i> Appointments
+                </a>
+                <a href="#chat" onclick="switchTab('chat', event); return false;" class="nav-link-item" data-tab="chat">
+                    <i class="fas fa-comments"></i> Chat
+                </a>
+                <a href="#orders" onclick="switchTab('orders', event); return false;" class="nav-link-item" data-tab="orders" style="position: relative;">
+                    <i class="fas fa-shopping-bag"></i> Orders
+                    <span id="cartBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: var(--accent); color: white; border-radius: 50%; width: 20px; height: 20px; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700;"></span>
+                </a>
+                <a href="#profile" onclick="switchTab('profile', event); return false;" class="nav-link-item" data-tab="profile">
+                    <i class="fas fa-user"></i> Profile
+                </a>
+                <a href="#settings" onclick="switchTab('settings', event); return false;" class="nav-link-item" data-tab="settings">
+                    <i class="fas fa-cog"></i> Settings
+                </a>
             </nav>
-            <div class="header-actions" id="headerActions">
-                <div id="authButtons" class="auth-buttons"></div>
+            <div class="header-actions">
+                <div class="profile-menu">
+                    <button class="profile-icon-btn" id="profileDropdownBtn" onclick="toggleProfileDropdown()">
+                        {% if profile.photo %}
+                        <img src="{{ profile.photo.url }}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        {% else %}
+                        <i class="fas fa-user"></i>
+                        {% endif %}
+                    </button>
+                    <div class="dropdown-menu" id="profileDropdown">
+                        <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #eee;">
+                            <strong style="display: block; color: var(--primary); font-size: 1rem;">{{ profile.name|default:request.user.email }}</strong>
+                            <span style="font-size: 0.85rem; color: #666;">Buyer</span>
+                        </div>
+                        <a href="#profile" onclick="switchTab('profile', event); toggleProfileDropdown(); return false;" class="dropdown-item">
+                            <i class="fas fa-user-circle"></i> Profile
+                        </a>
+                        <a href="#settings" onclick="switchTab('settings', event); toggleProfileDropdown(); return false;" class="dropdown-item">
+                            <i class="fas fa-cog"></i> Settings
+                        </a>
+                        <div class="dropdown-divider"></div>
+                        <a href="{% url 'logout' %}" class="dropdown-item" style="color: var(--accent);">
+                            <i class="fas fa-sign-out-alt"></i> Logout
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
 
-    <div class="dashboard-container">
-        <!-- Messages -->
-        {% if messages %}
-        <div style="margin-bottom: 1.5rem;">
-            {% for message in messages %}
-            <div class="message-alert {{ message.tags }}" style="padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 0.5rem;">
-                {{ message }}
-            </div>
-            {% endfor %}
-        </div>
-        {% endif %}
-
-        <!-- Stats Header -->
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-content">
-                    <h4>Available Crops</h4>
-                    <span>{{ crops_count }}</span>
-                </div>
-                <i class="fas fa-seedling stat-icon"></i>
-            </div>
-            <div class="stat-card">
-                <div class="stat-content">
-                    <h4>Available Tools</h4>
-                    <span>{{ tools_count }}</span>
-                </div>
-                <i class="fas fa-tools stat-icon"></i>
-            </div>
-            <div class="stat-card">
-                <div class="stat-content">
-                    <h4>Total Orders</h4>
-                    <span>{{ total_orders }}</span>
-                </div>
-                <i class="fas fa-shopping-cart stat-icon"></i>
-            </div>
-            <div class="stat-card">
-                <div class="stat-content">
-                    <h4>Total Spent</h4>
-                    <span>Rs. {{ total_spent|floatformat:2 }}</span>
-                </div>
-                <i class="fas fa-rupee-sign stat-icon"></i>
-            </div>
+    <div class="dashboard-wrapper">
+        <div class="dashboard-hero">
+            <h1><i class="fas fa-shopping-bag"></i> Buyer Dashboard</h1>
+            <p>Discover fresh produce, tools, and expert advice</p>
         </div>
 
-        <!-- Tabs Navigation -->
-        <div class="tabs-nav">
-            <button class="tab-nav-btn active" onclick="switchTab('crops', this)">
-                <i class="fas fa-seedling"></i> Crops
-            </button>
-            <button class="tab-nav-btn" onclick="switchTab('tools', this)">
-                <i class="fas fa-tools"></i> Tools
-            </button>
-            <button class="tab-nav-btn" onclick="switchTab('experts', this)">
-                <i class="fas fa-user-graduate"></i> Experts
-            </button>
-            <button class="tab-nav-btn" onclick="switchTab('tips', this)">
-                <i class="fas fa-lightbulb"></i> Expert Content
-            </button>
-            <button class="tab-nav-btn" onclick="switchTab('appointments', this)">
-                <i class="fas fa-calendar-check"></i> Appointments
-            </button>
-            <button class="tab-nav-btn" onclick="switchTab('chat', this)">
-                <i class="fas fa-comments"></i> Chat
-            </button>
-            <button class="tab-nav-btn" onclick="switchTab('orders', this)">
-                <i class="fas fa-shopping-bag"></i> My Orders
-            </button>
-        </div>
+        <div class="dashboard-container">
+            <!-- Messages -->
+            {% if messages %}
+            <div>
+                {% for message in messages %}
+                <div class="message-alert {{ message.tags }}">
+                    {{ message }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
 
-        <!-- Crops Tab -->
-        <div id="crops" class="tab-content active">
-            <div class="products-grid">
-                {% for crop in crops %}
-                <div class="product-card">
-                    {% if crop.image %}
-                    <img src="{{ crop.image.url }}" alt="{{ crop.name }}" class="product-image">
-                    {% else %}
-                    <div class="product-image">🌾</div>
-                    {% endif %}
-                    <div class="product-card-body">
-                        <h4>{{ crop.name }}</h4>
-                        <p class="product-vendor">Farmer: {{ crop.farmer.name|default:crop.farmer.user.email }}</p>
-                        <div class="product-footer">
-                            <span class="price">Rs. {{ crop.price_per_unit }}/{{ crop.unit }}</span>
-                            <button class="btn-buy" onclick="openPurchaseCropModal({{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.price_per_unit }}, {{ crop.quantity }}, '{{ crop.unit }}')">Buy Now</button>
+            <!-- Content Sections (accessible via header navigation) -->
+
+                <!-- Crops Section -->
+                <div id="crops" class="content-section" style="display: block;">
+                    <div class="products-grid">
+                        {% for crop in crops %}
+                        <div class="product-card">
+                            {% if crop.image %}
+                            <img src="{{ crop.image.url }}" alt="{{ crop.name }}" class="product-image">
+                            {% else %}
+                            <div class="product-image">🌾</div>
+                            {% endif %}
+                            <div class="product-card-body">
+                                <h4>{{ crop.name }}</h4>
+                                <p class="product-vendor">
+                                    <i class="fas fa-user"></i> Farmer: {{ crop.farmer.name|default:crop.farmer.user.email }}
+                                </p>
+                                <div class="product-footer" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                    <span class="price" style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">Rs. {{ crop.price_per_unit }}/{{ crop.unit }}</span>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <button class="btn-buy" onclick="openPurchaseCropModal({{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.price_per_unit }}, {{ crop.quantity }}, '{{ crop.unit }}')" style="flex: 1; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                            <i class="fas fa-shopping-bag"></i> Buy Now
+                                        </button>
+                                        <button class="btn-cart" onclick="addToCart('crop', {{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.price_per_unit }}, {{ crop.quantity }}, '{{ crop.unit }}')" style="flex: 1; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                            <i class="fas fa-shopping-cart"></i> Add to Cart
+                                        </button>
+                                    </div>
+                                </div>
+                                <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem; padding: 0.5rem; background: var(--light-bg); border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fas fa-box" style="color: var(--primary);"></i> <strong>Available:</strong> {{ crop.quantity }} {{ crop.unit }}
+                                </p>
+                            </div>
                         </div>
-                        <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
-                            Available: {{ crop.quantity }} {{ crop.unit }}
-                        </p>
-                    </div>
-                </div>
-                {% empty %}
-                <div class="empty-state" style="grid-column: 1/-1;">
-                    <i class="fas fa-seedling"></i>
-                    <h3>No crops available</h3>
-                    <p>Check back later for fresh produce from our farmers</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Tools Tab -->
-        <div id="tools" class="tab-content">
-            <div class="tools-grid">
-                {% for tool in tools %}
-                <div class="tool-card">
-                    <div class="tool-image">🔧</div>
-                    <div class="tool-card-body">
-                        <h4>{{ tool.name }}</h4>
-                        <p class="tool-vendor">Vendor: {{ tool.vendor.company_name|default:tool.vendor.user.email }}</p>
-                        {% if tool.description %}
-                        <p style="font-size: 0.9rem; color: #666; margin: 0.5rem 0;">{{ tool.description|truncatewords:20 }}</p>
-                        {% endif %}
-                        <div class="tool-footer">
-                            <span class="price">Rs. {{ tool.price }}</span>
-                            <button class="btn-buy" onclick="openPurchaseToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }})">Buy Now</button>
+                        {% empty %}
+                        <div class="empty-state" style="grid-column: 1/-1;">
+                            <i class="fas fa-seedling"></i>
+                            <h3>No crops available</h3>
+                            <p>Check back later for fresh produce from our farmers</p>
                         </div>
-                        <p style="font-size: 0.85rem; color: #666; margin-top: 0.5rem;">
-                            Stock: {{ tool.stock_quantity }} units
-                        </p>
+                        {% endfor %}
                     </div>
                 </div>
-                {% empty %}
-                <div class="empty-state" style="grid-column: 1/-1;">
-                    <i class="fas fa-tools"></i>
-                    <h3>No tools available</h3>
-                    <p>Check back later for agricultural tools from our vendors</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
 
-        <!-- Experts Tab -->
-        <div id="experts" class="tab-content">
-            <div class="experts-grid">
-                {% for expert in experts %}
-                <div class="expert-card">
-                    {% if expert.photo %}
-                    <img src="{{ expert.photo.url }}" alt="{{ expert.name }}" class="expert-avatar">
-                    {% else %}
-                    <div class="expert-avatar">
-                        <i class="fas fa-user-graduate"></i>
-                    </div>
-                    {% endif %}
-                    <div class="expert-info">
-                        <h4>{{ expert.name|default:expert.user.email }}</h4>
-                        <p>{{ expert.specialization|default:"General Expert" }}</p>
-                        <p style="font-size: 0.85rem; color: #999; margin-top: 0.25rem;">
-                            {{ expert.experience|default:"5+ years" }} experience
-                        </p>
-                    </div>
-                    <div class="expert-actions">
-                        <a href="{% url 'chat_threads' %}" class="btn-chat">
-                            <i class="fas fa-comments"></i> Chat
-                        </a>
-                        <button class="btn-appoint" onclick="openAppointmentModal({{ expert.id }}, '{{ expert.name|default:expert.user.email }}')">
-                            <i class="fas fa-calendar"></i> Appoint
-                        </button>
+                <!-- Tools Section -->
+                <div id="tools" class="content-section" style="display: none;">
+                    <div class="tools-grid">
+                        {% for tool in tools %}
+                        <div class="tool-card">
+                            {% if tool.image %}
+                            <img src="{{ tool.image.url }}" alt="{{ tool.name }}" class="tool-image">
+                            {% else %}
+                            <div class="tool-image">🔧</div>
+                            {% endif %}
+                            <div class="tool-card-body">
+                                <h4>{{ tool.name }}</h4>
+                                <p class="tool-vendor">
+                                    <i class="fas fa-store"></i> Vendor: {{ tool.vendor.company_name|default:tool.vendor.user.email }}
+                                </p>
+                                {% if tool.description %}
+                                <p style="font-size: 0.9rem; color: #666; margin: 0.75rem 0;">{{ tool.description|truncatewords:20 }}</p>
+                                {% endif %}
+                                <div class="tool-footer" style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                    <span class="price" style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">Rs. {{ tool.price }}</span>
+                                    <div style="display: flex; gap: 0.5rem;">
+                                        <button class="btn-buy" onclick="openPurchaseToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }})" style="flex: 1; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                            <i class="fas fa-shopping-bag"></i> Buy Now
+                                        </button>
+                                        <button class="btn-cart" onclick="addToCart('tool', {{ tool.id }}, '{{ tool.name|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}, 'unit')" style="flex: 1; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                            <i class="fas fa-shopping-cart"></i> Add to Cart
+                                        </button>
+                                    </div>
+                                </div>
+                                <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem; padding: 0.5rem; background: var(--light-bg); border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fas fa-box" style="color: var(--primary);"></i> <strong>Stock:</strong> {{ tool.stock_quantity }} units
+                                </p>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="empty-state" style="grid-column: 1/-1;">
+                            <i class="fas fa-tools"></i>
+                            <h3>No tools available</h3>
+                            <p>Check back later for agricultural tools from our vendors</p>
+                        </div>
+                        {% endfor %}
                     </div>
                 </div>
-                {% empty %}
-                <div class="empty-state" style="grid-column: 1/-1;">
-                    <i class="fas fa-user-graduate"></i>
-                    <h3>No experts available</h3>
-                    <p>Check back later for agricultural experts</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
 
-        <!-- Tips/Content Tab -->
-        <div id="tips" class="tab-content">
-            <div class="tips-grid">
-                {% for tip in tips %}
-                <div class="tip-card">
-                    <h4>{{ tip.title }}</h4>
-                    <p>{{ tip.content|truncatewords:50 }}</p>
-                    <p class="tip-author">
-                        — {{ tip.expert.name|default:"Expert" }} • {{ tip.expert.specialization|default:"Agriculturalist" }}
-                    </p>
-                </div>
-                {% empty %}
-                <div class="empty-state" style="grid-column: 1/-1;">
-                    <i class="fas fa-lightbulb"></i>
-                    <h3>No expert content available</h3>
-                    <p>Check back later for tips and content from our experts</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-
-        <!-- Appointments Tab -->
-        <div id="appointments" class="tab-content">
-            <div class="appointments-list">
-                {% for appointment in appointments %}
-                <div class="appointment-item">
-                    <div class="appointment-info">
-                        <h4>With {{ appointment.expert.name|default:appointment.expert.user.email }}</h4>
-                        <p>
-                            <i class="far fa-calendar"></i> {{ appointment.requested_date }} at {{ appointment.requested_time }}
-                        </p>
-                        {% if appointment.message %}
-                        <p style="margin-top: 0.5rem;">{{ appointment.message }}</p>
-                        {% endif %}
+                <!-- Experts Section -->
+                <div id="experts" class="content-section" style="display: none;">
+                    <div class="experts-grid">
+                        {% for expert in experts %}
+                        <div class="expert-card">
+                            {% if expert.photo %}
+                            <img src="{{ expert.photo.url }}" alt="{{ expert.name }}" class="expert-avatar">
+                            {% else %}
+                            <div class="expert-avatar">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                            {% endif %}
+                            <div class="expert-info">
+                                <h4>{{ expert.name|default:expert.user.email }}</h4>
+                                <p><i class="fas fa-graduation-cap"></i> {{ expert.specialization|default:"General Expert" }}</p>
+                                <p style="font-size: 0.95rem; color: #666; margin-top: 0.5rem;">
+                                    <i class="fas fa-clock"></i> {{ expert.experience|default:"5+ years" }} experience
+                                </p>
+                            </div>
+                            <div class="expert-actions">
+                                <a href="{% url 'chat_threads' %}" class="btn-chat">
+                                    <i class="fas fa-comments"></i> Chat
+                                </a>
+                                <button class="btn-appoint" onclick="openAppointmentModal({{ expert.id }}, '{{ expert.name|default:expert.user.email }}')">
+                                    <i class="fas fa-calendar"></i> Appoint
+                                </button>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="empty-state" style="grid-column: 1/-1;">
+                            <i class="fas fa-user-graduate"></i>
+                            <h3>No experts available</h3>
+                            <p>Check back later for agricultural experts</p>
+                        </div>
+                        {% endfor %}
                     </div>
-                    <span class="appointment-status status-{{ appointment.status }}">
-                        {{ appointment.status|title }}
-                    </span>
                 </div>
-                {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-calendar-check"></i>
-                    <h3>No appointments</h3>
-                    <p>Book an appointment with an expert to get started</p>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
 
-        <!-- Chat Tab -->
-        <div id="chat" class="tab-content">
-            <div class="appointments-list">
-                {% for thread in chat_threads %}
-                <a href="{% url 'chat_thread' thread.id %}" style="text-decoration: none; color: inherit;">
-                    <div class="appointment-item" style="cursor: pointer;">
-                        <div class="appointment-info">
-                            <h4>Chat with {{ thread.expert.name|default:thread.expert.user.email }}</h4>
-                            <p>
-                                <i class="fas fa-comments"></i> Click to open chat
+                <!-- Expert Content Section -->
+                <div id="tips" class="content-section" style="display: none;">
+                    <div class="tips-grid">
+                        {% for tip in tips %}
+                        <div class="tip-card">
+                            <h4>{{ tip.title }}</h4>
+                            <p>{{ tip.content|truncatewords:50 }}</p>
+                            <p class="tip-author">
+                                <i class="fas fa-user"></i> — {{ tip.expert.name|default:"Expert" }} • {{ tip.expert.specialization|default:"Agriculturalist" }}
                             </p>
                         </div>
-                        <i class="fas fa-chevron-right" style="color: #999;"></i>
+                        {% empty %}
+                        <div class="empty-state" style="grid-column: 1/-1;">
+                            <i class="fas fa-lightbulb"></i>
+                            <h3>No expert content available</h3>
+                            <p>Check back later for tips and content from our experts</p>
+                        </div>
+                        {% endfor %}
                     </div>
-                </a>
-                {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-comments"></i>
-                    <h3>No chat threads</h3>
-                    <p>Start a conversation with an expert</p>
                 </div>
-                {% endfor %}
-                <div style="padding: 1.5rem; text-align: center;">
-                    <a href="{% url 'chat_threads' %}" class="btn-buy" style="display: inline-block; text-decoration: none;">
-                        <i class="fas fa-plus"></i> Start New Chat
-                    </a>
-                </div>
-            </div>
-        </div>
 
-        <!-- Orders Tab -->
-        <div id="orders" class="tab-content">
-            <div class="appointments-list">
-                {% for order in purchase_history %}
-                <div class="appointment-item">
-                    <div class="appointment-info" style="flex: 1;">
-                        <h4>
-                            {% if order.crop %}
-                                <i class="fas fa-seedling"></i> {{ order.crop.name }}
-                            {% elif order.tool %}
-                                <i class="fas fa-tools"></i> {{ order.tool.name }}
-                            {% else %}
-                                Unknown Item
-                            {% endif %}
-                        </h4>
-                        <p style="margin: 0.5rem 0;">
-                            <strong>Order #{{ order.id }}</strong> • 
-                            Quantity: {{ order.quantity }} 
-                            {% if order.crop %}{{ order.crop.unit }}{% elif order.tool %}units{% endif %}
-                            • Total: <strong>Rs. {{ order.total_amount }}</strong>
-                        </p>
-                        {% if order.crop %}
-                        <p style="margin: 0.25rem 0; color: #666; font-size: 0.85rem;">
-                            From: {{ order.crop.farmer.name|default:order.crop.farmer.user.email }}
-                        </p>
-                        {% elif order.tool %}
-                        <p style="margin: 0.25rem 0; color: #666; font-size: 0.85rem;">
-                            From: {{ order.tool.vendor.company_name|default:order.tool.vendor.user.email }}
-                        </p>
-                        {% endif %}
-                        <p style="margin: 0.25rem 0; color: #666; font-size: 0.9rem;">
-                            <i class="far fa-calendar"></i> {{ order.created_at|date:"M d, Y h:i A" }}
-                        </p>
-                        {% if order.shipping_address %}
-                        <p style="margin: 0.5rem 0; color: #666; font-size: 0.85rem;">
-                            <i class="fas fa-map-marker-alt"></i> {{ order.shipping_address|truncatewords:10 }}
-                        </p>
-                        {% endif %}
-                        {% if order.tracking_number %}
-                        <p style="margin: 0.5rem 0; color: var(--sea-green); font-size: 0.85rem;">
-                            <i class="fas fa-truck"></i> Tracking: {{ order.tracking_number }}
-                        </p>
-                        {% endif %}
+                <!-- Appointments Section -->
+                <div id="appointments" class="content-section" style="display: none;">
+                    <div class="appointments-list">
+                        {% for appointment in appointments %}
+                        <div class="appointment-item">
+                            <div class="appointment-info">
+                                <h4><i class="fas fa-user-graduate"></i> With {{ appointment.expert.name|default:appointment.expert.user.email }}</h4>
+                                <p>
+                                    <i class="far fa-calendar"></i> {{ appointment.requested_date }} at {{ appointment.requested_time }}
+                                </p>
+                                {% if appointment.message %}
+                                <p style="margin-top: 0.5rem; color: #666;">{{ appointment.message }}</p>
+                                {% endif %}
+                            </div>
+                            <span class="appointment-status status-{{ appointment.status }}">
+                                {{ appointment.status|title }}
+                            </span>
+                        </div>
+                        {% empty %}
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-check"></i>
+                            <h3>No appointments</h3>
+                            <p>Book an appointment with an expert to get started</p>
+                        </div>
+                        {% endfor %}
                     </div>
-                    <span class="appointment-status status-{{ order.status }}">
-                        {{ order.get_status_display }}
-                    </span>
                 </div>
-                {% empty %}
-                <div class="empty-state">
-                    <i class="fas fa-shopping-bag"></i>
-                    <h3>No orders yet</h3>
-                    <p>Your purchase history will appear here</p>
+
+                <!-- Chat Section -->
+                <div id="chat" class="content-section" style="display: none;">
+                    <div class="appointments-list">
+                        {% for thread in chat_threads %}
+                        <a href="{% url 'chat_thread' thread.id %}" style="text-decoration: none; color: inherit;">
+                            <div class="appointment-item" style="cursor: pointer;">
+                                <div class="appointment-info">
+                                    <h4><i class="fas fa-comments"></i> Chat with {{ thread.expert.name|default:thread.expert.user.email }}</h4>
+                                    <p>Click to open chat conversation</p>
+                                </div>
+                                <i class="fas fa-chevron-right" style="color: #999;"></i>
+                            </div>
+                        </a>
+                        {% empty %}
+                        <div class="empty-state">
+                            <i class="fas fa-comments"></i>
+                            <h3>No chat threads</h3>
+                            <p>Start a conversation with an expert</p>
+                        </div>
+                        {% endfor %}
+                        <div style="padding: 1.5rem; text-align: center; border-top: 1px solid #f0f0f0;">
+                            <a href="{% url 'chat_threads' %}" class="btn-primary" style="display: inline-block; text-decoration: none;">
+                                <i class="fas fa-plus"></i> Start New Chat
+                            </a>
+                        </div>
+                    </div>
                 </div>
-                {% endfor %}
+
+                <!-- Orders Section -->
+                <div id="orders" class="content-section" style="display: none;">
+                    <!-- Cart Items (from localStorage) -->
+                    <div id="cartItems" style="margin-bottom: 3rem;">
+                        <h2 style="margin-bottom: 1.5rem; color: #333; font-size: 1.75rem; display: flex; align-items: center; gap: 0.75rem;">
+                            <i class="fas fa-shopping-cart"></i> Shopping Cart
+                        </h2>
+                        <div id="cartItemsList" class="orders-list">
+                            <!-- Cart items will be populated by JavaScript -->
+                        </div>
+                        <div id="emptyCart" style="display: none; text-align: center; padding: 3rem; background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+                            <i class="fas fa-shopping-cart" style="font-size: 4rem; color: #ccc; margin-bottom: 1rem;"></i>
+                            <h3 style="color: #666; margin-bottom: 0.5rem;">Your cart is empty</h3>
+                            <p style="color: #999;">Add items to your cart to see them here</p>
+                        </div>
+                    </div>
+
+                    <!-- Purchase History -->
+                    <div id="purchaseHistory">
+                        <h2 style="margin-bottom: 1.5rem; color: #333; font-size: 1.75rem; display: flex; align-items: center; gap: 0.75rem;">
+                            <i class="fas fa-history"></i> Purchase History
+                        </h2>
+                        <div class="orders-list">
+                        {% for order in purchase_history %}
+                        <div class="order-item">
+                            <div class="order-info" style="flex: 1;">
+                                <h4>
+                                    {% if order.crop %}
+                                        <i class="fas fa-seedling"></i> {{ order.crop.name }}
+                                    {% elif order.tool %}
+                                        <i class="fas fa-tools"></i> {{ order.tool.name }}
+                                    {% else %}
+                                        Unknown Item
+                                    {% endif %}
+                                </h4>
+                                <p style="margin: 0.5rem 0;">
+                                    <strong>Order #{{ order.id }}</strong> • 
+                                    Quantity: {{ order.quantity }} 
+                                    {% if order.crop %}{{ order.crop.unit }}{% elif order.tool %}units{% endif %}
+                                    • Total: <strong>Rs. {{ order.total_amount }}</strong>
+                                </p>
+                                {% if order.crop %}
+                                <p style="margin: 0.25rem 0; color: #666; font-size: 0.85rem;">
+                                    <i class="fas fa-user"></i> From: {{ order.crop.farmer.name|default:order.crop.farmer.user.email }}
+                                </p>
+                                {% elif order.tool %}
+                                <p style="margin: 0.25rem 0; color: #666; font-size: 0.85rem;">
+                                    <i class="fas fa-store"></i> From: {{ order.tool.vendor.company_name|default:order.tool.vendor.user.email }}
+                                </p>
+                                {% endif %}
+                                <p style="margin: 0.25rem 0; color: #666; font-size: 0.9rem;">
+                                    <i class="far fa-calendar"></i> {{ order.created_at|date:"M d, Y h:i A" }}
+                                </p>
+                                {% if order.shipping_address %}
+                                <p style="margin: 0.5rem 0; color: #666; font-size: 0.85rem;">
+                                    <i class="fas fa-map-marker-alt"></i> {{ order.shipping_address|truncatewords:10 }}
+                                </p>
+                                {% endif %}
+                                {% if order.tracking_number %}
+                                <p style="margin: 0.5rem 0; color: var(--primary); font-size: 0.85rem;">
+                                    <i class="fas fa-truck"></i> Tracking: {{ order.tracking_number }}
+                                </p>
+                                {% endif %}
+                            </div>
+                            <span class="appointment-status status-{{ order.status }}">
+                                {{ order.get_status_display }}
+                            </span>
+                        </div>
+                        {% empty %}
+                        <div class="empty-state">
+                            <i class="fas fa-shopping-bag"></i>
+                            <h3>No orders yet</h3>
+                            <p>Your purchase history will appear here</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Profile Section -->
+                <div id="profile" class="content-section" style="display: none;">
+                    <div style="background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+                        <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #f0f0f0;">
+                            <h2 style="margin: 0; color: #333; font-size: 1.75rem; display: flex; align-items: center; gap: 0.75rem;">
+                                <i class="fas fa-user"></i> My Profile
+                            </h2>
+                        </div>
+                        <div>
+                            <!-- Stats Cards in Profile -->
+                            <div class="stats-grid" style="margin-bottom: 2.5rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+                                <div class="stat-card" style="border-left-color: var(--accent);">
+                                    <div class="stat-content">
+                                        <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.95rem; font-weight: 600;">Total Orders</h4>
+                                        <span style="color: var(--accent); font-size: 2.5rem; font-weight: bold; display: block; margin-top: 0.5rem;">{{ total_orders }}</span>
+                                    </div>
+                                    <i class="fas fa-shopping-cart stat-icon" style="color: var(--accent); opacity: 0.2; font-size: 3.5rem;"></i>
+                                </div>
+                                <div class="stat-card" style="border-left-color: #2196F3;">
+                                    <div class="stat-content">
+                                        <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.95rem; font-weight: 600;">Total Spent</h4>
+                                        <span style="color: #2196F3; font-size: 2rem; font-weight: bold; display: block; margin-top: 0.5rem;">Rs. {{ total_spent|floatformat:2 }}</span>
+                                    </div>
+                                    <i class="fas fa-rupee-sign stat-icon" style="color: #2196F3; opacity: 0.2; font-size: 3.5rem;"></i>
+                                </div>
+                            </div>
+
+                            <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <input type="hidden" name="update_profile" value="1">
+                                
+                                <div style="display: flex; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                                    <div style="flex: 0 0 200px;">
+                                        <div style="width: 200px; height: 200px; border-radius: 50%; overflow: hidden; border: 4px solid var(--primary); margin: 0 auto;">
+                                            {% if profile.photo %}
+                                            <img src="{{ profile.photo.url }}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;" id="profileImagePreview">
+                                            {% else %}
+                                            <div style="width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 4rem;" id="profileImagePreview">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        <div style="margin-top: 1rem; text-align: center;">
+                                            <label for="photo" class="btn-primary" style="cursor: pointer; display: inline-block; padding: 0.75rem 1.5rem; border-radius: 10px;">
+                                                <i class="fas fa-camera"></i> Change Photo
+                                            </label>
+                                            <input type="file" name="photo" id="photo" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                                        </div>
+                                    </div>
+                                    <div style="flex: 1; min-width: 300px;">
+                                        <h3 style="margin: 0 0 1rem 0; font-size: 1.5rem; color: #333;">{{ profile.name|default:request.user.email }}</h3>
+                                        <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                                            <span style="padding: 0.5rem 1rem; background: var(--primary); color: white; border-radius: 20px; font-weight: 600;">Buyer</span>
+                                            {% if request.user.is_verified %}
+                                            <span style="padding: 0.5rem 1rem; background: #D4EDDA; color: #155724; border-radius: 20px; font-weight: 600;">
+                                                <i class="fas fa-check-circle"></i> Verified
+                                            </span>
+                                            {% else %}
+                                            <span style="padding: 0.5rem 1rem; background: #FFF3CD; color: #856404; border-radius: 20px; font-weight: 600;">
+                                                <i class="fas fa-exclamation-circle"></i> Unverified
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                                    <div class="form-group">
+                                        <label>Full Name</label>
+                                        <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Enter your full name">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Email Address</label>
+                                        <input type="email" class="form-control" value="{{ request.user.email }}" readonly style="background: #f5f5f5;">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Contact Number</label>
+                                        <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Enter contact number">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Location</label>
+                                        <input type="text" name="location" class="form-control" value="{{ profile.location|default:'' }}" placeholder="Enter your location">
+                                    </div>
+                                </div>
+
+                                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1rem; font-size: 1.1rem;">
+                                    <i class="fas fa-save"></i> Save Profile
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Section -->
+                <div id="settings" class="content-section" style="display: none;">
+                    <div style="background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+                        <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #f0f0f0;">
+                            <h2 style="margin: 0; color: #333; font-size: 1.75rem; display: flex; align-items: center; gap: 0.75rem;">
+                                <i class="fas fa-cog"></i> Settings
+                            </h2>
+                        </div>
+
+                        <div style="margin-top: 2rem;">
+                            <h3 style="margin-bottom: 1.5rem; color: #333; font-size: 1.3rem; padding-bottom: 0.75rem; border-bottom: 2px solid #f0f0f0;">
+                                <i class="fas fa-lock"></i> Change Password
+                            </h3>
+                            <form method="POST" action="{% url 'change_password' %}">
+                                {% csrf_token %}
+                                <div class="profile-form">
+                                    <div class="form-group">
+                                        <label>Current Password <span style="color: red;">*</span></label>
+                                        <input type="password" name="current_password" class="form-control" required placeholder="Enter current password">
+                                    </div>
+                                    <div class="form-group">
+                                        <label>New Password <span style="color: red;">*</span></label>
+                                        <input type="password" name="new_password" class="form-control" required placeholder="Enter new password" minlength="8">
+                                        <small style="color: #666; margin-top: 0.5rem; display: block;">
+                                            <i class="fas fa-info-circle"></i> Password must be at least 8 characters long
+                                        </small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Confirm New Password <span style="color: red;">*</span></label>
+                                        <input type="password" name="confirm_password" class="form-control" required placeholder="Confirm new password" minlength="8">
+                                    </div>
+                                </div>
+                                <div style="margin-top: 2rem; text-align: right;">
+                                    <button type="submit" class="btn-primary">
+                                        <i class="fas fa-key"></i> Update Password
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+
+                        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #f0f0f0;">
+                            <h3 style="margin-bottom: 1.5rem; color: #333; font-size: 1.3rem; padding-bottom: 0.75rem; border-bottom: 2px solid #f0f0f0;">
+                                <i class="fas fa-globe"></i> Language Preferences
+                            </h3>
+                            <div class="form-group">
+                                <label>Select Language</label>
+                                <select id="languageSelect" class="form-control" onchange="changeLanguage(this.value)">
+                                    <option value="en">English</option>
+                                    <option value="ne">नेपाली (Nepali)</option>
+                                </select>
+                                <small style="color: #666; margin-top: 0.5rem; display: block;">
+                                    <i class="fas fa-info-circle"></i> Choose your preferred language
+                                </small>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #f0f0f0;">
+                            <h3 style="margin-bottom: 1.5rem; color: #333; font-size: 1.3rem; padding-bottom: 0.75rem; border-bottom: 2px solid #f0f0f0;">
+                                <i class="fas fa-bell"></i> Notifications
+                            </h3>
+                            <div style="background: var(--light-bg); padding: 1.5rem; border-radius: 12px;">
+                                <p style="color: #666; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                                    <i class="fas fa-info-circle"></i> Notification settings will be available soon
+                                </p>
+                            </div>
+                        </div>
+
+                        <div style="margin-top: 3rem; padding-top: 2rem; border-top: 2px solid #f0f0f0;">
+                            <h3 style="margin-bottom: 1.5rem; color: #333; font-size: 1.3rem; padding-bottom: 0.75rem; border-bottom: 2px solid #f0f0f0;">
+                                <i class="fas fa-palette"></i> Appearance
+                            </h3>
+                            <div style="background: var(--light-bg); padding: 1.5rem; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; border: 2px solid #e9ecef; transition: all 0.3s;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="this.style.borderColor='#e9ecef'">
+                                <div>
+                                    <div style="font-weight: 600; color: #333; margin-bottom: 0.25rem; font-size: 1.05rem;">Dark Mode</div>
+                                    <div style="font-size: 0.9rem; color: #666;">Switch between light and dark themes</div>
+                                </div>
+                                <label class="dark-mode-toggle">
+                                    <input type="checkbox" id="darkModeToggle" onchange="toggleDarkMode(this)">
+                                    <span class="toggle-slider"></span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -799,27 +1578,29 @@
                 {% csrf_token %}
                 <input type="hidden" name="expert_id" id="apptExpertId">
                 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Expert</label>
-                    <input type="text" id="apptExpertName" class="form-control" readonly style="background: #f5f5f5;">
+                <div class="form-group">
+                    <label>Expert</label>
+                    <input type="text" id="apptExpertName" class="form-control" readonly style="background: var(--light-bg);">
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Date</label>
+                <div class="form-group">
+                    <label>Date</label>
                     <input type="date" name="requested_date" class="form-control" required>
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Time</label>
+                <div class="form-group">
+                    <label>Time</label>
                     <input type="time" name="requested_time" class="form-control" required>
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Message (Optional)</label>
+                <div class="form-group">
+                    <label>Message (Optional)</label>
                     <textarea name="message" class="form-control" rows="3" placeholder="Describe your issue..."></textarea>
                 </div>
 
-                <button type="submit" class="btn-primary btn-full">Book Appointment</button>
+                <button type="submit" class="btn-primary" style="width: 100%;">
+                    <i class="fas fa-calendar-check"></i> Book Appointment
+                </button>
             </form>
         </div>
     </div>
@@ -836,48 +1617,48 @@
                 <input type="hidden" name="purchase_crop" value="1">
                 <input type="hidden" name="crop_id" id="purchaseCropId">
                 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666; font-weight: 600;">Crop</label>
-                    <input type="text" id="purchaseCropName" class="form-control" readonly style="background: #f5f5f5; font-weight: 600;">
+                <div class="form-group">
+                    <label style="font-weight: 600;">Crop</label>
+                    <input type="text" id="purchaseCropName" class="form-control" readonly style="background: var(--light-bg); font-weight: 600;">
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Price per Unit</label>
-                    <input type="text" id="purchaseCropPrice" class="form-control" readonly style="background: #f5f5f5;">
+                <div class="form-group">
+                    <label>Price per Unit</label>
+                    <input type="text" id="purchaseCropPrice" class="form-control" readonly style="background: var(--light-bg);">
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Available Quantity</label>
-                    <input type="text" id="purchaseCropAvailable" class="form-control" readonly style="background: #f5f5f5;">
+                <div class="form-group">
+                    <label>Available Quantity</label>
+                    <input type="text" id="purchaseCropAvailable" class="form-control" readonly style="background: var(--light-bg);">
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Quantity to Purchase *</label>
+                <div class="form-group">
+                    <label>Quantity to Purchase <span style="color: red;">*</span></label>
                     <input type="number" name="quantity" id="purchaseCropQuantity" class="form-control" step="0.01" min="0.01" required oninput="calculateCropTotal()">
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666; font-weight: 600;">Total Amount</label>
-                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--sea-green);" id="purchaseCropTotal">Rs. 0.00</div>
+                <div class="form-group" style="padding: 1.25rem; background: var(--light-bg); border-radius: 12px;">
+                    <label style="font-weight: 600;">Total Amount</label>
+                    <div style="font-size: 1.75rem; font-weight: bold; color: var(--primary);" id="purchaseCropTotal">Rs. 0.00</div>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.75rem; color: #666; font-weight: 600;">Payment Method <span style="color: red;">*</span></label>
+                <div class="form-group">
+                    <label style="font-weight: 600;">Payment Method <span style="color: red;">*</span></label>
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <label style="flex: 1; min-width: 200px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--sea-green)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
+                        <label style="flex: 1; min-width: 200px; padding: 1.25rem; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
                             <input type="radio" name="payment_method" value="cod" checked style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <i class="fas fa-money-bill-wave" style="color: var(--sea-green); font-size: 1.2rem;"></i>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <i class="fas fa-money-bill-wave" style="color: var(--primary); font-size: 1.5rem;"></i>
                                 <div>
                                     <div style="font-weight: 600;">Cash on Delivery</div>
                                     <div style="font-size: 0.85rem; color: #666;">Pay when you receive</div>
                                 </div>
                             </div>
                         </label>
-                        <label style="flex: 1; min-width: 200px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--sea-green)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
+                        <label style="flex: 1; min-width: 200px; padding: 1.25rem; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
                             <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <i class="fas fa-mobile-alt" style="color: #5B5FEF; font-size: 1.2rem;"></i>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <i class="fas fa-mobile-alt" style="color: #5B5FEF; font-size: 1.5rem;"></i>
                                 <div>
                                     <div style="font-weight: 600;">eSewa</div>
                                     <div style="font-size: 0.85rem; color: #666;">Pay online instantly</div>
@@ -885,22 +1666,22 @@
                             </div>
                         </label>
                     </div>
-                    <div id="esewa_crop_info" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: #E3F2FD; border-radius: 4px; color: #1565C0; font-size: 0.85rem;">
+                    <div id="esewa_crop_info" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #E3F2FD; border-radius: 8px; color: #1565C0; font-size: 0.9rem;">
                         <i class="fas fa-info-circle"></i> You will be redirected to eSewa payment gateway after order confirmation
                     </div>
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Shipping Address *</label>
+                <div class="form-group">
+                    <label>Shipping Address <span style="color: red;">*</span></label>
                     <textarea name="shipping_address" class="form-control" rows="3" required placeholder="Enter your delivery address..."></textarea>
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Notes (Optional)</label>
+                <div class="form-group">
+                    <label>Notes (Optional)</label>
                     <textarea name="notes" class="form-control" rows="2" placeholder="Any special instructions..."></textarea>
                 </div>
 
-                <button type="submit" class="btn-primary btn-full" style="width: 100%; padding: 0.75rem;">
+                <button type="submit" class="btn-primary" style="width: 100%;">
                     <i class="fas fa-shopping-cart"></i> Place Order
                 </button>
             </form>
@@ -919,48 +1700,48 @@
                 <input type="hidden" name="purchase_tool" value="1">
                 <input type="hidden" name="tool_id" id="purchaseToolId">
                 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666; font-weight: 600;">Tool</label>
-                    <input type="text" id="purchaseToolName" class="form-control" readonly style="background: #f5f5f5; font-weight: 600;">
+                <div class="form-group">
+                    <label style="font-weight: 600;">Tool</label>
+                    <input type="text" id="purchaseToolName" class="form-control" readonly style="background: var(--light-bg); font-weight: 600;">
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Price per Unit</label>
-                    <input type="text" id="purchaseToolPrice" class="form-control" readonly style="background: #f5f5f5;">
+                <div class="form-group">
+                    <label>Price per Unit</label>
+                    <input type="text" id="purchaseToolPrice" class="form-control" readonly style="background: var(--light-bg);">
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Available Stock</label>
-                    <input type="text" id="purchaseToolStock" class="form-control" readonly style="background: #f5f5f5;">
+                <div class="form-group">
+                    <label>Available Stock</label>
+                    <input type="text" id="purchaseToolStock" class="form-control" readonly style="background: var(--light-bg);">
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Quantity to Purchase *</label>
+                <div class="form-group">
+                    <label>Quantity to Purchase <span style="color: red;">*</span></label>
                     <input type="number" name="quantity" id="purchaseToolQuantity" class="form-control" min="1" required oninput="calculateToolTotal()">
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1rem; padding: 1rem; background: #f8f9fa; border-radius: 8px;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666; font-weight: 600;">Total Amount</label>
-                    <div style="font-size: 1.5rem; font-weight: bold; color: var(--sea-green);" id="purchaseToolTotal">Rs. 0.00</div>
+                <div class="form-group" style="padding: 1.25rem; background: var(--light-bg); border-radius: 12px;">
+                    <label style="font-weight: 600;">Total Amount</label>
+                    <div style="font-size: 1.75rem; font-weight: bold; color: var(--primary);" id="purchaseToolTotal">Rs. 0.00</div>
                 </div>
 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.75rem; color: #666; font-weight: 600;">Payment Method <span style="color: red;">*</span></label>
+                <div class="form-group">
+                    <label style="font-weight: 600;">Payment Method <span style="color: red;">*</span></label>
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
-                        <label style="flex: 1; min-width: 200px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--sea-green)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
+                        <label style="flex: 1; min-width: 200px; padding: 1.25rem; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
                             <input type="radio" name="payment_method" value="cod" checked style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <i class="fas fa-money-bill-wave" style="color: var(--sea-green); font-size: 1.2rem;"></i>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <i class="fas fa-money-bill-wave" style="color: var(--primary); font-size: 1.5rem;"></i>
                                 <div>
                                     <div style="font-weight: 600;">Cash on Delivery</div>
                                     <div style="font-size: 0.85rem; color: #666;">Pay when you receive</div>
                                 </div>
                             </div>
                         </label>
-                        <label style="flex: 1; min-width: 200px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--sea-green)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
+                        <label style="flex: 1; min-width: 200px; padding: 1.25rem; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
                             <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
-                            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                                <i class="fas fa-mobile-alt" style="color: #5B5FEF; font-size: 1.2rem;"></i>
+                            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                                <i class="fas fa-mobile-alt" style="color: #5B5FEF; font-size: 1.5rem;"></i>
                                 <div>
                                     <div style="font-weight: 600;">eSewa</div>
                                     <div style="font-size: 0.85rem; color: #666;">Pay online instantly</div>
@@ -968,22 +1749,22 @@
                             </div>
                         </label>
                     </div>
-                    <div id="esewa_tool_info" style="display: none; margin-top: 0.5rem; padding: 0.75rem; background: #E3F2FD; border-radius: 4px; color: #1565C0; font-size: 0.85rem;">
+                    <div id="esewa_tool_info" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #E3F2FD; border-radius: 8px; color: #1565C0; font-size: 0.9rem;">
                         <i class="fas fa-info-circle"></i> You will be redirected to eSewa payment gateway after order confirmation
                     </div>
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Shipping Address *</label>
+                <div class="form-group">
+                    <label>Shipping Address <span style="color: red;">*</span></label>
                     <textarea name="shipping_address" class="form-control" rows="3" required placeholder="Enter your delivery address..."></textarea>
                 </div>
                 
-                <div class="form-group" style="margin-bottom: 1.5rem;">
-                    <label style="display: block; margin-bottom: 0.5rem; color: #666;">Notes (Optional)</label>
+                <div class="form-group">
+                    <label>Notes (Optional)</label>
                     <textarea name="notes" class="form-control" rows="2" placeholder="Any special instructions..."></textarea>
                 </div>
 
-                <button type="submit" class="btn-primary btn-full" style="width: 100%; padding: 0.75rem;">
+                <button type="submit" class="btn-primary" style="width: 100%;">
                     <i class="fas fa-shopping-cart"></i> Place Order
                 </button>
             </form>
@@ -1040,30 +1821,58 @@
 
     <script src="/static/js/main.js"></script>
     <script>
-        function switchTab(tabId, element) {
-            // Hide all tabs
-            document.querySelectorAll('.tab-content').forEach(tab => {
-                tab.classList.remove('active');
+        function switchTab(tabId, evt) {
+            if (evt) {
+                evt.preventDefault();
+            }
+            
+            // Hide all content sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                section.style.display = 'none';
             });
             
-            // Show selected tab
-            document.getElementById(tabId).classList.add('active');
+            // Show selected section
+            const targetSection = document.getElementById(tabId);
+            if (targetSection) {
+                targetSection.style.display = 'block';
+            }
             
-            // Update nav buttons
-            document.querySelectorAll('.tab-nav-btn').forEach(btn => {
-                btn.classList.remove('active');
+            // Update header nav links
+            document.querySelectorAll('.nav-link-item').forEach(link => {
+                link.classList.remove('active');
             });
-            if (element) {
-                element.classList.add('active');
-            } else {
-                // Find button by tabId
-                document.querySelectorAll('.tab-nav-btn').forEach(btn => {
-                    if (btn.getAttribute('onclick') && btn.getAttribute('onclick').includes(tabId)) {
-                        btn.classList.add('active');
-                    }
-                });
+            const headerLink = document.querySelector(`.nav-link-item[data-tab="${tabId}"]`);
+            if (headerLink) {
+                headerLink.classList.add('active');
+            }
+            
+            // Scroll to top of dashboard container
+            const dashboardContainer = document.querySelector('.dashboard-container');
+            if (dashboardContainer) {
+                dashboardContainer.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+            
+            // Update cart display if switching to orders
+            if (tabId === 'orders') {
+                setTimeout(displayCartItems, 100);
             }
         }
+
+        function toggleProfileDropdown() {
+            const dropdown = document.getElementById('profileDropdown');
+            if (dropdown) {
+                dropdown.classList.toggle('show');
+            }
+        }
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', function(event) {
+            const profileMenu = document.querySelector('.profile-menu');
+            const dropdown = document.getElementById('profileDropdown');
+            if (profileMenu && dropdown && !profileMenu.contains(event.target)) {
+                dropdown.classList.remove('show');
+            }
+        });
 
         function openAppointmentModal(expertId, expertName) {
             document.getElementById('apptExpertId').value = expertId;
@@ -1073,6 +1882,165 @@
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('active');
+        }
+
+        function addToCart(type, id, name, price, available, unit) {
+            // Get existing cart from localStorage
+            let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            
+            // Check if item already exists in cart
+            const existingItem = cart.find(item => item.type === type && item.id === id);
+            
+            if (existingItem) {
+                // Update quantity if item exists
+                existingItem.quantity = (existingItem.quantity || 1) + 1;
+                if (existingItem.quantity > available) {
+                    existingItem.quantity = available;
+                    alert('Maximum available quantity reached!');
+                }
+            } else {
+                // Add new item to cart
+                cart.push({
+                    type: type,
+                    id: id,
+                    name: name,
+                    price: price,
+                    available: available,
+                    unit: unit,
+                    quantity: 1
+                });
+            }
+            
+            // Save cart to localStorage
+            localStorage.setItem('cart', JSON.stringify(cart));
+            
+            // Show success message
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message-alert success';
+            messageDiv.style.cssText = 'position: fixed; top: 100px; right: 20px; z-index: 10000; padding: 1rem 1.5rem; background: #D4EDDA; color: #155724; border-left: 4px solid #28A745; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: slideIn 0.3s ease;';
+            messageDiv.innerHTML = '<i class="fas fa-check-circle"></i> Item added to cart successfully!';
+            document.body.appendChild(messageDiv);
+            
+            setTimeout(() => {
+                messageDiv.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => messageDiv.remove(), 300);
+            }, 3000);
+            
+            // Update cart count if badge exists
+            updateCartBadge();
+        }
+
+        function updateCartBadge() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const totalItems = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+            let badge = document.getElementById('cartBadge');
+            if (!badge) {
+                // Create badge if it doesn't exist
+                const cartLink = document.querySelector('.nav-link-item[data-tab="orders"]');
+                if (cartLink) {
+                    badge = document.createElement('span');
+                    badge.id = 'cartBadge';
+                    badge.style.cssText = 'position: absolute; top: -5px; right: -5px; background: var(--accent); color: white; border-radius: 50%; width: 20px; height: 20px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700;';
+                    cartLink.style.position = 'relative';
+                    cartLink.appendChild(badge);
+                }
+            }
+            if (badge) {
+                badge.textContent = totalItems;
+                badge.style.display = totalItems > 0 ? 'flex' : 'none';
+            }
+            // Update cart display
+            displayCartItems();
+        }
+
+        function displayCartItems() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            const cartItemsList = document.getElementById('cartItemsList');
+            const emptyCart = document.getElementById('emptyCart');
+            
+            if (!cartItemsList) return;
+            
+            if (cart.length === 0) {
+                cartItemsList.style.display = 'none';
+                if (emptyCart) emptyCart.style.display = 'block';
+                return;
+            }
+            
+            if (emptyCart) emptyCart.style.display = 'none';
+            cartItemsList.style.display = 'block';
+            
+            cartItemsList.innerHTML = cart.map((item, index) => {
+                const total = item.price * (item.quantity || 1);
+                return `
+                    <div class="order-item" style="background: white; border-radius: 16px; padding: 1.5rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 1rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                        <div class="order-info" style="flex: 1; min-width: 250px;">
+                            <h4 style="margin: 0 0 0.5rem 0; color: #333; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-${item.type === 'crop' ? 'seedling' : 'tools'}"></i> ${item.name}
+                            </h4>
+                            <p style="margin: 0.25rem 0; color: #666; font-size: 0.9rem;">
+                                <strong>Price:</strong> Rs. ${item.price} ${item.type === 'crop' ? 'per ' + item.unit : ''}
+                            </p>
+                            <p style="margin: 0.25rem 0; color: #666; font-size: 0.9rem;">
+                                <strong>Quantity:</strong> ${item.quantity || 1} ${item.unit || 'units'}
+                            </p>
+                            <p style="margin: 0.5rem 0 0 0; color: var(--primary); font-size: 1.1rem; font-weight: 700;">
+                                <strong>Total:</strong> Rs. ${total.toFixed(2)}
+                            </p>
+                        </div>
+                        <div style="display: flex; gap: 0.75rem; align-items: center;">
+                            <button onclick="updateCartQuantity(${index}, ${item.quantity - 1})" style="width: 35px; height: 35px; border: 2px solid var(--primary); background: white; color: var(--primary); border-radius: 8px; cursor: pointer; font-weight: 700; display: flex; align-items: center; justify-content: center;">-</button>
+                            <span style="min-width: 40px; text-align: center; font-weight: 600;">${item.quantity || 1}</span>
+                            <button onclick="updateCartQuantity(${index}, ${item.quantity + 1})" style="width: 35px; height: 35px; border: 2px solid var(--primary); background: white; color: var(--primary); border-radius: 8px; cursor: pointer; font-weight: 700; display: flex; align-items: center; justify-content: center;">+</button>
+                            <button onclick="removeFromCart(${index})" style="padding: 0.75rem 1.25rem; background: #dc3545; color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; margin-left: 0.5rem;">
+                                <i class="fas fa-trash"></i> Remove
+                            </button>
+                            <button onclick="buyCartItem(${index})" style="padding: 0.75rem 1.25rem; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+                                <i class="fas fa-shopping-bag"></i> Buy Now
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function updateCartQuantity(index, newQuantity) {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            if (index >= 0 && index < cart.length) {
+                if (newQuantity <= 0) {
+                    removeFromCart(index);
+                    return;
+                }
+                if (newQuantity > cart[index].available) {
+                    alert('Maximum available quantity reached!');
+                    return;
+                }
+                cart[index].quantity = newQuantity;
+                localStorage.setItem('cart', JSON.stringify(cart));
+                displayCartItems();
+                updateCartBadge();
+            }
+        }
+
+        function removeFromCart(index) {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            if (index >= 0 && index < cart.length) {
+                cart.splice(index, 1);
+                localStorage.setItem('cart', JSON.stringify(cart));
+                displayCartItems();
+                updateCartBadge();
+            }
+        }
+
+        function buyCartItem(index) {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            if (index >= 0 && index < cart.length) {
+                const item = cart[index];
+                if (item.type === 'crop') {
+                    openPurchaseCropModal(item.id, item.name, item.price, item.available, item.unit);
+                } else {
+                    openPurchaseToolModal(item.id, item.name, item.price, item.available);
+                }
+            }
         }
 
         function openPurchaseCropModal(cropId, cropName, price, available, unit) {
@@ -1131,6 +2099,97 @@
                 event.target.classList.remove('active');
             }
         }
+
+        function changeLanguage(lang) {
+            localStorage.setItem('language', lang);
+            const langSelect = document.getElementById('languageSelect');
+            if (langSelect) {
+                langSelect.value = lang;
+            }
+            // Show success message
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message-alert success';
+            messageDiv.innerHTML = '<i class="fas fa-check-circle"></i> Language preference saved!';
+            const settingsTab = document.getElementById('settings');
+            if (settingsTab) {
+                settingsTab.insertBefore(messageDiv, settingsTab.firstChild);
+                setTimeout(() => messageDiv.remove(), 3000);
+            }
+        }
+
+        function toggleDarkMode(checkbox) {
+            if (checkbox.checked) {
+                document.body.classList.add('dark-mode');
+                localStorage.setItem('darkMode', 'true');
+            } else {
+                document.body.classList.remove('dark-mode');
+                localStorage.setItem('darkMode', 'false');
+            }
+        }
+
+        // Initialize - set active nav link and show default section
+        document.addEventListener('DOMContentLoaded', function() {
+            // Set crops as active by default and show crops section
+            const cropsLink = document.querySelector('.nav-link-item[data-tab="crops"]');
+            if (cropsLink) {
+                cropsLink.classList.add('active');
+            }
+            const cropsSection = document.getElementById('crops');
+            if (cropsSection) {
+                cropsSection.style.display = 'block';
+            }
+            
+            // Hide all other sections
+            document.querySelectorAll('.content-section').forEach(section => {
+                if (section.id !== 'crops') {
+                    section.style.display = 'none';
+                }
+            });
+            
+            // Load saved language preference
+            const savedLang = localStorage.getItem('language') || 'en';
+            const langSelect = document.getElementById('languageSelect');
+            if (langSelect) {
+                langSelect.value = savedLang;
+            }
+            
+            // Load dark mode preference
+            const darkMode = localStorage.getItem('darkMode') === 'true';
+            const darkModeToggle = document.getElementById('darkModeToggle');
+            if (darkModeToggle) {
+                darkModeToggle.checked = darkMode;
+                if (darkMode) {
+                    document.body.classList.add('dark-mode');
+                }
+            }
+            
+            // Update cart badge on load
+            updateCartBadge();
+            
+            // Display cart items if orders section is visible
+            const ordersSection = document.getElementById('orders');
+            if (ordersSection && ordersSection.style.display !== 'none') {
+                displayCartItems();
+            }
+        });
+
+        function previewImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const preview = document.getElementById('profileImagePreview');
+                    if (preview) {
+                        if (preview.tagName === 'IMG') {
+                            preview.src = e.target.result;
+                        } else {
+                            preview.innerHTML = `<img src="${e.target.result}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;">`;
+                        }
+                    }
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+        
     </script>
 </body>
 </html>

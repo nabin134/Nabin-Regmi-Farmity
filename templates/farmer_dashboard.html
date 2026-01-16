@@ -228,10 +228,15 @@
 
         /* Summary Cards */
         .stats-grid {
-            display: grid;
+            display: grid !important;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
+            visibility: visible !important;
+            opacity: 1 !important;
+            width: 100%;
+            position: relative;
+            z-index: 1;
         }
 
         .stat-card {
@@ -239,11 +244,15 @@
             padding: 1.5rem;
             border-radius: 16px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            display: flex;
+            display: flex !important;
             align-items: center;
             justify-content: space-between;
             transition: transform 0.3s, box-shadow 0.3s;
             border-left: 4px solid var(--primary);
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative;
+            z-index: 1;
         }
 
         .stat-card:hover {
@@ -987,10 +996,33 @@
                 max-height: 200px;
             }
 
-            .form-row {
-                grid-template-columns: 1fr;
-            }
+        .form-row {
+            grid-template-columns: 1fr;
         }
+    }
+
+    /* Dashboard Section */
+    .dashboard-section {
+        display: none;
+        padding: 2rem;
+    }
+
+    .dashboard-section:first-of-type {
+        display: block !important;
+    }
+    
+    #dashboard-section {
+        display: block !important;
+        padding: 2rem;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
+    
+    #dashboard-section .stats-grid {
+        display: grid !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+    }
 
         /* Messages */
         .messages {
@@ -1089,39 +1121,39 @@
             <div class="sidebar-title">Farmity</div>
         </div>
         <nav class="sidebar-nav">
-            <a href="#dashboard" class="nav-item active" onclick="showSection('dashboard'); return false;">
+            <a href="#dashboard" class="nav-item active" onclick="return showSection('dashboard', event);">
                 <i class="fas fa-home"></i>
                 <span data-translate="nav.dashboard">Dashboard</span>
             </a>
-            <a href="#crops" class="nav-item" onclick="showSection('crops'); return false;">
+            <a href="#crops" class="nav-item" onclick="return showSection('crops', event);">
                 <i class="fas fa-seedling"></i>
                 <span data-translate="nav.crops">My Crops</span>
             </a>
-            <a href="#tools" class="nav-item" onclick="showSection('tools'); return false;">
+            <a href="#tools" class="nav-item" onclick="return showSection('tools', event);">
                 <i class="fas fa-tools"></i>
                 <span data-translate="nav.tools">Buy Tools</span>
             </a>
-            <a href="#experts" class="nav-item" onclick="showSection('experts'); return false;">
+            <a href="#experts" class="nav-item" onclick="return showSection('experts', event);">
                 <i class="fas fa-user-graduate"></i>
                 <span data-translate="nav.experts">Experts</span>
             </a>
-            <a href="#chat" class="nav-item" onclick="showSection('chat'); return false;">
+            <a href="#chat" class="nav-item" onclick="return showSection('chat', event);">
                 <i class="fas fa-comments"></i>
                 <span data-translate="nav.chat">Chat</span>
             </a>
-            <a href="#education" class="nav-item" onclick="showSection('education'); return false;">
+            <a href="#education" class="nav-item" onclick="return showSection('education', event);">
                 <i class="fas fa-book"></i>
                 <span data-translate="nav.education">Education</span>
             </a>
-            <a href="#orders" class="nav-item" onclick="showSection('orders'); return false;">
+            <a href="#orders" class="nav-item" onclick="return showSection('orders', event);">
                 <i class="fas fa-shopping-cart"></i>
                 <span data-translate="nav.orders">Orders</span>
             </a>
-            <a href="#profile" class="nav-item" onclick="showSection('profile'); return false;">
+            <a href="#profile" class="nav-item" onclick="return showSection('profile', event);">
                 <i class="fas fa-user"></i>
                 <span data-translate="nav.profile">Profile</span>
             </a>
-            <a href="#settings" class="nav-item" onclick="showSection('settings'); return false;">
+            <a href="#settings" class="nav-item" onclick="return showSection('settings', event);">
                 <i class="fas fa-cog"></i>
                 <span data-translate="nav.settings">Settings</span>
             </a>
@@ -1149,7 +1181,11 @@
                 </select>
                 <div class="user-profile">
                     <div class="user-avatar">
+                        {% if profile.photo %}
+                        <img src="{{ profile.photo.url }}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+                        {% else %}
                         {% if profile.name %}{{ profile.name|first|upper }}{% else %}F{% endif %}
+                        {% endif %}
                     </div>
                     <div>
                         <div style="font-weight: 600;">{{ profile.name|default:user.email }}</div>
@@ -1202,9 +1238,9 @@
             {% endif %}
 
             <!-- Dashboard Section -->
-            <div id="dashboard-section" class="dashboard-section">
+            <div id="dashboard-section" class="dashboard-section" style="display: block;">
                 <!-- Summary Cards -->
-                <div class="stats-grid">
+                <div class="stats-grid" style="display: grid !important; visibility: visible !important;">
                     <div class="stat-card">
                         <div class="stat-content">
                             <h4 data-translate="dashboard.totalCrops">Total Crops Added</h4>
@@ -1220,7 +1256,7 @@
                             <div class="stat-value">{{ total_crops_sold|floatformat:2 }}</div>
                         </div>
                         <div class="stat-icon">
-                            <i class="fas fa-chart-line"></i>
+                            <i class="fas fa-shopping-bag"></i>
                         </div>
                     </div>
                     <div class="stat-card earnings">
@@ -1239,6 +1275,92 @@
                         </div>
                         <div class="stat-icon">
                             <i class="fas fa-list"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: #9C27B0;">
+                        <div class="stat-content">
+                            <h4>Total Products</h4>
+                            <div class="stat-value" style="color: #9C27B0;">{{ products_count }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-box"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: #2196F3;">
+                        <div class="stat-content">
+                            <h4>Appointments</h4>
+                            <div class="stat-value" style="color: #2196F3;">{{ appointments|length }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-check"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: #FF9800;">
+                        <div class="stat-content">
+                            <h4>Active Chats</h4>
+                            <div class="stat-value" style="color: #FF9800;">{{ chat_threads|length }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-comments"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: #E91E63;">
+                        <div class="stat-content">
+                            <h4>Purchase History</h4>
+                            <div class="stat-value" style="color: #E91E63;">{{ purchase_history|length }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-history"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: #00BCD4;">
+                        <div class="stat-content">
+                            <h4>Available Experts</h4>
+                            <div class="stat-value" style="color: #00BCD4;">{{ experts|length }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-user-graduate"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: #9E9E9E;">
+                        <div class="stat-content">
+                            <h4>Educational Content</h4>
+                            <div class="stat-value" style="color: #9E9E9E;">{{ tips|length }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-book"></i>
+                        </div>
+                    </div>
+                </div>
+                
+                {% if features_restricted %}
+                <div style="background: #FFF3CD; border-left: 4px solid var(--warning); padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+                    <p style="margin: 0; color: #856404; font-weight: 500;">
+                        <i class="fas fa-info-circle"></i> Some features are restricted until KYC verification is approved. Complete your KYC to unlock all features.
+                    </p>
+                </div>
+                {% endif %}
+
+                <!-- Charts -->
+                <div class="charts-grid">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-chart-line"></i> Sales Trend</h2>
+                        </div>
+                        <div class="section-body">
+                            <div class="chart-container">
+                                <canvas id="salesChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="content-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-chart-bar"></i> Earnings Overview</h2>
+                        </div>
+                        <div class="section-body">
+                            <div class="chart-container">
+                                <canvas id="earningsChart"></canvas>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -1992,16 +2114,60 @@
     <script src="/static/js/main.js"></script>
     <script>
         // Navigation
-        function showSection(sectionId) {
-            document.querySelectorAll('.dashboard-section').forEach(section => {
-                section.style.display = 'none';
-            });
-            document.getElementById(sectionId + '-section').style.display = 'block';
+        function showSection(sectionId, evt) {
+            // Prevent default if event is provided
+            if (evt) {
+                evt.preventDefault();
+            }
             
+            // Hide all sections with !important override
+            document.querySelectorAll('.dashboard-section').forEach(section => {
+                section.style.cssText = 'display: none !important;';
+            });
+            
+            // Show selected section with !important override
+            const targetSection = document.getElementById(sectionId + '-section');
+            if (targetSection) {
+                targetSection.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
+                
+                // Special handling for dashboard section to ensure stats-grid is visible
+                if (sectionId === 'dashboard') {
+                    const statsGrid = targetSection.querySelector('.stats-grid');
+                    if (statsGrid) {
+                        statsGrid.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important;';
+                    }
+                }
+            } else {
+                console.error('Section not found:', sectionId + '-section');
+            }
+            
+            // Update active nav item
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.classList.remove('active');
             });
-            event.target.closest('.nav-item').classList.add('active');
+            
+            // Find and activate the clicked nav item
+            let clickedItem = null;
+            if (evt && evt.target) {
+                clickedItem = evt.target.closest('.nav-item');
+            }
+            
+            if (!clickedItem) {
+                // Fallback: find nav item by href
+                clickedItem = document.querySelector(`.nav-item[href="#${sectionId}"]`);
+            }
+            
+            if (clickedItem) {
+                clickedItem.classList.add('active');
+            }
+            
+            // Scroll to top of main content
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.scrollTop = 0;
+            }
+            
+            return false;
         }
 
         function toggleSidebar() {
@@ -2074,8 +2240,27 @@
             }
         }
 
-        // Initialize payment method on page load
+        // Initialize dashboard visibility
         document.addEventListener('DOMContentLoaded', function() {
+            // Ensure dashboard is visible first with all content
+            const dashboardSection = document.getElementById('dashboard-section');
+            if (dashboardSection) {
+                dashboardSection.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
+                
+                // Ensure stats-grid is visible
+                const statsGrid = dashboardSection.querySelector('.stats-grid');
+                if (statsGrid) {
+                    statsGrid.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important;';
+                }
+                
+                // Ensure all stat-cards are visible
+                const statCards = dashboardSection.querySelectorAll('.stat-card');
+                statCards.forEach(card => {
+                    card.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important;';
+                });
+            }
+            
+            // Initialize payment method on page load
             const purchaseQuantity = document.getElementById('purchase_quantity');
             if (purchaseQuantity) {
                 purchaseQuantity.addEventListener('input', updatePurchaseTotal);

@@ -206,6 +206,7 @@ class FarmingTip(models.Model):
     expert = models.ForeignKey(ExpertProfile, on_delete=models.CASCADE, related_name='tips')
     title = models.CharField(max_length=255)
     content = models.TextField()
+    image = models.ImageField(upload_to='expert_content_images/', blank=True, null=True)
     is_published = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

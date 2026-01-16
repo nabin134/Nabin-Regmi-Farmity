@@ -1230,12 +1230,15 @@ def expert_dashboard(request):
         is_published = request.POST.get('is_published') == 'on'
         
         if title and content:
-            FarmingTip.objects.create(
+            tip = FarmingTip.objects.create(
                 expert=profile,
                 title=title,
                 content=content,
                 is_published=is_published
             )
+            if request.FILES.get('image'):
+                tip.image = request.FILES.get('image')
+                tip.save()
             messages.success(request, 'Content uploaded successfully!')
         return redirect('expert_dashboard')
     
@@ -1251,6 +1254,8 @@ def expert_dashboard(request):
             tip.title = request.POST.get('title')
             tip.content = request.POST.get('content')
             tip.is_published = request.POST.get('is_published') == 'on'
+            if request.FILES.get('image'):
+                tip.image = request.FILES.get('image')
             tip.save()
             messages.success(request, 'Content updated successfully!')
         except FarmingTip.DoesNotExist:
@@ -1298,8 +1303,11 @@ def expert_dashboard(request):
     # Get appointments
     appointments = ExpertAppointment.objects.filter(expert=profile).select_related('requester').order_by('-created_at')
     
-    # Get chat threads
+    # Get chat threads (for display - limited)
     chat_threads = ExpertChatThread.objects.filter(expert=profile).select_related('created_by').order_by('-created_at')[:10]
+    
+    # Get all chat threads for statistics (not limited)
+    all_chat_threads = ExpertChatThread.objects.filter(expert=profile).select_related('created_by')
     
     # Calculate appointment statistics
     total_appointments = appointments.count()
@@ -1316,6 +1324,80 @@ def expert_dashboard(request):
         thread__expert=profile,
         created_at__gte=timezone.now() - timedelta(days=7)
     ).count()
+    
+    # Calculate farmers assisted (unique farmers who have appointments or chats)
+    farmers_from_appointments = appointments.filter(requester__role='farmer').values_list('requester', flat=True).distinct()
+    farmers_from_chats = all_chat_threads.filter(created_by__role='farmer').values_list('created_by', flat=True).distinct()
+    total_farmers_assisted = len(set(list(farmers_from_appointments) + list(farmers_from_chats)))
+    
+    # Calculate users assisted (unique buyers who have appointments or chats)
+    users_from_appointments = appointments.filter(requester__role='buyer').values_list('requester', flat=True).distinct()
+    users_from_chats = all_chat_threads.filter(created_by__role='buyer').values_list('created_by', flat=True).distinct()
+    total_users_assisted = len(set(list(users_from_appointments) + list(users_from_chats)))
+    
+    # Total people assisted
+    total_people_assisted = total_farmers_assisted + total_users_assisted
+    
+    # Content views/engagement (can be enhanced later with actual view tracking)
+    total_content_views = 0  # Placeholder for future implementation
+    
+    # Get chart data for appointments (last 6 months)
+    six_months_ago = timezone.now() - timedelta(days=180)
+    
+    appointments_data_raw = appointments.filter(
+        created_at__gte=six_months_ago
+    ).annotate(
+        month=TruncMonth('created_at')
+    ).values('month').annotate(
+        total_appointments=Count('id'),
+        accepted_count=Count('id', filter=Q(status=ExpertAppointment.STATUS_ACCEPTED))
+    ).order_by('month')
+    
+    # Convert to list for template
+    appointments_data = []
+    for item in appointments_data_raw:
+        appointments_data.append({
+            'month': item['month'].strftime('%Y-%m') if item['month'] else 'N/A',
+            'total_appointments': item['total_appointments'] or 0,
+            'accepted_count': item['accepted_count'] or 0
+        })
+    
+    # If no data, create empty structure
+    if not appointments_data:
+        current_month = datetime.now().strftime('%Y-%m')
+        appointments_data = [
+            {'month': current_month, 'total_appointments': 0, 'accepted_count': 0},
+        ]
+    
+    # Get chart data for content (last 6 months)
+    content_data_raw = tips.filter(
+        created_at__gte=six_months_ago
+    ).annotate(
+        month=TruncMonth('created_at')
+    ).values('month').annotate(
+        total_content=Count('id'),
+        published_count=Count('id', filter=Q(is_published=True))
+    ).order_by('month')
+    
+    # Convert to list for template
+    content_data = []
+    for item in content_data_raw:
+        content_data.append({
+            'month': item['month'].strftime('%Y-%m') if item['month'] else 'N/A',
+            'total_content': item['total_content'] or 0,
+            'published_count': item['published_count'] or 0
+        })
+    
+    # If no data, create empty structure
+    if not content_data:
+        current_month = datetime.now().strftime('%Y-%m')
+        content_data = [
+            {'month': current_month, 'total_content': 0, 'published_count': 0},
+        ]
+    
+    # Serialize for JavaScript
+    appointments_data_json = json.dumps(appointments_data)
+    content_data_json = json.dumps(content_data)
     
     # Determine if features should be restricted
     features_restricted = (kyc_status != 'approved')
@@ -1337,6 +1419,12 @@ def expert_dashboard(request):
         'rejected_appointments': rejected_appointments,
         'chats_count': chat_threads.count(),
         'recent_messages': recent_messages,
+        'total_farmers_assisted': total_farmers_assisted,
+        'total_users_assisted': total_users_assisted,
+        'total_people_assisted': total_people_assisted,
+        'total_content_views': total_content_views,
+        'appointments_data': appointments_data_json,
+        'content_data': content_data_json,
     }
     return render(request, 'expert_dashboard.html', context)
 

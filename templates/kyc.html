@@ -7,135 +7,207 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
         body {
-            display: flex;
-            flex-direction: column;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #358D58 0%, #A8AD3B 100%);
             min-height: 100vh;
-            background: linear-gradient(135deg, #f5f7fa 0%, #e9ecef 100%);
+            padding: 2rem 1rem;
         }
-        .main-content {
-            flex: 1;
-            padding: 2rem;
-            max-width: 900px;
+
+        .kyc-container {
+            max-width: 1000px;
             margin: 0 auto;
-            width: 100%;
-        }
-        .kyc-card {
             background: white;
-            border-radius: 20px;
-            padding: 3rem;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.1);
-            margin-bottom: 2rem;
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
         }
+
         .kyc-header {
+            background: linear-gradient(135deg, #358D58 0%, #A8AD3B 100%);
+            color: white;
+            padding: 3rem 2rem;
             text-align: center;
-            margin-bottom: 3rem;
-            padding-bottom: 2rem;
-            border-bottom: 3px solid var(--sea-green);
         }
+
         .kyc-header h1 {
             font-size: 2.5rem;
             font-weight: 700;
-            color: #1a1a1a;
-            margin: 0 0 1rem 0;
+            margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 1rem;
         }
-        .kyc-header h1 i {
-            color: var(--sea-green);
-        }
+
         .kyc-header p {
             font-size: 1.1rem;
-            color: #666;
-            line-height: 1.6;
-            margin: 0;
+            opacity: 0.95;
         }
-        .status-section {
-            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-            border-radius: 16px;
-            padding: 2rem;
-            margin-bottom: 3rem;
-            border-left: 5px solid var(--sea-green);
+
+        .status-banner {
+            background: #E9EBF1;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #dee2e6;
         }
-        .status-header {
+
+        .status-content {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            margin-bottom: 1rem;
+            flex-wrap: wrap;
+            gap: 1rem;
         }
-        .status-title {
-            font-size: 1.3rem;
-            font-weight: 700;
-            color: #1a1a1a;
+
+        .status-info {
             display: flex;
             align-items: center;
-            gap: 0.75rem;
+            gap: 1rem;
         }
+
         .status-badge {
+            padding: 0.5rem 1.25rem;
+            border-radius: 20px;
+            font-weight: 600;
+            font-size: 0.9rem;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            padding: 0.75rem 1.5rem;
-            border-radius: 25px;
-            font-weight: 600;
-            font-size: 0.95rem;
         }
+
         .status-pending {
-            background: #FFF3CD;
+            background: #fff3cd;
             color: #856404;
-            border: 2px solid #FFE69C;
         }
+
         .status-approved {
-            background: #D4EDDA;
+            background: #d4edda;
             color: #155724;
-            border: 2px solid #C3E6CB;
         }
+
         .status-rejected {
-            background: #F8D7DA;
-            color: #721C24;
-            border: 2px solid #F5C6CB;
+            background: #f8d7da;
+            color: #721c24;
         }
-        .status-info {
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 2px solid #dee2e6;
+
+        .wizard-container {
+            padding: 3rem 2rem;
         }
-        .status-info p {
-            margin: 0.5rem 0;
-            color: #495057;
-            font-size: 0.95rem;
+
+        .wizard-steps {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 3rem;
+            position: relative;
         }
-        .status-info strong {
-            color: #1a1a1a;
+
+        .wizard-steps::before {
+            content: '';
+            position: absolute;
+            top: 25px;
+            left: 0;
+            right: 0;
+            height: 3px;
+            background: #E9EBF1;
+            z-index: 0;
         }
-        .form-section {
-            margin-bottom: 2.5rem;
+
+        .wizard-step {
+            flex: 1;
+            text-align: center;
+            position: relative;
+            z-index: 1;
         }
-        .form-section-title {
-            font-size: 1.5rem;
+
+        .step-circle {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            background: white;
+            border: 3px solid #E9EBF1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 0.75rem;
             font-weight: 700;
+            font-size: 1.2rem;
+            color: #6c757d;
+            transition: all 0.3s;
+        }
+
+        .wizard-step.active .step-circle {
+            background: linear-gradient(135deg, #358D58 0%, #A8AD3B 100%);
+            border-color: #358D58;
+            color: white;
+            transform: scale(1.1);
+        }
+
+        .wizard-step.completed .step-circle {
+            background: #28a745;
+            border-color: #28a745;
+            color: white;
+        }
+
+        .wizard-step.completed .step-circle::after {
+            content: '✓';
+        }
+
+        .step-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #6c757d;
+        }
+
+        .wizard-step.active .step-label {
+            color: #358D58;
+        }
+
+        .wizard-content {
+            min-height: 400px;
+        }
+
+        .wizard-panel {
+            display: none;
+            animation: fadeIn 0.3s;
+        }
+
+        .wizard-panel.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .panel-header {
+            margin-bottom: 2rem;
+        }
+
+        .panel-header h2 {
+            font-size: 1.8rem;
             color: #1a1a1a;
-            margin-bottom: 1.5rem;
-            padding-bottom: 0.75rem;
-            border-bottom: 2px solid #e9ecef;
+            margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
             gap: 0.75rem;
         }
-        .form-section-title i {
-            color: var(--sea-green);
+
+        .panel-header p {
+            color: #6c757d;
+            font-size: 1rem;
         }
-        .form-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-            gap: 1.5rem;
-            margin-bottom: 1.5rem;
-        }
+
         .form-group {
-            margin-bottom: 1.5rem;
+            margin-bottom: 1.75rem;
         }
+
         .form-group label {
             display: block;
             margin-bottom: 0.75rem;
@@ -143,18 +215,12 @@
             font-weight: 600;
             font-size: 1rem;
         }
+
         .form-group label .required {
-            color: #DC3545;
+            color: #dc3545;
             margin-left: 0.25rem;
         }
-        .form-group .help-text {
-            font-size: 0.85rem;
-            color: #6c757d;
-            margin-top: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
+
         .form-control {
             width: 100%;
             padding: 1rem 1.25rem;
@@ -162,60 +228,36 @@
             border-radius: 12px;
             font-size: 1rem;
             transition: all 0.3s;
-            background: white;
-            box-sizing: border-box;
             font-family: inherit;
         }
+
         .form-control:focus {
             outline: none;
-            border-color: var(--sea-green);
+            border-color: #358D58;
             box-shadow: 0 0 0 4px rgba(53, 141, 88, 0.1);
-            background: #fafafa;
         }
-        .form-control:read-only {
-            background: #f8f9fa;
-            cursor: not-allowed;
-        }
-        textarea.form-control {
-            resize: vertical;
-            min-height: 120px;
-        }
-        .file-upload-area {
+
+        .file-upload-wrapper {
             border: 3px dashed #dee2e6;
             border-radius: 16px;
-            padding: 3rem 2rem;
+            padding: 2.5rem;
             text-align: center;
-            background: #f8f9fa;
+            background: #E9EBF1;
             cursor: pointer;
             transition: all 0.3s;
             position: relative;
         }
-        .file-upload-area:hover {
-            border-color: var(--sea-green);
-            background: #f0f0f0;
+
+        .file-upload-wrapper:hover {
+            border-color: #358D58;
+            background: #f0f7f2;
         }
-        .file-upload-area.drag-over {
-            border-color: var(--sea-green);
-            background: #e8f5e9;
+
+        .file-upload-wrapper.drag-over {
+            border-color: #358D58;
+            background: #e8f5eb;
         }
-        .file-upload-icon {
-            font-size: 3.5rem;
-            color: #adb5bd;
-            margin-bottom: 1rem;
-        }
-        .file-upload-area:hover .file-upload-icon {
-            color: var(--sea-green);
-        }
-        .file-upload-text {
-            font-size: 1.1rem;
-            font-weight: 600;
-            color: #495057;
-            margin-bottom: 0.5rem;
-        }
-        .file-upload-hint {
-            font-size: 0.9rem;
-            color: #6c757d;
-        }
+
         .file-input {
             position: absolute;
             opacity: 0;
@@ -225,6 +267,29 @@
             left: 0;
             cursor: pointer;
         }
+
+        .upload-icon {
+            font-size: 3rem;
+            color: #adb5bd;
+            margin-bottom: 1rem;
+        }
+
+        .file-upload-wrapper:hover .upload-icon {
+            color: #358D58;
+        }
+
+        .upload-text {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+
+        .upload-hint {
+            font-size: 0.9rem;
+            color: #6c757d;
+        }
+
         .file-preview {
             margin-top: 1rem;
             padding: 1rem;
@@ -232,427 +297,598 @@
             border-radius: 12px;
             display: none;
         }
+
         .file-preview.active {
             display: block;
         }
-        .file-preview-item {
+
+        .preview-item {
             display: flex;
             align-items: center;
             gap: 1rem;
             padding: 0.75rem;
             background: white;
             border-radius: 8px;
-            margin-bottom: 0.5rem;
         }
-        .file-preview-item:last-child {
-            margin-bottom: 0;
-        }
-        .file-preview-icon {
+
+        .preview-icon {
             font-size: 1.5rem;
-            color: var(--sea-green);
+            color: #28a745;
         }
-        .file-preview-info {
+
+        .preview-info {
             flex: 1;
         }
-        .file-preview-name {
+
+        .preview-name {
             font-weight: 600;
             color: #1a1a1a;
         }
-        .file-preview-size {
+
+        .preview-size {
             font-size: 0.85rem;
             color: #6c757d;
         }
-        .current-file-link {
-            margin-top: 0.75rem;
+
+        .current-file {
+            margin-top: 1rem;
             display: inline-flex;
             align-items: center;
             gap: 0.5rem;
-            color: var(--sea-green);
+            color: #358D58;
             text-decoration: none;
             font-weight: 600;
             font-size: 0.95rem;
         }
-        .current-file-link:hover {
+
+        .current-file:hover {
             text-decoration: underline;
         }
-        .btn-submit {
-            width: 100%;
-            padding: 1.25rem 2rem;
-            background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
-            color: white;
-            border: none;
+
+        .info-card {
+            background: #E9EBF1;
+            border-left: 4px solid #358D58;
             border-radius: 12px;
-            font-size: 1.1rem;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.75rem;
-            box-shadow: 0 4px 16px rgba(53, 141, 88, 0.3);
-        }
-        .btn-submit:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 24px rgba(53, 141, 88, 0.4);
-        }
-        .btn-submit:active {
-            transform: translateY(0);
-        }
-        .info-box {
-            background: #E3F2FD;
-            border-left: 4px solid #2196F3;
-            border-radius: 8px;
-            padding: 1.25rem;
+            padding: 1.5rem;
             margin-bottom: 2rem;
         }
-        .info-box-title {
+
+        .info-card-title {
             font-weight: 600;
-            color: #1565C0;
-            margin-bottom: 0.5rem;
+            color: #358D58;
+            margin-bottom: 0.75rem;
             display: flex;
             align-items: center;
             gap: 0.5rem;
         }
-        .info-box ul {
-            margin: 0.5rem 0 0 0;
+
+        .info-card ul {
+            margin: 0;
             padding-left: 1.5rem;
             color: #424242;
         }
-        .info-box li {
+
+        .info-card li {
             margin: 0.5rem 0;
         }
+
+        .wizard-actions {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 3rem;
+            padding-top: 2rem;
+            border-top: 2px solid #E9EBF1;
+        }
+
+        .btn {
+            padding: 0.875rem 2.25rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-height: 48px;
+            min-width: 140px;
+            justify-content: center;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #358D58 0%, #A8AD3B 100%);
+            color: white;
+            box-shadow: 0 4px 12px rgba(53, 141, 88, 0.3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(53, 141, 88, 0.4);
+            background: linear-gradient(135deg, #2d7a4a 0%, #969b35 100%);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #A04A24;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #8a3f1f;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(160, 74, 36, 0.3);
+        }
+
+        .btn-secondary:active {
+            transform: translateY(0);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
         @media (max-width: 768px) {
-            .main-content {
+            body {
                 padding: 1rem;
             }
-            .kyc-card {
+
+            .kyc-header {
                 padding: 2rem 1.5rem;
             }
+
             .kyc-header h1 {
                 font-size: 2rem;
             }
+
+            .wizard-container {
+                padding: 2rem 1.5rem;
+            }
+
+            .wizard-steps {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .wizard-steps::before {
+                display: none;
+            }
+
+            .wizard-actions {
+                flex-direction: column;
+                gap: 1rem;
+            }
+
+            .btn {
+                width: 100%;
+                justify-content: center;
+                min-width: 100%;
+            }
+
             .form-row {
                 grid-template-columns: 1fr;
-            }
-            .status-header {
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 1rem;
             }
         }
     </style>
 </head>
 <body>
-    <header class="main-header">
-        <div class="header-container">
-            <div class="logo">
-                <a href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
-                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
-                        <span class="logo-icon">🌾</span>
-                        <span class="logo-text">Farmity</span>
-                    </span>
-                </a>
-            </div>
-            <nav class="main-nav">
-                {% if request.user.role == 'farmer' %}
-                <a href="{% url 'farmer_dashboard' %}">Dashboard</a>
-                {% elif request.user.role == 'buyer' %}
-                <a href="{% url 'user_dashboard' %}">Dashboard</a>
-                {% else %}
-                <a href="{% url 'dashboard' %}">Dashboard</a>
-                {% endif %}
-                <a href="{% url 'profile' %}">Profile</a>
-                <a href="{% url 'settings' %}">Settings</a>
-            </nav>
-            <div class="header-actions" id="headerActions">
-                <div id="authButtons" class="auth-buttons"></div>
-            </div>
+    <div class="kyc-container">
+        <div class="kyc-header">
+            <h1>
+                <i class="fas fa-shield-alt"></i>
+                KYC Verification
+            </h1>
+            <p>Complete your verification to unlock all platform features</p>
         </div>
-    </header>
 
-    <main class="main-content">
-        <div class="kyc-card">
-            <div class="kyc-header">
-                <h1>
-                    <i class="fas fa-file-contract"></i>
-                    KYC Verification
-                </h1>
-                <p>Verify your identity as a farmer to access all platform features and build trust with buyers</p>
-            </div>
-
-            {% if kyc %}
-            <div class="status-section">
-                <div class="status-header">
-                    <div class="status-title">
-                        <i class="fas fa-info-circle"></i>
-                        Current Status
-                    </div>
-                    <span class="status-badge status-{{ kyc.status }}">
-                        {% if kyc.status == 'pending' %}
-                            <i class="fas fa-clock"></i> Under Review
-                        {% elif kyc.status == 'approved' %}
-                            <i class="fas fa-check-circle"></i> Approved
-                        {% elif kyc.status == 'rejected' %}
-                            <i class="fas fa-times-circle"></i> Rejected
-                        {% endif %}
-                    </span>
-                </div>
+        {% if kyc %}
+        <div class="status-banner">
+            <div class="status-content">
                 <div class="status-info">
-                    <p><strong>Submitted on:</strong> {{ kyc.created_at|date:"F d, Y \a\t g:i A" }}</p>
-                    {% if kyc.status == 'rejected' and kyc.rejection_reason %}
-                    <p style="color: #DC3545; font-weight: 600; margin-top: 1rem;">
-                        <i class="fas fa-exclamation-triangle"></i> 
-                        <strong>Rejection Reason:</strong> {{ kyc.rejection_reason }}
-                    </p>
-                    {% elif kyc.status == 'approved' %}
-                    <p style="color: #155724; font-weight: 600; margin-top: 1rem;">
-                        <i class="fas fa-check-circle"></i> 
-                        Your KYC has been verified successfully!
-                    </p>
-                    {% elif kyc.status == 'pending' %}
-                    <p style="color: #856404; font-weight: 600; margin-top: 1rem;">
-                        <i class="fas fa-hourglass-half"></i> 
-                        Your documents are being reviewed. This usually takes 1-3 business days.
-                    </p>
-                    {% endif %}
+                    <i class="fas fa-info-circle" style="font-size: 1.5rem; color: #358D58;"></i>
+                    <div>
+                        <strong>Status:</strong>
+                        <span class="status-badge status-{{ kyc.status }}">
+                            {% if kyc.status == 'pending' %}
+                                <i class="fas fa-clock"></i> Under Review
+                            {% elif kyc.status == 'approved' %}
+                                <i class="fas fa-check-circle"></i> Approved
+                            {% elif kyc.status == 'rejected' %}
+                                <i class="fas fa-times-circle"></i> Rejected
+                            {% endif %}
+                        </span>
+                    </div>
                 </div>
+                <div style="color: #6c757d; font-size: 0.9rem;">
+                    Submitted: {{ kyc.created_at|date:"M d, Y" }}
+                </div>
+            </div>
+            {% if kyc.status == 'rejected' and kyc.rejection_reason %}
+            <div style="margin-top: 1rem; padding: 1rem; background: #f8d7da; border-radius: 8px; color: #721c24;">
+                <strong><i class="fas fa-exclamation-triangle"></i> Rejection Reason:</strong> {{ kyc.rejection_reason }}
             </div>
             {% endif %}
+        </div>
+        {% endif %}
 
-            <div class="info-box">
-                <div class="info-box-title">
-                    <i class="fas fa-info-circle"></i>
-                    Required Documents
+        <div class="wizard-container">
+            <div class="wizard-steps">
+                <div class="wizard-step active" data-step="1">
+                    <div class="step-circle">1</div>
+                    <div class="step-label">Personal Info</div>
                 </div>
-                <ul>
-                    <li><strong>Identity Document:</strong> Citizenship certificate, National ID, or Land Ownership Certificate</li>
-                    <li><strong>Photo:</strong> A clear selfie or recent photograph</li>
-                    <li>All documents must be clear, readable, and in PDF or image format (JPG, PNG)</li>
-                    <li>Maximum file size: 5MB per document</li>
-                </ul>
+                <div class="wizard-step" data-step="2">
+                    <div class="step-circle">2</div>
+                    <div class="step-label">Documents</div>
+                </div>
+                <div class="wizard-step" data-step="3">
+                    <div class="step-circle">3</div>
+                    <div class="step-label">Review</div>
+                </div>
             </div>
 
             <form method="POST" enctype="multipart/form-data" id="kycForm">
                 {% csrf_token %}
                 
-                <div class="form-section">
-                    <h2 class="form-section-title">
-                        <i class="fas fa-user"></i>
-                        Personal Information
-                    </h2>
-                    
-                    <div class="form-row">
-                        <div class="form-group">
-                            <label>
-                                Full Name <span class="required">*</span>
-                            </label>
-                            <input type="text" name="full_name" class="form-control" 
-                                   value="{{ kyc.full_name|default:request.user.get_full_name|default:'' }}" 
-                                   required placeholder="Enter your full name as per ID">
-                            <div class="help-text">
+                <div class="wizard-content">
+                    <!-- Step 1: Personal Information -->
+                    <div class="wizard-panel active" id="panel-1">
+                        <div class="panel-header">
+                            <h2>
+                                <i class="fas fa-user"></i>
+                                Personal Information
+                            </h2>
+                            <p>Enter your personal details as they appear on your ID</p>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>
+                                    Full Name <span class="required">*</span>
+                                </label>
+                                <input type="text" name="full_name" class="form-control" 
+                                       value="{{ kyc.full_name|default:request.user.get_full_name|default:'' }}" 
+                                       required placeholder="Enter your full name">
+                            </div>
+
+                            <div class="form-group">
+                                <label>
+                                    ID/Citizenship Number <span class="required">*</span>
+                                </label>
+                                <input type="text" name="id_number" class="form-control" 
+                                       value="{{ kyc.id_number|default:'' }}" 
+                                       required placeholder="Enter your ID number">
+                            </div>
+                        </div>
+
+                        <div class="info-card">
+                            <div class="info-card-title">
                                 <i class="fas fa-info-circle"></i>
-                                Must match the name on your ID document
+                                Important Information
                             </div>
+                            <ul>
+                                <li>Your name must match exactly as it appears on your ID document</li>
+                                <li>All information will be kept confidential and secure</li>
+                                <li>Verification typically takes 1-3 business days</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Documents -->
+                    <div class="wizard-panel" id="panel-2">
+                        <div class="panel-header">
+                            <h2>
+                                <i class="fas fa-file-upload"></i>
+                                Upload Documents
+                            </h2>
+                            <p>Upload clear, readable copies of your documents</p>
                         </div>
 
                         <div class="form-group">
                             <label>
-                                ID/Citizenship Number <span class="required">*</span>
+                                Identity Document <span class="required">*</span>
                             </label>
-                            <input type="text" name="id_number" class="form-control" 
-                                   value="{{ kyc.id_number|default:'' }}" 
-                                   required placeholder="Enter your ID number">
-                            <div class="help-text">
-                                <i class="fas fa-shield-alt"></i>
-                                This information will be kept confidential
+                            <div class="file-upload-wrapper" onclick="document.getElementById('id_document').click()">
+                                <input type="file" id="id_document" name="id_document" 
+                                       class="file-input" accept=".pdf,.jpg,.jpeg,.png"
+                                       {% if not kyc %}required{% endif %}
+                                       onchange="handleFileSelect(this, 'id-preview')">
+                                <div class="upload-icon">
+                                    <i class="fas fa-cloud-upload-alt"></i>
+                                </div>
+                                <div class="upload-text">Click to upload or drag and drop</div>
+                                <div class="upload-hint">PDF, JPG, or PNG (Max 5MB)</div>
+                                <div class="file-preview" id="id-preview"></div>
+                            </div>
+                            {% if kyc.id_document %}
+                            <a href="{{ kyc.id_document.url }}" target="_blank" class="current-file">
+                                <i class="fas fa-file-pdf"></i>
+                                View Current Document
+                            </a>
+                            {% endif %}
+                        </div>
+
+                        <div class="form-group">
+                            <label>
+                                Your Photo (Selfie) <span class="required">*</span>
+                            </label>
+                            <div class="file-upload-wrapper" onclick="document.getElementById('selfie').click()">
+                                <input type="file" id="selfie" name="selfie" 
+                                       class="file-input" accept=".jpg,.jpeg,.png"
+                                       {% if not kyc %}required{% endif %}
+                                       onchange="handleFileSelect(this, 'selfie-preview')">
+                                <div class="upload-icon">
+                                    <i class="fas fa-camera"></i>
+                                </div>
+                                <div class="upload-text">Click to upload your photo</div>
+                                <div class="upload-hint">JPG or PNG (Max 5MB)</div>
+                                <div class="file-preview" id="selfie-preview"></div>
+                            </div>
+                            {% if kyc.selfie %}
+                            <a href="{{ kyc.selfie.url }}" target="_blank" class="current-file">
+                                <i class="fas fa-image"></i>
+                                View Current Photo
+                            </a>
+                            {% endif %}
+                        </div>
+
+                        {% if request.user.role == 'vendor' %}
+                        <div class="form-group">
+                            <label>
+                                Company Registration Document <span class="required">*</span>
+                            </label>
+                            <div class="file-upload-wrapper" onclick="document.getElementById('company_document').click()">
+                                <input type="file" id="company_document" name="company_document" 
+                                       class="file-input" accept=".pdf,.jpg,.jpeg,.png"
+                                       {% if not kyc %}required{% endif %}
+                                       onchange="handleFileSelect(this, 'company-preview')">
+                                <div class="upload-icon">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                                <div class="upload-text">Click to upload company document</div>
+                                <div class="upload-hint">PDF, JPG, or PNG (Max 5MB)</div>
+                                <div class="file-preview" id="company-preview"></div>
+                            </div>
+                            {% if kyc.company_document %}
+                            <a href="{{ kyc.company_document.url }}" target="_blank" class="current-file">
+                                <i class="fas fa-file-pdf"></i>
+                                View Current Company Document
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        {% if request.user.role == 'agricultural_expert' %}
+                        <div class="form-group">
+                            <label>
+                                Professional Certificate <span class="required">*</span>
+                            </label>
+                            <div class="file-upload-wrapper" onclick="document.getElementById('certificate_document').click()">
+                                <input type="file" id="certificate_document" name="certificate_document" 
+                                       class="file-input" accept=".pdf,.jpg,.jpeg,.png"
+                                       {% if not kyc %}required{% endif %}
+                                       onchange="handleFileSelect(this, 'certificate-preview')">
+                                <div class="upload-icon">
+                                    <i class="fas fa-certificate"></i>
+                                </div>
+                                <div class="upload-text">Click to upload certificate</div>
+                                <div class="upload-hint">PDF, JPG, or PNG (Max 5MB)</div>
+                                <div class="file-preview" id="certificate-preview"></div>
+                            </div>
+                            {% if kyc.certificate_document %}
+                            <a href="{{ kyc.certificate_document.url }}" target="_blank" class="current-file">
+                                <i class="fas fa-file-pdf"></i>
+                                View Current Certificate
+                            </a>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+
+                        <div class="info-card">
+                            <div class="info-card-title">
+                                <i class="fas fa-lightbulb"></i>
+                                Tips for Best Results
+                            </div>
+                            <ul>
+                                <li>Ensure documents are clear and all text is readable</li>
+                                <li>Use good lighting when taking photos</li>
+                                <li>Make sure documents are not expired</li>
+                                <li>File size must be less than 5MB per document</li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <!-- Step 3: Review -->
+                    <div class="wizard-panel" id="panel-3">
+                        <div class="panel-header">
+                            <h2>
+                                <i class="fas fa-check-circle"></i>
+                                Review & Submit
+                            </h2>
+                            <p>Please review your information before submitting</p>
+                        </div>
+
+                        <div class="info-card" style="background: #fff3cd; border-left-color: #ffc107;">
+                            <div class="info-card-title" style="color: #856404;">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                Review Checklist
+                            </div>
+                            <ul>
+                                <li>All personal information is correct</li>
+                                <li>All required documents are uploaded</li>
+                                <li>Documents are clear and readable</li>
+                                <li>Information matches your ID document</li>
+                            </ul>
+                        </div>
+
+                        <div style="background: #E9EBF1; padding: 2rem; border-radius: 12px; margin-top: 2rem;">
+                            <h3 style="margin-bottom: 1rem; color: #1a1a1a;">Summary</h3>
+                            <div id="review-summary">
+                                <!-- Will be populated by JavaScript -->
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="form-section">
-                    <h2 class="form-section-title">
-                        <i class="fas fa-file-upload"></i>
-                        Document Upload
-                    </h2>
-                    
-                    <div class="form-group">
-                        <label>
-                            Identity Document <span class="required">*</span>
-                        </label>
-                        <div class="file-upload-area" onclick="document.getElementById('id_document').click()">
-                            <input type="file" id="id_document" name="id_document" 
-                                   class="file-input" accept=".pdf,.jpg,.jpeg,.png"
-                                   {% if not kyc %}required{% endif %}
-                                   onchange="handleFileSelect(this, 'id-preview')">
-                            <div class="file-upload-icon">
-                                <i class="fas fa-cloud-upload-alt"></i>
-                            </div>
-                            <div class="file-upload-text">Click to upload or drag and drop</div>
-                            <div class="file-upload-hint">PDF, JPG, or PNG (Max 5MB)</div>
-                            <div class="file-preview" id="id-preview"></div>
-                        </div>
-                        {% if kyc.id_document %}
-                        <a href="{{ kyc.id_document.url }}" target="_blank" class="current-file-link">
-                            <i class="fas fa-file-pdf"></i>
-                            View Current Document
-                        </a>
-                        {% endif %}
-                    </div>
-
-                    <div class="form-group">
-                        <label>
-                            Your Photo (Selfie) <span class="required">*</span>
-                        </label>
-                        <div class="file-upload-area" onclick="document.getElementById('selfie').click()">
-                            <input type="file" id="selfie" name="selfie" 
-                                   class="file-input" accept=".jpg,.jpeg,.png"
-                                   {% if not kyc %}required{% endif %}
-                                   onchange="handleFileSelect(this, 'selfie-preview')">
-                            <div class="file-upload-icon">
-                                <i class="fas fa-camera"></i>
-                            </div>
-                            <div class="file-upload-text">Click to upload your photo</div>
-                            <div class="file-upload-hint">JPG or PNG (Max 5MB)</div>
-                            <div class="file-preview" id="selfie-preview"></div>
-                        </div>
-                        {% if kyc.selfie %}
-                        <a href="{{ kyc.selfie.url }}" target="_blank" class="current-file-link">
-                            <i class="fas fa-image"></i>
-                            View Current Photo
-                        </a>
-                        {% endif %}
-                    </div>
-
-                    {% if request.user.role == 'vendor' %}
-                    <div class="form-group">
-                        <label>
-                            Company Registration Document <span class="required">*</span>
-                        </label>
-                        <div class="file-upload-area" onclick="document.getElementById('company_document').click()">
-                            <input type="file" id="company_document" name="company_document" 
-                                   class="file-input" accept=".pdf,.jpg,.jpeg,.png"
-                                   {% if not kyc %}required{% endif %}
-                                   onchange="handleFileSelect(this, 'company-preview')">
-                            <div class="file-upload-icon">
-                                <i class="fas fa-building"></i>
-                            </div>
-                            <div class="file-upload-text">Click to upload company document</div>
-                            <div class="file-upload-hint">PDF, JPG, or PNG (Max 5MB) - Company registration, business license, or trade license</div>
-                            <div class="file-preview" id="company-preview"></div>
-                        </div>
-                        {% if kyc.company_document %}
-                        <a href="{{ kyc.company_document.url }}" target="_blank" class="current-file-link">
-                            <i class="fas fa-file-pdf"></i>
-                            View Current Company Document
-                        </a>
-                        {% endif %}
-                        <div class="help-text">
-                            <i class="fas fa-info-circle"></i>
-                            Upload your company registration certificate, business license, or trade license document
-                        </div>
-                    </div>
-                    {% endif %}
-
-                    {% if request.user.role == 'agricultural_expert' %}
-                    <div class="form-group">
-                        <label>
-                            Professional Certificate <span class="required">*</span>
-                        </label>
-                        <div class="file-upload-area" onclick="document.getElementById('certificate_document').click()">
-                            <input type="file" id="certificate_document" name="certificate_document" 
-                                   class="file-input" accept=".pdf,.jpg,.jpeg,.png"
-                                   {% if not kyc %}required{% endif %}
-                                   onchange="handleFileSelect(this, 'certificate-preview')">
-                            <div class="file-upload-icon">
-                                <i class="fas fa-certificate"></i>
-                            </div>
-                            <div class="file-upload-text">Click to upload certificate</div>
-                            <div class="file-upload-hint">PDF, JPG, or PNG (Max 5MB) - Professional certificate, degree, or qualification document</div>
-                            <div class="file-preview" id="certificate-preview"></div>
-                        </div>
-                        {% if kyc.certificate_document %}
-                        <a href="{{ kyc.certificate_document.url }}" target="_blank" class="current-file-link">
-                            <i class="fas fa-file-pdf"></i>
-                            View Current Certificate
-                        </a>
-                        {% endif %}
-                        <div class="help-text">
-                            <i class="fas fa-info-circle"></i>
-                            Upload your professional certificate, degree, or qualification document proving your expertise
-                        </div>
-                    </div>
-                    {% endif %}
+                <div class="wizard-actions">
+                    <button type="button" class="btn btn-secondary" id="prevBtn" onclick="changeStep(-1)" style="display: none;">
+                        <i class="fas fa-arrow-left"></i>
+                        Previous
+                    </button>
+                    <div style="flex: 1;"></div>
+                    <button type="button" class="btn btn-primary" id="nextBtn" onclick="changeStep(1)">
+                        Next
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
+                    <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">
+                        <i class="fas fa-paper-plane"></i>
+                        {% if kyc.status == 'rejected' %}Resubmit KYC{% else %}Submit Verification{% endif %}
+                    </button>
                 </div>
-
-                <button type="submit" class="btn-submit">
-                    <i class="fas fa-paper-plane"></i>
-                    {% if kyc.status == 'rejected' %}Resubmit KYC{% else %}Submit KYC Verification{% endif %}
-                </button>
             </form>
         </div>
-    </main>
-
-    <footer class="main-footer">
-        <div class="footer-container">
-            <div class="footer-section">
-                <div class="footer-logo">
-                    <img src="/static/images/Farmity%20logo.png" alt="Farmity Logo" class="logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                    <span class="logo-fallback" style="display: none; align-items: center; gap: 0.5rem;">
-                        <span class="logo-icon">🌾</span>
-                        <span class="logo-text">Farmity</span>
-                    </span>
-                </div>
-                <p class="footer-tagline">Connecting agriculture for a sustainable future</p>
-            </div>
-            <div class="footer-section">
-                <h4>Company</h4>
-                <ul>
-                    <li><a href="#">About Us</a></li>
-                    <li><a href="#">Contact</a></li>
-                    <li><a href="#">Careers</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h4>Products</h4>
-                <ul>
-                    <li><a href="#">Marketplace</a></li>
-                    <li><a href="#">Live Prices</a></li>
-                    <li><a href="#">Advisory</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h4>Support</h4>
-                <ul>
-                    <li><a href="#">Help Center</a></li>
-                    <li><a href="#">Privacy Policy</a></li>
-                    <li><a href="#">Terms of Service</a></li>
-                </ul>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>© 2025 Farmity. All rights reserved.</p>
-        </div>
-    </footer>
+    </div>
 
     <script src="/static/js/main.js"></script>
     <script>
+        let currentStep = 1;
+        const totalSteps = 3;
+
+        function changeStep(direction) {
+            // Validate current step before moving
+            if (direction > 0 && !validateStep(currentStep)) {
+                return;
+            }
+
+            currentStep += direction;
+
+            if (currentStep < 1) currentStep = 1;
+            if (currentStep > totalSteps) currentStep = totalSteps;
+
+            updateWizard();
+        }
+
+        function validateStep(step) {
+            if (step === 1) {
+                const fullName = document.querySelector('input[name="full_name"]').value.trim();
+                const idNumber = document.querySelector('input[name="id_number"]').value.trim();
+                
+                if (!fullName || !idNumber) {
+                    alert('Please fill in all required fields');
+                    return false;
+                }
+            } else if (step === 2) {
+                const idDoc = document.getElementById('id_document').files[0];
+                const selfie = document.getElementById('selfie').files[0];
+                const hasExistingKyc = {{ kyc|yesno:"true,false" }};
+                
+                if (!hasExistingKyc && (!idDoc || !selfie)) {
+                    alert('Please upload all required documents');
+                    return false;
+                }
+            }
+            return true;
+        }
+
+        function updateWizard() {
+            // Update panels
+            document.querySelectorAll('.wizard-panel').forEach((panel, index) => {
+                if (index + 1 === currentStep) {
+                    panel.classList.add('active');
+                } else {
+                    panel.classList.remove('active');
+                }
+            });
+
+            // Update steps
+            document.querySelectorAll('.wizard-step').forEach((step, index) => {
+                step.classList.remove('active', 'completed');
+                if (index + 1 < currentStep) {
+                    step.classList.add('completed');
+                } else if (index + 1 === currentStep) {
+                    step.classList.add('active');
+                }
+            });
+
+            // Update buttons
+            const prevBtn = document.getElementById('prevBtn');
+            const nextBtn = document.getElementById('nextBtn');
+            const submitBtn = document.getElementById('submitBtn');
+
+            prevBtn.style.display = currentStep > 1 ? 'inline-flex' : 'none';
+            nextBtn.style.display = currentStep < totalSteps ? 'inline-flex' : 'none';
+            submitBtn.style.display = currentStep === totalSteps ? 'inline-flex' : 'none';
+
+            // Update review summary
+            if (currentStep === 3) {
+                updateReviewSummary();
+            }
+        }
+
+        function updateReviewSummary() {
+            const summary = document.getElementById('review-summary');
+            const fullName = document.querySelector('input[name="full_name"]').value;
+            const idNumber = document.querySelector('input[name="id_number"]').value;
+            const idDoc = document.getElementById('id_document').files[0];
+            const selfie = document.getElementById('selfie').files[0];
+
+            let html = `
+                <div style="margin-bottom: 1rem;">
+                    <strong>Full Name:</strong> ${fullName || 'Not provided'}
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <strong>ID Number:</strong> ${idNumber || 'Not provided'}
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <strong>Identity Document:</strong> ${idDoc ? idDoc.name : '{{ kyc.id_document|yesno:"Already uploaded,Not uploaded" }}'}
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <strong>Photo:</strong> ${selfie ? selfie.name : '{{ kyc.selfie|yesno:"Already uploaded,Not uploaded" }}'}
+                </div>
+            `;
+
+            {% if request.user.role == 'vendor' %}
+            const companyDoc = document.getElementById('company_document').files[0];
+            html += `<div style="margin-bottom: 1rem;"><strong>Company Document:</strong> ${companyDoc ? companyDoc.name : '{{ kyc.company_document|yesno:"Already uploaded,Not uploaded" }}'}</div>`;
+            {% endif %}
+
+            {% if request.user.role == 'agricultural_expert' %}
+            const certDoc = document.getElementById('certificate_document').files[0];
+            html += `<div style="margin-bottom: 1rem;"><strong>Certificate:</strong> ${certDoc ? certDoc.name : '{{ kyc.certificate_document|yesno:"Already uploaded,Not uploaded" }}'}</div>`;
+            {% endif %}
+
+            summary.innerHTML = html;
+        }
+
         function handleFileSelect(input, previewId) {
             const file = input.files[0];
             if (file) {
                 const preview = document.getElementById(previewId);
                 const fileSize = (file.size / 1024 / 1024).toFixed(2);
                 const fileName = file.name;
-                const fileType = fileName.split('.').pop().toUpperCase();
+                
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File size must be less than 5MB');
+                    input.value = '';
+                    return;
+                }
                 
                 preview.innerHTML = `
-                    <div class="file-preview-item">
-                        <i class="fas fa-file ${fileType === 'PDF' ? 'fa-file-pdf' : 'fa-file-image'} file-preview-icon"></i>
-                        <div class="file-preview-info">
-                            <div class="file-preview-name">${fileName}</div>
-                            <div class="file-preview-size">${fileSize} MB</div>
+                    <div class="preview-item">
+                        <i class="fas fa-file ${fileName.endsWith('.pdf') ? 'fa-file-pdf' : 'fa-file-image'} preview-icon"></i>
+                        <div class="preview-info">
+                            <div class="preview-name">${fileName}</div>
+                            <div class="preview-size">${fileSize} MB</div>
                         </div>
                     </div>
                 `;
@@ -660,22 +896,22 @@
             }
         }
 
-        // Drag and drop functionality
-        document.querySelectorAll('.file-upload-area').forEach(area => {
-            const input = area.querySelector('.file-input');
+        // Drag and drop
+        document.querySelectorAll('.file-upload-wrapper').forEach(wrapper => {
+            const input = wrapper.querySelector('.file-input');
             
-            area.addEventListener('dragover', (e) => {
+            wrapper.addEventListener('dragover', (e) => {
                 e.preventDefault();
-                area.classList.add('drag-over');
+                wrapper.classList.add('drag-over');
             });
             
-            area.addEventListener('dragleave', () => {
-                area.classList.remove('drag-over');
+            wrapper.addEventListener('dragleave', () => {
+                wrapper.classList.remove('drag-over');
             });
             
-            area.addEventListener('drop', (e) => {
+            wrapper.addEventListener('drop', (e) => {
                 e.preventDefault();
-                area.classList.remove('drag-over');
+                wrapper.classList.remove('drag-over');
                 if (e.dataTransfer.files.length > 0) {
                     input.files = e.dataTransfer.files;
                     input.dispatchEvent(new Event('change', { bubbles: true }));
@@ -683,29 +919,16 @@
             });
         });
 
-        // Form validation
+        // Form submission
         document.getElementById('kycForm').addEventListener('submit', function(e) {
-            const idDoc = document.getElementById('id_document').files[0];
-            const selfie = document.getElementById('selfie').files[0];
-            
-            if (!idDoc && !{{ kyc.id_document|yesno:"true,false" }}) {
+            if (!validateStep(3)) {
                 e.preventDefault();
-                alert('Please upload an identity document');
-                return false;
-            }
-            
-            if (idDoc && idDoc.size > 5 * 1024 * 1024) {
-                e.preventDefault();
-                alert('Identity document must be less than 5MB');
-                return false;
-            }
-            
-            if (selfie && selfie.size > 5 * 1024 * 1024) {
-                e.preventDefault();
-                alert('Photo must be less than 5MB');
                 return false;
             }
         });
+
+        // Initialize
+        updateWizard();
     </script>
 </body>
 </html>

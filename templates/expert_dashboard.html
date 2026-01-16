@@ -106,6 +106,8 @@
             margin-left: var(--sidebar-width);
             min-height: 100vh;
             transition: margin-left 0.3s ease;
+            padding: 0;
+            overflow-x: hidden;
         }
 
         /* Top Header */
@@ -198,17 +200,42 @@
             border-left-color: var(--info);
         }
 
+        .kyc-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            width: 100%;
+        }
+
+        .kyc-text {
+            flex: 1;
+            min-width: 250px;
+        }
+
         .kyc-text h3 {
             margin: 0 0 0.5rem 0;
             color: #856404;
             font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .kyc-alert.rejected .kyc-text h3 {
+        .kyc-text p {
+            margin: 0;
+            color: #856404;
+            font-size: 0.95rem;
+        }
+
+        .kyc-alert.rejected .kyc-text h3,
+        .kyc-alert.rejected .kyc-text p {
             color: #721C24;
         }
 
-        .kyc-alert.pending .kyc-text h3 {
+        .kyc-alert.pending .kyc-text h3,
+        .kyc-alert.pending .kyc-text p {
             color: #0C5460;
         }
 
@@ -228,10 +255,21 @@
 
         /* Summary Cards */
         .stats-grid {
-            display: grid;
+            display: grid !important;
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
+            visibility: visible !important;
+            opacity: 1 !important;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+        
+        #dashboard-section .stats-grid {
+            display: grid !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
 
         .stat-card {
@@ -239,11 +277,15 @@
             padding: 1.5rem;
             border-radius: 16px;
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            display: flex;
+            display: flex !important;
             align-items: center;
             justify-content: space-between;
             transition: transform 0.3s, box-shadow 0.3s;
             border-left: 4px solid var(--primary);
+            visibility: visible !important;
+            opacity: 1 !important;
+            position: relative;
+            z-index: 1;
         }
 
         .stat-card:hover {
@@ -326,6 +368,19 @@
             padding: 2rem;
         }
 
+        /* Charts */
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 2rem;
+            margin-bottom: 2rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 300px;
+        }
+
         /* Content Grid */
         .content-grid {
             display: grid;
@@ -345,6 +400,30 @@
             border-color: var(--primary);
             box-shadow: 0 4px 16px rgba(53, 141, 88, 0.15);
             transform: translateY(-3px);
+        }
+
+        .content-image-wrapper {
+            width: 100%;
+            height: 200px;
+            background: var(--light);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .content-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .content-placeholder {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 4rem;
+            color: #ccc;
         }
 
         .content-header {
@@ -785,10 +864,25 @@
         /* Dashboard Section */
         .dashboard-section {
             display: none;
+            padding: 2rem 2rem 2rem 2rem;
+            min-height: 100vh;
         }
 
         .dashboard-section:first-of-type {
-            display: block;
+            display: block !important;
+        }
+        
+        #dashboard-section {
+            display: block !important;
+            padding: 2rem;
+            visibility: visible !important;
+            opacity: 1 !important;
+        }
+        
+        #dashboard-section .stats-grid {
+            display: grid !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
     </style>
 </head>
@@ -800,27 +894,31 @@
             <div class="sidebar-title">Farmity</div>
         </div>
         <nav class="sidebar-nav">
-            <a href="#dashboard" class="nav-item active" onclick="showSection('dashboard'); return false;">
+            <a href="#dashboard" class="nav-item active" onclick="return showSection('dashboard', event);">
                 <i class="fas fa-home"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="#content" class="nav-item" onclick="showSection('content'); return false;">
+            <a href="#content" class="nav-item" onclick="return showSection('content', event);">
                 <i class="fas fa-file-alt"></i>
                 <span>My Content</span>
             </a>
-            <a href="#appointments" class="nav-item" onclick="showSection('appointments'); return false;">
+            <a href="#appointments" class="nav-item" onclick="return showSection('appointments', event);">
                 <i class="fas fa-calendar-check"></i>
                 <span>Appointments</span>
             </a>
-            <a href="#chat" class="nav-item" onclick="showSection('chat'); return false;">
+            <a href="#chat" class="nav-item" onclick="return showSection('chat', event);">
                 <i class="fas fa-comments"></i>
                 <span>Chat</span>
             </a>
-            <a href="#profile" class="nav-item" onclick="showSection('profile'); return false;">
+            <a href="#analytics" class="nav-item" onclick="return showSection('analytics', event);">
+                <i class="fas fa-chart-bar"></i>
+                <span>Analytics</span>
+            </a>
+            <a href="#profile" class="nav-item" onclick="return showSection('profile', event);">
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
             </a>
-            <a href="#settings" class="nav-item" onclick="showSection('settings'); return false;">
+            <a href="#settings" class="nav-item" onclick="return showSection('settings', event);">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
@@ -900,12 +998,12 @@
             {% endif %}
 
             <!-- Dashboard Section -->
-            <div id="dashboard-section" class="dashboard-section">
+            <div id="dashboard-section" class="dashboard-section" style="display: block;">
                 <!-- Summary Cards -->
-                <div class="stats-grid">
+                <div class="stats-grid" style="display: grid !important; visibility: visible !important;">
                     <div class="stat-card content">
                         <div class="stat-content">
-                            <h4>Total Content</h4>
+                            <h4>Content Shared</h4>
                             <div class="stat-value">{{ content_count }}</div>
                         </div>
                         <div class="stat-icon">
@@ -919,6 +1017,33 @@
                         </div>
                         <div class="stat-icon">
                             <i class="fas fa-check-circle"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: #9C27B0;">
+                        <div class="stat-content">
+                            <h4>Farmers Assisted</h4>
+                            <div class="stat-value" style="color: #9C27B0;">{{ total_farmers_assisted }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: #2196F3;">
+                        <div class="stat-content">
+                            <h4>Users Assisted</h4>
+                            <div class="stat-value" style="color: #2196F3;">{{ total_users_assisted }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-user-friends"></i>
+                        </div>
+                    </div>
+                    <div class="stat-card" style="border-left-color: #FF9800;">
+                        <div class="stat-content">
+                            <h4>Total People Assisted</h4>
+                            <div class="stat-value" style="color: #FF9800;">{{ total_people_assisted }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-handshake"></i>
                         </div>
                     </div>
                     <div class="stat-card appointments">
@@ -957,6 +1082,15 @@
                             <i class="fas fa-comments"></i>
                         </div>
                     </div>
+                    <div class="stat-card" style="border-left-color: #E91E63;">
+                        <div class="stat-content">
+                            <h4>Recent Messages</h4>
+                            <div class="stat-value" style="color: #E91E63;">{{ recent_messages }}</div>
+                        </div>
+                        <div class="stat-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                    </div>
                 </div>
                 
                 {% if features_restricted %}
@@ -966,6 +1100,30 @@
                     </p>
                 </div>
                 {% endif %}
+
+                <!-- Charts -->
+                <div class="charts-grid">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-chart-line"></i> Appointments Trend</h2>
+                        </div>
+                        <div class="section-body">
+                            <div class="chart-container">
+                                <canvas id="appointmentsChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="content-section">
+                        <div class="section-header">
+                            <h2><i class="fas fa-chart-bar"></i> Content Published</h2>
+                        </div>
+                        <div class="section-body">
+                            <div class="chart-container">
+                                <canvas id="contentChart"></canvas>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
 
             <!-- Content Section -->
@@ -982,10 +1140,15 @@
                         <div class="content-grid">
                             {% for tip in tips %}
                             <div class="content-card">
+                                {% if tip.image %}
+                                <div class="content-image-wrapper">
+                                    <img src="{{ tip.image.url }}" alt="{{ tip.title }}" class="content-image">
+                                </div>
+                                {% endif %}
                                 <div class="content-header">
                                     <h3>{{ tip.title }}</h3>
                                     <div class="content-actions">
-                                        <button class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditContentModal({{ tip.id }}, '{{ tip.title|escapejs }}', '{{ tip.content|escapejs }}', {{ tip.is_published|yesno:"true,false" }}){% else %}alert('KYC verification required to edit content'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+                                        <button class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditContentModal({{ tip.id }}, '{{ tip.title|escapejs }}', '{{ tip.content|escapejs }}', {{ tip.is_published|yesno:"true,false" }}, {% if tip.image %}'{{ tip.image.url }}'{% else %}''{% endif %}){% else %}alert('KYC verification required to edit content'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button class="btn-action btn-delete" onclick="{% if kyc_status == 'approved' %}openDeleteContentModal({{ tip.id }}, '{{ tip.title|escapejs }}'){% else %}alert('KYC verification required to delete content'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Delete{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
@@ -1200,6 +1363,39 @@
                 </div>
             </div>
 
+            <!-- Analytics Section -->
+            <div id="analytics-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-chart-bar"></i> Analytics</h2>
+                    </div>
+                    <div class="section-body">
+                        <div class="charts-grid">
+                            <div class="content-section">
+                                <div class="section-header">
+                                    <h3><i class="fas fa-chart-line"></i> Appointments by Month</h3>
+                                </div>
+                                <div class="section-body">
+                                    <div class="chart-container">
+                                        <canvas id="analyticsAppointmentsChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="content-section">
+                                <div class="section-header">
+                                    <h3><i class="fas fa-chart-bar"></i> Content Published by Month</h3>
+                                </div>
+                                <div class="section-body">
+                                    <div class="chart-container">
+                                        <canvas id="analyticsContentChart"></canvas>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Settings Section -->
             <div id="settings-section" class="dashboard-section" style="display: none;">
                 <div class="content-section">
@@ -1265,7 +1461,7 @@
                 <h3 id="contentModalTitle">Share New Content</h3>
                 <button class="close-modal" onclick="closeContentModal()">&times;</button>
             </div>
-            <form id="contentForm" method="POST">
+            <form id="contentForm" method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 <input type="hidden" id="content_id" name="tip_id">
                 <input type="hidden" id="content_action" name="add_tip" value="1">
@@ -1278,6 +1474,14 @@
                 <div class="form-group">
                     <label for="content_text">Content *</label>
                     <textarea id="content_text" name="content" class="form-control" rows="6" required></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label for="content_image">Image (Optional)</label>
+                    <input type="file" id="content_image" name="image" accept="image/*" class="form-control" onchange="previewContentImage(this)">
+                    <div id="content_image_preview" style="margin-top: 1rem; display: none;">
+                        <img id="content_preview_img" src="" alt="Preview" style="max-width: 200px; border-radius: 8px;">
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -1318,16 +1522,71 @@
     <script src="/static/js/main.js"></script>
     <script>
         // Navigation
-        function showSection(sectionId) {
-            document.querySelectorAll('.dashboard-section').forEach(section => {
-                section.style.display = 'none';
-            });
-            document.getElementById(sectionId + '-section').style.display = 'block';
+        function showSection(sectionId, evt) {
+            // Prevent default if event is provided
+            if (evt) {
+                evt.preventDefault();
+            }
             
+            // Hide all sections with !important override
+            document.querySelectorAll('.dashboard-section').forEach(section => {
+                section.style.cssText = 'display: none !important;';
+            });
+            
+            // Show selected section with !important override
+            const targetSection = document.getElementById(sectionId + '-section');
+            if (targetSection) {
+                targetSection.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; padding: 2rem;';
+                
+                // Special handling for dashboard section to ensure stats-grid is visible
+                if (sectionId === 'dashboard') {
+                    const statsGrid = targetSection.querySelector('.stats-grid');
+                    if (statsGrid) {
+                        statsGrid.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important;';
+                    }
+                }
+            } else {
+                console.error('Section not found:', sectionId + '-section');
+            }
+            
+            // Update active nav item
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.classList.remove('active');
             });
-            event.target.closest('.nav-item').classList.add('active');
+            
+            // Find and activate the clicked nav item
+            let clickedItem = null;
+            if (evt && evt.target) {
+                clickedItem = evt.target.closest('.nav-item');
+            }
+            
+            if (!clickedItem) {
+                // Fallback: find nav item by href
+                clickedItem = document.querySelector(`.nav-item[href="#${sectionId}"]`);
+            }
+            
+            if (clickedItem) {
+                clickedItem.classList.add('active');
+            }
+            
+            // Scroll to top of main content
+            const mainContent = document.querySelector('.main-content');
+            if (mainContent) {
+                mainContent.scrollTop = 0;
+            }
+            
+            // Debug: Log section visibility
+            console.log('Showing section:', sectionId, targetSection ? 'found' : 'not found');
+            if (targetSection && sectionId === 'dashboard') {
+                const statsGrid = targetSection.querySelector('.stats-grid');
+                console.log('Stats grid found:', statsGrid ? 'yes' : 'no');
+                if (statsGrid) {
+                    const computedStyle = window.getComputedStyle(statsGrid);
+                    console.log('Stats grid display:', computedStyle.display);
+                }
+            }
+            
+            return false;
         }
 
         function toggleSidebar() {
@@ -1342,13 +1601,14 @@
             document.getElementById('content_id').value = '';
             document.getElementById('content_action').name = 'add_tip';
             document.getElementById('content_action').value = '1';
+            document.getElementById('content_image_preview').style.display = 'none';
         }
 
         function closeContentModal() {
             document.getElementById('contentModal').classList.remove('active');
         }
 
-        function openEditContentModal(id, title, content, isPublished) {
+        function openEditContentModal(id, title, content, isPublished, imageUrl) {
             document.getElementById('contentModal').classList.add('active');
             document.getElementById('contentModalTitle').textContent = 'Edit Content';
             document.getElementById('content_id').value = id;
@@ -1357,6 +1617,26 @@
             document.getElementById('content_published').checked = isPublished;
             document.getElementById('content_action').name = 'edit_tip';
             document.getElementById('content_action').value = '1';
+            
+            // Show existing image if available
+            const preview = document.getElementById('content_image_preview');
+            if (imageUrl) {
+                document.getElementById('content_preview_img').src = imageUrl;
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+
+        function previewContentImage(input) {
+            if (input.files && input.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('content_preview_img').src = e.target.result;
+                    document.getElementById('content_image_preview').style.display = 'block';
+                };
+                reader.readAsDataURL(input.files[0]);
+            }
         }
 
         function openDeleteContentModal(id, title) {
@@ -1395,8 +1675,80 @@
             localStorage.setItem('language', lang);
         }
 
-        // Initialize language selector
+        // Force dashboard visibility immediately when script loads
+        (function() {
+            function forceDashboardVisible() {
+                const dashboardSection = document.getElementById('dashboard-section');
+                if (dashboardSection) {
+                    dashboardSection.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; padding: 2rem;';
+                    
+                    // Force stats-grid visibility
+                    const statsGrid = dashboardSection.querySelector('.stats-grid');
+                    if (statsGrid) {
+                        statsGrid.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important; width: 100%;';
+                        console.log('Stats grid forced visible');
+                    }
+                    
+                    // Force all stat-cards visibility
+                    const statCards = dashboardSection.querySelectorAll('.stat-card');
+                    statCards.forEach((card, index) => {
+                        card.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important;';
+                    });
+                    console.log('Forced', statCards.length, 'stat cards visible');
+                }
+            }
+            
+            // Try immediately
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', forceDashboardVisible);
+            } else {
+                forceDashboardVisible();
+            }
+            
+            // Also try after a short delay
+            setTimeout(forceDashboardVisible, 100);
+            setTimeout(forceDashboardVisible, 500);
+        })();
+        
         document.addEventListener('DOMContentLoaded', function() {
+            // Ensure dashboard is visible first with all content
+            const dashboardSection = document.getElementById('dashboard-section');
+            if (dashboardSection) {
+                dashboardSection.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; padding: 2rem;';
+                
+                // Ensure stats-grid is visible
+                const statsGrid = dashboardSection.querySelector('.stats-grid');
+                if (statsGrid) {
+                    statsGrid.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important; width: 100%;';
+                    console.log('DOMContentLoaded: Stats grid visible');
+                }
+                
+                // Ensure all stat-cards are visible
+                const statCards = dashboardSection.querySelectorAll('.stat-card');
+                statCards.forEach(card => {
+                    card.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important;';
+                });
+                console.log('DOMContentLoaded: All stat cards visible');
+            }
+            
+            // Verify all sections exist
+            const sections = ['dashboard', 'content', 'appointments', 'chat', 'analytics', 'profile', 'settings'];
+            sections.forEach(sectionId => {
+                const section = document.getElementById(sectionId + '-section');
+                if (!section) {
+                    console.warn('Section not found:', sectionId + '-section');
+                }
+            });
+            
+            // Set active nav item
+            const dashboardNav = document.querySelector('.nav-item[href="#dashboard"]');
+            if (dashboardNav) {
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                dashboardNav.classList.add('active');
+            }
+            
             const savedLang = localStorage.getItem('language') || 'en';
             const select = document.getElementById('languageSelect');
             if (select) {
@@ -1405,6 +1757,165 @@
             const settingsSelect = document.getElementById('settingsLanguageSelect');
             if (settingsSelect) {
                 settingsSelect.value = savedLang;
+            }
+
+            // Charts
+            const appointmentsData = {{ appointments_data|safe }};
+            const contentData = {{ content_data|safe }};
+            
+            // Appointments Chart
+            const appointmentsCtx = document.getElementById('appointmentsChart');
+            if (appointmentsCtx) {
+                new Chart(appointmentsCtx, {
+                    type: 'line',
+                    data: {
+                        labels: appointmentsData.map(d => d.month || 'N/A'),
+                        datasets: [{
+                            label: 'Total Appointments',
+                            data: appointmentsData.map(d => d.total_appointments || 0),
+                            borderColor: 'rgb(53, 141, 88)',
+                            backgroundColor: 'rgba(53, 141, 88, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Accepted Appointments',
+                            data: appointmentsData.map(d => d.accepted_count || 0),
+                            borderColor: 'rgb(40, 167, 69)',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Content Chart
+            const contentCtx = document.getElementById('contentChart');
+            if (contentCtx) {
+                new Chart(contentCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: contentData.map(d => d.month || 'N/A'),
+                        datasets: [{
+                            label: 'Total Content',
+                            data: contentData.map(d => d.total_content || 0),
+                            backgroundColor: 'rgba(53, 141, 88, 0.8)',
+                            borderColor: 'rgb(53, 141, 88)',
+                            borderWidth: 1
+                        }, {
+                            label: 'Published Content',
+                            data: contentData.map(d => d.published_count || 0),
+                            backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                            borderColor: 'rgb(40, 167, 69)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            // Analytics Charts
+            const analyticsAppointmentsCtx = document.getElementById('analyticsAppointmentsChart');
+            if (analyticsAppointmentsCtx) {
+                new Chart(analyticsAppointmentsCtx, {
+                    type: 'line',
+                    data: {
+                        labels: appointmentsData.map(d => d.month || 'N/A'),
+                        datasets: [{
+                            label: 'Total Appointments',
+                            data: appointmentsData.map(d => d.total_appointments || 0),
+                            borderColor: 'rgb(53, 141, 88)',
+                            backgroundColor: 'rgba(53, 141, 88, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }, {
+                            label: 'Accepted Appointments',
+                            data: appointmentsData.map(d => d.accepted_count || 0),
+                            borderColor: 'rgb(40, 167, 69)',
+                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                            tension: 0.4,
+                            fill: true
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
+            }
+
+            const analyticsContentCtx = document.getElementById('analyticsContentChart');
+            if (analyticsContentCtx) {
+                new Chart(analyticsContentCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: contentData.map(d => d.month || 'N/A'),
+                        datasets: [{
+                            label: 'Total Content',
+                            data: contentData.map(d => d.total_content || 0),
+                            backgroundColor: 'rgba(53, 141, 88, 0.8)',
+                            borderColor: 'rgb(53, 141, 88)',
+                            borderWidth: 1
+                        }, {
+                            label: 'Published Content',
+                            data: contentData.map(d => d.published_count || 0),
+                            backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                            borderColor: 'rgb(40, 167, 69)',
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                display: true
+                            }
+                        },
+                        scales: {
+                            y: {
+                                beginAtZero: true
+                            }
+                        }
+                    }
+                });
             }
         });
     </script>
