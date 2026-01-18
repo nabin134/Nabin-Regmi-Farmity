@@ -1291,11 +1291,14 @@
             <!-- Profile Section -->
             <div id="profile-section" class="dashboard-section" style="display: none;">
                 <div class="content-section">
-                    <div class="section-header">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <h2><i class="fas fa-user"></i> My Profile</h2>
+                        <button type="button" onclick="toggleExpertEditMode()" class="btn-primary" style="padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-edit"></i> <span id="expertEditBtnText">Edit Profile</span>
+                        </button>
                     </div>
                     <div class="section-body">
-                        <form method="POST" enctype="multipart/form-data">
+                        <form method="POST" enctype="multipart/form-data" id="expertProfileForm">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="1">
                             
@@ -1311,10 +1314,10 @@
                                         {% endif %}
                                     </div>
                                     <div style="margin-top: 1rem; text-align: center;">
-                                        <label for="photo" class="btn-primary" style="cursor: pointer; display: inline-block;">
+                                        <label for="photo" class="btn-primary" style="cursor: pointer; display: inline-block; opacity: 0.5; pointer-events: none;">
                                             <i class="fas fa-camera"></i> Change Photo
                                         </label>
-                                        <input type="file" name="photo" id="photo" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                                        <input type="file" name="photo" id="photo" accept="image/*" style="display: none;" onchange="previewImage(this)" disabled>
                                     </div>
                                 </div>
                                 <div style="flex: 1; min-width: 300px;">
@@ -1334,26 +1337,26 @@
                                 </div>
                             </div>
 
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;" id="expertProfileFields">
                                 <div class="form-group">
                                     <label>Full Name</label>
-                                    <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Enter your full name">
+                                    <input type="text" name="name" id="expertName" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Enter your full name" readonly>
                                 </div>
                                 <div class="form-group">
                                     <label>Qualification</label>
-                                    <input type="text" name="qualification" class="form-control" value="{{ profile.qualification|default:'' }}" placeholder="Enter your qualification">
+                                    <input type="text" name="qualification" id="expertQualification" class="form-control" value="{{ profile.qualification|default:'' }}" placeholder="Enter your qualification" readonly>
                                 </div>
                                 <div class="form-group">
                                     <label>Specialization</label>
-                                    <input type="text" name="specialization" class="form-control" value="{{ profile.specialization|default:'' }}" placeholder="Enter your specialization">
+                                    <input type="text" name="specialization" id="expertSpecialization" class="form-control" value="{{ profile.specialization|default:'' }}" placeholder="Enter your specialization" readonly>
                                 </div>
                                 <div class="form-group">
                                     <label>Experience</label>
-                                    <input type="text" name="experience" class="form-control" value="{{ profile.experience|default:'' }}" placeholder="e.g., 5 years">
+                                    <input type="text" name="experience" id="expertExperience" class="form-control" value="{{ profile.experience|default:'' }}" placeholder="e.g., 5 years" readonly>
                                 </div>
                             </div>
 
-                            <div style="margin-top: 2rem;">
+                            <div id="expertSaveBtn" style="display: none; margin-top: 2rem;">
                                 <button type="submit" class="btn-primary">
                                     <i class="fas fa-save"></i> Update Profile
                                 </button>
@@ -1667,6 +1670,49 @@
                     }
                 };
                 reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function toggleExpertEditMode() {
+            const isEditing = document.getElementById('expertName').readOnly === false;
+            const fields = ['expertName', 'expertQualification', 'expertSpecialization', 'expertExperience'];
+            const saveBtn = document.getElementById('expertSaveBtn');
+            const editBtnText = document.getElementById('expertEditBtnText');
+            const photoInput = document.getElementById('photo');
+            const photoLabel = photoInput ? photoInput.previousElementSibling : null;
+            
+            if (isEditing) {
+                // Switch to view mode
+                fields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.readOnly = true;
+                        field.style.background = '#f5f5f5';
+                    }
+                });
+                saveBtn.style.display = 'none';
+                editBtnText.textContent = 'Edit Profile';
+                if (photoLabel) {
+                    photoLabel.style.pointerEvents = 'none';
+                    photoLabel.style.opacity = '0.5';
+                }
+                if (photoInput) photoInput.disabled = true;
+            } else {
+                // Switch to edit mode
+                fields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.readOnly = false;
+                        field.style.background = 'white';
+                    }
+                });
+                saveBtn.style.display = 'block';
+                editBtnText.textContent = 'Cancel';
+                if (photoLabel) {
+                    photoLabel.style.pointerEvents = 'auto';
+                    photoLabel.style.opacity = '1';
+                }
+                if (photoInput) photoInput.disabled = false;
             }
         }
 

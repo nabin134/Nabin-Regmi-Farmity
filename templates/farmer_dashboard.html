@@ -1679,11 +1679,14 @@
             <!-- Profile Section -->
             <div id="profile-section" class="dashboard-section" style="display: none;">
                 <div class="content-section">
-                    <div class="section-header">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <h2><i class="fas fa-user"></i> <span data-translate="profile.title">My Profile</span></h2>
+                        <button type="button" onclick="toggleFarmerEditMode()" class="btn-primary" style="padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-edit"></i> <span id="farmerEditBtnText">Edit Profile</span>
+                        </button>
                     </div>
                     <div class="section-body">
-                        <form method="POST" enctype="multipart/form-data">
+                        <form method="POST" enctype="multipart/form-data" id="farmerProfileForm">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="1">
                             
@@ -1699,10 +1702,10 @@
                                         {% endif %}
                                     </div>
                                     <div style="margin-top: 1rem; text-align: center;">
-                                        <label for="photo" class="btn-primary" style="cursor: pointer; display: inline-block;">
+                                        <label for="photo" class="btn-primary" style="cursor: pointer; display: inline-block; opacity: 0.5; pointer-events: none;">
                                             <i class="fas fa-camera"></i> <span data-translate="profile.changePhoto">Change Photo</span>
                                         </label>
-                                        <input type="file" name="photo" id="photo" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                                        <input type="file" name="photo" id="photo" accept="image/*" style="display: none;" onchange="previewImage(this)" disabled>
                                     </div>
                                 </div>
                                 <div style="flex: 1; min-width: 300px;">
@@ -1722,10 +1725,10 @@
                                 </div>
                             </div>
 
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;" id="farmerProfileFields">
                                 <div class="form-group">
                                     <label data-translate="profile.fullName">Full Name</label>
-                                    <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Enter your full name">
+                                    <input type="text" name="name" id="farmerName" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Enter your full name" readonly>
                                 </div>
                                 <div class="form-group">
                                     <label data-translate="profile.email">Email Address</label>
@@ -1733,30 +1736,32 @@
                                 </div>
                                 <div class="form-group">
                                     <label data-translate="profile.contact">Contact Number</label>
-                                    <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Enter contact number">
+                                    <input type="text" name="contact" id="farmerContact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Enter contact number" readonly>
                                 </div>
                                 <div class="form-group">
                                     <label data-translate="profile.location">Location</label>
-                                    <input type="text" name="location" class="form-control" value="{{ profile.location|default:'' }}" placeholder="Enter your location">
+                                    <input type="text" name="location" id="farmerLocation" class="form-control" value="{{ profile.location|default:'' }}" placeholder="Enter your location" readonly>
                                 </div>
                                 <div class="form-group">
                                     <label data-translate="profile.farmSize">Farm Size</label>
-                                    <input type="text" name="farm_size" class="form-control" value="{{ profile.farm_size|default:'' }}" placeholder="e.g., 5 acres">
+                                    <input type="text" name="farm_size" id="farmerFarmSize" class="form-control" value="{{ profile.farm_size|default:'' }}" placeholder="e.g., 5 acres" readonly>
                                 </div>
                                 <div class="form-group">
                                     <label data-translate="profile.cropTypes">Main Crops</label>
-                                    <input type="text" name="crop_types" class="form-control" value="{{ profile.crop_types|default:'' }}" placeholder="e.g., Wheat, Rice, Corn">
+                                    <input type="text" name="crop_types" id="farmerCropTypes" class="form-control" value="{{ profile.crop_types|default:'' }}" placeholder="e.g., Wheat, Rice, Corn" readonly>
                                 </div>
                             </div>
 
                             <div class="form-group">
                                 <label data-translate="profile.livestock">Livestock Details</label>
-                                <textarea name="livestock_details" class="form-control" rows="4" placeholder="Enter livestock details if any">{{ profile.livestock_details|default:'' }}</textarea>
+                                <textarea name="livestock_details" id="farmerLivestock" class="form-control" rows="4" placeholder="Enter livestock details if any" readonly>{{ profile.livestock_details|default:'' }}</textarea>
                             </div>
 
-                            <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1.5rem;">
-                                <i class="fas fa-save"></i> <span data-translate="profile.save">Save Profile</span>
-                            </button>
+                            <div id="farmerSaveBtn" style="display: none; margin-top: 1.5rem;">
+                                <button type="submit" class="btn-primary" style="width: 100%;">
+                                    <i class="fas fa-save"></i> <span data-translate="profile.save">Save Profile</span>
+                                </button>
+                            </div>
                         </form>
                     </div>
                 </div>
@@ -2632,6 +2637,49 @@
                     }
                 };
                 reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function toggleFarmerEditMode() {
+            const isEditing = document.getElementById('farmerName').readOnly === false;
+            const fields = ['farmerName', 'farmerContact', 'farmerLocation', 'farmerFarmSize', 'farmerCropTypes', 'farmerLivestock'];
+            const saveBtn = document.getElementById('farmerSaveBtn');
+            const editBtnText = document.getElementById('farmerEditBtnText');
+            const photoInput = document.getElementById('photo');
+            const photoLabel = photoInput ? photoInput.previousElementSibling : null;
+            
+            if (isEditing) {
+                // Switch to view mode
+                fields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.readOnly = true;
+                        field.style.background = '#f5f5f5';
+                    }
+                });
+                saveBtn.style.display = 'none';
+                editBtnText.textContent = 'Edit Profile';
+                if (photoLabel) {
+                    photoLabel.style.pointerEvents = 'none';
+                    photoLabel.style.opacity = '0.5';
+                }
+                if (photoInput) photoInput.disabled = true;
+            } else {
+                // Switch to edit mode
+                fields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.readOnly = false;
+                        field.style.background = 'white';
+                    }
+                });
+                saveBtn.style.display = 'block';
+                editBtnText.textContent = 'Cancel';
+                if (photoLabel) {
+                    photoLabel.style.pointerEvents = 'auto';
+                    photoLabel.style.opacity = '1';
+                }
+                if (photoInput) photoInput.disabled = false;
             }
         }
 

@@ -1190,11 +1190,14 @@
             <!-- Profile Section -->
             <div id="profile-section" class="dashboard-section" style="display: none;">
                 <div class="content-section">
-                    <div class="section-header">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <h2><i class="fas fa-user"></i> My Profile</h2>
+                        <button type="button" onclick="toggleVendorEditMode()" class="btn-primary" style="padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-edit"></i> <span id="vendorEditBtnText">Edit Profile</span>
+                        </button>
                     </div>
                     <div class="section-body">
-                        <form method="POST" enctype="multipart/form-data">
+                        <form method="POST" enctype="multipart/form-data" id="vendorProfileForm">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="1">
                             
@@ -1210,10 +1213,10 @@
                                         {% endif %}
                                     </div>
                                     <div style="margin-top: 1rem; text-align: center;">
-                                        <label for="logo" class="btn-primary" style="cursor: pointer; display: inline-block;">
+                                        <label for="logo" class="btn-primary" style="cursor: pointer; display: inline-block; opacity: 0.5; pointer-events: none;">
                                             <i class="fas fa-camera"></i> Change Logo
                                         </label>
-                                        <input type="file" name="photo" id="logo" accept="image/*" style="display: none;" onchange="previewImage(this)">
+                                        <input type="file" name="photo" id="logo" accept="image/*" style="display: none;" onchange="previewImage(this)" disabled>
                                     </div>
                                 </div>
                                 <div style="flex: 1; min-width: 300px;">
@@ -1233,22 +1236,22 @@
                                 </div>
                             </div>
 
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;" id="vendorProfileFields">
                                 <div class="form-group">
                                     <label>Company Name</label>
-                                    <input type="text" name="company_name" class="form-control" value="{{ profile.company_name|default:'' }}" placeholder="Enter company name">
+                                    <input type="text" name="company_name" id="vendorCompanyName" class="form-control" value="{{ profile.company_name|default:'' }}" placeholder="Enter company name" readonly>
                                 </div>
                                 <div class="form-group">
                                     <label>Contact</label>
-                                    <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Enter contact number">
+                                    <input type="text" name="contact" id="vendorContact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Enter contact number" readonly>
                                 </div>
                                 <div class="form-group" style="grid-column: 1/-1;">
                                     <label>Address</label>
-                                    <textarea name="address" class="form-control" rows="3" placeholder="Enter company address">{{ profile.address|default:'' }}</textarea>
+                                    <textarea name="address" id="vendorAddress" class="form-control" rows="3" placeholder="Enter company address" readonly>{{ profile.address|default:'' }}</textarea>
                                 </div>
                             </div>
 
-                            <div style="margin-top: 2rem;">
+                            <div id="vendorSaveBtn" style="display: none; margin-top: 2rem;">
                                 <button type="submit" class="btn-primary">
                                     <i class="fas fa-save"></i> Update Profile
                                 </button>

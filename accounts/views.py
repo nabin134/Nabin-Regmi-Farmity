@@ -1554,6 +1554,17 @@ def user_dashboard(request):
     # Get or create user profile
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     
+    # Handle Profile Update
+    if request.method == 'POST' and 'update_profile' in request.POST:
+        profile.name = request.POST.get('name', profile.name)
+        profile.phone = request.POST.get('contact', profile.phone)
+        profile.address = request.POST.get('location', profile.address)
+        if request.FILES.get('photo'):
+            profile.photo = request.FILES.get('photo')
+        profile.save()
+        messages.success(request, 'Profile updated successfully!')
+        return redirect('user_dashboard')
+    
     # Get purchase history with statistics
     purchase_history = Order.objects.filter(buyer=request.user).select_related('tool', 'crop', 'crop__farmer', 'tool__vendor').order_by('-created_at')
     

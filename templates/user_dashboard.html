@@ -87,6 +87,8 @@
             grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
             gap: 1.5rem;
             margin-bottom: 2rem;
+            width: 100%;
+            position: relative;
         }
 
         .stat-card {
@@ -100,6 +102,9 @@
             transition: transform 0.3s, box-shadow 0.3s;
             border-left: 4px solid var(--primary);
             min-height: 120px;
+            width: 100%;
+            position: relative;
+            box-sizing: border-box;
         }
 
         .stat-card:hover {
@@ -376,61 +381,6 @@
             }
         }
 
-        .expert-card {
-            background: white;
-            border-radius: 16px;
-            padding: 1.75rem;
-            box-shadow: 0 2px 12px rgba(0,0,0,0.08);
-            display: flex;
-            gap: 1.25rem;
-            align-items: center;
-            transition: transform 0.3s, box-shadow 0.3s;
-            border: 1px solid #f0f0f0;
-        }
-
-        .expert-card:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-        }
-
-        .expert-avatar {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            object-fit: cover;
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 2.5rem;
-            color: white;
-            flex-shrink: 0;
-            border: 3px solid white;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-        }
-
-        .expert-info {
-            flex: 1;
-        }
-
-        .expert-info h4 {
-            margin: 0 0 0.25rem 0;
-            color: #333;
-            font-size: 1.15rem;
-            font-weight: 600;
-        }
-
-        .expert-info p {
-            margin: 0.25rem 0;
-            color: #666;
-            font-size: 0.9rem;
-        }
-
-        .expert-actions {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
 
         .btn-chat, .btn-appoint {
             padding: 0.625rem 1.25rem;
@@ -868,6 +818,7 @@
 
         .profile-menu {
             position: relative;
+            z-index: 10001;
         }
 
         .profile-icon-btn {
@@ -898,22 +849,26 @@
             top: calc(100% + 0.75rem);
             right: 0;
             background: white;
-            min-width: 220px;
+            min-width: 240px;
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
             border-radius: 12px;
-            padding: 0.5rem 0;
-            display: none;
-            z-index: 1000;
+            padding: 0;
+            display: none !important;
+            z-index: 10000 !important;
             border: 1px solid #f0f0f0;
             animation: fadeIn 0.2s ease;
+            overflow: hidden;
         }
 
-        .dropdown-menu.show {
-            display: block;
+        .dropdown-menu.show,
+        #profileDropdown.show {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
 
         .dropdown-item {
-            padding: 0.875rem 1.5rem;
+            padding: 1rem 1.5rem;
             display: flex;
             align-items: center;
             gap: 0.75rem;
@@ -921,11 +876,17 @@
             text-decoration: none;
             transition: background 0.2s;
             font-size: 0.95rem;
+            font-weight: 500;
         }
 
         .dropdown-item:hover {
             background: var(--light-bg);
             color: var(--primary);
+        }
+        
+        .dropdown-item i {
+            width: 20px;
+            text-align: center;
         }
 
         .dropdown-divider {
@@ -985,9 +946,10 @@
             .dashboard-hero h1 {
                 font-size: 2rem;
             }
-
+            
+            /* Profile stats cards responsive */
             .stats-grid {
-                grid-template-columns: 1fr;
+                grid-template-columns: 1fr !important;
             }
 
 
@@ -1051,36 +1013,30 @@
                     <i class="fas fa-shopping-bag"></i> Orders
                     <span id="cartBadge" style="display: none; position: absolute; top: -5px; right: -5px; background: var(--accent); color: white; border-radius: 50%; width: 20px; height: 20px; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700;"></span>
                 </a>
-                <a href="#profile" onclick="switchTab('profile', event); return false;" class="nav-link-item" data-tab="profile">
-                    <i class="fas fa-user"></i> Profile
-                </a>
-                <a href="#settings" onclick="switchTab('settings', event); return false;" class="nav-link-item" data-tab="settings">
-                    <i class="fas fa-cog"></i> Settings
-                </a>
             </nav>
             <div class="header-actions">
                 <div class="profile-menu">
-                    <button class="profile-icon-btn" id="profileDropdownBtn" onclick="toggleProfileDropdown()">
+                    <button class="profile-icon-btn" id="profileDropdownBtn" onclick="toggleProfileDropdown(event)" type="button">
                         {% if profile.photo %}
                         <img src="{{ profile.photo.url }}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
                         {% else %}
                         <i class="fas fa-user"></i>
                         {% endif %}
                     </button>
-                    <div class="dropdown-menu" id="profileDropdown">
-                        <div style="padding: 1rem 1.5rem; border-bottom: 1px solid #eee;">
-                            <strong style="display: block; color: var(--primary); font-size: 1rem;">{{ profile.name|default:request.user.email }}</strong>
-                            <span style="font-size: 0.85rem; color: #666;">Buyer</span>
+                    <div class="dropdown-menu" id="profileDropdown" style="display: none !important; position: absolute; top: calc(100% + 0.75rem); right: 0; z-index: 10000;">
+                        <div style="padding: 1.25rem 1.5rem; border-bottom: 1px solid #eee; background: var(--light-bg);">
+                            <strong style="display: block; color: var(--primary); font-size: 1.05rem; font-weight: 700; margin-bottom: 0.25rem;">{{ profile.name|default:request.user.email }}</strong>
+                            <span style="font-size: 0.9rem; color: #666; font-weight: 500;">Buyer</span>
                         </div>
-                        <a href="#profile" onclick="switchTab('profile', event); toggleProfileDropdown(); return false;" class="dropdown-item">
-                            <i class="fas fa-user-circle"></i> Profile
+                        <a href="#" onclick="event.preventDefault(); event.stopPropagation(); switchTab('profile', event); toggleProfileDropdown(); return false;" class="dropdown-item" style="padding: 1rem 1.5rem; display: flex; align-items: center; gap: 0.75rem; color: #333; text-decoration: none; transition: background 0.2s; border-bottom: 1px solid #f0f0f0; cursor: pointer;">
+                            <i class="fas fa-user-circle" style="font-size: 1.1rem; color: var(--primary); width: 20px;"></i> <span style="font-weight: 500;">Profile</span>
                         </a>
-                        <a href="#settings" onclick="switchTab('settings', event); toggleProfileDropdown(); return false;" class="dropdown-item">
-                            <i class="fas fa-cog"></i> Settings
+                        <a href="#" onclick="event.preventDefault(); event.stopPropagation(); switchTab('settings', event); toggleProfileDropdown(); return false;" class="dropdown-item" style="padding: 1rem 1.5rem; display: flex; align-items: center; gap: 0.75rem; color: #333; text-decoration: none; transition: background 0.2s; border-bottom: 1px solid #f0f0f0; cursor: pointer;">
+                            <i class="fas fa-cog" style="font-size: 1.1rem; color: var(--primary); width: 20px;"></i> <span style="font-weight: 500;">Settings</span>
                         </a>
-                        <div class="dropdown-divider"></div>
-                        <a href="{% url 'logout' %}" class="dropdown-item" style="color: var(--accent);">
-                            <i class="fas fa-sign-out-alt"></i> Logout
+                        <div class="dropdown-divider" style="height: 1px; background: #f0f0f0; margin: 0.5rem 0;"></div>
+                        <a href="{% url 'logout' %}" class="dropdown-item" style="padding: 1rem 1.5rem; display: flex; align-items: center; gap: 0.75rem; color: var(--accent); text-decoration: none; transition: background 0.2s; font-weight: 500;">
+                            <i class="fas fa-sign-out-alt" style="font-size: 1.1rem; width: 20px;"></i> <span>Logout</span>
                         </a>
                     </div>
                 </div>
@@ -1107,10 +1063,10 @@
             {% endif %}
 
             <!-- Content Sections (accessible via header navigation) -->
-
-                <!-- Crops Section -->
-                <div id="crops" class="content-section" style="display: block;">
-                    <div class="products-grid">
+            
+            <!-- ========== CROPS SECTION ========== -->
+            <div id="crops" class="content-section" style="display: block;">
+                <div class="products-grid">
                         {% for crop in crops %}
                         <div class="product-card">
                             {% if crop.image %}
@@ -1146,12 +1102,12 @@
                             <p>Check back later for fresh produce from our farmers</p>
                         </div>
                         {% endfor %}
-                    </div>
                 </div>
+            </div>
 
-                <!-- Tools Section -->
-                <div id="tools" class="content-section" style="display: none;">
-                    <div class="tools-grid">
+            <!-- ========== TOOLS SECTION ========== -->
+            <div id="tools" class="content-section" style="display: none;">
+                <div class="tools-grid">
                         {% for tool in tools %}
                         <div class="tool-card">
                             {% if tool.image %}
@@ -1190,12 +1146,12 @@
                             <p>Check back later for agricultural tools from our vendors</p>
                         </div>
                         {% endfor %}
-                    </div>
                 </div>
+            </div>
 
-                <!-- Experts Section -->
-                <div id="experts" class="content-section" style="display: none;">
-                    <div class="experts-grid">
+            <!-- ========== EXPERTS SECTION ========== -->
+            <div id="experts" class="content-section" style="display: none;">
+                <div class="experts-grid">
                         {% for expert in experts %}
                         <div class="expert-card">
                             {% if expert.photo %}
@@ -1228,12 +1184,12 @@
                             <p>Check back later for agricultural experts</p>
                         </div>
                         {% endfor %}
-                    </div>
                 </div>
+            </div>
 
-                <!-- Expert Content Section -->
-                <div id="tips" class="content-section" style="display: none;">
-                    <div class="tips-grid">
+            <!-- ========== EXPERT CONTENT SECTION ========== -->
+            <div id="tips" class="content-section" style="display: none;">
+                <div class="tips-grid">
                         {% for tip in tips %}
                         <div class="tip-card">
                             <h4>{{ tip.title }}</h4>
@@ -1249,12 +1205,12 @@
                             <p>Check back later for tips and content from our experts</p>
                         </div>
                         {% endfor %}
-                    </div>
                 </div>
+            </div>
 
-                <!-- Appointments Section -->
-                <div id="appointments" class="content-section" style="display: none;">
-                    <div class="appointments-list">
+            <!-- ========== APPOINTMENTS SECTION ========== -->
+            <div id="appointments" class="content-section" style="display: none;">
+                <div class="appointments-list">
                         {% for appointment in appointments %}
                         <div class="appointment-item">
                             <div class="appointment-info">
@@ -1280,9 +1236,9 @@
                     </div>
                 </div>
 
-                <!-- Chat Section -->
-                <div id="chat" class="content-section" style="display: none;">
-                    <div class="appointments-list">
+            <!-- ========== CHAT SECTION ========== -->
+            <div id="chat" class="content-section" style="display: none;">
+                <div class="appointments-list">
                         {% for thread in chat_threads %}
                         <a href="{% url 'chat_thread' thread.id %}" style="text-decoration: none; color: inherit;">
                             <div class="appointment-item" style="cursor: pointer;">
@@ -1305,12 +1261,12 @@
                                 <i class="fas fa-plus"></i> Start New Chat
                             </a>
                         </div>
-                    </div>
                 </div>
+            </div>
 
-                <!-- Orders Section -->
-                <div id="orders" class="content-section" style="display: none;">
-                    <!-- Cart Items (from localStorage) -->
+            <!-- ========== ORDERS SECTION ========== -->
+            <div id="orders" class="content-section" style="display: none;">
+                <!-- Cart Items (from localStorage) -->
                     <div id="cartItems" style="margin-bottom: 3rem;">
                         <h2 style="margin-bottom: 1.5rem; color: #333; font-size: 1.75rem; display: flex; align-items: center; gap: 0.75rem;">
                             <i class="fas fa-shopping-cart"></i> Shopping Cart
@@ -1385,18 +1341,23 @@
                         {% endfor %}
                     </div>
                 </div>
+            </div>
 
-                <!-- Profile Section -->
-                <div id="profile" class="content-section" style="display: none;">
-                    <div style="background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
-                        <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #f0f0f0;">
-                            <h2 style="margin: 0; color: #333; font-size: 1.75rem; display: flex; align-items: center; gap: 0.75rem;">
-                                <i class="fas fa-user"></i> My Profile
-                            </h2>
-                        </div>
-                        <div>
-                            <!-- Stats Cards in Profile -->
-                            <div class="stats-grid" style="margin-bottom: 2.5rem; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+            <!-- ========== PROFILE SECTION ========== -->
+            <div id="profile" class="content-section" style="display: none !important;">
+                <div style="background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+                    <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
+                        <h2 style="margin: 0; color: #333; font-size: 1.75rem; display: flex; align-items: center; gap: 0.75rem;">
+                            <i class="fas fa-user"></i> My Profile
+                        </h2>
+                        <button type="button" id="editProfileBtn" class="btn-primary" onclick="toggleEditMode()" style="padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                            <i class="fas fa-edit"></i> <span id="editBtnText">Edit Profile</span>
+                        </button>
+                    </div>
+                    <div style="width: 100%; clear: both;">
+                        <!-- Stats Cards in Profile - Properly Arranged -->
+                        <div style="margin-bottom: 2.5rem; width: 100%; clear: both; position: relative; overflow: hidden;">
+                            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1.5rem; width: 100%; margin: 0; padding: 0; box-sizing: border-box; position: relative;">
                                 <div class="stat-card" style="border-left-color: var(--accent);">
                                     <div class="stat-content">
                                         <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.95rem; font-weight: 600;">Total Orders</h4>
@@ -1411,9 +1372,18 @@
                                     </div>
                                     <i class="fas fa-rupee-sign stat-icon" style="color: #2196F3; opacity: 0.2; font-size: 3.5rem;"></i>
                                 </div>
+                                <div class="stat-card" style="border-left-color: var(--warning);">
+                                    <div class="stat-content">
+                                        <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.95rem; font-weight: 600;">Pending Orders</h4>
+                                        <span style="color: var(--warning); font-size: 2.5rem; font-weight: bold; display: block; margin-top: 0.5rem;">{{ pending_orders }}</span>
+                                    </div>
+                                    <i class="fas fa-clock stat-icon" style="color: var(--warning); opacity: 0.2; font-size: 3.5rem;"></i>
+                                </div>
                             </div>
+                        </div>
 
-                            <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data">
+                        <!-- Profile Form Section -->
+                        <form method="POST" action="{% url 'user_dashboard' %}" enctype="multipart/form-data" id="profileForm" style="width: 100%; clear: both; margin-top: 2rem;">
                                 {% csrf_token %}
                                 <input type="hidden" name="update_profile" value="1">
                                 
@@ -1452,10 +1422,10 @@
                                     </div>
                                 </div>
 
-                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+                                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;" id="profileFields">
                                     <div class="form-group">
                                         <label>Full Name</label>
-                                        <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Enter your full name">
+                                        <input type="text" name="name" id="profileName" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Enter your full name" readonly>
                                     </div>
                                     <div class="form-group">
                                         <label>Email Address</label>
@@ -1463,25 +1433,28 @@
                                     </div>
                                     <div class="form-group">
                                         <label>Contact Number</label>
-                                        <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Enter contact number">
+                                        <input type="text" name="contact" id="profileContact" class="form-control" value="{{ profile.phone|default:'' }}" placeholder="Enter contact number" readonly>
                                     </div>
                                     <div class="form-group">
                                         <label>Location</label>
-                                        <input type="text" name="location" class="form-control" value="{{ profile.location|default:'' }}" placeholder="Enter your location">
+                                        <input type="text" name="location" id="profileLocation" class="form-control" value="{{ profile.address|default:'' }}" placeholder="Enter your location" readonly>
                                     </div>
                                 </div>
 
-                                <button type="submit" class="btn-primary" style="width: 100%; margin-top: 1.5rem; padding: 1rem; font-size: 1.1rem;">
-                                    <i class="fas fa-save"></i> Save Profile
-                                </button>
+                                <div id="saveProfileBtn" style="display: none; margin-top: 1.5rem;">
+                                    <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem;">
+                                        <i class="fas fa-save"></i> Save Profile
+                                    </button>
+                                </div>
                             </form>
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Settings Section -->
-                <div id="settings" class="content-section" style="display: none;">
-                    <div style="background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
+            <!-- ========== SETTINGS SECTION ========== -->
+            <div id="settings" class="content-section" style="display: none !important;">
+                <div style="background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
                         <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #f0f0f0;">
                             <h2 style="margin: 0; color: #333; font-size: 1.75rem; display: flex; align-items: center; gap: 0.75rem;">
                                 <i class="fas fa-cog"></i> Settings
@@ -1829,12 +1802,13 @@
             // Hide all content sections
             document.querySelectorAll('.content-section').forEach(section => {
                 section.style.display = 'none';
+                section.style.visibility = 'hidden';
             });
             
             // Show selected section
             const targetSection = document.getElementById(tabId);
             if (targetSection) {
-                targetSection.style.display = 'block';
+                targetSection.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; padding: 2rem 0 !important;';
             }
             
             // Update header nav links
@@ -1858,11 +1832,33 @@
             }
         }
 
-        function toggleProfileDropdown() {
+        function toggleProfileDropdown(event) {
+            if (event) {
+                event.stopPropagation();
+            }
             const dropdown = document.getElementById('profileDropdown');
             if (dropdown) {
-                dropdown.classList.toggle('show');
+                const isShowing = dropdown.classList.contains('show');
+                // Close all dropdowns first
+                document.querySelectorAll('.dropdown-menu').forEach(menu => {
+                    menu.classList.remove('show');
+                    menu.style.display = 'none';
+                    menu.style.visibility = 'hidden';
+                });
+                // Toggle this dropdown
+                if (!isShowing) {
+                    dropdown.classList.add('show');
+                    dropdown.style.display = 'block';
+                    dropdown.style.visibility = 'visible';
+                    dropdown.style.opacity = '1';
+                    dropdown.style.zIndex = '10000';
+                } else {
+                    dropdown.classList.remove('show');
+                    dropdown.style.display = 'none';
+                    dropdown.style.visibility = 'hidden';
+                }
             }
+            return false;
         }
 
         // Close dropdown when clicking outside
@@ -1871,6 +1867,8 @@
             const dropdown = document.getElementById('profileDropdown');
             if (profileMenu && dropdown && !profileMenu.contains(event.target)) {
                 dropdown.classList.remove('show');
+                dropdown.style.display = 'none';
+                dropdown.style.visibility = 'hidden';
             }
         });
 
@@ -2171,6 +2169,7 @@
             if (ordersSection && ordersSection.style.display !== 'none') {
                 displayCartItems();
             }
+            
         });
 
         function previewImage(input) {
@@ -2187,6 +2186,52 @@
                     }
                 };
                 reader.readAsDataURL(input.files[0]);
+                
+                // Auto-submit form when photo is selected
+                const form = document.getElementById('profileForm');
+                if (form) {
+                    // Add hidden input for update_profile if not exists
+                    if (!form.querySelector('input[name="update_profile"]')) {
+                        const hiddenInput = document.createElement('input');
+                        hiddenInput.type = 'hidden';
+                        hiddenInput.name = 'update_profile';
+                        hiddenInput.value = '1';
+                        form.appendChild(hiddenInput);
+                    }
+                    form.submit();
+                }
+            }
+        }
+
+        function toggleEditMode() {
+            const isEditing = document.getElementById('profileName').readOnly === false;
+            const fields = ['profileName', 'profileContact', 'profileLocation'];
+            const saveBtn = document.getElementById('saveProfileBtn');
+            const editBtn = document.getElementById('editProfileBtn');
+            const editBtnText = document.getElementById('editBtnText');
+            
+            if (isEditing) {
+                // Switch to view mode
+                fields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.readOnly = true;
+                        field.style.background = '#f5f5f5';
+                    }
+                });
+                saveBtn.style.display = 'none';
+                editBtnText.textContent = 'Edit Profile';
+            } else {
+                // Switch to edit mode
+                fields.forEach(fieldId => {
+                    const field = document.getElementById(fieldId);
+                    if (field) {
+                        field.readOnly = false;
+                        field.style.background = 'white';
+                    }
+                });
+                saveBtn.style.display = 'block';
+                editBtnText.textContent = 'Cancel';
             }
         }
         
