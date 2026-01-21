@@ -1,0 +1,1141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Marketplace Oversight - Admin Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #358D58;
+            --primary-dark: #2a6f45;
+            --secondary: #F29900;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            z-index: 1000;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-header h2 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background: rgba(255,255,255,0.1);
+            border-left-color: var(--secondary);
+            color: white;
+        }
+
+        .menu-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .top-header {
+            background: white;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .dashboard-content {
+            padding: 30px;
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .section-tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            background: white;
+            padding: 10px;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .tab-btn {
+            padding: 10px 20px;
+            border: none;
+            background: transparent;
+            color: #666;
+            cursor: pointer;
+            border-radius: 8px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .tab-btn.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .filters-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+        }
+
+        .filter-select, .filter-input {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid #eee;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table td {
+            padding: 16px 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .status-badge.pending { background: #fff3cd; color: #856404; }
+        .status-badge.confirmed { background: #d1ecf1; color: #0c5460; }
+        .status-badge.shipped { background: #d4edda; color: #155724; }
+        .status-badge.delivered { background: #d4edda; color: #155724; }
+        .status-badge.cancelled { background: #f8d7da; color: #721c24; }
+        .status-badge.available { background: #d4edda; color: #155724; }
+        .status-badge.unavailable { background: #f8d7da; color: #721c24; }
+        .status-badge.completed { background: #d4edda; color: #155724; }
+        .status-badge.failed { background: #f8d7da; color: #721c24; }
+
+        .item-image {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 6px;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .btn-add {
+            background: var(--success);
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .btn-edit {
+            background: var(--info);
+            color: white;
+        }
+
+        .btn-delete {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+            transform: translateY(-1px);
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            overflow-y: auto;
+        }
+
+        .modal.active {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 100%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: var(--dark);
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .section-tabs {
+                flex-wrap: wrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-seedling"></i>
+            <h2>Farmity Admin</h2>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="{% url 'admin_dashboard' %}" class="menu-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="{% url 'admin_kyc_management' %}" class="menu-item">
+                <i class="fas fa-id-card"></i>
+                <span>KYC Management</span>
+            </a>
+            <a href="{% url 'admin_user_management' %}" class="menu-item">
+                <i class="fas fa-users"></i>
+                <span>User Management</span>
+            </a>
+            <a href="{% url 'admin_content_management' %}" class="menu-item">
+                <i class="fas fa-file-alt"></i>
+                <span>Content Management</span>
+            </a>
+            <a href="{% url 'admin_marketplace_oversight' %}" class="menu-item active">
+                <i class="fas fa-store"></i>
+                <span>Marketplace</span>
+            </a>
+            <a href="{% url 'admin_appointment_management' %}" class="menu-item">
+                <i class="fas fa-calendar-check"></i>
+                <span>Appointments</span>
+            </a>
+            <a href="{% url 'admin_chat_reports' %}" class="menu-item">
+                <i class="fas fa-comments"></i>
+                <span>Chat & Reports</span>
+            </a>
+            <a href="{% url 'logout' %}" class="menu-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header class="top-header">
+            <h1 class="header-title">Marketplace Oversight</h1>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="page-header">
+                <h2 class="page-title">Marketplace Management</h2>
+                <p class="page-subtitle">Monitor tools, crops, orders, and payments</p>
+            </div>
+
+            <!-- Section Tabs -->
+            <div class="section-tabs">
+                <a href="?section=overview" class="tab-btn {% if section == 'overview' %}active{% endif %}">
+                    <i class="fas fa-chart-pie"></i> Overview
+                </a>
+                <a href="?section=tools" class="tab-btn {% if section == 'tools' %}active{% endif %}">
+                    <i class="fas fa-tools"></i> Tools
+                </a>
+                <a href="?section=crops" class="tab-btn {% if section == 'crops' %}active{% endif %}">
+                    <i class="fas fa-seedling"></i> Crops
+                </a>
+                <a href="?section=orders" class="tab-btn {% if section == 'orders' %}active{% endif %}">
+                    <i class="fas fa-shopping-cart"></i> Orders
+                </a>
+                <a href="?section=payments" class="tab-btn {% if section == 'payments' %}active{% endif %}">
+                    <i class="fas fa-money-bill-wave"></i> Payments
+                </a>
+            </div>
+
+            <!-- Statistics -->
+            {% if section == 'overview' or section == 'tools' %}
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ total_tools|default:0 }}</div>
+                    <div class="stat-label">Total Tools</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ available_tools|default:0 }}</div>
+                    <div class="stat-label">Available Tools</div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if section == 'overview' or section == 'crops' %}
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ total_crops|default:0 }}</div>
+                    <div class="stat-label">Total Crops</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ available_crops|default:0 }}</div>
+                    <div class="stat-label">Available Crops</div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if section == 'overview' or section == 'orders' %}
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ total_orders|default:0 }}</div>
+                    <div class="stat-label">Total Orders</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ pending_orders|default:0 }}</div>
+                    <div class="stat-label">Pending Orders</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ completed_orders|default:0 }}</div>
+                    <div class="stat-label">Completed Orders</div>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if section == 'overview' or section == 'payments' %}
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">Rs. {{ total_revenue|default:0|floatformat:0 }}</div>
+                    <div class="stat-label">Total Revenue</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ completed_payments|default:0 }}</div>
+                    <div class="stat-label">Completed Payments</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ pending_payments|default:0 }}</div>
+                    <div class="stat-label">Pending Payments</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ failed_payments|default:0 }}</div>
+                    <div class="stat-label">Failed Payments</div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Filters -->
+            <div class="filters-section">
+                <form method="GET" action="{% url 'admin_marketplace_oversight' %}">
+                    <input type="hidden" name="section" value="{{ section }}">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label class="filter-label">Status</label>
+                            <select name="status" class="filter-select">
+                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                                {% if section == 'tools' or section == 'crops' %}
+                                <option value="available" {% if status_filter == 'available' %}selected{% endif %}>Available</option>
+                                <option value="unavailable" {% if status_filter == 'unavailable' %}selected{% endif %}>Unavailable</option>
+                                {% elif section == 'orders' %}
+                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="confirmed" {% if status_filter == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                                <option value="shipped" {% if status_filter == 'shipped' %}selected{% endif %}>Shipped</option>
+                                <option value="delivered" {% if status_filter == 'delivered' %}selected{% endif %}>Delivered</option>
+                                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
+                                {% elif section == 'payments' %}
+                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="completed" {% if status_filter == 'completed' %}selected{% endif %}>Completed</option>
+                                <option value="failed" {% if status_filter == 'failed' %}selected{% endif %}>Failed</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Search</label>
+                            <input type="text" name="search" class="filter-input" placeholder="Search..." value="{{ search_query }}">
+                        </div>
+                        <div class="filter-group" style="justify-content: flex-end;">
+                            <button type="submit" class="filter-btn">
+                                <i class="fas fa-search"></i> Filter
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Tools Table -->
+            {% if section == 'overview' or section == 'tools' %}
+            <div class="table-container">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="font-size: 20px; font-weight: 600;">Tools Listings</h3>
+                    <button class="btn btn-add" onclick="openAddToolModal()" style="background: var(--success); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                        <i class="fas fa-plus"></i> Add Tool
+                    </button>
+                </div>
+                {% if tools %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Vendor</th>
+                            <th>Price</th>
+                            <th>Stock</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for tool in tools %}
+                        <tr>
+                            <td>
+                                {% if tool.image %}
+                                <img src="{{ tool.image.url }}" alt="{{ tool.name }}" class="item-image">
+                                {% else %}
+                                <div class="item-image" style="background: #eee; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-tools"></i>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>{{ tool.name }}</td>
+                            <td>{{ tool.vendor.company_name|default:tool.vendor.user.email }}</td>
+                            <td>Rs. {{ tool.price }}</td>
+                            <td>{{ tool.stock_quantity }}</td>
+                            <td>
+                                <span class="status-badge {% if tool.is_available %}available{% else %}unavailable{% endif %}">
+                                    {% if tool.is_available %}Available{% else %}Unavailable{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons" style="display: flex; gap: 8px;">
+                                    <button class="btn btn-edit" onclick="openEditToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', '{{ tool.description|default:""|escapejs }}', {{ tool.vendor.id }}, {{ tool.price }}, {{ tool.stock_quantity }}, {{ tool.is_available|yesno:"true,false" }})" style="background: var(--info); color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-delete" onclick="confirmDeleteTool({{ tool.id }}, '{{ tool.name|escapejs }}')" style="background: var(--danger); color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="text-align: center; padding: 40px; color: #999;">No tools found</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Crops Table -->
+            {% if section == 'overview' or section == 'crops' %}
+            <div class="table-container" style="margin-top: 20px;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h3 style="font-size: 20px; font-weight: 600;">Crop Listings</h3>
+                    <button class="btn btn-add" onclick="openAddCropModal()" style="background: var(--success); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">
+                        <i class="fas fa-plus"></i> Add Crop
+                    </button>
+                </div>
+                {% if crops %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Image</th>
+                            <th>Name</th>
+                            <th>Farmer</th>
+                            <th>Price/Unit</th>
+                            <th>Quantity</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for crop in crops %}
+                        <tr>
+                            <td>
+                                {% if crop.image %}
+                                <img src="{{ crop.image.url }}" alt="{{ crop.name }}" class="item-image">
+                                {% else %}
+                                <div class="item-image" style="background: #eee; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-seedling"></i>
+                                </div>
+                                {% endif %}
+                            </td>
+                            <td>{{ crop.name }}</td>
+                            <td>{{ crop.farmer.name|default:crop.farmer.user.email }}</td>
+                            <td>Rs. {{ crop.price_per_unit }}/{{ crop.unit }}</td>
+                            <td>{{ crop.quantity }} {{ crop.unit }}</td>
+                            <td>
+                                <span class="status-badge {% if crop.is_available %}available{% else %}unavailable{% endif %}">
+                                    {% if crop.is_available %}Available{% else %}Unavailable{% endif %}
+                                </span>
+                            </td>
+                            <td>
+                                <div class="action-buttons" style="display: flex; gap: 8px;">
+                                    <button class="btn btn-edit" onclick="openEditCropModal({{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.farmer.id }}, {{ crop.quantity }}, '{{ crop.unit }}', {{ crop.price_per_unit }}, {{ crop.is_available|yesno:"true,false" }})" style="background: var(--info); color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-delete" onclick="confirmDeleteCrop({{ crop.id }}, '{{ crop.name|escapejs }}')" style="background: var(--danger); color: white; padding: 8px 16px; border: none; border-radius: 6px; cursor: pointer; font-size: 14px; font-weight: 500;">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="text-align: center; padding: 40px; color: #999;">No crops found</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Orders Table -->
+            {% if section == 'overview' or section == 'orders' %}
+            <div class="table-container">
+                <h3 style="margin-bottom: 20px; font-size: 20px; font-weight: 600;">Orders</h3>
+                {% if orders %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Buyer</th>
+                            <th>Item</th>
+                            <th>Quantity</th>
+                            <th>Total</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td>#{{ order.id }}</td>
+                            <td>{{ order.buyer.email }}</td>
+                            <td>
+                                {% if order.tool %}
+                                    {{ order.tool.name }}
+                                {% elif order.crop %}
+                                    {{ order.crop.name }}
+                                {% else %}
+                                    N/A
+                                {% endif %}
+                            </td>
+                            <td>{{ order.quantity }}</td>
+                            <td>Rs. {{ order.total_amount }}</td>
+                            <td>
+                                <span class="status-badge {{ order.status }}">{{ order.get_status_display }}</span>
+                            </td>
+                            <td>{{ order.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-edit" onclick="openEditOrderModal({{ order.id }}, '{{ order.status }}', '{{ order.payment_status }}', '{{ order.payment_method|default:"" }}', '{{ order.tracking_number|default:""|escapejs }}', '{{ order.shipping_address|default:""|escapejs }}', '{{ order.notes|default:""|escapejs }}')">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-delete" onclick="confirmDeleteOrder({{ order.id }})">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="text-align: center; padding: 40px; color: #999;">No orders found</p>
+                {% endif %}
+            </div>
+            {% endif %}
+
+            <!-- Payments Table -->
+            {% if section == 'overview' or section == 'payments' %}
+            {% if payment_orders %}
+            <div class="table-container">
+                <h3 style="margin-bottom: 20px; font-size: 20px; font-weight: 600;">Payment Transactions</h3>
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Buyer</th>
+                            <th>Amount</th>
+                            <th>Payment Method</th>
+                            <th>Payment Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in payment_orders %}
+                        <tr>
+                            <td>#{{ order.id }}</td>
+                            <td>{{ order.buyer.email }}</td>
+                            <td>Rs. {{ order.total_amount }}</td>
+                            <td>{{ order.get_payment_method_display|default:"N/A" }}</td>
+                            <td>
+                                <span class="status-badge {{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
+                            </td>
+                            <td>{{ order.created_at|date:"M d, Y" }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% endif %}
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Add/Edit Tool Modal -->
+    <div id="toolModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="toolModalTitle">Add Tool</h3>
+                <button class="close-modal" onclick="closeToolModal()">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'admin_marketplace_oversight' %}?section={{ section }}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" id="toolAction" value="add_tool">
+                <input type="hidden" name="tool_id" id="toolId">
+                <div class="form-group">
+                    <label class="form-label">Vendor *</label>
+                    <select name="vendor_id" id="toolVendorId" class="form-control" required>
+                        <option value="">Select Vendor</option>
+                        {% for vendor in vendors %}
+                        <option value="{{ vendor.id }}">{{ vendor.company_name|default:vendor.user.email }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tool Name *</label>
+                    <input type="text" name="name" id="toolName" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea name="description" id="toolDescription" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Price (Rs.) *</label>
+                        <input type="number" step="0.01" name="price" id="toolPrice" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Stock Quantity *</label>
+                        <input type="number" name="stock_quantity" id="toolStock" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Image</label>
+                    <input type="file" name="image" id="toolImage" class="form-control" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" name="is_available" id="toolAvailable">
+                        <span>Available</span>
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeToolModal()">Cancel</button>
+                    <button type="submit" class="btn btn-add">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Add/Edit Crop Modal -->
+    <div id="cropModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="cropModalTitle">Add Crop</h3>
+                <button class="close-modal" onclick="closeCropModal()">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'admin_marketplace_oversight' %}?section={{ section }}" enctype="multipart/form-data">
+                {% csrf_token %}
+                <input type="hidden" name="action" id="cropAction" value="add_crop">
+                <input type="hidden" name="crop_id" id="cropId">
+                <div class="form-group">
+                    <label class="form-label">Farmer *</label>
+                    <select name="farmer_id" id="cropFarmerId" class="form-control" required>
+                        <option value="">Select Farmer</option>
+                        {% for farmer in farmers %}
+                        <option value="{{ farmer.id }}">{{ farmer.name|default:farmer.user.email }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Crop Name *</label>
+                    <input type="text" name="name" id="cropName" class="form-control" required>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Quantity *</label>
+                        <input type="number" step="0.01" name="quantity" id="cropQuantity" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Unit *</label>
+                        <select name="unit" id="cropUnit" class="form-control" required>
+                            <option value="kg">kg</option>
+                            <option value="ton">ton</option>
+                            <option value="quintal">quintal</option>
+                            <option value="bag">bag</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Price per Unit (Rs.) *</label>
+                    <input type="number" step="0.01" name="price_per_unit" id="cropPrice" class="form-control" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Image</label>
+                    <input type="file" name="image" id="cropImage" class="form-control" accept="image/*">
+                </div>
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 8px;">
+                        <input type="checkbox" name="is_available" id="cropAvailable">
+                        <span>Available</span>
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeCropModal()">Cancel</button>
+                    <button type="submit" class="btn btn-add">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Edit Order Modal -->
+    <div id="orderModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Order</h3>
+                <button class="close-modal" onclick="closeOrderModal()">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'admin_marketplace_oversight' %}?section={{ section }}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_order">
+                <input type="hidden" name="order_id" id="orderId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Status</label>
+                        <select name="status" id="orderStatus" class="form-control">
+                            <option value="pending">Pending</option>
+                            <option value="confirmed">Confirmed</option>
+                            <option value="shipped">Shipped</option>
+                            <option value="delivered">Delivered</option>
+                            <option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Payment Status</label>
+                        <select name="payment_status" id="orderPaymentStatus" class="form-control">
+                            <option value="pending">Pending</option>
+                            <option value="completed">Completed</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Payment Method</label>
+                    <select name="payment_method" id="orderPaymentMethod" class="form-control">
+                        <option value="">Select Method</option>
+                        <option value="cod">Cash on Delivery</option>
+                        <option value="esewa">eSewa</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Tracking Number</label>
+                    <input type="text" name="tracking_number" id="orderTracking" class="form-control">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Shipping Address</label>
+                    <textarea name="shipping_address" id="orderShipping" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Notes</label>
+                    <textarea name="notes" id="orderNotes" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeOrderModal()">Cancel</button>
+                    <button type="submit" class="btn btn-edit">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirm Delete</h3>
+                <button class="close-modal" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <p id="deleteMessage"></p>
+            <form method="POST" id="deleteForm" action="{% url 'admin_marketplace_oversight' %}?section={{ section }}">
+                {% csrf_token %}
+                <input type="hidden" name="action" id="deleteAction">
+                <input type="hidden" name="tool_id" id="deleteToolId">
+                <input type="hidden" name="crop_id" id="deleteCropId">
+                <input type="hidden" name="order_id" id="deleteOrderId">
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                    <button type="submit" class="btn btn-delete">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Tool Modals
+        function openAddToolModal() {
+            document.getElementById('toolModalTitle').textContent = 'Add Tool';
+            document.getElementById('toolAction').value = 'add_tool';
+            document.getElementById('toolId').value = '';
+            document.querySelector('#toolModal form').reset();
+            document.getElementById('toolModal').classList.add('active');
+        }
+
+        function openEditToolModal(id, name, description, vendorId, price, stock, available) {
+            document.getElementById('toolModalTitle').textContent = 'Edit Tool';
+            document.getElementById('toolAction').value = 'edit_tool';
+            document.getElementById('toolId').value = id;
+            document.getElementById('toolName').value = name;
+            document.getElementById('toolDescription').value = description || '';
+            document.getElementById('toolVendorId').value = vendorId;
+            document.getElementById('toolPrice').value = price;
+            document.getElementById('toolStock').value = stock;
+            document.getElementById('toolAvailable').checked = available;
+            document.getElementById('toolModal').classList.add('active');
+        }
+
+        function closeToolModal() {
+            document.getElementById('toolModal').classList.remove('active');
+        }
+
+        // Crop Modals
+        function openAddCropModal() {
+            document.getElementById('cropModalTitle').textContent = 'Add Crop';
+            document.getElementById('cropAction').value = 'add_crop';
+            document.getElementById('cropId').value = '';
+            document.querySelector('#cropModal form').reset();
+            document.getElementById('cropModal').classList.add('active');
+        }
+
+        function openEditCropModal(id, name, farmerId, quantity, unit, price, available) {
+            document.getElementById('cropModalTitle').textContent = 'Edit Crop';
+            document.getElementById('cropAction').value = 'edit_crop';
+            document.getElementById('cropId').value = id;
+            document.getElementById('cropName').value = name;
+            document.getElementById('cropFarmerId').value = farmerId;
+            document.getElementById('cropQuantity').value = quantity;
+            document.getElementById('cropUnit').value = unit;
+            document.getElementById('cropPrice').value = price;
+            document.getElementById('cropAvailable').checked = available;
+            document.getElementById('cropModal').classList.add('active');
+        }
+
+        function closeCropModal() {
+            document.getElementById('cropModal').classList.remove('active');
+        }
+
+        // Order Modals
+        function openEditOrderModal(id, status, paymentStatus, paymentMethod, tracking, shipping, notes) {
+            document.getElementById('orderId').value = id;
+            document.getElementById('orderStatus').value = status;
+            document.getElementById('orderPaymentStatus').value = paymentStatus;
+            document.getElementById('orderPaymentMethod').value = paymentMethod || '';
+            document.getElementById('orderTracking').value = tracking || '';
+            document.getElementById('orderShipping').value = shipping || '';
+            document.getElementById('orderNotes').value = notes || '';
+            document.getElementById('orderModal').classList.add('active');
+        }
+
+        function closeOrderModal() {
+            document.getElementById('orderModal').classList.remove('active');
+        }
+
+        // Delete Confirmations
+        function confirmDeleteTool(id, name) {
+            document.getElementById('deleteAction').value = 'delete_tool';
+            document.getElementById('deleteToolId').value = id;
+            document.getElementById('deleteCropId').value = '';
+            document.getElementById('deleteOrderId').value = '';
+            document.getElementById('deleteMessage').textContent = `Are you sure you want to delete the tool "${name}"? This action cannot be undone.`;
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function confirmDeleteCrop(id, name) {
+            document.getElementById('deleteAction').value = 'delete_crop';
+            document.getElementById('deleteCropId').value = id;
+            document.getElementById('deleteToolId').value = '';
+            document.getElementById('deleteOrderId').value = '';
+            document.getElementById('deleteMessage').textContent = `Are you sure you want to delete the crop "${name}"? This action cannot be undone.`;
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function confirmDeleteOrder(id) {
+            document.getElementById('deleteAction').value = 'delete_order';
+            document.getElementById('deleteOrderId').value = id;
+            document.getElementById('deleteToolId').value = '';
+            document.getElementById('deleteCropId').value = '';
+            document.getElementById('deleteMessage').textContent = `Are you sure you want to delete order #${id}? This action cannot be undone.`;
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+        }
+
+        // Close modals on outside click
+        window.onclick = function(event) {
+            const modals = ['toolModal', 'cropModal', 'orderModal', 'deleteModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target == modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

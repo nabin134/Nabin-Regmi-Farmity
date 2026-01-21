@@ -866,13 +866,23 @@
                 </div>
 
                 <div class="social-buttons">
-                    <a href="/accounts/google/login/?process=signup" class="social-btn google-btn">
+                    {% if google_oauth_enabled %}
+                    <a href="/accounts/google/login/?process=signup" class="social-btn google-btn" title="Sign up with Google">
                         <i class="fab fa-google social-icon" style="color: #4285F4;"></i>
-                        <span>Google</span>
+                        <span>Continue with Google</span>
                     </a>
-                    <a href="/accounts/facebook/login/?process=signup" class="social-btn facebook-btn" onclick="event.preventDefault(); alert('Facebook signup coming soon!'); return false;">
+                    {% else %}
+                    <div class="social-btn google-btn" style="opacity: 0.6; cursor: not-allowed;" title="Google OAuth not configured">
+                        <i class="fab fa-google social-icon" style="color: #4285F4;"></i>
+                        <span>Continue with Google (Not Available)</span>
+                    </div>
+                    {% if google_oauth_error %}
+                    <small style="display: block; color: #dc3545; margin-top: 8px; font-size: 12px;">{{ google_oauth_error }}</small>
+                    {% endif %}
+                    {% endif %}
+                    <a href="/accounts/facebook/login/?process=signup" class="social-btn facebook-btn" onclick="event.preventDefault(); alert('Facebook signup coming soon!'); return false;" title="Sign up with Facebook">
                         <i class="fab fa-facebook-f social-icon" style="color: #1877F2;"></i>
-                        <span>Facebook</span>
+                        <span>Continue with Facebook</span>
                     </a>
                 </div>
 

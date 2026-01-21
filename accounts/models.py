@@ -2,6 +2,9 @@ from django.db import models
 from django.contrib.auth.models import (
     AbstractBaseUser, PermissionsMixin, BaseUserManager
 )
+from django.utils import timezone
+from datetime import timedelta
+import secrets
 
 class UserManager(BaseUserManager):
     def create_user(self, email, password=None, role='buyer'):
@@ -43,6 +46,11 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
+
+    @property
+    def username(self):
+        """Return email as username for compatibility with django-allauth"""
+        return self.email
 
     def __str__(self):
         return self.email
@@ -337,3 +345,48 @@ class CropSale(models.Model):
 
     def __str__(self):
         return f"Sale of {self.quantity_sold} {self.crop.unit} {self.crop.name} - Rs. {self.total_amount}"
+
+
+class OTP(models.Model):
+    """Store OTPs for login verification"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='otps')
+    otp_code = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    is_used = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=False)
+    
+    class Meta:
+        ordering = ('-created_at',)
+        indexes = [
+            models.Index(fields=['user', 'is_used', 'is_verified']),
+        ]
+    
+    def __str__(self):
+        return f"OTP for {self.user.email} - {self.otp_code}"
+    
+    def is_expired(self):
+        """Check if OTP has expired"""
+        return timezone.now() > self.expires_at
+    
+    def is_valid(self):
+        """Check if OTP is valid (not used, not expired, not verified)"""
+        return not self.is_used and not self.is_expired() and not self.is_verified
+    
+    @classmethod
+    def generate_otp(cls, user, expiry_minutes=10):
+        """Generate a new OTP for user"""
+        # Delete old unused OTPs for this user
+        cls.objects.filter(user=user, is_used=False, is_verified=False).delete()
+        
+        # Generate 6-digit OTP
+        otp_code = ''.join([str(secrets.randbelow(10)) for _ in range(6)])
+        
+        # Create OTP
+        otp = cls.objects.create(
+            user=user,
+            otp_code=otp_code,
+            expires_at=timezone.now() + timedelta(minutes=expiry_minutes)
+        )
+        
+        return otp

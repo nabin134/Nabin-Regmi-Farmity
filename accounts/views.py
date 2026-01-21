@@ -32,8 +32,9 @@ from .models import (
     UserProfile,
     Order,
     CropSale,
+    OTP,
 )
-from .serializers import SignupSerializer, LoginSerializer, UserSerializer
+from .serializers import SignupSerializer, LoginSerializer, UserSerializer, OTPVerificationSerializer
 from .decorators import kyc_required, kyc_optional
 
 # Password reset tokens storage (in production, use Redis or database)
@@ -221,29 +222,82 @@ class LoginView(APIView):
                 user.is_active = True
                 user.save()
 
-            # Continue with login if user is now active
-            login(request, user)
-
-            # Check KYC status for roles that require it
-            if user.role in {'farmer', 'vendor', 'agricultural_expert'}:
-                kyc_request = user.kyc_requests.first()
-                kyc_status = kyc_request.status if kyc_request else None
+            # Check if OTP is required (can be disabled in development)
+            require_otp = getattr(settings, 'REQUIRE_OTP_FOR_LOGIN', True)
+            
+            # If OTP is not required (development mode), login directly
+            if not require_otp:
+                # Login the user directly
+                login(request, user)
                 
-                # If no KYC submitted, redirect to KYC page
-                if kyc_status is None:
-                    redirect_url = reverse('kyc')
+                # Check KYC status for roles that require it
+                if user.role in {'farmer', 'vendor', 'agricultural_expert'}:
+                    kyc_request = user.kyc_requests.first()
+                    kyc_status = kyc_request.status if kyc_request else None
+                    
+                    # If no KYC submitted, redirect to KYC page
+                    if kyc_status is None:
+                        redirect_url = reverse('kyc')
+                    else:
+                        # Get normal redirect URL (dashboard will show KYC alert if not approved)
+                        redirect_url = _redirect_to_role_home(user)
                 else:
-                    # Get normal redirect URL (dashboard will show KYC alert if not approved)
+                    # Buyers and admins - no KYC required, normal redirect
                     redirect_url = _redirect_to_role_home(user)
-            else:
-                # Buyers and admins - no KYC required, normal redirect
-                redirect_url = _redirect_to_role_home(user)
+                
+                return Response(
+                    {
+                        "message": "Login successful",
+                        "user": UserSerializer(user).data,
+                        "redirect_url": redirect_url
+                    },
+                    status=status.HTTP_200_OK
+                )
+            
+            # OTP is required - generate and send OTP
+            otp = OTP.generate_otp(user, expiry_minutes=10)
+            
+            # Send OTP via email
+            try:
+                send_mail(
+                    subject='Your Login OTP - Farmity',
+                    message=f'Your OTP code is: {otp.otp_code}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+                print(f"\n{'='*70}")
+                print(f"OTP SENT TO: {user.email}")
+                print(f"OTP CODE: {otp.otp_code}")
+                print(f"EXPIRES AT: {otp.expires_at}")
+                print(f"{'='*70}\n")
+            except Exception as e:
+                print(f"Error sending OTP email: {str(e)}")
+                print(f"\n{'='*70}")
+                print(f"OTP GENERATED (but email failed):")
+                print(f"User: {user.email}")
+                print(f"OTP CODE: {otp.otp_code}")
+                print(f"EXPIRES AT: {otp.expires_at}")
+                print(f"{'='*70}\n")
+                # Still return success - OTP is generated, user can see it in console
+                return Response(
+                    {
+                        "message": "OTP generated. Check Django console for OTP code.",
+                        "email": user.email,
+                        "requires_otp": True,
+                        "otp_code": otp.otp_code,  # Include OTP in response for development
+                        "console_message": f"OTP: {otp.otp_code} (Check Django console)"
+                    },
+                    status=status.HTTP_200_OK
+                )
 
             return Response(
                 {
-                    "message": "Login successful",
-                    "user": UserSerializer(user).data,
-                    "redirect_url": redirect_url
+                    "message": "OTP sent to your email. Please check your inbox.",
+                    "email": user.email,
+                    "requires_otp": True,
+                    "otp_code": otp.otp_code,  # Include OTP in response for development
+                    "console_message": f"OTP: {otp.otp_code} (Check Django console)"
                 },
                 status=status.HTTP_200_OK
             )
@@ -253,6 +307,179 @@ class LoginView(APIView):
             return Response(
                 {
                     "error": "An unexpected error occurred during login.",
+                    "details": {"exception": str(e)}
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+# ======================
+# OTP VERIFICATION API
+# ======================
+class OTPVerificationView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            serializer = OTPVerificationSerializer(data=request.data)
+            
+            if not serializer.is_valid():
+                return Response(
+                    {
+                        "error": "Validation failed",
+                        "details": serializer.errors
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            email = serializer.validated_data['email']
+            otp_code = serializer.validated_data['otp']
+            
+            User = get_user_model()
+            try:
+                user = User.objects.get(email__iexact=email)
+            except User.DoesNotExist:
+                return Response(
+                    {"error": "User not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Find valid OTP for this user
+            try:
+                otp = OTP.objects.filter(
+                    user=user,
+                    otp_code=otp_code,
+                    is_used=False,
+                    is_verified=False
+                ).latest('created_at')
+                
+                # Check if OTP is expired
+                if otp.is_expired():
+                    return Response(
+                        {"error": "OTP has expired. Please request a new one."},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                
+                # Mark OTP as verified and used
+                otp.is_verified = True
+                otp.is_used = True
+                otp.save()
+                
+                # Login the user
+                login(request, user)
+                
+                # Check KYC status for roles that require it
+                if user.role in {'farmer', 'vendor', 'agricultural_expert'}:
+                    kyc_request = user.kyc_requests.first()
+                    kyc_status = kyc_request.status if kyc_request else None
+                    
+                    # If no KYC submitted, redirect to KYC page
+                    if kyc_status is None:
+                        redirect_url = reverse('kyc')
+                    else:
+                        # Get normal redirect URL (dashboard will show KYC alert if not approved)
+                        redirect_url = _redirect_to_role_home(user)
+                else:
+                    # Buyers and admins - no KYC required, normal redirect
+                    redirect_url = _redirect_to_role_home(user)
+                
+                return Response(
+                    {
+                        "message": "OTP verified successfully. Login successful.",
+                        "user": UserSerializer(user).data,
+                        "redirect_url": redirect_url
+                    },
+                    status=status.HTTP_200_OK
+                )
+                
+            except OTP.DoesNotExist:
+                return Response(
+                    {"error": "Invalid or expired OTP. Please request a new one."},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            except Exception as e:
+                import traceback
+                traceback.print_exc()
+                return Response(
+                    {
+                        "error": "Error verifying OTP",
+                        "details": str(e)
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {
+                    "error": "An unexpected error occurred during OTP verification.",
+                    "details": {"exception": str(e)}
+                },
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
+
+
+# ======================
+# RESEND OTP API
+# ======================
+class ResendOTPView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            email = request.data.get('email')
+            if not email:
+                return Response(
+                    {"error": "Email is required"},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            
+            User = get_user_model()
+            try:
+                user = User.objects.get(email__iexact=email)
+            except User.DoesNotExist:
+                return Response(
+                    {"error": "User not found"},
+                    status=status.HTTP_404_NOT_FOUND
+                )
+            
+            # Generate new OTP
+            otp = OTP.generate_otp(user, expiry_minutes=10)
+            
+            # Send OTP via email
+            try:
+                send_mail(
+                    subject='Your Login OTP - Farmity',
+                    message=f'Your OTP code is: {otp.otp_code}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                print(f"Error sending OTP email: {str(e)}")
+                return Response(
+                    {
+                        "error": "Failed to send OTP. Please try again.",
+                        "details": str(e)
+                    },
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+            
+            return Response(
+                {
+                    "message": "OTP resent to your email. Please check your inbox.",
+                    "email": user.email
+                },
+                status=status.HTTP_200_OK
+            )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {
+                    "error": "An unexpected error occurred.",
                     "details": {"exception": str(e)}
                 },
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -514,28 +741,73 @@ def role_selection(request):
 
 
 def register_page(request):
-    from django.conf import settings
+    from django.contrib.sites.models import Site
+    from allauth.socialaccount.models import SocialApp
+    
     role = request.GET.get('role', '')
     # Clean up role - ensure no None/null values
     if role in ['None', 'null', 'undefined', None]:
         role = ''
+    
     # Check if Google OAuth is configured
-    google_oauth_enabled = 'google' in getattr(settings, 'SOCIALACCOUNT_PROVIDERS', {})
+    google_oauth_enabled = False
+    google_oauth_error = None
+    
+    try:
+        # Check if SocialApp exists in database and is associated with current site
+        site = Site.objects.get_current()
+        social_app = SocialApp.objects.get(provider='google')
+        
+        # Check if associated with current site
+        if site not in social_app.sites.all():
+            google_oauth_error = "Google OAuth not associated with current site. Please configure in admin panel."
+        # Check if credentials are valid
+        elif social_app.client_id and social_app.secret and 'PLACEHOLDER' not in social_app.client_id:
+            google_oauth_enabled = True
+        else:
+            google_oauth_error = "Google OAuth credentials not configured. Please set up Google OAuth in admin panel."
+    except SocialApp.DoesNotExist:
+        google_oauth_error = "Google OAuth not set up. Please configure Google OAuth credentials."
+    except Exception as e:
+        google_oauth_error = f"Error checking Google OAuth: {str(e)}"
     
     context = {
         'role': role,
-        'google_oauth_enabled': google_oauth_enabled
+        'google_oauth_enabled': google_oauth_enabled,
+        'google_oauth_error': google_oauth_error
     }
     return render(request, 'register.html', context)
 
 
 def login_page(request):
-    from django.conf import settings
+    from django.contrib.sites.models import Site
+    from allauth.socialaccount.models import SocialApp
+    
     # Check if Google OAuth is configured
-    google_oauth_enabled = 'google' in getattr(settings, 'SOCIALACCOUNT_PROVIDERS', {})
+    google_oauth_enabled = False
+    google_oauth_error = None
+    
+    try:
+        # Check if SocialApp exists in database and is associated with current site
+        site = Site.objects.get_current()
+        social_app = SocialApp.objects.get(provider='google')
+        
+        # Check if associated with current site
+        if site not in social_app.sites.all():
+            google_oauth_error = "Google OAuth not associated with current site. Please configure in admin panel."
+        # Check if credentials are valid
+        elif social_app.client_id and social_app.secret and 'PLACEHOLDER' not in social_app.client_id:
+            google_oauth_enabled = True
+        else:
+            google_oauth_error = "Google OAuth credentials not configured. Please set up Google OAuth in admin panel."
+    except SocialApp.DoesNotExist:
+        google_oauth_error = "Google OAuth not set up. Please configure Google OAuth credentials."
+    except Exception as e:
+        google_oauth_error = f"Error checking Google OAuth: {str(e)}"
     
     context = {
-        'google_oauth_enabled': google_oauth_enabled
+        'google_oauth_enabled': google_oauth_enabled,
+        'google_oauth_error': google_oauth_error
     }
     return render(request, 'login.html', context)
 
@@ -1600,7 +1872,966 @@ def user_dashboard(request):
 def admin_dashboard(request):
     if request.user.role != 'admin':
         return _redirect_to_role_home_response(request.user)
-    return render(request, 'admin_dashboard.html')
+    
+    # Get all users by role
+    User = get_user_model()
+    total_users = User.objects.count()
+    farmers = User.objects.filter(role='farmer').count()
+    vendors = User.objects.filter(role='vendor').count()
+    experts = User.objects.filter(role='agricultural_expert').count()
+    normal_users = User.objects.filter(role='buyer').count()
+    
+    # KYC Statistics
+    pending_kyc = KYCRequest.objects.filter(status=KYCRequest.STATUS_PENDING).count()
+    approved_kyc = KYCRequest.objects.filter(status=KYCRequest.STATUS_APPROVED).count()
+    rejected_kyc = KYCRequest.objects.filter(status=KYCRequest.STATUS_REJECTED).count()
+    
+    # Transaction Statistics
+    total_transactions = Order.objects.count()
+    total_revenue = Order.objects.aggregate(total=Sum('total_amount'))['total'] or 0
+    completed_transactions = Order.objects.filter(status=Order.STATUS_DELIVERED).count()
+    pending_transactions = Order.objects.filter(status=Order.STATUS_PENDING).count()
+    
+    # Active Listings
+    active_crop_listings = FarmerProduct.objects.filter(is_available=True).count()
+    active_tool_listings = VendorTool.objects.filter(is_available=True).count()
+    total_active_listings = active_crop_listings + active_tool_listings
+    
+    # Recent Activity
+    recent_kyc_requests = KYCRequest.objects.select_related('user').order_by('-created_at')[:5]
+    recent_orders = Order.objects.select_related('buyer', 'tool', 'crop').order_by('-created_at')[:5]
+    recent_users = User.objects.order_by('-date_joined')[:5]
+    
+    # Chart Data - User Growth (last 6 months)
+    six_months_ago = timezone.now() - timedelta(days=180)
+    user_growth_raw = User.objects.filter(
+        date_joined__gte=six_months_ago
+    ).annotate(
+        month=TruncMonth('date_joined')
+    ).values('month', 'role').annotate(
+        count=Count('id')
+    ).order_by('month')
+    
+    # Convert to list and format dates
+    user_growth = []
+    for item in user_growth_raw:
+        user_growth.append({
+            'month': item['month'].isoformat() if item['month'] else None,
+            'role': item['role'],
+            'count': item['count']
+        })
+    
+    # Chart Data - Revenue by Month (last 6 months)
+    revenue_data_raw = Order.objects.filter(
+        created_at__gte=six_months_ago
+    ).annotate(
+        month=TruncMonth('created_at')
+    ).values('month').annotate(
+        total=Sum('total_amount'),
+        count=Count('id')
+    ).order_by('month')
+    
+    # Convert to list and format dates
+    revenue_data = []
+    for item in revenue_data_raw:
+        revenue_data.append({
+            'month': item['month'].isoformat() if item['month'] else None,
+            'total': float(item['total'] or 0),
+            'count': item['count']
+        })
+    
+    context = {
+        # Analytics Cards
+        'total_users': total_users,
+        'farmers': farmers,
+        'vendors': vendors,
+        'experts': experts,
+        'normal_users': normal_users,
+        'pending_kyc': pending_kyc,
+        'approved_kyc': approved_kyc,
+        'rejected_kyc': rejected_kyc,
+        'total_transactions': total_transactions,
+        'total_revenue': float(total_revenue),
+        'completed_transactions': completed_transactions,
+        'pending_transactions': pending_transactions,
+        'active_listings': total_active_listings,
+        'active_crop_listings': active_crop_listings,
+        'active_tool_listings': active_tool_listings,
+        
+        # Recent Activity
+        'recent_kyc_requests': recent_kyc_requests,
+        'recent_orders': recent_orders,
+        'recent_users': recent_users,
+        
+        # Chart Data - JSON serialized
+        'user_growth': json.dumps(user_growth),
+        'revenue_data': json.dumps(revenue_data),
+    }
+    
+    return render(request, 'admin_dashboard.html', context)
+
+
+@login_required
+def admin_kyc_view_json(request, kyc_id):
+    """Return KYC details as JSON for modal view"""
+    if request.user.role != 'admin':
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    try:
+        kyc = KYCRequest.objects.select_related('user').get(id=kyc_id)
+        from django.http import JsonResponse
+        return JsonResponse({
+            'user_email': kyc.user.email,
+            'full_name': kyc.full_name,
+            'id_number': kyc.id_number,
+            'role': kyc.user.get_role_display(),
+            'status': kyc.status,
+            'status_display': kyc.get_status_display(),
+            'id_document': kyc.id_document.url if kyc.id_document else '',
+            'selfie': kyc.selfie.url if kyc.selfie else None,
+            'company_document': kyc.company_document.url if kyc.company_document else None,
+            'certificate_document': kyc.certificate_document.url if kyc.certificate_document else None,
+            'rejection_reason': kyc.rejection_reason or '',
+            'created_at': kyc.created_at.strftime('%B %d, %Y'),
+        })
+    except KYCRequest.DoesNotExist:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'KYC not found'}, status=404)
+
+
+@login_required
+def admin_kyc_management(request):
+    """KYC Management page for admin"""
+    if request.user.role != 'admin':
+        return _redirect_to_role_home_response(request.user)
+    
+    # Handle KYC approval/rejection/edit
+    if request.method == 'POST':
+        kyc_id = request.POST.get('kyc_id')
+        action = request.POST.get('action')  # 'approve', 'reject', 'edit_kyc'
+        rejection_reason = request.POST.get('rejection_reason', '').strip()
+        
+        try:
+            kyc = KYCRequest.objects.get(id=kyc_id)
+            
+            if action == 'approve':
+                kyc.status = KYCRequest.STATUS_APPROVED
+                kyc.reviewed_by = request.user
+                kyc.reviewed_at = timezone.now()
+                kyc.rejection_reason = None
+                kyc.save()
+                kyc.user.is_verified = True
+                kyc.user.save()
+                messages.success(request, f'KYC request for {kyc.user.email} has been approved.')
+            elif action == 'reject':
+                if not rejection_reason:
+                    messages.error(request, 'Rejection reason is required.')
+                else:
+                    kyc.status = KYCRequest.STATUS_REJECTED
+                    kyc.reviewed_by = request.user
+                    kyc.reviewed_at = timezone.now()
+                    kyc.rejection_reason = rejection_reason
+                    kyc.save()
+                    kyc.user.is_verified = False
+                    kyc.user.save()
+                    messages.success(request, f'KYC request for {kyc.user.email} has been rejected.')
+            elif action == 'edit_kyc':
+                # Update KYC details
+                kyc.full_name = request.POST.get('full_name', kyc.full_name)
+                kyc.id_number = request.POST.get('id_number', kyc.id_number)
+                kyc.status = request.POST.get('status', kyc.status)
+                kyc.rejection_reason = request.POST.get('rejection_reason', '') or None
+                
+                # Update documents if new ones are uploaded
+                if request.FILES.get('id_document'):
+                    kyc.id_document = request.FILES.get('id_document')
+                if request.FILES.get('selfie'):
+                    kyc.selfie = request.FILES.get('selfie')
+                if request.FILES.get('company_document'):
+                    kyc.company_document = request.FILES.get('company_document')
+                if request.FILES.get('certificate_document'):
+                    kyc.certificate_document = request.FILES.get('certificate_document')
+                
+                # Update reviewed info if status changed
+                if kyc.status in [KYCRequest.STATUS_APPROVED, KYCRequest.STATUS_REJECTED]:
+                    kyc.reviewed_by = request.user
+                    kyc.reviewed_at = timezone.now()
+                    # Update user verification status
+                    kyc.user.is_verified = (kyc.status == KYCRequest.STATUS_APPROVED)
+                    kyc.user.save()
+                
+                kyc.save()
+                messages.success(request, f'KYC details for {kyc.user.email} have been updated.')
+        except KYCRequest.DoesNotExist:
+            messages.error(request, 'KYC request not found.')
+        except Exception as e:
+            messages.error(request, f'Error updating KYC: {str(e)}')
+    
+    # Get filter parameters
+    status_filter = request.GET.get('status', 'all')
+    role_filter = request.GET.get('role', 'all')
+    search_query = request.GET.get('search', '').strip()
+    
+    # Build query
+    kyc_requests = KYCRequest.objects.select_related('user', 'reviewed_by').order_by('-created_at')
+    
+    if status_filter != 'all':
+        kyc_requests = kyc_requests.filter(status=status_filter)
+    
+    if role_filter != 'all':
+        kyc_requests = kyc_requests.filter(user__role=role_filter)
+    
+    if search_query:
+        kyc_requests = kyc_requests.filter(
+            Q(user__email__icontains=search_query) |
+            Q(full_name__icontains=search_query) |
+            Q(id_number__icontains=search_query)
+        )
+    
+    context = {
+        'kyc_requests': kyc_requests,
+        'status_filter': status_filter,
+        'role_filter': role_filter,
+        'search_query': search_query,
+        'pending_count': KYCRequest.objects.filter(status=KYCRequest.STATUS_PENDING).count(),
+        'approved_count': KYCRequest.objects.filter(status=KYCRequest.STATUS_APPROVED).count(),
+        'rejected_count': KYCRequest.objects.filter(status=KYCRequest.STATUS_REJECTED).count(),
+    }
+    
+    return render(request, 'admin_kyc_management.html', context)
+
+
+@login_required
+def admin_user_view_json(request, user_id):
+    """Return user details as JSON for modal view"""
+    if request.user.role != 'admin':
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'Unauthorized'}, status=403)
+    
+    try:
+        User = get_user_model()
+        user = User.objects.get(id=user_id)
+        
+        data = {
+            'email': user.email,
+            'role': user.role,
+            'is_active': user.is_active,
+            'is_verified': user.is_verified,
+        }
+        
+        # Get profile data based on role
+        if user.role == 'farmer' and hasattr(user, 'farmer_profile'):
+            profile = user.farmer_profile
+            data['farmer_profile'] = {
+                'name': profile.name or '',
+                'location': profile.location or '',
+                'contact': profile.contact or '',
+                'farm_size': profile.farm_size or '',
+                'crop_types': profile.crop_types or '',
+                'livestock_details': profile.livestock_details or '',
+            }
+        elif user.role == 'vendor' and hasattr(user, 'vendor_profile'):
+            profile = user.vendor_profile
+            data['vendor_profile'] = {
+                'company_name': profile.company_name or '',
+                'address': profile.address or '',
+                'contact': profile.contact or '',
+            }
+        elif user.role == 'agricultural_expert' and hasattr(user, 'expert_profile'):
+            profile = user.expert_profile
+            data['expert_profile'] = {
+                'name': profile.name or '',
+                'qualification': profile.qualification or '',
+                'specialization': profile.specialization or '',
+                'experience': profile.experience or '',
+            }
+        elif user.role == 'buyer' and hasattr(user, 'user_profile'):
+            profile = user.user_profile
+            data['user_profile'] = {
+                'name': profile.name or '',
+                'address': profile.address or '',
+                'phone': profile.phone or '',
+            }
+        
+        from django.http import JsonResponse
+        return JsonResponse(data)
+    except User.DoesNotExist:
+        from django.http import JsonResponse
+        return JsonResponse({'error': 'User not found'}, status=404)
+
+
+@login_required
+def admin_user_management(request):
+    """User Management page for admin"""
+    if request.user.role != 'admin':
+        return _redirect_to_role_home_response(request.user)
+    
+    User = get_user_model()
+    
+    # Handle user actions
+    if request.method == 'POST':
+        user_id = request.POST.get('user_id')
+        action = request.POST.get('action')  # 'activate', 'deactivate', 'block', 'edit_user', 'delete_user', 'add_user'
+        
+        if action == 'add_user':
+            # Create new user
+            email = request.POST.get('email', '').strip()
+            password = request.POST.get('password', '').strip()
+            role = request.POST.get('role', 'buyer')
+            is_active = request.POST.get('is_active') == 'on'
+            is_verified = request.POST.get('is_verified') == 'on'
+            
+            if not email or not password:
+                messages.error(request, 'Email and password are required.')
+            elif User.objects.filter(email=email).exists():
+                messages.error(request, 'User with this email already exists.')
+            else:
+                try:
+                    user = User.objects.create_user(email=email, password=password, role=role)
+                    user.is_active = is_active
+                    user.is_verified = is_verified
+                    user.save()
+                    
+                    # Create profile based on role
+                    if role == 'farmer':
+                        profile = FarmerProfile.objects.create(user=user)
+                        profile.name = request.POST.get('profile_name', '')
+                        profile.location = request.POST.get('location', '')
+                        profile.contact = request.POST.get('contact', '')
+                        profile.farm_size = request.POST.get('farm_size', '')
+                        profile.crop_types = request.POST.get('crop_types', '')
+                        profile.livestock_details = request.POST.get('livestock_details', '')
+                        if request.FILES.get('photo'):
+                            profile.photo = request.FILES.get('photo')
+                        profile.save()
+                    elif role == 'vendor':
+                        profile = VendorProfile.objects.create(user=user)
+                        profile.company_name = request.POST.get('company_name', '')
+                        profile.address = request.POST.get('address', '')
+                        profile.contact = request.POST.get('contact', '')
+                        if request.FILES.get('logo'):
+                            profile.logo = request.FILES.get('logo')
+                        profile.save()
+                    elif role == 'agricultural_expert':
+                        profile = ExpertProfile.objects.create(user=user)
+                        profile.name = request.POST.get('profile_name', '')
+                        profile.qualification = request.POST.get('qualification', '')
+                        profile.specialization = request.POST.get('specialization', '')
+                        profile.experience = request.POST.get('experience', '')
+                        if request.FILES.get('photo'):
+                            profile.photo = request.FILES.get('photo')
+                        profile.save()
+                    elif role == 'buyer':
+                        profile = UserProfile.objects.create(user=user)
+                        profile.name = request.POST.get('profile_name', '')
+                        profile.address = request.POST.get('address', '')
+                        profile.phone = request.POST.get('phone', '')
+                        if request.FILES.get('photo'):
+                            profile.photo = request.FILES.get('photo')
+                        profile.save()
+                    
+                    messages.success(request, f'User {email} has been created successfully.')
+                except Exception as e:
+                    messages.error(request, f'Error creating user: {str(e)}')
+        
+        elif action == 'delete_user':
+            try:
+                user = User.objects.get(id=user_id)
+                # Prevent deleting yourself
+                if user.id == request.user.id:
+                    messages.error(request, 'You cannot delete your own account.')
+                else:
+                    email = user.email
+                    user.delete()
+                    messages.success(request, f'User {email} has been deleted successfully.')
+            except User.DoesNotExist:
+                messages.error(request, 'User not found.')
+            except Exception as e:
+                messages.error(request, f'Error deleting user: {str(e)}')
+        
+        elif user_id:
+            try:
+                user = User.objects.get(id=user_id)
+                
+                if action == 'activate':
+                    user.is_active = True
+                    user.save()
+                    messages.success(request, f'User {user.email} has been activated.')
+                elif action == 'deactivate':
+                    user.is_active = False
+                    user.save()
+                    messages.success(request, f'User {user.email} has been deactivated.')
+                elif action == 'block':
+                    user.is_active = False
+                    user.save()
+                    messages.warning(request, f'User {user.email} has been blocked.')
+                elif action == 'edit_user':
+                    # Update user fields
+                    new_email = request.POST.get('email', '').strip()
+                    new_role = request.POST.get('role', user.role)
+                    user.is_active = request.POST.get('is_active') == 'on'
+                    user.is_verified = request.POST.get('is_verified') == 'on'
+                    
+                    # Check if email is being changed and if it's unique
+                    if new_email and new_email != user.email:
+                        if User.objects.filter(email=new_email).exclude(id=user.id).exists():
+                            messages.error(request, 'Email already exists.')
+                            return redirect('admin_user_management')
+                        user.email = new_email
+                    
+                    user.role = new_role
+                    user.save()
+                    
+                    # Update profile based on role
+                    if user.role == 'farmer':
+                        profile, _ = FarmerProfile.objects.get_or_create(user=user)
+                        profile.name = request.POST.get('profile_name', '')
+                        profile.location = request.POST.get('location', '')
+                        profile.contact = request.POST.get('contact', '')
+                        profile.farm_size = request.POST.get('farm_size', '')
+                        profile.crop_types = request.POST.get('crop_types', '')
+                        profile.livestock_details = request.POST.get('livestock_details', '')
+                        if request.FILES.get('photo'):
+                            profile.photo = request.FILES.get('photo')
+                        profile.save()
+                    elif user.role == 'vendor':
+                        profile, _ = VendorProfile.objects.get_or_create(user=user)
+                        profile.company_name = request.POST.get('company_name', '')
+                        profile.address = request.POST.get('address', '')
+                        profile.contact = request.POST.get('contact', '')
+                        if request.FILES.get('logo'):
+                            profile.logo = request.FILES.get('logo')
+                        profile.save()
+                    elif user.role == 'agricultural_expert':
+                        profile, _ = ExpertProfile.objects.get_or_create(user=user)
+                        profile.name = request.POST.get('profile_name', '')
+                        profile.qualification = request.POST.get('qualification', '')
+                        profile.specialization = request.POST.get('specialization', '')
+                        profile.experience = request.POST.get('experience', '')
+                        if request.FILES.get('photo'):
+                            profile.photo = request.FILES.get('photo')
+                        profile.save()
+                    elif user.role == 'buyer':
+                        profile, _ = UserProfile.objects.get_or_create(user=user)
+                        profile.name = request.POST.get('profile_name', '')
+                        profile.address = request.POST.get('address', '')
+                        profile.phone = request.POST.get('phone', '')
+                        if request.FILES.get('photo'):
+                            profile.photo = request.FILES.get('photo')
+                        profile.save()
+                    
+                    messages.success(request, f'User {user.email} has been updated successfully.')
+            except User.DoesNotExist:
+                messages.error(request, 'User not found.')
+            except Exception as e:
+                messages.error(request, f'Error updating user: {str(e)}')
+    
+    # Get filter parameters
+    role_filter = request.GET.get('role', 'all')
+    status_filter = request.GET.get('status', 'all')
+    search_query = request.GET.get('search', '').strip()
+    
+    # Build query
+    users = User.objects.all().order_by('-date_joined')
+    
+    if role_filter != 'all':
+        users = users.filter(role=role_filter)
+    
+    if status_filter == 'active':
+        users = users.filter(is_active=True)
+    elif status_filter == 'inactive':
+        users = users.filter(is_active=False)
+    elif status_filter == 'verified':
+        users = users.filter(is_verified=True)
+    elif status_filter == 'unverified':
+        users = users.filter(is_verified=False)
+    
+    if search_query:
+        users = users.filter(
+            Q(email__icontains=search_query) |
+            Q(role__icontains=search_query)
+        )
+    
+    # Statistics
+    total_users = User.objects.count()
+    active_users = User.objects.filter(is_active=True).count()
+    inactive_users = User.objects.filter(is_active=False).count()
+    verified_users = User.objects.filter(is_verified=True).count()
+    
+    context = {
+        'users': users,
+        'role_filter': role_filter,
+        'status_filter': status_filter,
+        'search_query': search_query,
+        'total_users': total_users,
+        'active_users': active_users,
+        'inactive_users': inactive_users,
+        'verified_users': verified_users,
+    }
+    
+    return render(request, 'admin_user_management.html', context)
+
+
+@login_required
+def admin_content_management(request):
+    """Content Management page for admin"""
+    if request.user.role != 'admin':
+        return _redirect_to_role_home_response(request.user)
+    
+    # Handle POST requests for CRUD operations
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'edit_tip':
+            tip_id = request.POST.get('tip_id')
+            try:
+                tip = FarmingTip.objects.get(id=tip_id)
+                tip.title = request.POST.get('title', tip.title)
+                tip.content = request.POST.get('content', tip.content)
+                tip.is_published = request.POST.get('is_published') == 'on'
+                if request.FILES.get('image'):
+                    tip.image = request.FILES.get('image')
+                tip.save()
+                messages.success(request, 'Content updated successfully!')
+            except FarmingTip.DoesNotExist:
+                messages.error(request, 'Content not found!')
+        
+        elif action == 'delete_tip':
+            tip_id = request.POST.get('tip_id')
+            try:
+                tip = FarmingTip.objects.get(id=tip_id)
+                tip.delete()
+                messages.success(request, 'Content deleted successfully!')
+            except FarmingTip.DoesNotExist:
+                messages.error(request, 'Content not found!')
+        
+        return redirect('admin_content_management')
+    
+    # Get filter parameters
+    content_type = request.GET.get('type', 'all')  # 'tips', 'all'
+    status_filter = request.GET.get('status', 'all')
+    search_query = request.GET.get('search', '').strip()
+    
+    # Get expert content (tips)
+    tips = FarmingTip.objects.select_related('expert', 'expert__user').order_by('-created_at')
+    
+    if status_filter == 'published':
+        tips = tips.filter(is_published=True)
+    elif status_filter == 'unpublished':
+        tips = tips.filter(is_published=False)
+    
+    if search_query:
+        tips = tips.filter(
+            Q(title__icontains=search_query) |
+            Q(content__icontains=search_query) |
+            Q(expert__name__icontains=search_query) |
+            Q(expert__user__email__icontains=search_query)
+        )
+    
+    # Statistics
+    total_tips = FarmingTip.objects.count()
+    published_tips = FarmingTip.objects.filter(is_published=True).count()
+    unpublished_tips = FarmingTip.objects.filter(is_published=False).count()
+    total_experts = ExpertProfile.objects.count()
+    
+    context = {
+        'tips': tips,
+        'content_type': content_type,
+        'status_filter': status_filter,
+        'search_query': search_query,
+        'total_tips': total_tips,
+        'published_tips': published_tips,
+        'unpublished_tips': unpublished_tips,
+        'total_experts': total_experts,
+    }
+    
+    return render(request, 'admin_content_management.html', context)
+
+
+@login_required
+def admin_marketplace_oversight(request):
+    """Marketplace Oversight page for admin"""
+    if request.user.role != 'admin':
+        return _redirect_to_role_home_response(request.user)
+    
+    # Handle POST requests for CRUD operations
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        # Crop operations
+        if action == 'add_crop':
+            farmer_id = request.POST.get('farmer_id')
+            name = request.POST.get('name')
+            quantity = request.POST.get('quantity')
+            unit = request.POST.get('unit', 'kg')
+            price_per_unit = request.POST.get('price_per_unit')
+            is_available = request.POST.get('is_available') == 'on'
+            
+            try:
+                farmer = FarmerProfile.objects.get(id=farmer_id)
+                crop = FarmerProduct.objects.create(
+                    farmer=farmer,
+                    name=name,
+                    quantity=quantity,
+                    unit=unit,
+                    price_per_unit=price_per_unit,
+                    is_available=is_available
+                )
+                if request.FILES.get('image'):
+                    crop.image = request.FILES.get('image')
+                    crop.save()
+                messages.success(request, 'Crop added successfully!')
+            except FarmerProfile.DoesNotExist:
+                messages.error(request, 'Farmer not found!')
+            except Exception as e:
+                messages.error(request, f'Error: {str(e)}')
+        
+        elif action == 'edit_crop':
+            crop_id = request.POST.get('crop_id')
+            try:
+                crop = FarmerProduct.objects.get(id=crop_id)
+                crop.name = request.POST.get('name', crop.name)
+                crop.quantity = request.POST.get('quantity', crop.quantity)
+                crop.unit = request.POST.get('unit', crop.unit)
+                crop.price_per_unit = request.POST.get('price_per_unit', crop.price_per_unit)
+                crop.is_available = request.POST.get('is_available') == 'on'
+                if request.FILES.get('image'):
+                    crop.image = request.FILES.get('image')
+                crop.save()
+                messages.success(request, 'Crop updated successfully!')
+            except FarmerProduct.DoesNotExist:
+                messages.error(request, 'Crop not found!')
+        
+        elif action == 'delete_crop':
+            crop_id = request.POST.get('crop_id')
+            try:
+                crop = FarmerProduct.objects.get(id=crop_id)
+                crop.delete()
+                messages.success(request, 'Crop deleted successfully!')
+            except FarmerProduct.DoesNotExist:
+                messages.error(request, 'Crop not found!')
+        
+        # Tool operations
+        elif action == 'add_tool':
+            vendor_id = request.POST.get('vendor_id')
+            name = request.POST.get('name')
+            description = request.POST.get('description', '')
+            price = request.POST.get('price')
+            stock_quantity = request.POST.get('stock_quantity', 0)
+            is_available = request.POST.get('is_available') == 'on'
+            
+            try:
+                vendor = VendorProfile.objects.get(id=vendor_id)
+                tool = VendorTool.objects.create(
+                    vendor=vendor,
+                    name=name,
+                    description=description,
+                    price=price,
+                    stock_quantity=stock_quantity,
+                    is_available=is_available
+                )
+                if request.FILES.get('image'):
+                    tool.image = request.FILES.get('image')
+                    tool.save()
+                messages.success(request, 'Tool added successfully!')
+            except VendorProfile.DoesNotExist:
+                messages.error(request, 'Vendor not found!')
+            except Exception as e:
+                messages.error(request, f'Error: {str(e)}')
+        
+        elif action == 'edit_tool':
+            tool_id = request.POST.get('tool_id')
+            try:
+                tool = VendorTool.objects.get(id=tool_id)
+                tool.name = request.POST.get('name', tool.name)
+                tool.description = request.POST.get('description', tool.description)
+                tool.price = request.POST.get('price', tool.price)
+                tool.stock_quantity = request.POST.get('stock_quantity', tool.stock_quantity)
+                tool.is_available = request.POST.get('is_available') == 'on'
+                if request.FILES.get('image'):
+                    tool.image = request.FILES.get('image')
+                tool.save()
+                messages.success(request, 'Tool updated successfully!')
+            except VendorTool.DoesNotExist:
+                messages.error(request, 'Tool not found!')
+        
+        elif action == 'delete_tool':
+            tool_id = request.POST.get('tool_id')
+            try:
+                tool = VendorTool.objects.get(id=tool_id)
+                tool.delete()
+                messages.success(request, 'Tool deleted successfully!')
+            except VendorTool.DoesNotExist:
+                messages.error(request, 'Tool not found!')
+        
+        # Order operations
+        elif action == 'edit_order':
+            order_id = request.POST.get('order_id')
+            try:
+                order = Order.objects.get(id=order_id)
+                order.status = request.POST.get('status', order.status)
+                order.payment_status = request.POST.get('payment_status', order.payment_status)
+                order.payment_method = request.POST.get('payment_method', order.payment_method)
+                order.tracking_number = request.POST.get('tracking_number', order.tracking_number)
+                order.shipping_address = request.POST.get('shipping_address', order.shipping_address)
+                order.notes = request.POST.get('notes', order.notes)
+                order.save()
+                messages.success(request, 'Order updated successfully!')
+            except Order.DoesNotExist:
+                messages.error(request, 'Order not found!')
+        
+        elif action == 'delete_order':
+            order_id = request.POST.get('order_id')
+            try:
+                order = Order.objects.get(id=order_id)
+                order.delete()
+                messages.success(request, 'Order deleted successfully!')
+            except Order.DoesNotExist:
+                messages.error(request, 'Order not found!')
+        
+        # Redirect back to the same section
+        section = request.GET.get('section', 'overview')
+        return redirect(f"{reverse('admin_marketplace_oversight')}?section={section}")
+    
+    # Get filter parameters
+    section = request.GET.get('section', 'overview')  # 'overview', 'tools', 'crops', 'orders', 'payments'
+    status_filter = request.GET.get('status', 'all')
+    search_query = request.GET.get('search', '').strip()
+    
+    context = {}
+    
+    # Get all farmers and vendors for dropdowns (always needed for add forms)
+    context['farmers'] = FarmerProfile.objects.select_related('user').all()
+    context['vendors'] = VendorProfile.objects.select_related('user').all()
+    
+    # Always load tools when section is tools or overview
+    if section == 'overview' or section == 'tools':
+        tools = VendorTool.objects.select_related('vendor', 'vendor__user').order_by('-created_at')
+        if status_filter == 'available':
+            tools = tools.filter(is_available=True)
+        elif status_filter == 'unavailable':
+            tools = tools.filter(is_available=False)
+        if search_query:
+            tools = tools.filter(
+                Q(name__icontains=search_query) |
+                Q(vendor__company_name__icontains=search_query) |
+                Q(vendor__user__email__icontains=search_query)
+            )
+        context['tools'] = tools
+        context['total_tools'] = VendorTool.objects.count()
+        context['available_tools'] = VendorTool.objects.filter(is_available=True).count()
+    else:
+        # Initialize empty queryset for other sections
+        context['tools'] = VendorTool.objects.none()
+        context['total_tools'] = VendorTool.objects.count()
+        context['available_tools'] = VendorTool.objects.filter(is_available=True).count()
+    
+    # Always load crops when section is crops or overview
+    if section == 'overview' or section == 'crops':
+        crops = FarmerProduct.objects.select_related('farmer', 'farmer__user').order_by('-created_at')
+        if status_filter == 'available':
+            crops = crops.filter(is_available=True)
+        elif status_filter == 'unavailable':
+            crops = crops.filter(is_available=False)
+        if search_query:
+            crops = crops.filter(
+                Q(name__icontains=search_query) |
+                Q(farmer__name__icontains=search_query) |
+                Q(farmer__user__email__icontains=search_query)
+            )
+        context['crops'] = crops
+        context['total_crops'] = FarmerProduct.objects.count()
+        context['available_crops'] = FarmerProduct.objects.filter(is_available=True).count()
+    else:
+        # Initialize empty queryset for other sections
+        context['crops'] = FarmerProduct.objects.none()
+        context['total_crops'] = FarmerProduct.objects.count()
+        context['available_crops'] = FarmerProduct.objects.filter(is_available=True).count()
+    
+    if section == 'overview' or section == 'orders':
+        orders = Order.objects.select_related('buyer', 'tool', 'tool__vendor', 'crop', 'crop__farmer').order_by('-created_at')
+        if status_filter != 'all':
+            orders = orders.filter(status=status_filter)
+        if search_query:
+            orders = orders.filter(
+                Q(buyer__email__icontains=search_query) |
+                Q(tool__name__icontains=search_query) |
+                Q(crop__name__icontains=search_query) |
+                Q(tracking_number__icontains=search_query)
+            )
+        context['orders'] = orders
+        context['total_orders'] = Order.objects.count()
+        context['pending_orders'] = Order.objects.filter(status=Order.STATUS_PENDING).count()
+        context['completed_orders'] = Order.objects.filter(status=Order.STATUS_DELIVERED).count()
+    
+    if section == 'overview' or section == 'payments':
+        orders = Order.objects.select_related('buyer', 'tool', 'crop').order_by('-created_at')
+        total_revenue = Order.objects.aggregate(total=Sum('total_amount'))['total'] or 0
+        completed_payments = Order.objects.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED).count()
+        pending_payments = Order.objects.filter(payment_status=Order.PAYMENT_STATUS_PENDING).count()
+        failed_payments = Order.objects.filter(payment_status=Order.PAYMENT_STATUS_FAILED).count()
+        
+        if status_filter != 'all':
+            orders = orders.filter(payment_status=status_filter)
+        if search_query:
+            orders = orders.filter(
+                Q(buyer__email__icontains=search_query) |
+                Q(tool__name__icontains=search_query) |
+                Q(crop__name__icontains=search_query)
+            )
+        
+        context['payment_orders'] = orders
+        context['total_revenue'] = float(total_revenue)
+        context['completed_payments'] = completed_payments
+        context['pending_payments'] = pending_payments
+        context['failed_payments'] = failed_payments
+    
+    context['section'] = section
+    context['status_filter'] = status_filter
+    context['search_query'] = search_query
+    
+    return render(request, 'admin_marketplace_oversight.html', context)
+
+
+@login_required
+def admin_appointment_management(request):
+    """Appointment Management page for admin"""
+    if request.user.role != 'admin':
+        return _redirect_to_role_home_response(request.user)
+    
+    # Handle POST requests for CRUD operations
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        
+        if action == 'edit_appointment':
+            appointment_id = request.POST.get('appointment_id')
+            try:
+                appointment = ExpertAppointment.objects.get(id=appointment_id)
+                appointment.requested_date = request.POST.get('requested_date', appointment.requested_date)
+                appointment.requested_time = request.POST.get('requested_time', appointment.requested_time)
+                appointment.status = request.POST.get('status', appointment.status)
+                appointment.message = request.POST.get('message', appointment.message)
+                appointment.response_message = request.POST.get('response_message', appointment.response_message)
+                appointment.save()
+                messages.success(request, 'Appointment updated successfully!')
+            except ExpertAppointment.DoesNotExist:
+                messages.error(request, 'Appointment not found!')
+        
+        elif action == 'delete_appointment':
+            appointment_id = request.POST.get('appointment_id')
+            try:
+                appointment = ExpertAppointment.objects.get(id=appointment_id)
+                appointment.delete()
+                messages.success(request, 'Appointment deleted successfully!')
+            except ExpertAppointment.DoesNotExist:
+                messages.error(request, 'Appointment not found!')
+        
+        return redirect('admin_appointment_management')
+    
+    # Get filter parameters
+    status_filter = request.GET.get('status', 'all')
+    search_query = request.GET.get('search', '').strip()
+    
+    # Get all appointments
+    appointments = ExpertAppointment.objects.select_related(
+        'expert', 'expert__user', 'requester'
+    ).order_by('-created_at')
+    
+    if status_filter != 'all':
+        appointments = appointments.filter(status=status_filter)
+    
+    if search_query:
+        appointments = appointments.filter(
+            Q(expert__name__icontains=search_query) |
+            Q(expert__user__email__icontains=search_query) |
+            Q(requester__email__icontains=search_query)
+        )
+    
+    # Statistics
+    total_appointments = ExpertAppointment.objects.count()
+    pending_appointments = ExpertAppointment.objects.filter(status=ExpertAppointment.STATUS_PENDING).count()
+    accepted_appointments = ExpertAppointment.objects.filter(status=ExpertAppointment.STATUS_ACCEPTED).count()
+    rejected_appointments = ExpertAppointment.objects.filter(status=ExpertAppointment.STATUS_REJECTED).count()
+    
+    context = {
+        'appointments': appointments,
+        'status_filter': status_filter,
+        'search_query': search_query,
+        'total_appointments': total_appointments,
+        'pending_appointments': pending_appointments,
+        'accepted_appointments': accepted_appointments,
+        'rejected_appointments': rejected_appointments,
+    }
+    
+    return render(request, 'admin_appointment_management.html', context)
+
+
+@login_required
+def admin_chat_reports(request):
+    """Chat and Reports Monitoring page for admin"""
+    if request.user.role != 'admin':
+        return _redirect_to_role_home_response(request.user)
+    
+    # Get filter parameters
+    section = request.GET.get('section', 'overview')  # 'overview', 'chats', 'reports'
+    search_query = request.GET.get('search', '').strip()
+    
+    context = {}
+    
+    # Chat Statistics
+    total_threads = ExpertChatThread.objects.count()
+    total_messages = ExpertChatMessage.objects.count()
+    total_experts = ExpertProfile.objects.count()
+    total_chat_users = ExpertChatThread.objects.values('created_by').distinct().count()
+    
+    # Get chat threads
+    chat_threads = ExpertChatThread.objects.select_related(
+        'expert', 'expert__user', 'created_by'
+    ).order_by('-updated_at')
+    
+    if search_query:
+        chat_threads = chat_threads.filter(
+            Q(expert__name__icontains=search_query) |
+            Q(expert__user__email__icontains=search_query) |
+            Q(created_by__email__icontains=search_query)
+        )
+    
+    # Get messages count per thread
+    threads_with_counts = []
+    for thread in chat_threads[:50]:  # Limit to 50 most recent
+        message_count = ExpertChatMessage.objects.filter(thread=thread).count()
+        threads_with_counts.append({
+            'thread': thread,
+            'message_count': message_count,
+        })
+    
+    # Platform Usage Statistics
+    User = get_user_model()
+    total_users = User.objects.count()
+    active_users_30d = User.objects.filter(
+        date_joined__gte=timezone.now() - timedelta(days=30)
+    ).count()
+    
+    # Recent activity
+    recent_threads = ExpertChatThread.objects.select_related(
+        'expert', 'expert__user', 'created_by'
+    ).order_by('-created_at')[:10]
+    
+    context.update({
+        'section': section,
+        'search_query': search_query,
+        'total_threads': total_threads,
+        'total_messages': total_messages,
+        'total_experts': total_experts,
+        'total_chat_users': total_chat_users,
+        'threads_with_counts': threads_with_counts,
+        'total_users': total_users,
+        'active_users_30d': active_users_30d,
+        'recent_threads': recent_threads,
+    })
+    
+    return render(request, 'admin_chat_reports.html', context)
 
 
 @login_required

@@ -42,3 +42,8 @@ class UserSerializer(serializers.ModelSerializer):
         model = User
         fields = ('id', 'email', 'role', 'is_verified', 'date_joined')
         read_only_fields = ('id', 'is_verified', 'date_joined')
+
+
+class OTPVerificationSerializer(serializers.Serializer):
+    email = serializers.EmailField(required=True)
+    otp = serializers.CharField(required=True, min_length=6, max_length=6, help_text="6-digit OTP code")

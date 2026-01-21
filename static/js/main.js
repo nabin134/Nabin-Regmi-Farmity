@@ -28,10 +28,14 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 
-    // Login Form
-    const loginForm = document.getElementById('loginForm');
-    if (loginForm) {
-        loginForm.addEventListener('submit', handleLogin);
+    // Login Form - Skip if login.html has its own handler
+    // The login.html template has its own login handler with OTP support
+    // So we skip the main.js handler for login page
+    if (!window.location.pathname.includes('/login/')) {
+        const loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            loginForm.addEventListener('submit', handleLogin);
+        }
     }
 
     // Register Form

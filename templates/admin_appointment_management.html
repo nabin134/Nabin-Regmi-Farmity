@@ -1,0 +1,629 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Management - Admin Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary: #358D58;
+            --primary-dark: #2a6f45;
+            --secondary: #F29900;
+            --success: #28a745;
+            --danger: #dc3545;
+            --warning: #ffc107;
+            --info: #17a2b8;
+            --light: #f8f9fa;
+            --dark: #343a40;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
+            color: #333;
+        }
+
+        .sidebar {
+            position: fixed;
+            left: 0;
+            top: 0;
+            width: var(--sidebar-width);
+            height: 100vh;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            z-index: 1000;
+            overflow-y: auto;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+
+        .sidebar-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .sidebar-header h2 {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .sidebar-menu {
+            padding: 20px 0;
+        }
+
+        .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 14px 20px;
+            color: rgba(255,255,255,0.9);
+            text-decoration: none;
+            transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+
+        .menu-item:hover, .menu-item.active {
+            background: rgba(255,255,255,0.1);
+            border-left-color: var(--secondary);
+            color: white;
+        }
+
+        .menu-item i {
+            width: 20px;
+            text-align: center;
+        }
+
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+        }
+
+        .top-header {
+            background: white;
+            height: var(--header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-title {
+            font-size: 24px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .dashboard-content {
+            padding: 30px;
+        }
+
+        .page-header {
+            margin-bottom: 30px;
+        }
+
+        .page-title {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .page-subtitle {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .filters-section {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .filter-label {
+            font-size: 14px;
+            font-weight: 500;
+            color: #666;
+        }
+
+        .filter-select, .filter-input {
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            background: white;
+        }
+
+        .filter-btn {
+            padding: 10px 20px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: var(--dark);
+            margin-bottom: 8px;
+        }
+
+        .stat-label {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+
+        .data-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .data-table th {
+            text-align: left;
+            padding: 12px;
+            border-bottom: 2px solid #eee;
+            font-weight: 600;
+            color: var(--dark);
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .data-table td {
+            padding: 16px 12px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .data-table tr:hover {
+            background: #f8f9fa;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 500;
+            text-transform: uppercase;
+        }
+
+        .status-badge.pending { background: #fff3cd; color: #856404; }
+        .status-badge.accepted { background: #d4edda; color: #155724; }
+        .status-badge.rejected { background: #f8d7da; color: #721c24; }
+
+        .action-buttons {
+            display: flex;
+            gap: 8px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+
+        .btn-edit {
+            background: var(--info);
+            color: white;
+        }
+
+        .btn-delete {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn:hover {
+            opacity: 0.9;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.active {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 90vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 600;
+        }
+
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #999;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-control {
+            width: 100%;
+            padding: 10px 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .form-control:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+
+        .btn-cancel {
+            background: #6c757d;
+            color: white;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                transform: translateX(-100%);
+            }
+
+            .main-content {
+                margin-left: 0;
+            }
+
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-seedling"></i>
+            <h2>Farmity Admin</h2>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="{% url 'admin_dashboard' %}" class="menu-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="{% url 'admin_kyc_management' %}" class="menu-item">
+                <i class="fas fa-id-card"></i>
+                <span>KYC Management</span>
+            </a>
+            <a href="{% url 'admin_user_management' %}" class="menu-item">
+                <i class="fas fa-users"></i>
+                <span>User Management</span>
+            </a>
+            <a href="{% url 'admin_content_management' %}" class="menu-item">
+                <i class="fas fa-file-alt"></i>
+                <span>Content Management</span>
+            </a>
+            <a href="{% url 'admin_marketplace_oversight' %}" class="menu-item">
+                <i class="fas fa-store"></i>
+                <span>Marketplace</span>
+            </a>
+            <a href="{% url 'admin_appointment_management' %}" class="menu-item active">
+                <i class="fas fa-calendar-check"></i>
+                <span>Appointments</span>
+            </a>
+            <a href="{% url 'admin_chat_reports' %}" class="menu-item">
+                <i class="fas fa-comments"></i>
+                <span>Chat & Reports</span>
+            </a>
+            <a href="{% url 'logout' %}" class="menu-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <header class="top-header">
+            <h1 class="header-title">Appointment Management</h1>
+        </header>
+
+        <div class="dashboard-content">
+            <div class="page-header">
+                <h2 class="page-title">Expert Appointments</h2>
+                <p class="page-subtitle">Manage and monitor appointment requests</p>
+            </div>
+
+            <!-- Statistics -->
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value">{{ total_appointments }}</div>
+                    <div class="stat-label">Total Appointments</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ pending_appointments }}</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ accepted_appointments }}</div>
+                    <div class="stat-label">Accepted</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ rejected_appointments }}</div>
+                    <div class="stat-label">Rejected</div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filters-section">
+                <form method="GET" action="{% url 'admin_appointment_management' %}">
+                    <div class="filters-grid">
+                        <div class="filter-group">
+                            <label class="filter-label">Status</label>
+                            <select name="status" class="filter-select">
+                                <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
+                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
+                                <option value="accepted" {% if status_filter == 'accepted' %}selected{% endif %}>Accepted</option>
+                                <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                            </select>
+                        </div>
+                        <div class="filter-group">
+                            <label class="filter-label">Search</label>
+                            <input type="text" name="search" class="filter-input" placeholder="Expert, user email..." value="{{ search_query }}">
+                        </div>
+                        <div class="filter-group" style="justify-content: flex-end;">
+                            <button type="submit" class="filter-btn">
+                                <i class="fas fa-search"></i> Filter
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Appointments Table -->
+            <div class="table-container">
+                {% if appointments %}
+                <table class="data-table">
+                    <thead>
+                        <tr>
+                            <th>Expert</th>
+                            <th>Requester</th>
+                            <th>Date</th>
+                            <th>Time</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for appointment in appointments %}
+                        <tr>
+                            <td>{{ appointment.expert.name|default:appointment.expert.user.email }}</td>
+                            <td>{{ appointment.requester.email }}</td>
+                            <td>{{ appointment.requested_date|date:"M d, Y" }}</td>
+                            <td>{{ appointment.requested_time|time:"g:i A" }}</td>
+                            <td>
+                                <span class="status-badge {{ appointment.status }}">{{ appointment.get_status_display }}</span>
+                            </td>
+                            <td>{{ appointment.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    <button class="btn btn-edit" onclick="openEditAppointmentModal({{ appointment.id }}, '{{ appointment.requested_date }}', '{{ appointment.requested_time }}', '{{ appointment.status }}', '{{ appointment.message|default:""|escapejs }}', '{{ appointment.response_message|default:""|escapejs }}')">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    <button class="btn btn-delete" onclick="confirmDeleteAppointment({{ appointment.id }})">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <p style="text-align: center; padding: 40px; color: #999;">No appointments found</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Appointment Modal -->
+    <div id="editAppointmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Edit Appointment</h3>
+                <button class="close-modal" onclick="closeEditAppointmentModal()">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'admin_appointment_management' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="edit_appointment">
+                <input type="hidden" name="appointment_id" id="appointmentId">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Requested Date *</label>
+                        <input type="date" name="requested_date" id="appointmentDate" class="form-control" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Requested Time *</label>
+                        <input type="time" name="requested_time" id="appointmentTime" class="form-control" required>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Status</label>
+                    <select name="status" id="appointmentStatus" class="form-control">
+                        <option value="pending">Pending</option>
+                        <option value="accepted">Accepted</option>
+                        <option value="rejected">Rejected</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Message</label>
+                    <textarea name="message" id="appointmentMessage" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Response Message</label>
+                    <textarea name="response_message" id="appointmentResponse" class="form-control" rows="3"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeEditAppointmentModal()">Cancel</button>
+                    <button type="submit" class="btn btn-edit">Update</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Confirm Delete</h3>
+                <button class="close-modal" onclick="closeDeleteModal()">&times;</button>
+            </div>
+            <p id="deleteMessage"></p>
+            <form method="POST" action="{% url 'admin_appointment_management' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete_appointment">
+                <input type="hidden" name="appointment_id" id="deleteAppointmentId">
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeDeleteModal()">Cancel</button>
+                    <button type="submit" class="btn btn-delete">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function openEditAppointmentModal(id, date, time, status, message, response) {
+            document.getElementById('appointmentId').value = id;
+            document.getElementById('appointmentDate').value = date;
+            document.getElementById('appointmentTime').value = time;
+            document.getElementById('appointmentStatus').value = status;
+            document.getElementById('appointmentMessage').value = message || '';
+            document.getElementById('appointmentResponse').value = response || '';
+            document.getElementById('editAppointmentModal').classList.add('active');
+        }
+
+        function closeEditAppointmentModal() {
+            document.getElementById('editAppointmentModal').classList.remove('active');
+        }
+
+        function confirmDeleteAppointment(id) {
+            document.getElementById('deleteAppointmentId').value = id;
+            document.getElementById('deleteMessage').textContent = `Are you sure you want to delete this appointment? This action cannot be undone.`;
+            document.getElementById('deleteModal').classList.add('active');
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').classList.remove('active');
+        }
+
+        window.onclick = function(event) {
+            const modals = ['editAppointmentModal', 'deleteModal'];
+            modals.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (event.target == modal) {
+                    modal.classList.remove('active');
+                }
+            });
+        }
+    </script>
+</body>
+</html>

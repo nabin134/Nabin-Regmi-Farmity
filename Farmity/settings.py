@@ -18,6 +18,9 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
 
+# OTP Settings
+REQUIRE_OTP_FOR_LOGIN = False  # Set to False to skip OTP in development, True for production
+
 
 # ======================
 # APPLICATIONS
@@ -159,13 +162,16 @@ ACCOUNT_SIGNUP_FIELDS = ['email*', 'password1*', 'password2*']  # Required field
 ACCOUNT_LOGIN_METHODS = ['email']  # Login using email
 ACCOUNT_EMAIL_VERIFICATION = 'none'  # Set to 'mandatory' in production
 ACCOUNT_UNIQUE_EMAIL = True
+ACCOUNT_USER_MODEL_USERNAME_FIELD = None  # Don't use username field
 ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
 SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
 
 # Social Account Settings
-SOCIALACCOUNT_AUTO_SIGNUP = True
-SOCIALACCOUNT_EMAIL_REQUIRED = False
-SOCIALACCOUNT_QUERY_EMAIL = True
+SOCIALACCOUNT_AUTO_SIGNUP = True  # Automatically create user account on first Google login
+SOCIALACCOUNT_EMAIL_REQUIRED = False  # Email not required for social accounts
+SOCIALACCOUNT_QUERY_EMAIL = True  # Request email from Google
+SOCIALACCOUNT_STORE_TOKENS = False  # Don't store OAuth tokens
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # No email verification for social accounts
 
 # Google OAuth Settings (set these in environment variables or .env file)
 # Only configure Google OAuth if credentials are provided

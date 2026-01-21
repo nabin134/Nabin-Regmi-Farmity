@@ -1,8 +1,11 @@
 from django.urls import path
 from .views import (
     SignupView, LoginView, ForgotPasswordView, ResetPasswordView, VerifyOTPView,
+    OTPVerificationView, ResendOTPView,
     landing_page, role_selection, register_page, login_page, home_page, dashboard,
     farmer_dashboard, vendor_dashboard, expert_dashboard, user_dashboard, admin_dashboard,
+    admin_kyc_management, admin_kyc_view_json, admin_user_management, admin_user_view_json, admin_content_management,
+    admin_marketplace_oversight, admin_appointment_management, admin_chat_reports,
     kyc_page, profile_page, settings_page, change_password,
     appointment_request_page,
     chat_threads_page, chat_thread_detail,
@@ -29,6 +32,14 @@ urlpatterns = [
     path('expert-dashboard/', expert_dashboard, name='expert_dashboard'),
     path('user-dashboard/', user_dashboard, name='user_dashboard'),
     path('admin-dashboard/', admin_dashboard, name='admin_dashboard'),
+    path('admin-dashboard/kyc/', admin_kyc_management, name='admin_kyc_management'),
+    path('admin-dashboard/kyc/view/<int:kyc_id>/', admin_kyc_view_json, name='admin_kyc_view_json'),
+    path('admin-dashboard/users/', admin_user_management, name='admin_user_management'),
+    path('admin-dashboard/users/view/<int:user_id>/', admin_user_view_json, name='admin_user_view_json'),
+    path('admin-dashboard/content/', admin_content_management, name='admin_content_management'),
+    path('admin-dashboard/marketplace/', admin_marketplace_oversight, name='admin_marketplace_oversight'),
+    path('admin-dashboard/appointments/', admin_appointment_management, name='admin_appointment_management'),
+    path('admin-dashboard/chats-reports/', admin_chat_reports, name='admin_chat_reports'),
     path('appointments/request/', appointment_request_page, name='appointment_request'),
     path('chat/', chat_threads_page, name='chat_threads'),
     path('chat/<int:thread_id>/', chat_thread_detail, name='chat_thread'),
@@ -38,7 +49,8 @@ urlpatterns = [
 api_urlpatterns = [
     path('signup/', SignupView.as_view(), name='api-signup'),
     path('login/', LoginView.as_view(), name='api-login'),
+    path('verify-otp/', OTPVerificationView.as_view(), name='api-verify-otp'),
+    path('resend-otp/', ResendOTPView.as_view(), name='api-resend-otp'),
     path('forgot-password/', ForgotPasswordView.as_view(), name='api-forgot-password'),
-    path('verify-otp/', VerifyOTPView.as_view(), name='api-verify-otp'),
     path('reset-password/', ResetPasswordView.as_view(), name='api-reset-password'),
 ]
