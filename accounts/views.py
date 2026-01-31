@@ -533,7 +533,7 @@ class ForgotPasswordView(APIView):
                 'created_at': timezone.now()
             }
             
-            # Send OTP email (in production, use proper email backend)
+            # Send forgot-password OTP to the user's email (uses SMTP when EMAIL_HOST_PASSWORD is set)
             try:
                 send_mail(
                     subject='Your Farmity Password Reset OTP',
@@ -549,15 +549,15 @@ If you didn't request this, please ignore this email.
 
 Best regards,
 Farmity Team''',
-                    from_email=settings.DEFAULT_FROM_EMAIL if hasattr(settings, 'DEFAULT_FROM_EMAIL') else 'noreply@farmity.com',
+                    from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[user.email],
                     fail_silently=False,
                 )
+                print(f"Forgot-password OTP sent to: {user.email}")
             except Exception as e:
-                print(f"Email send error: {e}")
-                # In development, log the OTP
-                if settings.DEBUG:
-                    print(f"DEBUG MODE - OTP for {email}: {otp}")
+                print(f"Forgot-password email send error: {e}")
+                import traceback
+                traceback.print_exc()
             
             return Response(
                 {
@@ -744,9 +744,12 @@ def register_page(request):
     from django.contrib.sites.models import Site
     from allauth.socialaccount.models import SocialApp
     
-    role = request.GET.get('role', '')
-    # Clean up role - ensure no None/null values
-    if role in ['None', 'null', 'undefined', None]:
+    role = (request.GET.get('role', '') or '').strip().lower()
+    # Clean up role - ensure no None/null values and only allow valid roles
+    if role in ['none', 'null', 'undefined', '']:
+        role = ''
+    valid_roles = {'farmer', 'buyer', 'vendor', 'agricultural_expert'}
+    if role and role not in valid_roles:
         role = ''
     
     # Check if Google OAuth is configured

@@ -527,15 +527,18 @@
                 <div id="otpStep" class="otp-step" style="display: none;">
                     <div class="form-group">
                         <label for="otp">Enter OTP</label>
-                        <p style="color: #666; font-size: 14px; margin-bottom: 15px;">
-                            We've sent a 6-digit OTP to <strong id="otpEmail"></strong>.
+                        <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
+                            We've sent a 6-digit OTP to your email:
                         </p>
-                        <div style="background: #fff3cd; border: 1px solid #ffc107; border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 13px; color: #856404;">
-                            <strong>⚠️ Important:</strong> In development mode, OTPs are sent to the <strong>Django server console</strong> (the terminal where you ran <code>python manage.py runserver</code>), not to your email. Please check the console output for your OTP code. The OTP will also be shown in the success message above and in your browser console (F12).
-                        </div>
-                        <div id="otpDisplay" style="display: none; background: #d4edda; border: 1px solid #28a745; border-radius: 8px; padding: 15px; margin-bottom: 15px; text-align: center;">
-                            <strong style="font-size: 18px; color: #155724;">Your OTP Code:</strong>
-                            <div style="font-size: 32px; font-weight: bold; color: #28a745; letter-spacing: 0.5rem; margin-top: 10px;" id="displayOtpCode"></div>
+                        <p style="margin-bottom: 15px; font-size: 15px;">
+                            <strong id="otpEmail" style="color: #1a1a1a;"></strong>
+                        </p>
+                        <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
+                            Please check your inbox (and spam folder) for the code and enter it below.
+                        </p>
+                        <div id="otpDisplay" style="display: none; background: #e7f3ff; border: 1px solid #0066cc; border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 13px; color: #004085;">
+                            <strong>Dev only:</strong> OTP shown below (email not configured). In production, OTP is sent only to your email.
+                            <div style="font-size: 24px; font-weight: bold; color: #0066cc; letter-spacing: 0.3rem; margin-top: 8px;" id="displayOtpCode"></div>
                         </div>
                         <div class="input-wrapper">
                             <i class="fas fa-key input-icon"></i>
@@ -692,15 +695,13 @@
                         if (otpStep) otpStep.style.display = 'block';
                         if (otpEmail) otpEmail.textContent = userEmail;
                         
-                        // Show OTP
-                        let otpMessage = '✅ OTP sent! Check Django console for OTP code.';
+                        // Success message: OTP sent to user's email
+                        let otpMessage = '✅ OTP sent to <strong>' + userEmail + '</strong>. Check your inbox (and spam folder) for the code.';
                         if (data.otp_code) {
-                            console.log('🔑 OTP CODE:', data.otp_code);
                             const otpDisplay = document.getElementById('otpDisplay');
                             const displayOtpCode = document.getElementById('displayOtpCode');
                             if (otpDisplay) otpDisplay.style.display = 'block';
                             if (displayOtpCode) displayOtpCode.textContent = data.otp_code;
-                            otpMessage += '<br><br><strong style="color: #28a745; font-size: 18px;">OTP: ' + data.otp_code + '</strong>';
                         }
                         if (messageDiv) {
                             messageDiv.innerHTML = otpMessage;
@@ -810,7 +811,7 @@
                 const data = await response.json();
                 
                 if (response.ok) {
-                    messageDiv.innerHTML = '✅ OTP resent! <strong>Check your Django server console</strong> for the new OTP code.';
+                    messageDiv.innerHTML = '✅ OTP resent to <strong>' + userEmail + '</strong>. Check your inbox for the new code.';
                     messageDiv.className = 'message success';
                 } else {
                     messageDiv.textContent = data.error || 'Failed to resend OTP. Please try again.';

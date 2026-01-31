@@ -5,6 +5,29 @@ Django settings for Farmity project.
 from pathlib import Path
 import os
 
+# Load .env so EMAIL_HOST_PASSWORD is read – OTP then sends from farmityforyou@gmail.com
+_project_root = Path(__file__).resolve().parent.parent  # same folder as manage.py
+try:
+    from dotenv import load_dotenv
+    load_dotenv(_project_root / '.env')
+    load_dotenv(Path.cwd() / '.env')
+except ImportError:
+    pass
+# Fallback: read .env manually if env var still missing (e.g. dotenv not installed or wrong path)
+if not os.environ.get('EMAIL_HOST_PASSWORD') and (_project_root / '.env').exists():
+    try:
+        with open(_project_root / '.env', 'r') as f:
+            for line in f:
+                line = line.strip()
+                if line and not line.startswith('#') and '=' in line:
+                    key, _, val = line.partition('=')
+                    key, val = key.strip(), val.strip().strip('"').strip("'")
+                    if key == 'EMAIL_HOST_PASSWORD' and val:
+                        os.environ['EMAIL_HOST_PASSWORD'] = val.strip()
+                        break
+    except Exception:
+        pass
+
 # Base directory
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -148,10 +171,27 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # ======================
-# EMAIL (DEV)
+# EMAIL – OTP sent to the user from farmityforyou@gmail.com
 # ======================
-EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-DEFAULT_FROM_EMAIL = 'noreply@farmity.com'
+DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'farmityforyou@gmail.com')
+
+# Send emails (OTP, etc.) using farmityforyou@gmail.com – set EMAIL_HOST_PASSWORD in .env (Gmail App Password)
+EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
+EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() in ('true', '1', 'yes')
+EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'farmityforyou@gmail.com')
+# Strip so trailing newline/space in .env doesn't break Gmail login
+EMAIL_HOST_PASSWORD = (os.environ.get('EMAIL_HOST_PASSWORD', '') or '').strip()
+
+if EMAIL_HOST and EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    # Uncomment next line to confirm at startup that OTP will send from host mail:
+    # print("[Email] SMTP configured: OTP will be sent from", EMAIL_HOST_USER, "to user inbox")
+else:
+    EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+    import sys
+    if 'runserver' in sys.argv:
+        print("[Email] WARNING: SMTP not configured. Set EMAIL_HOST_PASSWORD in .env (same folder as manage.py) so OTP is sent from farmityforyou@gmail.com to user inbox.")
 
 # ======================
 # ALLAUTH SETTINGS
@@ -172,28 +212,33 @@ SOCIALACCOUNT_EMAIL_REQUIRED = False  # Email not required for social accounts
 SOCIALACCOUNT_QUERY_EMAIL = True  # Request email from Google
 SOCIALACCOUNT_STORE_TOKENS = False  # Don't store OAuth tokens
 SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # No email verification for social accounts
+# Skip "Sign In Via Google" confirmation page – redirect straight to Google account selection
+SOCIALACCOUNT_LOGIN_ON_GET = True
 
 # Google OAuth Settings (set these in environment variables or .env file)
 # Only configure Google OAuth if credentials are provided
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 
-SOCIALACCOUNT_PROVIDERS = {}
-if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
-    SOCIALACCOUNT_PROVIDERS['google'] = {
+# Google provider: always show account chooser (Gmail/account selection page) on signup & login
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
         'SCOPE': [
             'profile',
             'email',
         ],
         'AUTH_PARAMS': {
             'access_type': 'online',
+            'prompt': 'select_account',  # Always redirect to Google account selection page
         },
         'OAUTH_PKCE_ENABLED': True,
-        'APP': {
-            'client_id': GOOGLE_CLIENT_ID,
-            'secret': GOOGLE_CLIENT_SECRET,
-            'key': ''
-        }
+    }
+}
+if GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET:
+    SOCIALACCOUNT_PROVIDERS['google']['APP'] = {
+        'client_id': GOOGLE_CLIENT_ID,
+        'secret': GOOGLE_CLIENT_SECRET,
+        'key': ''
     }
 
 

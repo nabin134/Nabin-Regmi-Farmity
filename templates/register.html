@@ -391,6 +391,32 @@
             text-decoration: none;
         }
 
+        /* Green "Signing up as: [Role]" notice - always visible when role is pre-selected */
+        .selected-role-notice {
+            display: block !important;
+            margin-top: 0.75rem;
+            padding: 0.65rem 1rem;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+            border: 2px solid #3C894B;
+            border-radius: 10px;
+            color: #166534;
+            font-weight: 600;
+            font-size: 0.95rem;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .selected-role-notice i {
+            margin-right: 0.4rem;
+        }
+
+        /* When role is pre-selected: hide dropdown, show badge (bulletproof) */
+        .signup-role-selected #roleSelectionGroup {
+            display: none !important;
+        }
+        .signup-role-selected #roleBadgeGroup {
+            display: block !important;
+        }
+
         .checkbox-wrapper {
             display: flex;
             align-items: flex-start;
@@ -641,8 +667,11 @@
             display: block;
         }
 
-        /* Role Selection Dropdown */
-        #roleSelectionGroup {
+        /* Role Selection Dropdown - visibility controlled by inline style when role is pre-selected */
+        #roleSelectionGroup.show-dropdown {
+            display: block;
+        }
+        #roleSelectionGroup.hide-dropdown {
             display: none;
         }
 
@@ -749,11 +778,16 @@
             <div class="copyright">© 2025 Farmity. All rights reserved.</div>
         </div>
 
-        <!-- Right Panel - White Form -->
-        <div class="register-right">
+        <!-- Right Panel - White Form (signup-role-selected when role from role page) -->
+        <div class="register-right{% if role %} signup-role-selected{% endif %}">
             <div class="form-header">
                 <h2>Create Account</h2>
                 <p>Fill in your details to get started</p>
+                {% if role %}
+                <p class="selected-role-notice">
+                    <i class="fas fa-user-tag"></i>Signing up as: {% if role == 'farmer' %}Farmer{% elif role == 'buyer' %}Buyer{% elif role == 'vendor' %}Vendor{% elif role == 'agricultural_expert' %}Agricultural Expert{% endif %}
+                </p>
+                {% endif %}
             </div>
 
             <form id="registerForm">
@@ -801,8 +835,8 @@
                     </div>
                 </div>
 
-                <!-- Role Selection - Hidden if pre-selected, shown if not -->
-                <div class="form-group" id="roleSelectionGroup">
+                <!-- Role Selection - Hidden when role from role page is pre-selected (CSS .signup-role-selected also forces hide) -->
+                <div class="form-group" id="roleSelectionGroup" style="{% if role %}display: none !important;{% else %}display: block;{% endif %}">
                     <label for="userRole">Select Your Role <span style="color: #dc3545;">*</span></label>
                     <div class="input-wrapper">
                         <i class="fas fa-user-tag input-icon" style="color: #3C894B;"></i>
@@ -816,19 +850,19 @@
                     </div>
                 </div>
 
-                <!-- Role Badge - Shown when role is pre-selected -->
-                <div class="form-group" id="roleBadgeGroup" style="display: none;">
+                <!-- Role Badge - Shown when role is pre-selected from role page (CSS .signup-role-selected also forces show) -->
+                <div class="form-group" id="roleBadgeGroup" style="{% if role %}display: block !important;{% else %}display: none;{% endif %}">
                     <label>Your Role</label>
                     <div id="roleBadge" class="role-badge-display">
                         <div class="role-badge-content">
-                            <i id="roleBadgeIcon" class="fas"></i>
+                            <i id="roleBadgeIcon" class="fas {% if role == 'farmer' %}fa-tractor{% elif role == 'buyer' %}fa-shopping-cart{% elif role == 'vendor' %}fa-store{% elif role == 'agricultural_expert' %}fa-user-graduate{% else %}fa-user{% endif %}"></i>
                             <div>
-                                <div class="role-badge-title" id="roleBadgeTitle"></div>
-                                <div class="role-badge-subtitle" id="roleBadgeSubtitle"></div>
+                                <div class="role-badge-title" id="roleBadgeTitle">{% if role == 'farmer' %}Farmer{% elif role == 'buyer' %}Buyer{% elif role == 'vendor' %}Vendor{% elif role == 'agricultural_expert' %}Agricultural Expert{% endif %}</div>
+                                <div class="role-badge-subtitle" id="roleBadgeSubtitle">{% if role == 'farmer' %}Sell your produce to buyers and vendors{% elif role == 'buyer' %}Purchase fresh agricultural products{% elif role == 'vendor' %}Supply tools and equipment to farmers{% elif role == 'agricultural_expert' %}Provide expert advice and consultation{% endif %}</div>
                             </div>
                         </div>
-                        <a href="/role-selection/" class="role-change-link">
-                            <i class="fas fa-edit"></i> Change
+                        <a href="/role-selection/" class="role-change-link" title="Go back to role selection">
+                            <i class="fas fa-edit"></i> Change role
                         </a>
                     </div>
                 </div>
