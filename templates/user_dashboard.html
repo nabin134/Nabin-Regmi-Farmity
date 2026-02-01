@@ -6,6 +6,7 @@
     <title>Buyer Dashboard - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
     <style>
         * {
             margin: 0;
@@ -449,7 +450,8 @@
         .tip-card {
             background: white;
             border-radius: 16px;
-            padding: 1.75rem;
+            overflow: hidden;
+            padding: 0;
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
             border-left: 4px solid var(--primary);
             transition: transform 0.3s, box-shadow 0.3s;
@@ -458,6 +460,26 @@
         .tip-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        }
+
+        .tip-card .tip-image-wrapper {
+            width: 100%;
+            height: 180px;
+            background: var(--light-bg);
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .tip-card .tip-image-wrapper .tip-image {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .tip-card .tip-body {
+            padding: 1.75rem;
         }
 
         .tip-card h4 {
@@ -1192,11 +1214,18 @@
                 <div class="tips-grid">
                         {% for tip in tips %}
                         <div class="tip-card">
-                            <h4>{{ tip.title }}</h4>
-                            <p>{{ tip.content|truncatewords:50 }}</p>
-                            <p class="tip-author">
-                                <i class="fas fa-user"></i> — {{ tip.expert.name|default:"Expert" }} • {{ tip.expert.specialization|default:"Agriculturalist" }}
-                            </p>
+                            {% if tip.image %}
+                            <div class="tip-image-wrapper">
+                                <img src="{{ tip.image.url }}" alt="{{ tip.title }}" class="tip-image">
+                            </div>
+                            {% endif %}
+                            <div class="tip-body">
+                                <h4>{{ tip.title }}</h4>
+                                <p>{{ tip.content|truncatewords:50 }}</p>
+                                <p class="tip-author">
+                                    <i class="fas fa-user"></i> — {{ tip.expert.name|default:"Expert" }} • {{ tip.expert.specialization|default:"Agriculturalist" }}
+                                </p>
+                            </div>
                         </div>
                         {% empty %}
                         <div class="empty-state" style="grid-column: 1/-1;">
@@ -1212,19 +1241,37 @@
             <div id="appointments" class="content-section" style="display: none;">
                 <div class="appointments-list">
                         {% for appointment in appointments %}
-                        <div class="appointment-item">
+                        <div class="appointment-item" style="flex-wrap: wrap;">
                             <div class="appointment-info">
                                 <h4><i class="fas fa-user-graduate"></i> With {{ appointment.expert.name|default:appointment.expert.user.email }}</h4>
                                 <p>
-                                    <i class="far fa-calendar"></i> {{ appointment.requested_date }} at {{ appointment.requested_time }}
+                                    <i class="far fa-calendar"></i> {{ appointment.requested_date|date:"M d, Y" }} at {{ appointment.requested_time|time:"g:i A" }}
                                 </p>
                                 {% if appointment.message %}
                                 <p style="margin-top: 0.5rem; color: #666;">{{ appointment.message }}</p>
                                 {% endif %}
+                                {% if appointment.response_message %}
+                                <p style="margin-top: 0.5rem; padding: 0.5rem; border-radius: 8px; font-size: 0.9rem; {% if appointment.status == 'rejected' %}background: #fff3cd; border-left: 4px solid #dc3545;{% else %}background: #e8f5e9;{% endif %}">
+                                    <strong>{% if appointment.status == 'rejected' %}Reason rejected:{% else %}Expert:{% endif %}</strong> {{ appointment.response_message }}
+                                </p>
+                                {% endif %}
+                                {% if appointment.status == 'accepted' and appointment.visit_status %}
+                                <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">Visit status: <strong>{{ appointment.get_visit_status_display }}</strong></p>
+                                {% endif %}
+                                <p style="margin-top: 0.75rem; font-size: 0.85rem; color: #666;">To cancel this appointment, please contact the Farmity team.</p>
                             </div>
-                            <span class="appointment-status status-{{ appointment.status }}">
-                                {{ appointment.status|title }}
-                            </span>
+                            <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;">
+                                <span class="appointment-status status-{{ appointment.status }}">{{ appointment.get_status_display }}</span>
+                                {% if appointment.status == 'pending' %}
+                                <button type="button" class="btn-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem;" onclick="openChangeAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
+                                    <i class="fas fa-edit"></i> Change date/time
+                                </button>
+                                {% elif appointment.status == 'rejected' %}
+                                <button type="button" class="btn-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem; background: #F29900;" onclick="openReapplyAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
+                                    <i class="fas fa-redo"></i> Edit and apply again
+                                </button>
+                                {% endif %}
+                            </div>
                         </div>
                         {% empty %}
                         <div class="empty-state">
@@ -1547,7 +1594,7 @@
                 <h3>Book Appointment</h3>
                 <button class="close-modal" onclick="closeModal('appointmentModal')">&times;</button>
             </div>
-            <form method="POST" action="{% url 'appointment_request' %}">
+            <form method="POST" action="{% url 'appointment_request' %}" id="appointmentBookForm">
                 {% csrf_token %}
                 <input type="hidden" name="expert_id" id="apptExpertId">
                 
@@ -1557,13 +1604,18 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Date</label>
-                    <input type="date" name="requested_date" class="form-control" required>
-                </div>
-                
-                <div class="form-group">
-                    <label>Time</label>
-                    <input type="time" name="requested_time" class="form-control" required>
+                    <label>Date & time <span style="color: red;">*</span></label>
+                    <small style="display: block; color: #666; margin-bottom: 0.5rem;">Only available dates are selectable in the calendar.</small>
+                    <div class="form-row" style="display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
+                        <div class="form-group" style="flex: 1; min-width: 140px; margin-bottom: 0;">
+                            <label style="font-size: 0.85rem;">Date</label>
+                            <input type="text" name="requested_date" id="apptRequestedDate" class="form-control" placeholder="YYYY-MM-DD" required readonly style="background: #fff;">
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 100px; margin-bottom: 0;">
+                            <label style="font-size: 0.85rem;">Time</label>
+                            <input type="time" name="requested_time" id="apptRequestedTime" class="form-control" required>
+                        </div>
+                    </div>
                 </div>
                 
                 <div class="form-group">
@@ -1574,6 +1626,68 @@
                 <button type="submit" class="btn-primary" style="width: 100%;">
                     <i class="fas fa-calendar-check"></i> Book Appointment
                 </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Change appointment date/time Modal (pending only) -->
+    <div id="changeAppointmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-edit"></i> Change appointment date/time</h3>
+                <button class="close-modal" onclick="closeModal('changeAppointmentModal')">&times;</button>
+            </div>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #666;">Only available dates are selectable in the calendar.</p>
+            <form method="POST" action="{% url 'user_dashboard' %}" id="changeAppointmentForm">
+                {% csrf_token %}
+                <input type="hidden" name="update_appointment" value="1">
+                <input type="hidden" name="appointment_id" id="changeApptId">
+                <input type="hidden" id="changeApptExpertId">
+                <div class="form-group">
+                    <label>New date & time <span style="color: red;">*</span></label>
+                    <div class="form-row" style="display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
+                        <div class="form-group" style="flex: 1; min-width: 140px; margin-bottom: 0;">
+                            <label style="font-size: 0.85rem;">Date</label>
+                            <input type="text" name="requested_date" id="changeApptDate" class="form-control" placeholder="YYYY-MM-DD" required readonly style="background: #fff;">
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 100px; margin-bottom: 0;">
+                            <label style="font-size: 0.85rem;">Time</label>
+                            <input type="time" name="requested_time" id="changeApptTime" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%;"><i class="fas fa-save"></i> Update</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Reapply (rejected) appointment Modal -->
+    <div id="reapplyAppointmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-redo"></i> Edit and apply again</h3>
+                <button class="close-modal" onclick="closeModal('reapplyAppointmentModal')">&times;</button>
+            </div>
+            <p style="margin-bottom: 1rem; color: #666;">Only available dates are selectable in the calendar. The doctor will review your new request.</p>
+            <form method="POST" action="{% url 'user_dashboard' %}" id="reapplyAppointmentForm">
+                {% csrf_token %}
+                <input type="hidden" name="reapply_appointment" value="1">
+                <input type="hidden" name="appointment_id" id="reapplyApptId">
+                <input type="hidden" id="reapplyApptExpertId">
+                <div class="form-group">
+                    <label>New date & time <span style="color: red;">*</span></label>
+                    <div class="form-row" style="display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
+                        <div class="form-group" style="flex: 1; min-width: 140px; margin-bottom: 0;">
+                            <label style="font-size: 0.85rem;">Date</label>
+                            <input type="text" name="requested_date" id="reapplyApptDate" class="form-control" placeholder="YYYY-MM-DD" required readonly style="background: #fff;">
+                        </div>
+                        <div class="form-group" style="flex: 1; min-width: 100px; margin-bottom: 0;">
+                            <label style="font-size: 0.85rem;">Time</label>
+                            <input type="time" name="requested_time" id="reapplyApptTime" class="form-control" required>
+                        </div>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; background: #F29900;"><i class="fas fa-paper-plane"></i> Apply again</button>
             </form>
         </div>
     </div>
@@ -1792,6 +1906,7 @@
         </div>
     </footer>
 
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="/static/js/main.js"></script>
     <script>
         function switchTab(tabId, evt) {
@@ -1872,11 +1987,74 @@
             }
         });
 
+        var expertAvailability = {{ expert_availability_json|safe }};
+        function initApptFlatpickr(elId, enableDates) {
+            var el = document.getElementById(elId);
+            if (!el) return null;
+            if (window.apptFlatpickrInstances && window.apptFlatpickrInstances[elId]) {
+                window.apptFlatpickrInstances[elId].destroy();
+                window.apptFlatpickrInstances[elId] = null;
+            }
+            if (!window.apptFlatpickrInstances) window.apptFlatpickrInstances = {};
+            var opts = { dateFormat: 'Y-m-d', minDate: 'today' };
+            if (enableDates && enableDates.length > 0) opts.enable = enableDates;
+            window.apptFlatpickrInstances[elId] = flatpickr(el, opts);
+            return window.apptFlatpickrInstances[elId];
+        }
         function openAppointmentModal(expertId, expertName) {
             document.getElementById('apptExpertId').value = expertId;
-            document.getElementById('apptExpertName').value = expertName;
+            document.getElementById('apptExpertName').value = expertName || '';
+            document.getElementById('apptRequestedDate').value = '';
+            document.getElementById('apptRequestedTime').value = '';
+            initApptFlatpickr('apptRequestedDate', expertId && expertAvailability[expertId] ? expertAvailability[expertId] : []);
             document.getElementById('appointmentModal').classList.add('active');
         }
+        function openChangeAppointmentModal(apptId, expertId, currentDate, currentTime) {
+            document.getElementById('changeApptId').value = apptId;
+            document.getElementById('changeApptExpertId').value = expertId || '';
+            document.getElementById('changeApptDate').value = currentDate || '';
+            document.getElementById('changeApptTime').value = (currentTime || '').substring(0, 5);
+            initApptFlatpickr('changeApptDate', expertId && expertAvailability[expertId] ? expertAvailability[expertId] : []);
+            document.getElementById('changeAppointmentModal').classList.add('active');
+        }
+        function openReapplyAppointmentModal(apptId, expertId, currentDate, currentTime) {
+            document.getElementById('reapplyApptId').value = apptId;
+            document.getElementById('reapplyApptExpertId').value = expertId || '';
+            document.getElementById('reapplyApptDate').value = currentDate || '';
+            document.getElementById('reapplyApptTime').value = (currentTime || '').substring(0, 5);
+            initApptFlatpickr('reapplyApptDate', expertId && expertAvailability[expertId] ? expertAvailability[expertId] : []);
+            document.getElementById('reapplyAppointmentModal').classList.add('active');
+        }
+        document.getElementById('appointmentBookForm').addEventListener('submit', function(e) {
+            var expertId = document.getElementById('apptExpertId').value;
+            var dates = expertAvailability[expertId];
+            var sel = document.getElementById('apptRequestedDate').value;
+            if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
+                e.preventDefault();
+                alert('Appointment not available at this date. Please choose a highlighted available date.');
+                return false;
+            }
+        });
+        document.getElementById('changeAppointmentForm').addEventListener('submit', function(e) {
+            var expertId = document.getElementById('changeApptExpertId').value;
+            var dates = expertAvailability[expertId];
+            var sel = document.getElementById('changeApptDate').value;
+            if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
+                e.preventDefault();
+                alert('Appointment not available at this date. Please choose an available date from the list above.');
+                return false;
+            }
+        });
+        document.getElementById('reapplyAppointmentForm').addEventListener('submit', function(e) {
+            var expertId = document.getElementById('reapplyApptExpertId').value;
+            var dates = expertAvailability[expertId];
+            var sel = document.getElementById('reapplyApptDate').value;
+            if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
+                e.preventDefault();
+                alert('Appointment not available at this date. Please choose an available date from the list above.');
+                return false;
+            }
+        });
 
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('active');

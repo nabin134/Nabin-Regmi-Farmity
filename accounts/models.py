@@ -235,13 +235,23 @@ class ExpertAppointment(models.Model):
         (STATUS_REJECTED, 'Rejected'),
     )
 
+    VISIT_VISITED = 'visited'
+    VISIT_WILL_VISIT = 'will_visit'
+    VISIT_WAITING = 'waiting'
+    VISIT_CHOICES = (
+        (VISIT_VISITED, 'Visited'),
+        (VISIT_WILL_VISIT, 'Will visit'),
+        (VISIT_WAITING, 'They have to wait'),
+    )
+
     expert = models.ForeignKey(ExpertProfile, on_delete=models.CASCADE, related_name='appointments')
     requester = models.ForeignKey(User, on_delete=models.CASCADE, related_name='appointments')
     requested_date = models.DateField()
     requested_time = models.TimeField()
     message = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
-    response_message = models.TextField(blank=True, null=True)
+    response_message = models.TextField(blank=True, null=True, help_text='Doctor message: reason for reject or note for accept.')
+    visit_status = models.CharField(max_length=20, choices=VISIT_CHOICES, blank=True, null=True, help_text='For accepted appointments: Visited / Will visit / They have to wait.')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -250,6 +260,22 @@ class ExpertAppointment(models.Model):
 
     def __str__(self):
         return f"{self.requester.email} -> {self.expert.user.email} ({self.status})"
+
+
+class ExpertAvailability(models.Model):
+    """Dates when the expert (doctor) is available for appointments. Experts can set available dates for months."""
+    expert = models.ForeignKey(ExpertProfile, on_delete=models.CASCADE, related_name='availability')
+    date = models.DateField()
+    notes = models.CharField(max_length=255, blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('date',)
+        unique_together = [['expert', 'date']]
+        verbose_name_plural = 'Expert availabilities'
+
+    def __str__(self):
+        return f"{self.expert.user.email} - {self.date}"
 
 
 class ExpertChatThread(models.Model):

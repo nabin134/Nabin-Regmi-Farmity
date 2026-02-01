@@ -11,6 +11,7 @@ from .models import (
     VendorTool,
     FarmingTip,
     ExpertAppointment,
+    ExpertAvailability,
     ExpertChatThread,
     ExpertChatMessage,
     Order,
@@ -86,6 +87,7 @@ admin.site.register(FarmerProduct)
 admin.site.register(VendorTool)
 admin.site.register(FarmingTip)
 admin.site.register(ExpertAppointment)
+admin.site.register(ExpertAvailability)
 admin.site.register(ExpertChatThread)
 admin.site.register(ExpertChatMessage)
 admin.site.register(Order)

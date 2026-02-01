@@ -906,6 +906,10 @@
                 <i class="fas fa-calendar-check"></i>
                 <span>Appointments</span>
             </a>
+            <a href="#availability" class="nav-item" onclick="return showSection('availability', event);">
+                <i class="fas fa-calendar-alt"></i>
+                <span>My Availability</span>
+            </a>
             <a href="#chat" class="nav-item" onclick="return showSection('chat', event);">
                 <i class="fas fa-comments"></i>
                 <span>Chat</span>
@@ -1208,6 +1212,11 @@
                                         <strong>Message:</strong> {{ appointment.message }}
                                     </p>
                                     {% endif %}
+                                    {% if appointment.response_message %}
+                                    <p style="margin-top: 0.5rem; padding: 0.75rem; background: {% if appointment.status == 'rejected' %}#fff3cd; border-left: 4px solid #dc3545;{% else %}#e8f5e9; border-left: 4px solid #28a745;{% endif %} border-radius: 8px;">
+                                        <strong>{% if appointment.status == 'rejected' %}Reason for rejection:{% else %}Your response:{% endif %}</strong> {{ appointment.response_message }}
+                                    </p>
+                                    {% endif %}
                                     <p style="font-size: 0.85rem; color: #999; margin-top: 0.5rem;">
                                         <i class="far fa-calendar"></i> Requested on {{ appointment.created_at|date:"M d, Y" }}
                                     </p>
@@ -1216,22 +1225,28 @@
                                     <span class="appointment-status status-{{ appointment.status }}">
                                         {{ appointment.get_status_display }}
                                     </span>
+                                    {% if appointment.status == 'accepted' and kyc_status == 'approved' %}
+                                    <form method="POST" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="update_visit_status" value="1">
+                                        <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
+                                        <label style="font-size: 0.9rem; font-weight: 500;">Visit:</label>
+                                        <select name="visit_status" class="form-control" style="width: auto; min-width: 140px; padding: 0.5rem;" onchange="this.form.submit()">
+                                            <option value="">-- Set status --</option>
+                                            <option value="visited" {% if appointment.visit_status == 'visited' %}selected{% endif %}>Visited</option>
+                                            <option value="will_visit" {% if appointment.visit_status == 'will_visit' %}selected{% endif %}>Will visit</option>
+                                            <option value="waiting" {% if appointment.visit_status == 'waiting' %}selected{% endif %}>They have to wait</option>
+                                        </select>
+                                    </form>
+                                    {% endif %}
                                     {% if appointment.status == 'pending' and kyc_status == 'approved' %}
                                     <div class="appointment-actions">
-                                        <form method="POST" style="display: inline;">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
-                                            <button type="submit" name="accept_appointment" class="btn-primary" style="background: #28a745;">
-                                                <i class="fas fa-check"></i> Accept
-                                            </button>
-                                        </form>
-                                        <form method="POST" style="display: inline;">
-                                            {% csrf_token %}
-                                            <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
-                                            <button type="submit" name="reject_appointment" class="btn-primary" style="background: #dc3545;">
-                                                <i class="fas fa-times"></i> Reject
-                                            </button>
-                                        </form>
+                                        <button type="button" class="btn-primary" style="background: #28a745;" onclick="openAppointmentResponseModal({{ appointment.id }}, 'accept')">
+                                            <i class="fas fa-check"></i> Accept
+                                        </button>
+                                        <button type="button" class="btn-primary" style="background: #dc3545;" onclick="openAppointmentResponseModal({{ appointment.id }}, 'reject')">
+                                            <i class="fas fa-times"></i> Reject
+                                        </button>
                                     </div>
                                     {% endif %}
                                 </div>
@@ -1243,6 +1258,71 @@
                             <i class="fas fa-calendar-check"></i>
                             <h3>No Appointment Requests</h3>
                             <p>Appointment requests from farmers and buyers will appear here</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- My Availability Section -->
+            <div id="availability-section" class="dashboard-section" style="display: none;">
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-calendar-alt"></i> My Availability</h2>
+                        <span style="color: #666; font-size: 0.95rem;">Set dates when you are available for appointments</span>
+                    </div>
+                    <div class="section-body">
+                        <form method="POST" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--light); border-radius: 12px;">
+                            {% csrf_token %}
+                            <input type="hidden" name="add_availability" value="1">
+                            <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label>Add single date</label>
+                                    <input type="date" name="availability_date" id="availability_date" class="form-control" style="min-width: 160px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label>Or add whole month</label>
+                                    <input type="month" name="availability_month" id="availability_month" class="form-control" style="min-width: 160px;">
+                                </div>
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label>Notes (optional)</label>
+                                    <input type="text" name="availability_notes" class="form-control" placeholder="e.g. Morning only" style="min-width: 140px;">
+                                </div>
+                                <button type="submit" class="btn-primary" name="availability_type" value="date">
+                                    <i class="fas fa-plus"></i> Add date
+                                </button>
+                                <button type="submit" class="btn-primary" name="availability_type" value="month" style="background: var(--secondary);">
+                                    <i class="fas fa-calendar-plus"></i> Add month
+                                </button>
+                            </div>
+                            <small style="color: #666; display: block; margin-top: 0.5rem;">Use "Add date" for one day, or "Add month" to add all days of a month. Past dates are skipped.</small>
+                        </form>
+                        {% if availability %}
+                        <div class="appointments-list">
+                            <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem;">Your available dates ({{ availability|length }})</h3>
+                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem;">
+                                {% for avail in availability %}
+                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: white; border: 1px solid #e0e0e0; border-radius: 8px;">
+                                    <div>
+                                        <strong>{{ avail.date|date:"M d, Y" }}</strong>
+                                        {% if avail.date < today %}<span style="font-size: 0.75rem; color: #999;">(past)</span>{% endif %}
+                                        {% if avail.notes %}<br><span style="font-size: 0.85rem; color: #666;">{{ avail.notes }}</span>{% endif %}
+                                    </div>
+                                    <form method="POST" style="margin: 0;" onsubmit="return confirm('Remove this date from your availability?');">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="remove_availability" value="1">
+                                        <input type="hidden" name="availability_id" value="{{ avail.id }}">
+                                        <button type="submit" class="btn-action btn-delete" title="Remove"><i class="fas fa-trash"></i></button>
+                                    </form>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-calendar-alt"></i>
+                            <h3>No availability set</h3>
+                            <p>Add dates or a whole month above so farmers and buyers know when you're available for appointments.</p>
                         </div>
                         {% endif %}
                     </div>
@@ -1522,8 +1602,69 @@
         </div>
     </div>
 
+    <!-- Accept/Reject Appointment Modal (doctor can add reason) -->
+    <div id="appointmentResponseModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="appointmentResponseModalTitle">Respond to Appointment</h3>
+                <button class="close-modal" onclick="closeAppointmentResponseModal()">&times;</button>
+            </div>
+            <form method="POST" id="appointmentResponseForm">
+                {% csrf_token %}
+                <input type="hidden" name="appointment_id" id="appointmentResponseId">
+                <div class="form-group" style="margin-bottom: 1rem;">
+                    <label id="appointmentResponseLabel">Reason (required for reject)</label>
+                    <textarea name="response_message" id="appointmentResponseMessage" class="form-control" rows="4" placeholder="Provide a valid reason..."></textarea>
+                    <small id="appointmentResponseHint" style="color: #666;"></small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn-secondary" onclick="closeAppointmentResponseModal()">Cancel</button>
+                    <button type="submit" name="accept_appointment" id="btnAcceptAppointment" class="btn-primary" style="background: #28a745;"><i class="fas fa-check"></i> Accept</button>
+                    <button type="submit" name="reject_appointment" id="btnRejectAppointment" class="btn-primary" style="background: #dc3545;"><i class="fas fa-times"></i> Reject</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <script src="/static/js/main.js"></script>
     <script>
+        function openAppointmentResponseModal(appointmentId, action) {
+            document.getElementById('appointmentResponseId').value = appointmentId;
+            var msg = document.getElementById('appointmentResponseMessage');
+            var label = document.getElementById('appointmentResponseLabel');
+            var hint = document.getElementById('appointmentResponseHint');
+            var title = document.getElementById('appointmentResponseModalTitle');
+            msg.value = '';
+            msg.removeAttribute('required');
+            if (action === 'reject') {
+                title.textContent = 'Reject Appointment';
+                label.textContent = 'Reason (required)';
+                msg.setAttribute('required', 'required');
+                msg.placeholder = 'Please provide a valid reason for rejecting this appointment...';
+                hint.textContent = 'The requester will see this reason.';
+            } else {
+                title.textContent = 'Accept Appointment';
+                label.textContent = 'Message (optional)';
+                msg.placeholder = 'Optional message to the requester (e.g. Looking forward to our session)...';
+                hint.textContent = '';
+            }
+            document.getElementById('appointmentResponseModal').classList.add('active');
+        }
+        function closeAppointmentResponseModal() {
+            document.getElementById('appointmentResponseModal').classList.remove('active');
+        }
+        document.getElementById('appointmentResponseForm').addEventListener('submit', function(e) {
+            var btn = e.submitter;
+            if (btn && btn.name === 'reject_appointment') {
+                var msg = document.getElementById('appointmentResponseMessage').value.trim();
+                if (!msg) {
+                    e.preventDefault();
+                    alert('Please provide a valid reason for rejecting the appointment.');
+                    return false;
+                }
+            }
+        });
+
         // Navigation
         function showSection(sectionId, evt) {
             // Prevent default if event is provided
@@ -1778,7 +1919,7 @@
             }
             
             // Verify all sections exist
-            const sections = ['dashboard', 'content', 'appointments', 'chat', 'analytics', 'profile', 'settings'];
+            const sections = ['dashboard', 'content', 'appointments', 'availability', 'chat', 'analytics', 'profile', 'settings'];
             sections.forEach(sectionId => {
                 const section = document.getElementById(sectionId + '-section');
                 if (!section) {
@@ -1795,6 +1936,18 @@
                 dashboardNav.classList.add('active');
             }
             
+            // Set min date/month for availability form
+            const availDate = document.getElementById('availability_date');
+            const availMonth = document.getElementById('availability_month');
+            if (availDate) {
+                const today = new Date().toISOString().split('T')[0];
+                availDate.setAttribute('min', today);
+            }
+            if (availMonth) {
+                const now = new Date();
+                availMonth.setAttribute('min', now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'));
+            }
+
             const savedLang = localStorage.getItem('language') || 'en';
             const select = document.getElementById('languageSelect');
             if (select) {
