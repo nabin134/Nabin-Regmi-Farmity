@@ -757,10 +757,64 @@ class ResetPasswordView(APIView):
 
 
 # ======================
+# KALIMATI LIVE PRICES (https://kalimatimarket.gov.np/price)
+# ======================
+KALIMATI_PRICE_URL = 'https://kalimatimarket.gov.np/price'
+
+
+def _fetch_kalimati_prices():
+    """Fetch and parse daily wholesale prices from Kalimati fruit & vegetable market (Nepal). Returns list of dicts or [] on failure."""
+    import re
+    try:
+        import requests
+        from bs4 import BeautifulSoup
+    except ImportError:
+        return []
+    try:
+        r = requests.get(KALIMATI_PRICE_URL, timeout=10, headers={'User-Agent': 'Farmity/1.0'})
+        r.raise_for_status()
+        r.encoding = r.apparent_encoding or 'utf-8'
+        soup = BeautifulSoup(r.text, 'html.parser')
+        table = soup.find('table')
+        if not table:
+            return []
+        rows = table.find_all('tr')
+        out = []
+        for i, tr in enumerate(rows):
+            cells = tr.find_all(['td', 'th'])
+            if len(cells) < 5:
+                continue
+            # Skip header row (usually first row with न्यूनतम etc.)
+            raw = [c.get_text(strip=True) for c in cells[:5]]
+            name, unit, min_p, max_p, avg_p = raw[0], raw[1], raw[2], raw[3], raw[4]
+            if not name or name in ('कृषि उपज', 'ईकाइ', 'न्यूनतम', 'अधिकतम', 'औसत') or not re.search(r'[\d.]', min_p):
+                continue
+            def parse_price(s):
+                s = re.sub(r'[^\d.]', '', s.replace(',', ''))
+                try:
+                    return float(s) if s else None
+                except ValueError:
+                    return None
+            min_val, max_val, avg_val = parse_price(min_p), parse_price(max_p), parse_price(avg_p)
+            if min_val is None and max_val is None and avg_val is None:
+                continue
+            out.append({
+                'name': name,
+                'unit': unit or 'के.जी.',
+                'min_price': min_val,
+                'max_price': max_val,
+                'avg_price': avg_val,
+            })
+        return out[:16]
+    except Exception:
+        return []
+
+
+# ======================
 # FRONTEND PAGES
 # ======================
 def landing_page(request):
-    """Landing page with real data: crops, tools, vendors, experts, learning tips."""
+    """Landing page with real data: crops, tools, vendors, experts, learning tips, and Kalimati live prices."""
     crops = FarmerProduct.objects.filter(is_available=True).select_related('farmer', 'farmer__user').order_by('-created_at')[:8]
     tools = VendorTool.objects.filter(is_available=True, stock_quantity__gt=0).select_related('vendor', 'vendor__user').order_by('-created_at')[:8]
     experts = ExpertProfile.objects.select_related('user').all()[:6]
@@ -771,6 +825,7 @@ def landing_page(request):
     vendors = VendorProfile.objects.annotate(tool_count=Count('tools')).filter(tool_count__gt=0).select_related('user').order_by('-tool_count')[:6]
     from django.db.models import Min
     crop_prices = FarmerProduct.objects.filter(is_available=True, quantity__gt=0).values('name').annotate(min_price=Min('price_per_unit')).order_by('name')[:8]
+    kalimati_prices = _fetch_kalimati_prices()
     context = {
         'crops': crops,
         'tools': tools,
@@ -781,6 +836,8 @@ def landing_page(request):
         'vendors_count': vendors_count,
         'experts_count': experts_count,
         'crop_prices': crop_prices,
+        'kalimati_prices': kalimati_prices,
+        'kalimati_price_url': KALIMATI_PRICE_URL,
     }
     return render(request, 'landing.html', context)
 

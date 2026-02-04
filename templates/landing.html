@@ -224,10 +224,29 @@
         </div>
     </section>
 
-    <!-- Live Market Prices Section -->
+    <!-- Live Market Prices Section - Kalimati (real-time) + fallback to our marketplace -->
     <section class="prices-section">
         <div class="section-container">
             <h2 class="section-title">Live Market Prices</h2>
+            {% if kalimati_prices %}
+            <p class="section-subtitle">Daily wholesale prices from <a href="{{ kalimati_price_url }}" target="_blank" rel="noopener noreferrer" style="color: inherit; text-decoration: underline;">Kalimati Fruit & Vegetable Market</a>, Kathmandu</p>
+            <div class="prices-grid">
+                {% for item in kalimati_prices %}
+                <div class="price-card">
+                    <div class="price-image">🌾</div>
+                    <h4>{{ item.name }}</h4>
+                    <div class="price-info">
+                        {% if item.avg_price %}<span class="price-value">Rs. {{ item.avg_price }}/{{ item.unit }}</span>
+                        {% elif item.min_price %}<span class="price-value">Rs. {{ item.min_price }}-{{ item.max_price|default:item.min_price }}/{{ item.unit }}</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            <div class="view-all-link">
+                <a href="{{ kalimati_price_url }}" target="_blank" rel="noopener noreferrer">View All Prices on Kalimati Market <span>→</span></a>
+            </div>
+            {% else %}
             <p class="section-subtitle">From our marketplace</p>
             <div class="prices-grid">
                 {% for item in crop_prices %}
@@ -246,6 +265,7 @@
             <div class="view-all-link">
                 <a href="/login/?next=/user/dashboard/">View marketplace <span>→</span></a>
             </div>
+            {% endif %}
             {% endif %}
         </div>
     </section>
