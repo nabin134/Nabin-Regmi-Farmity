@@ -821,27 +821,27 @@
             <div class="sidebar-title">Farmity</div>
         </div>
         <nav class="sidebar-nav">
-            <a href="#dashboard" class="nav-item active" onclick="showSection('dashboard'); return false;">
+            <a href="#dashboard" class="nav-item active" onclick="showSection('dashboard', event); return false;">
                 <i class="fas fa-home"></i>
                 <span>Dashboard</span>
             </a>
-            <a href="#tools" class="nav-item" onclick="showSection('tools'); return false;">
+            <a href="#tools" class="nav-item" onclick="showSection('tools', event); return false;">
                 <i class="fas fa-tools"></i>
                 <span>My Tools</span>
             </a>
-            <a href="#orders" class="nav-item" onclick="showSection('orders'); return false;">
+            <a href="#orders" class="nav-item" onclick="showSection('orders', event); return false;">
                 <i class="fas fa-shopping-cart"></i>
                 <span>Orders</span>
             </a>
-            <a href="#analytics" class="nav-item" onclick="showSection('analytics'); return false;">
+            <a href="#analytics" class="nav-item" onclick="showSection('analytics', event); return false;">
                 <i class="fas fa-chart-bar"></i>
                 <span>Analytics</span>
             </a>
-            <a href="#profile" class="nav-item" onclick="showSection('profile'); return false;">
+            <a href="#profile" class="nav-item" onclick="showSection('profile', event); return false;">
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
             </a>
-            <a href="#settings" class="nav-item" onclick="showSection('settings'); return false;">
+            <a href="#settings" class="nav-item" onclick="showSection('settings', event); return false;">
                 <i class="fas fa-cog"></i>
                 <span>Settings</span>
             </a>
@@ -1115,6 +1115,7 @@
                                         {% if kyc_status == 'approved' and order.status != 'delivered' and order.status != 'cancelled' %}
                                         <form method="POST" style="display: inline;">
                                             {% csrf_token %}
+                                            <input type="hidden" name="return_section" value="orders">
                                             <input type="hidden" name="order_id" value="{{ order.id }}">
                                             <input type="hidden" name="update_order_status" value="1">
                                             {% if order.status == 'pending' or order.status == 'confirmed' %}
@@ -1200,6 +1201,7 @@
                         <form method="POST" enctype="multipart/form-data" id="vendorProfileForm">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="1">
+                            <input type="hidden" name="return_section" value="profile">
                             
                             <div style="display: flex; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
                                 <div style="flex: 0 0 200px;">
@@ -1328,6 +1330,7 @@
             </div>
             <form id="toolForm" method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
+                <input type="hidden" name="return_section" value="tools">
                 <input type="hidden" id="tool_id" name="tool_id">
                 <input type="hidden" id="form_action" name="add_tool" value="1">
                 
@@ -1385,6 +1388,7 @@
             </div>
             <form method="POST">
                 {% csrf_token %}
+                <input type="hidden" name="return_section" value="tools">
                 <input type="hidden" id="delete_tool_id" name="tool_id">
                 <input type="hidden" name="delete_tool" value="1">
                 <p>Are you sure you want to delete <strong id="delete_tool_name"></strong>? This action cannot be undone.</p>
@@ -1399,16 +1403,18 @@
     <script src="/static/js/main.js"></script>
     <script>
         // Navigation
-        function showSection(sectionId) {
+        function showSection(sectionId, evt) {
             document.querySelectorAll('.dashboard-section').forEach(section => {
                 section.style.display = 'none';
             });
-            document.getElementById(sectionId + '-section').style.display = 'block';
-            
+            var target = document.getElementById(sectionId + '-section');
+            if (target) target.style.display = 'block';
             document.querySelectorAll('.nav-item').forEach(item => {
                 item.classList.remove('active');
             });
-            event.target.closest('.nav-item').classList.add('active');
+            var clickedItem = (evt && evt.target) ? evt.target.closest('.nav-item') : null;
+            if (!clickedItem) clickedItem = document.querySelector('.nav-item[href="#' + sectionId + '"]');
+            if (clickedItem) clickedItem.classList.add('active');
         }
 
         function toggleSidebar() {
@@ -1501,6 +1507,10 @@
 
         // Initialize language selector
         document.addEventListener('DOMContentLoaded', function() {
+            var sectionFromUrl = new URLSearchParams(window.location.search).get('section');
+            if (sectionFromUrl && document.getElementById(sectionFromUrl + '-section')) {
+                showSection(sectionFromUrl, null);
+            }
             const savedLang = localStorage.getItem('language') || 'en';
             const select = document.getElementById('languageSelect');
             if (select) {

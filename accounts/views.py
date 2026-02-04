@@ -91,6 +91,29 @@ def _redirect_to_role_home_response(user):
     return redirect(url_path)
 
 
+def _redirect_same_page(request, view_name, section_param='return_section'):
+    """
+    Redirect to the same dashboard/page, optionally preserving section so the
+    message is shown on the same view and same section (tab).
+    """
+    from urllib.parse import urlencode
+    url = reverse(view_name)
+    section = (request.POST.get(section_param) or request.GET.get('section') or '').strip()
+    if section:
+        url = reverse(view_name) + '?' + urlencode({'section': section})
+    return redirect(url)
+
+
+def _clear_stored_messages(request):
+    """
+    Clear any messages stored in the session so they are not shown on the next
+    request (e.g. after login, so action notifications don't appear when opening
+    another account's dashboard).
+    """
+    storage = messages.get_messages(request)
+    storage.used = True
+
+
 # ======================
 # SIGNUP API
 # ======================
@@ -231,6 +254,7 @@ class LoginView(APIView):
             if not require_otp:
                 # Login the user directly
                 login(request, user)
+                _clear_stored_messages(request)
                 
                 # Check KYC status for roles that require it
                 if user.role in {'farmer', 'vendor', 'agricultural_expert'}:
@@ -370,6 +394,7 @@ class OTPVerificationView(APIView):
                 
                 # Login the user
                 login(request, user)
+                _clear_stored_messages(request)
                 
                 # Check KYC status for roles that require it
                 if user.role in {'farmer', 'vendor', 'agricultural_expert'}:
@@ -1091,13 +1116,13 @@ def farmer_dashboard(request):
             profile.photo = request.FILES.get('photo')
         profile.save()
         messages.success(request, 'Profile updated successfully!')
-        return redirect('farmer_dashboard')
+        return _redirect_same_page(request, 'farmer_dashboard')
 
     # Handle Add Product - Require KYC approval
     if request.method == 'POST' and 'add_product' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to add crops. Please complete your KYC verification first.')
-            return redirect('farmer_dashboard')
+            return _redirect_same_page(request, 'farmer_dashboard')
         
         name = request.POST.get('product_name')
         quantity = request.POST.get('quantity')
@@ -1115,13 +1140,13 @@ def farmer_dashboard(request):
                 product.image = request.FILES.get('product_image')
                 product.save()
             messages.success(request, 'Crop added successfully!')
-        return redirect('farmer_dashboard')
+        return _redirect_same_page(request, 'farmer_dashboard')
 
     # Handle Edit Product - Require KYC approval
     if request.method == 'POST' and 'edit_product' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to edit crops. Please complete your KYC verification first.')
-            return redirect('farmer_dashboard')
+            return _redirect_same_page(request, 'farmer_dashboard')
         
         product_id = request.POST.get('product_id')
         try:
@@ -1137,13 +1162,13 @@ def farmer_dashboard(request):
             messages.success(request, 'Crop updated successfully!')
         except FarmerProduct.DoesNotExist:
             messages.error(request, 'Product not found!')
-        return redirect('farmer_dashboard')
+        return _redirect_same_page(request, 'farmer_dashboard')
 
     # Handle Delete Product - Require KYC approval
     if request.method == 'POST' and 'delete_product' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to delete crops. Please complete your KYC verification first.')
-            return redirect('farmer_dashboard')
+            return _redirect_same_page(request, 'farmer_dashboard')
         
         product_id = request.POST.get('product_id')
         try:
@@ -1152,18 +1177,22 @@ def farmer_dashboard(request):
             messages.success(request, 'Crop deleted successfully!')
         except FarmerProduct.DoesNotExist:
             messages.error(request, 'Product not found!')
-        return redirect('farmer_dashboard')
+        return _redirect_same_page(request, 'farmer_dashboard')
 
     # Handle Tool Purchase - Require KYC approval for farmers
     if request.method == 'POST' and 'purchase_tool' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to purchase tools. Please complete your KYC verification first.')
-            return redirect('farmer_dashboard')
+            return _redirect_same_page(request, 'farmer_dashboard')
         
         from .models import Order, VendorTool
+        payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
+        if payment_method == Order.PAYMENT_ESEWA:
+            messages.info(request, 'eSewa payment is coming soon! Please use Cash on Delivery for now.')
+            return _redirect_same_page(request, 'farmer_dashboard')
+        
         tool_id = request.POST.get('tool_id')
         quantity = int(request.POST.get('quantity', 1))
-        payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
         shipping_address = request.POST.get('shipping_address', '')
         notes = request.POST.get('notes', '')
         total_amount = request.POST.get('total_amount')
@@ -1195,17 +1224,14 @@ def farmer_dashboard(request):
                     tool.is_available = False
                 tool.save()
                 
-                if payment_method == Order.PAYMENT_ESEWA:
-                    messages.success(request, f'Order #{order.id} placed successfully! Payment method: eSewa.')
-                else:
-                    messages.success(request, f'Order #{order.id} placed successfully! You will pay Rs. {total_amount:.2f} on delivery.')
+                messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
             else:
                 messages.error(request, 'Insufficient stock!')
         except VendorTool.DoesNotExist:
             messages.error(request, 'Tool not found!')
         except Exception as e:
             messages.error(request, f'An error occurred: {str(e)}')
-        return redirect('farmer_dashboard')
+        return _redirect_same_page(request, 'farmer_dashboard')
 
     # Get products
     products = FarmerProduct.objects.filter(farmer=profile).order_by('-created_at')
@@ -1302,7 +1328,7 @@ def farmer_dashboard(request):
                 messages.error(request, 'Appointment not found.')
         else:
             messages.error(request, 'Please provide date and time.')
-        return redirect('farmer_dashboard')
+        return _redirect_same_page(request, 'farmer_dashboard')
     
     # Handle reapply (rejected appointment: edit and apply again)
     if request.method == 'POST' and 'reapply_appointment' in request.POST:
@@ -1333,7 +1359,7 @@ def farmer_dashboard(request):
                 messages.error(request, 'Appointment not found.')
         else:
             messages.error(request, 'Please provide date and time.')
-        return redirect('farmer_dashboard')
+        return _redirect_same_page(request, 'farmer_dashboard')
     
     # Get chat threads
     chat_threads = ExpertChatThread.objects.filter(created_by=request.user).select_related('expert', 'expert__user').order_by('-created_at')[:5]
@@ -1395,13 +1421,13 @@ def vendor_dashboard(request):
             profile.logo = request.FILES.get('photo')
         profile.save()
         messages.success(request, 'Profile updated successfully!')
-        return redirect('vendor_dashboard')
+        return _redirect_same_page(request, 'vendor_dashboard')
     
     # Handle Add Tool - Require KYC approval
     if request.method == 'POST' and 'add_tool' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to add tools. Please complete your KYC verification first.')
-            return redirect('vendor_dashboard')
+            return _redirect_same_page(request, 'vendor_dashboard')
         
         name = request.POST.get('name')
         description = request.POST.get('description')
@@ -1422,13 +1448,13 @@ def vendor_dashboard(request):
                 tool.image = request.FILES.get('image')
                 tool.save()
             messages.success(request, 'Tool added successfully!')
-        return redirect('vendor_dashboard')
+        return _redirect_same_page(request, 'vendor_dashboard')
     
     # Handle Edit Tool - Require KYC approval
     if request.method == 'POST' and 'edit_tool' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to edit tools. Please complete your KYC verification first.')
-            return redirect('vendor_dashboard')
+            return _redirect_same_page(request, 'vendor_dashboard')
         
         tool_id = request.POST.get('tool_id')
         try:
@@ -1444,13 +1470,13 @@ def vendor_dashboard(request):
             messages.success(request, 'Tool updated successfully!')
         except VendorTool.DoesNotExist:
             messages.error(request, 'Tool not found!')
-        return redirect('vendor_dashboard')
+        return _redirect_same_page(request, 'vendor_dashboard')
     
     # Handle Delete Tool - Require KYC approval
     if request.method == 'POST' and 'delete_tool' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to delete tools. Please complete your KYC verification first.')
-            return redirect('vendor_dashboard')
+            return _redirect_same_page(request, 'vendor_dashboard')
         
         tool_id = request.POST.get('tool_id')
         try:
@@ -1459,13 +1485,13 @@ def vendor_dashboard(request):
             messages.success(request, 'Tool deleted successfully!')
         except VendorTool.DoesNotExist:
             messages.error(request, 'Tool not found!')
-        return redirect('vendor_dashboard')
+        return _redirect_same_page(request, 'vendor_dashboard')
     
     # Handle Order Status Update
     if request.method == 'POST' and 'update_order_status' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to manage orders. Please complete your KYC verification first.')
-            return redirect('vendor_dashboard')
+            return _redirect_same_page(request, 'vendor_dashboard')
         
         order_id = request.POST.get('order_id')
         new_status = request.POST.get('status')
@@ -1480,7 +1506,7 @@ def vendor_dashboard(request):
             messages.success(request, f'Order #{order_id} status updated to {order.get_status_display()}')
         except Order.DoesNotExist:
             messages.error(request, 'Order not found!')
-        return redirect('vendor_dashboard')
+        return _redirect_same_page(request, 'vendor_dashboard')
     
     # Get vendor tools
     tools = VendorTool.objects.filter(vendor=profile).order_by('-created_at')
@@ -1567,13 +1593,13 @@ def expert_dashboard(request):
             profile.photo = request.FILES.get('photo')
         profile.save()
         messages.success(request, 'Profile updated successfully!')
-        return redirect('expert_dashboard')
+        return _redirect_same_page(request, 'expert_dashboard')
     
     # Handle Add Tip/Content - Require KYC approval
     if request.method == 'POST' and 'add_tip' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to upload content. Please complete your KYC verification first.')
-            return redirect('expert_dashboard')
+            return _redirect_same_page(request, 'expert_dashboard')
         
         title = request.POST.get('title')
         content = request.POST.get('content')
@@ -1590,13 +1616,13 @@ def expert_dashboard(request):
                 tip.image = request.FILES.get('image')
                 tip.save()
             messages.success(request, 'Content uploaded successfully!')
-        return redirect('expert_dashboard')
+        return _redirect_same_page(request, 'expert_dashboard')
     
     # Handle Edit Tip - Require KYC approval
     if request.method == 'POST' and 'edit_tip' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to edit content. Please complete your KYC verification first.')
-            return redirect('expert_dashboard')
+            return _redirect_same_page(request, 'expert_dashboard')
         
         tip_id = request.POST.get('tip_id')
         try:
@@ -1610,13 +1636,13 @@ def expert_dashboard(request):
             messages.success(request, 'Content updated successfully!')
         except FarmingTip.DoesNotExist:
             messages.error(request, 'Content not found!')
-        return redirect('expert_dashboard')
+        return _redirect_same_page(request, 'expert_dashboard')
     
     # Handle Delete Tip - Require KYC approval
     if request.method == 'POST' and 'delete_tip' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to delete content. Please complete your KYC verification first.')
-            return redirect('expert_dashboard')
+            return _redirect_same_page(request, 'expert_dashboard')
         
         tip_id = request.POST.get('tip_id')
         try:
@@ -1625,13 +1651,13 @@ def expert_dashboard(request):
             messages.success(request, 'Content deleted successfully!')
         except FarmingTip.DoesNotExist:
             messages.error(request, 'Content not found!')
-        return redirect('expert_dashboard')
+        return _redirect_same_page(request, 'expert_dashboard')
     
     # Handle Add Availability (single date or whole month)
     if request.method == 'POST' and 'add_availability' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to set availability. Please complete your KYC verification first.')
-            return redirect('expert_dashboard')
+            return _redirect_same_page(request, 'expert_dashboard')
         add_type = (request.POST.get('availability_type') or 'date').strip()
         notes = (request.POST.get('availability_notes') or '').strip() or None
         if add_type == 'month':
@@ -1670,13 +1696,13 @@ def expert_dashboard(request):
                     messages.error(request, 'Invalid date format. Use YYYY-MM-DD.')
             else:
                 messages.error(request, 'Please select a date.')
-        return redirect('expert_dashboard')
+        return _redirect_same_page(request, 'expert_dashboard')
 
     # Handle Remove Availability
     if request.method == 'POST' and 'remove_availability' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to manage availability.')
-            return redirect('expert_dashboard')
+            return _redirect_same_page(request, 'expert_dashboard')
         avail_id = request.POST.get('availability_id')
         try:
             avail = ExpertAvailability.objects.get(id=avail_id, expert=profile)
@@ -1684,13 +1710,13 @@ def expert_dashboard(request):
             messages.success(request, 'Date removed from your availability.')
         except (ExpertAvailability.DoesNotExist, ValueError):
             messages.error(request, 'Availability entry not found.')
-        return redirect('expert_dashboard')
+        return _redirect_same_page(request, 'expert_dashboard')
 
     # Handle Accept/Reject Appointment (with valid reason for reject)
     if request.method == 'POST' and ('accept_appointment' in request.POST or 'reject_appointment' in request.POST):
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to manage appointments. Please complete your KYC verification first.')
-            return redirect('expert_dashboard')
+            return _redirect_same_page(request, 'expert_dashboard')
         
         appointment_id = request.POST.get('appointment_id')
         response_message = (request.POST.get('response_message') or '').strip() or None
@@ -1704,20 +1730,20 @@ def expert_dashboard(request):
             elif 'reject_appointment' in request.POST:
                 if not response_message:
                     messages.error(request, 'Please provide a valid reason for rejecting the appointment.')
-                    return redirect('expert_dashboard')
+                    return _redirect_same_page(request, 'expert_dashboard')
                 appointment.status = ExpertAppointment.STATUS_REJECTED
                 appointment.response_message = response_message
                 appointment.save()
                 messages.success(request, 'Appointment rejected. The requester will see your reason.')
         except ExpertAppointment.DoesNotExist:
             messages.error(request, 'Appointment not found!')
-        return redirect('expert_dashboard')
+        return _redirect_same_page(request, 'expert_dashboard')
     
     # Handle update visit status (for accepted appointments only)
     if request.method == 'POST' and 'update_visit_status' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required.')
-            return redirect('expert_dashboard')
+            return _redirect_same_page(request, 'expert_dashboard')
         appointment_id = request.POST.get('appointment_id')
         visit_status = (request.POST.get('visit_status') or '').strip() or None
         try:
@@ -1732,7 +1758,7 @@ def expert_dashboard(request):
                 messages.error(request, 'Please select a valid visit status.')
         except ExpertAppointment.DoesNotExist:
             messages.error(request, 'Appointment not found!')
-        return redirect('expert_dashboard')
+        return _redirect_same_page(request, 'expert_dashboard')
     
     # Get expert content/tips
     tips = FarmingTip.objects.filter(expert=profile).order_by('-created_at')
@@ -1879,20 +1905,22 @@ def user_dashboard(request):
     
     # Handle Crop Purchase
     if request.method == 'POST' and 'purchase_crop' in request.POST:
+        payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
+        if payment_method == Order.PAYMENT_ESEWA:
+            messages.info(request, 'eSewa payment is coming soon! Please use Cash on Delivery for now.')
+            return _redirect_same_page(request, 'user_dashboard')
+        
         crop_id = request.POST.get('crop_id')
         try:
             quantity = float(request.POST.get('quantity', 1))
         except (ValueError, TypeError):
             messages.error(request, 'Invalid quantity!')
-            return redirect('user_dashboard')
+            return _redirect_same_page(request, 'user_dashboard')
         
         try:
             crop = FarmerProduct.objects.get(id=crop_id, is_available=True)
             if crop.quantity >= quantity:
                 total_amount = crop.price_per_unit * quantity
-                
-                # Get payment method
-                payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
                 
                 # Create order (quantity must be integer for Order model, but we store decimal in CropSale)
                 order = Order.objects.create(
@@ -1924,20 +1952,24 @@ def user_dashboard(request):
                     sold_at=timezone.now()
                 )
                 
-                messages.success(request, f'Order placed successfully! Order #{order.id}')
+                messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
             else:
                 messages.error(request, f'Insufficient quantity. Available: {crop.quantity} {crop.unit}')
         except FarmerProduct.DoesNotExist:
             messages.error(request, 'Crop not found or no longer available!')
         except Exception as e:
             messages.error(request, f'An error occurred: {str(e)}')
-        return redirect('user_dashboard')
+        return _redirect_same_page(request, 'user_dashboard')
     
     # Handle Tool Purchase
     if request.method == 'POST' and 'purchase_tool' in request.POST:
+        payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
+        if payment_method == Order.PAYMENT_ESEWA:
+            messages.info(request, 'eSewa payment is coming soon! Please use Cash on Delivery for now.')
+            return _redirect_same_page(request, 'user_dashboard')
+        
         tool_id = request.POST.get('tool_id')
         quantity = int(request.POST.get('quantity', 1))
-        payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
         
         try:
             tool = VendorTool.objects.get(id=tool_id, is_available=True, stock_quantity__gt=0)
@@ -1963,17 +1995,14 @@ def user_dashboard(request):
                     tool.is_available = False
                 tool.save()
                 
-                if payment_method == Order.PAYMENT_ESEWA:
-                    messages.success(request, f'Order #{order.id} placed successfully! Payment method: eSewa.')
-                else:
-                    messages.success(request, f'Order #{order.id} placed successfully! You will pay Rs. {total_amount:.2f} on delivery.')
+                messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
             else:
                 messages.error(request, f'Insufficient stock. Available: {tool.stock_quantity} units')
         except VendorTool.DoesNotExist:
             messages.error(request, 'Tool not found or no longer available!')
         except Exception as e:
             messages.error(request, f'An error occurred: {str(e)}')
-        return redirect('user_dashboard')
+        return _redirect_same_page(request, 'user_dashboard')
     
     # Buyers don't require KYC - full access immediately
     # Get all available tools from vendors
@@ -2029,7 +2058,7 @@ def user_dashboard(request):
                 messages.error(request, 'Appointment not found.')
         else:
             messages.error(request, 'Please provide date and time.')
-        return redirect('user_dashboard')
+        return _redirect_same_page(request, 'user_dashboard')
     
     # Handle reapply (rejected appointment: edit and apply again)
     if request.method == 'POST' and 'reapply_appointment' in request.POST:
@@ -2060,7 +2089,7 @@ def user_dashboard(request):
                 messages.error(request, 'Appointment not found.')
         else:
             messages.error(request, 'Please provide date and time.')
-        return redirect('user_dashboard')
+        return _redirect_same_page(request, 'user_dashboard')
     
     # Get user's chat threads with experts
     chat_threads = ExpertChatThread.objects.filter(created_by=request.user).select_related('expert', 'expert__user').order_by('-created_at')[:5]
@@ -2077,7 +2106,7 @@ def user_dashboard(request):
             profile.photo = request.FILES.get('photo')
         profile.save()
         messages.success(request, 'Profile updated successfully!')
-        return redirect('user_dashboard')
+        return _redirect_same_page(request, 'user_dashboard')
     
     # Get purchase history with statistics
     purchase_history = Order.objects.filter(buyer=request.user).select_related('tool', 'crop', 'crop__farmer', 'tool__vendor').order_by('-created_at')

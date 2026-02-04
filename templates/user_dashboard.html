@@ -1560,6 +1560,7 @@
                         <form method="POST" action="{% url 'user_dashboard' %}" enctype="multipart/form-data" id="profileForm" style="width: 100%; clear: both; margin-top: 2rem;">
                                 {% csrf_token %}
                                 <input type="hidden" name="update_profile" value="1">
+                                <input type="hidden" name="return_section" value="profile">
                                 
                                 <div style="display: flex; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
                                     <div style="flex: 0 0 200px;">
@@ -1768,6 +1769,7 @@
             <form method="POST" action="{% url 'user_dashboard' %}" id="changeAppointmentForm">
                 {% csrf_token %}
                 <input type="hidden" name="update_appointment" value="1">
+                <input type="hidden" name="return_section" value="appointments">
                 <input type="hidden" name="appointment_id" id="changeApptId">
                 <input type="hidden" id="changeApptExpertId">
                 <div class="form-group">
@@ -1799,6 +1801,7 @@
             <form method="POST" action="{% url 'user_dashboard' %}" id="reapplyAppointmentForm">
                 {% csrf_token %}
                 <input type="hidden" name="reapply_appointment" value="1">
+                <input type="hidden" name="return_section" value="appointments">
                 <input type="hidden" name="appointment_id" id="reapplyApptId">
                 <input type="hidden" id="reapplyApptExpertId">
                 <div class="form-group">
@@ -1829,6 +1832,7 @@
             <form method="POST" action="{% url 'user_dashboard' %}">
                 {% csrf_token %}
                 <input type="hidden" name="purchase_crop" value="1">
+                <input type="hidden" name="return_section" id="purchaseCropReturnSection" value="">
                 <input type="hidden" name="crop_id" id="purchaseCropId">
                 
                 <div class="form-group">
@@ -1847,8 +1851,8 @@
                 </div>
                 
                 <div class="form-group">
-                    <label>Quantity to Purchase <span style="color: red;">*</span></label>
-                    <input type="number" name="quantity" id="purchaseCropQuantity" class="form-control" step="0.01" min="0.01" required oninput="calculateCropTotal()">
+                    <label>Quantity to Purchase <span id="purchaseCropQuantityUnit"></span> <span style="color: red;">*</span></label>
+                    <input type="number" name="quantity" id="purchaseCropQuantity" class="form-control" step="0.01" min="0.01" required placeholder="e.g. 2.5" oninput="calculateCropTotal()">
                 </div>
                 
                 <div class="form-group" style="padding: 1.25rem; background: var(--light-bg); border-radius: 12px;">
@@ -1880,8 +1884,8 @@
                             </div>
                         </label>
                     </div>
-                    <div id="esewa_crop_info" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #E3F2FD; border-radius: 8px; color: #1565C0; font-size: 0.9rem;">
-                        <i class="fas fa-info-circle"></i> You will be redirected to eSewa payment gateway after order confirmation
+                    <div id="esewa_crop_info" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #FFF3E0; border-radius: 8px; color: #E65100; font-size: 0.9rem;">
+                        <i class="fas fa-clock"></i> eSewa payment is coming soon! Please use Cash on Delivery for now.
                     </div>
                 </div>
                 
@@ -1912,6 +1916,7 @@
             <form method="POST" action="{% url 'user_dashboard' %}">
                 {% csrf_token %}
                 <input type="hidden" name="purchase_tool" value="1">
+                <input type="hidden" name="return_section" id="purchaseToolReturnSection" value="">
                 <input type="hidden" name="tool_id" id="purchaseToolId">
                 
                 <div class="form-group">
@@ -1963,8 +1968,8 @@
                             </div>
                         </label>
                     </div>
-                    <div id="esewa_tool_info" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #E3F2FD; border-radius: 8px; color: #1565C0; font-size: 0.9rem;">
-                        <i class="fas fa-info-circle"></i> You will be redirected to eSewa payment gateway after order confirmation
+                    <div id="esewa_tool_info" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #FFF3E0; border-radius: 8px; color: #E65100; font-size: 0.9rem;">
+                        <i class="fas fa-clock"></i> eSewa payment is coming soon! Please use Cash on Delivery for now.
                     </div>
                 </div>
                 
@@ -2040,6 +2045,7 @@
             if (evt) {
                 evt.preventDefault();
             }
+            document.body.dataset.currentSection = tabId || 'crops';
             
             // Hide all content sections
             document.querySelectorAll('.content-section').forEach(section => {
@@ -2347,17 +2353,23 @@
         }
 
         function openPurchaseCropModal(cropId, cropName, price, available, unit) {
+            unit = unit || 'kg';
+            var sectionEl = document.getElementById('purchaseCropReturnSection');
+            if (sectionEl) sectionEl.value = document.body.dataset.currentSection || 'crops';
             document.getElementById('purchaseCropId').value = cropId;
             document.getElementById('purchaseCropName').value = cropName;
             document.getElementById('purchaseCropPrice').value = 'Rs. ' + price + ' per ' + unit;
             document.getElementById('purchaseCropAvailable').value = available + ' ' + unit;
-            document.getElementById('purchaseCropQuantity').max = available;
+            document.getElementById('purchaseCropQuantity').setAttribute('max', available);
             document.getElementById('purchaseCropQuantity').value = '';
+            document.getElementById('purchaseCropQuantityUnit').textContent = '(' + unit + ')';
             document.getElementById('purchaseCropTotal').textContent = 'Rs. 0.00';
             document.getElementById('purchaseCropModal').classList.add('active');
         }
 
         function openPurchaseToolModal(toolId, toolName, price, stock) {
+            var sectionEl = document.getElementById('purchaseToolReturnSection');
+            if (sectionEl) sectionEl.value = document.body.dataset.currentSection || 'tools';
             document.getElementById('purchaseToolId').value = toolId;
             document.getElementById('purchaseToolName').value = toolName;
             document.getElementById('purchaseToolPrice').value = 'Rs. ' + price;
@@ -2432,22 +2444,21 @@
 
         // Initialize - set active nav link and show default section
         document.addEventListener('DOMContentLoaded', function() {
-            // Set crops as active by default and show crops section
-            const cropsLink = document.querySelector('.nav-link-item[data-tab="crops"]');
-            if (cropsLink) {
-                cropsLink.classList.add('active');
+            var sectionFromUrl = new URLSearchParams(window.location.search).get('section');
+            var defaultSection = sectionFromUrl || 'crops';
+            document.body.dataset.currentSection = defaultSection;
+            if (defaultSection && document.getElementById(defaultSection)) {
+                switchTab(defaultSection, null);
+            } else {
+                // Set crops as active by default and show crops section
+                const cropsLink = document.querySelector('.nav-link-item[data-tab="crops"]');
+                if (cropsLink) cropsLink.classList.add('active');
+                const cropsSection = document.getElementById('crops');
+                if (cropsSection) cropsSection.style.display = 'block';
+                document.querySelectorAll('.content-section').forEach(section => {
+                    if (section.id !== 'crops') section.style.display = 'none';
+                });
             }
-            const cropsSection = document.getElementById('crops');
-            if (cropsSection) {
-                cropsSection.style.display = 'block';
-            }
-            
-            // Hide all other sections
-            document.querySelectorAll('.content-section').forEach(section => {
-                if (section.id !== 'crops') {
-                    section.style.display = 'none';
-                }
-            });
             
             // Load saved language preference
             const savedLang = localStorage.getItem('language') || 'en';

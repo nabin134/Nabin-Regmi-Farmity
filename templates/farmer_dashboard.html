@@ -1802,6 +1802,7 @@
                         <form method="POST" enctype="multipart/form-data" id="farmerProfileForm">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="1">
+                            <input type="hidden" name="return_section" value="profile">
                             
                             <div style="display: flex; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
                                 <div style="flex: 0 0 200px;">
@@ -1973,6 +1974,7 @@
             <form method="POST" enctype="multipart/form-data" onsubmit="return validateForm(this)">
                 {% csrf_token %}
                 <input type="hidden" name="add_product" value="1">
+                <input type="hidden" name="return_section" value="crops">
                 
                 <div class="form-group">
                     <label>Crop Name <span style="color: red;">*</span></label>
@@ -2024,6 +2026,7 @@
             <form method="POST" enctype="multipart/form-data" onsubmit="return validateForm(this)">
                 {% csrf_token %}
                 <input type="hidden" name="edit_product" value="1">
+                <input type="hidden" name="return_section" value="crops">
                 <input type="hidden" name="product_id" id="edit_product_id">
                 
                 <div class="form-group">
@@ -2084,6 +2087,7 @@
             <form method="POST" id="deleteForm">
                 {% csrf_token %}
                 <input type="hidden" name="delete_product" value="1">
+                <input type="hidden" name="return_section" value="crops">
                 <input type="hidden" name="product_id" id="delete_product_id">
                 
                 <p style="font-size: 1.1rem; color: #333; margin-bottom: 1.5rem;">
@@ -2112,6 +2116,7 @@
             <form method="POST" id="purchaseForm" action="{% url 'farmer_dashboard' %}">
                 {% csrf_token %}
                 <input type="hidden" name="purchase_tool" value="1">
+                <input type="hidden" name="return_section" value="tools">
                 <input type="hidden" name="tool_id" id="purchase_tool_id">
                 
                 <div class="form-group">
@@ -2177,9 +2182,9 @@
                     <textarea name="notes" class="form-control" rows="2" placeholder="Any special instructions..."></textarea>
                 </div>
 
-                <div id="esewa_payment_info" style="display: none; padding: 1rem; background: #E3F2FD; border-left: 4px solid #2196F3; border-radius: 8px; margin: 1rem 0;">
-                    <p style="margin: 0; color: #1565C0; font-size: 0.9rem;">
-                        <i class="fas fa-info-circle"></i> You will be redirected to eSewa payment gateway after clicking "Place Order"
+                <div id="esewa_payment_info" style="display: none; padding: 1rem; background: #FFF3E0; border-left: 4px solid #E65100; border-radius: 8px; margin: 1rem 0;">
+                    <p style="margin: 0; color: #E65100; font-size: 0.9rem;">
+                        <i class="fas fa-clock"></i> eSewa payment is coming soon! Please use Cash on Delivery for now.
                     </p>
                 </div>
 
@@ -2244,6 +2249,7 @@
             <form method="POST" action="{% url 'farmer_dashboard' %}" id="changeAppointmentForm">
                 {% csrf_token %}
                 <input type="hidden" name="update_appointment" value="1">
+                <input type="hidden" name="return_section" value="appointments">
                 <input type="hidden" name="appointment_id" id="changeApptId">
                 <input type="hidden" id="changeApptExpertId">
                 <div class="form-group">
@@ -2275,6 +2281,7 @@
             <form method="POST" action="{% url 'farmer_dashboard' %}" id="reapplyAppointmentForm">
                 {% csrf_token %}
                 <input type="hidden" name="reapply_appointment" value="1">
+                <input type="hidden" name="return_section" value="appointments">
                 <input type="hidden" name="appointment_id" id="reapplyApptId">
                 <input type="hidden" id="reapplyApptExpertId">
                 <div class="form-group">
@@ -2427,22 +2434,27 @@
 
         // Initialize dashboard visibility
         document.addEventListener('DOMContentLoaded', function() {
-            // Ensure dashboard is visible first with all content
-            const dashboardSection = document.getElementById('dashboard-section');
-            if (dashboardSection) {
-                dashboardSection.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
-                
-                // Ensure stats-grid is visible
-                const statsGrid = dashboardSection.querySelector('.stats-grid');
-                if (statsGrid) {
-                    statsGrid.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important;';
+            var sectionFromUrl = new URLSearchParams(window.location.search).get('section');
+            if (sectionFromUrl && document.getElementById(sectionFromUrl + '-section')) {
+                showSection(sectionFromUrl, null);
+            } else {
+                // Ensure dashboard is visible first with all content
+                const dashboardSection = document.getElementById('dashboard-section');
+                if (dashboardSection) {
+                    dashboardSection.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
+                    
+                    // Ensure stats-grid is visible
+                    const statsGrid = dashboardSection.querySelector('.stats-grid');
+                    if (statsGrid) {
+                        statsGrid.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important;';
+                    }
+                    
+                    // Ensure all stat-cards are visible
+                    const statCards = dashboardSection.querySelectorAll('.stat-card');
+                    statCards.forEach(card => {
+                        card.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important;';
+                    });
                 }
-                
-                // Ensure all stat-cards are visible
-                const statCards = dashboardSection.querySelectorAll('.stat-card');
-                statCards.forEach(card => {
-                    card.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important;';
-                });
             }
             
             // Initialize payment method on page load

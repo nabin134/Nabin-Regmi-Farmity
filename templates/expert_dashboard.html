@@ -1228,6 +1228,7 @@
                                     {% if appointment.status == 'accepted' and kyc_status == 'approved' %}
                                     <form method="POST" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
                                         {% csrf_token %}
+                                        <input type="hidden" name="return_section" value="appointments">
                                         <input type="hidden" name="update_visit_status" value="1">
                                         <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
                                         <label style="font-size: 0.9rem; font-weight: 500;">Visit:</label>
@@ -1275,6 +1276,7 @@
                         <form method="POST" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--light); border-radius: 12px;">
                             {% csrf_token %}
                             <input type="hidden" name="add_availability" value="1">
+                            <input type="hidden" name="return_section" value="availability">
                             <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label>Add single date</label>
@@ -1310,6 +1312,7 @@
                                     </div>
                                     <form method="POST" style="margin: 0;" onsubmit="return confirm('Remove this date from your availability?');">
                                         {% csrf_token %}
+                                        <input type="hidden" name="return_section" value="availability">
                                         <input type="hidden" name="remove_availability" value="1">
                                         <input type="hidden" name="availability_id" value="{{ avail.id }}">
                                         <button type="submit" class="btn-action btn-delete" title="Remove"><i class="fas fa-trash"></i></button>
@@ -1381,6 +1384,7 @@
                         <form method="POST" enctype="multipart/form-data" id="expertProfileForm">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="1">
+                            <input type="hidden" name="return_section" value="profile">
                             
                             <div style="display: flex; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
                                 <div style="flex: 0 0 200px;">
@@ -1546,6 +1550,7 @@
             </div>
             <form id="contentForm" method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
+                <input type="hidden" name="return_section" value="content">
                 <input type="hidden" id="content_id" name="tip_id">
                 <input type="hidden" id="content_action" name="add_tip" value="1">
                 
@@ -1591,6 +1596,7 @@
             </div>
             <form method="POST">
                 {% csrf_token %}
+                <input type="hidden" name="return_section" value="content">
                 <input type="hidden" id="delete_content_id" name="tip_id">
                 <input type="hidden" name="delete_tip" value="1">
                 <p>Are you sure you want to delete <strong id="delete_content_title"></strong>? This action cannot be undone.</p>
@@ -1611,6 +1617,7 @@
             </div>
             <form method="POST" id="appointmentResponseForm">
                 {% csrf_token %}
+                <input type="hidden" name="return_section" value="appointments">
                 <input type="hidden" name="appointment_id" id="appointmentResponseId">
                 <div class="form-group" style="margin-bottom: 1rem;">
                     <label id="appointmentResponseLabel">Reason (required for reject)</label>
@@ -1898,6 +1905,10 @@
         })();
         
         document.addEventListener('DOMContentLoaded', function() {
+            var sectionFromUrl = new URLSearchParams(window.location.search).get('section');
+            if (sectionFromUrl && document.getElementById(sectionFromUrl + '-section')) {
+                showSection(sectionFromUrl, null);
+            } else {
             // Ensure dashboard is visible first with all content
             const dashboardSection = document.getElementById('dashboard-section');
             if (dashboardSection) {
@@ -1917,6 +1928,7 @@
                 });
                 console.log('DOMContentLoaded: All stat cards visible');
             }
+            }
             
             // Verify all sections exist
             const sections = ['dashboard', 'content', 'appointments', 'availability', 'chat', 'analytics', 'profile', 'settings'];
@@ -1927,13 +1939,15 @@
                 }
             });
             
-            // Set active nav item
-            const dashboardNav = document.querySelector('.nav-item[href="#dashboard"]');
-            if (dashboardNav) {
-                document.querySelectorAll('.nav-item').forEach(item => {
-                    item.classList.remove('active');
-                });
-                dashboardNav.classList.add('active');
+            // Set active nav item (only when not restoring section from URL)
+            if (!sectionFromUrl) {
+                const dashboardNav = document.querySelector('.nav-item[href="#dashboard"]');
+                if (dashboardNav) {
+                    document.querySelectorAll('.nav-item').forEach(item => {
+                        item.classList.remove('active');
+                    });
+                    dashboardNav.classList.add('active');
+                }
             }
             
             // Set min date/month for availability form
