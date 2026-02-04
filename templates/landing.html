@@ -1,10 +1,11 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Farmity - Smart Agriculture Platform</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
     <!-- Header Navigation -->
@@ -67,8 +68,9 @@
                         <div class="stat-value">{{ farmers_count|default:0 }}+</div>
                     </div>
                 </div>
-                <div class="hero-img-placeholder">
-                    <div class="field-image">🌾🌾🌾</div>
+                <div class="hero-img-placeholder" style="overflow:hidden; border-radius:16px;">
+                    <img src="{% static 'images/nepali_Farming.jpg' %}" alt="Active farmers – farming landscape" style="display:block; width:100%; height:100%; min-height:280px; object-fit:cover;" loading="eager" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="field-image" style="display:none; width:100%; min-height:280px; background:linear-gradient(135deg, #358D58 0%, #2a6f45 100%); align-items:center; justify-content:center; font-size:4rem;">🌾</div>
                 </div>
             </div>
         </div>
@@ -203,25 +205,53 @@
         </div>
     </section>
 
-    <!-- Chat with Experts Section -->
+    <!-- Chat with Agricultural Experts – same template, real experts + real images -->
     <section class="experts-section" id="experts">
         <div class="experts-container">
             <div class="experts-image">
-                <div class="expert-img-placeholder">👩‍🔬</div>
+                <div class="expert-img-placeholder" style="position:relative; overflow:hidden;">
+                    <img id="expertSectionHeroImg" src="{% static 'images/agri expert.jpg' %}" alt="Agricultural expert consultation" style="display:block; width:100%; height:400px; object-fit:cover;" loading="lazy" onerror="this.style.display='none'; document.getElementById('expertSectionHeroFallback').style.display='flex';">
+                    <div id="expertSectionHeroFallback" style="display:none; width:100%; height:400px; background:rgba(255,255,255,0.1); border-radius:20px; align-items:center; justify-content:center; font-size:8rem;">👩‍🔬</div>
+                </div>
             </div>
             <div class="experts-content">
                 <h2>Chat with Agricultural Experts</h2>
                 <p>Get instant guidance from certified agricultural experts. Solve your farming challenges with professional consultation.</p>
+                {% if experts %}
+                <ul class="experts-features">
+                    {% for expert in experts %}
+                    <li style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.75rem;">
+                        <span style="display:flex; align-items:center; gap:0.75rem;">
+                            <span style="width:40px; height:40px; border-radius:50%; overflow:hidden; flex-shrink:0; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center;">
+                                {% if expert.photo %}
+                                <img src="{{ expert.photo.url }}" alt="{{ expert.name|default:expert.user.email }}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <span style="display:none; font-size:1.25rem;">👩‍🔬</span>
+                                {% else %}
+                                <span style="font-size:1.25rem;">👩‍🔬</span>
+                                {% endif %}
+                            </span>
+                            <span>✓ {{ expert.name|default:expert.user.email }}{% if expert.specialization %} – {{ expert.specialization }}{% endif %}</span>
+                        </span>
+                        <span style="display:flex; gap:0.5rem;">
+                            <a href="/login/?next=/user/dashboard/" class="btn-consult" style="padding:0.5rem 1rem; font-size:0.9rem; text-decoration:none;">Chat</a>
+                            <a href="/login/?next=/appointments/request/" class="btn-upload" style="padding:0.5rem 1rem; font-size:0.9rem; text-decoration:none; display:inline-flex; align-items:center;">Appointment</a>
+                        </span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <p style="margin-top:1rem; font-size:0.95rem;">{{ experts_count }} agricultural expert{{ experts_count|pluralize }} available</p>
+                {% else %}
                 <ul class="experts-features">
                     <li>✓ Ask questions about crops, soil, farming techniques</li>
                     <li>✓ Send crop photos for disease diagnosis</li>
                     <li>✓ Get personalized farming recommendations</li>
                 </ul>
                 <div class="experts-buttons">
-                    <a href="/login/?next=/user/dashboard/" class="btn-consult">Consult Now</a>
-                    <a href="/login/?next=/user/dashboard/" class="btn-upload" style="display:inline-flex;align-items:center;gap:0.5rem;">📤 Upload Photo</a>
+                    <a href="/login/?next=/user/dashboard/" class="btn-consult">Chat</a>
+                    <a href="/login/?next=/appointments/request/" class="btn-upload" style="display:inline-flex; align-items:center; gap:0.5rem;">Appointment</a>
                 </div>
-                {% if experts_count %}<p style="margin-top:1rem;font-size:0.95rem;"><strong>{{ experts_count }}</strong> agricultural expert{{ experts_count|pluralize }} available</p>{% endif %}
+                <p style="margin-top:1rem; font-size:0.95rem;">Sign up to connect with experts.</p>
+                {% endif %}
             </div>
         </div>
     </section>
@@ -235,7 +265,6 @@
             <div class="prices-grid" id="marketplacePrices">
                 {% for item in kalimati_prices %}
                 <div class="price-card searchable-card" data-search="{{ item.name }} rs {{ item.avg_price|default:item.min_price }}">
-                    <div class="price-image">🌾</div>
                     <h4>{{ item.name }}</h4>
                     <div class="price-info">
                         {% if item.avg_price %}<span class="price-value">Rs. {{ item.avg_price }}/{{ item.unit }}</span>
@@ -253,7 +282,6 @@
             <div class="prices-grid" id="marketplacePrices">
                 {% for item in crop_prices %}
                 <div class="price-card searchable-card" data-search="{{ item.name|lower }} rs {{ item.min_price }}">
-                    <div class="price-image">🌾</div>
                     <h4>{{ item.name }}</h4>
                     <div class="price-info">
                         <span class="price-value">Rs. {{ item.min_price }}/kg</span>

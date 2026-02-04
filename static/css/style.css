@@ -407,12 +407,21 @@ body {
 .hero-img-placeholder {
     width: 100%;
     height: 400px;
+    min-height: 280px;
     background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
     border-radius: 20px;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 4rem;
+    overflow: hidden;
+}
+.hero-img-placeholder img {
+    width: 100%;
+    height: 100%;
+    min-height: 280px;
+    object-fit: cover;
+    display: block;
 }
 
 .field-image {
@@ -757,6 +766,13 @@ body {
     align-items: center;
     justify-content: center;
     font-size: 8rem;
+    overflow: hidden;
+}
+.expert-img-placeholder img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
 }
 
 .experts-content h2 {

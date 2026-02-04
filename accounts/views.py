@@ -824,8 +824,21 @@ def landing_page(request):
     experts_count = ExpertProfile.objects.count()
     vendors = VendorProfile.objects.annotate(tool_count=Count('tools')).filter(tool_count__gt=0).select_related('user').order_by('-tool_count')[:6]
     from django.db.models import Min
-    crop_prices = FarmerProduct.objects.filter(is_available=True, quantity__gt=0).values('name').annotate(min_price=Min('price_per_unit')).order_by('name')[:6]
+    crop_prices = list(FarmerProduct.objects.filter(is_available=True, quantity__gt=0).values('name').annotate(min_price=Min('price_per_unit')).order_by('name')[:6])
     kalimati_prices = _fetch_kalimati_prices()
+    # Real produce images for first 6 live price cards (Unsplash, free to use)
+    price_images = [
+        'https://images.unsplash.com/photo-1546470427-e26264be0b0d?w=400',   # tomato
+        'https://images.unsplash.com/photo-1518977676601-b53f82aba655?w=400', # potato
+        'https://images.unsplash.com/photo-1580201092674-a0a6a6cafbb1?w=400', # onion
+        'https://images.unsplash.com/photo-1598170845058-32b9d6a5da37?w=400', # carrot
+        'https://images.unsplash.com/photo-1585325706348-66b0d4e1e0c2?w=400', # cabbage
+        'https://images.unsplash.com/photo-1576045057995-568f588f82fb?w=400', # cauliflower
+    ]
+    for i, item in enumerate(kalimati_prices):
+        item['image_url'] = price_images[i] if i < len(price_images) else None
+    for i, item in enumerate(crop_prices):
+        item['image_url'] = price_images[i] if i < len(price_images) else None
     context = {
         'crops': crops,
         'tools': tools,
