@@ -805,7 +805,7 @@ def _fetch_kalimati_prices():
                 'max_price': max_val,
                 'avg_price': avg_val,
             })
-        return out[:16]
+        return out[:6]
     except Exception:
         return []
 
@@ -824,7 +824,7 @@ def landing_page(request):
     experts_count = ExpertProfile.objects.count()
     vendors = VendorProfile.objects.annotate(tool_count=Count('tools')).filter(tool_count__gt=0).select_related('user').order_by('-tool_count')[:6]
     from django.db.models import Min
-    crop_prices = FarmerProduct.objects.filter(is_available=True, quantity__gt=0).values('name').annotate(min_price=Min('price_per_unit')).order_by('name')[:8]
+    crop_prices = FarmerProduct.objects.filter(is_available=True, quantity__gt=0).values('name').annotate(min_price=Min('price_per_unit')).order_by('name')[:6]
     kalimati_prices = _fetch_kalimati_prices()
     context = {
         'crops': crops,
