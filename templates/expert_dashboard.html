@@ -67,6 +67,12 @@
             align-items: center;
             justify-content: center;
             font-size: 1.5rem;
+            overflow: hidden;
+        }
+        .sidebar-logo .sidebar-logo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
         }
 
         .sidebar-title {
@@ -890,7 +896,10 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="sidebar-logo">🌾</div>
+            <div class="sidebar-logo">
+                <img src="/static/images/Farmity%20logo.png" alt="Farmity" class="sidebar-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <span class="sidebar-logo-fallback" style="display: none;">🌾</span>
+            </div>
             <div class="sidebar-title">Farmity</div>
         </div>
         <nav class="sidebar-nav">

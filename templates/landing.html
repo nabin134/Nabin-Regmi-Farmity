@@ -63,7 +63,7 @@
                     <span class="stat-icon">🌾</span>
                     <div>
                         <div class="stat-label">Active farmers</div>
-                        <div class="stat-value">10,000+</div>
+                        <div class="stat-value">{{ farmers_count|default:0 }}+</div>
                     </div>
                 </div>
                 <div class="hero-img-placeholder">
@@ -98,53 +98,53 @@
         </div>
     </section>
 
-    <!-- Marketplace Section -->
+    <!-- Marketplace Section - Crops -->
     <section class="marketplace-section" id="marketplace">
         <div class="section-container">
             <h2 class="section-title">Marketplace</h2>
             <p class="section-subtitle">Fresh produce directly from farms</p>
             <div class="products-grid">
+                {% for crop in crops %}
                 <div class="product-card">
-                    <div class="product-image">🍅</div>
-                    <h4>Organic Tomatoes</h4>
-                    <p class="vendor-name">Green Farm Co.</p>
+                    {% if crop.image %}
+                    <div class="product-image"><img src="{{ crop.image.url }}" alt="{{ crop.name }}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
+                    {% else %}
+                    <div class="product-image">🌾</div>
+                    {% endif %}
+                    <h4>{{ crop.name }}</h4>
+                    <p class="vendor-name">{{ crop.farmer.name|default:crop.farmer.user.email }}</p>
                     <div class="product-footer">
-                        <span class="price">₹45/kg</span>
-                        <span class="rating">⭐ 4.3</span>
+                        <span class="price">Rs. {{ crop.price_per_unit }}/{{ crop.unit }}</span>
                         <span class="cart-icon">🛒</span>
                     </div>
+                    <a href="/login/?next=/user/dashboard/" class="btn-view-store" style="margin-top:0.5rem;display:inline-block;text-decoration:none;font-size:0.9rem;">View & Buy</a>
                 </div>
-                <div class="product-card">
-                    <div class="product-image">🧅</div>
-                    <h4>Fresh Onions</h4>
-                    <p class="vendor-name">Valley Farms</p>
-                    <div class="product-footer">
-                        <span class="price">₹32/kg</span>
-                        <span class="rating">⭐ 4.3</span>
-                        <span class="cart-icon">🛒</span>
-                    </div>
-                </div>
-                <div class="product-card">
-                    <div class="product-image">🥔</div>
-                    <h4>Premium Potatoes</h4>
-                    <p class="vendor-name">Harvest Hub</p>
-                    <div class="product-footer">
-                        <span class="price">₹28/kg</span>
-                        <span class="rating">⭐ 4.3</span>
-                        <span class="cart-icon">🛒</span>
-                    </div>
-                </div>
-                <div class="product-card">
-                    <div class="product-image">🥬</div>
-                    <h4>Garden Cabbage</h4>
-                    <p class="vendor-name">Organic Heals</p>
-                    <div class="product-footer">
-                        <span class="price">₹20/kg</span>
-                        <span class="rating">⭐ 4.4</span>
-                        <span class="cart-icon">🛒</span>
-                    </div>
-                </div>
+                {% empty %}
+                <p class="section-subtitle">No crops listed yet. Sign up as a farmer to sell!</p>
+                {% endfor %}
             </div>
+            {% if tools %}
+            <h3 class="section-title" style="margin-top:2rem;">Tools & Equipment</h3>
+            <p class="section-subtitle">From trusted vendors</p>
+            <div class="products-grid">
+                {% for tool in tools %}
+                <div class="product-card">
+                    {% if tool.image %}
+                    <div class="product-image"><img src="{{ tool.image.url }}" alt="{{ tool.name }}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
+                    {% else %}
+                    <div class="product-image">🛠️</div>
+                    {% endif %}
+                    <h4>{{ tool.name }}</h4>
+                    <p class="vendor-name">{{ tool.vendor.company_name|default:tool.vendor.user.email }}</p>
+                    <div class="product-footer">
+                        <span class="price">Rs. {{ tool.price }}</span>
+                        <span class="cart-icon">🛒</span>
+                    </div>
+                    <a href="/login/?next=/user/dashboard/" class="btn-view-store" style="margin-top:0.5rem;display:inline-block;text-decoration:none;font-size:0.9rem;">View & Buy</a>
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
         </div>
     </section>
 
@@ -152,32 +152,19 @@
     <section class="vendors-section" id="vendors">
         <div class="section-container">
             <h2 class="section-title">Vendor Spotlight</h2>
-            <p class="section-subtitle">Trusted agricultural suppliers across India</p>
+            <p class="section-subtitle">Trusted agricultural suppliers</p>
             <div class="vendors-grid">
+                {% for vendor in vendors %}
                 <div class="vendor-card">
-                    <div class="vendor-image">🧀</div>
-                    <h4>Green Valley Farms</h4>
-                    <p class="vendor-location">📍 Punjab, India</p>
-                    <p class="vendor-products">150 Products</p>
-                    <div class="vendor-rating">⭐ 4.8</div>
-                    <button class="btn-view-store">View Store</button>
+                    <div class="vendor-image">🏢</div>
+                    <h4>{{ vendor.company_name|default:vendor.user.email }}</h4>
+                    <p class="vendor-location">{% if vendor.address %}📍 {{ vendor.address }}{% endif %}</p>
+                    <p class="vendor-products">{{ vendor.tool_count }} Tools</p>
+                    <a href="/login/?next=/user/dashboard/" class="btn-view-store">View Store</a>
                 </div>
-                <div class="vendor-card">
-                    <div class="vendor-image">🫘</div>
-                    <h4>Organic Harvest Co.</h4>
-                    <p class="vendor-location">📍 Maharashtra, India</p>
-                    <p class="vendor-products">200 Products</p>
-                    <div class="vendor-rating">⭐ 4.9</div>
-                    <button class="btn-view-store">View Store</button>
-                </div>
-                <div class="vendor-card">
-                    <div class="vendor-image">🌾</div>
-                    <h4>Fresh Fields Ltd.</h4>
-                    <p class="vendor-location">📍 Karnataka, India</p>
-                    <p class="vendor-products">180 Products</p>
-                    <div class="vendor-rating">⭐ 4.7</div>
-                    <button class="btn-view-store">View Store</button>
-                </div>
+                {% empty %}
+                <p class="section-subtitle">No vendors yet. Sign up as a vendor to list tools!</p>
+                {% endfor %}
             </div>
         </div>
     </section>
@@ -186,52 +173,31 @@
     <section class="learning-section" id="learning">
         <div class="section-container">
             <h2 class="section-title">Learning Hub</h2>
-            <p class="section-subtitle">Enhance your agricultural knowledge</p>
+            <p class="section-subtitle">Expert tips and agricultural knowledge</p>
             <div class="courses-grid">
+                {% for tip in farming_tips %}
                 <div class="course-card">
-                    <div class="course-image">💧</div>
-                    <h4>Modern Irrigation Techniques</h4>
-                    <p class="instructor">Dr. Rajesh Kumar</p>
+                    {% if tip.image %}
+                    <div class="course-image"><img src="{{ tip.image.url }}" alt="{{ tip.title }}" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;"></div>
+                    {% else %}
+                    <div class="course-image">📚</div>
+                    {% endif %}
+                    <h4>{{ tip.title }}</h4>
+                    <p class="instructor">{{ tip.expert.name|default:tip.expert.user.email }}</p>
                     <div class="course-meta">
-                        <span>⏱️ 2 hours</span>
-                        <span>👥 1050 learners</span>
+                        <span>By Expert</span>
                     </div>
-                    <button class="btn-start-learning">Start Learning</button>
+                    <a href="/login/?next=/user/dashboard/" class="btn-start-learning">Start Learning</a>
                 </div>
-                <div class="course-card">
-                    <div class="course-image">🌱</div>
-                    <h4>Organic Farming Essentials</h4>
-                    <p class="instructor">A Priya Sharma</p>
-                    <div class="course-meta">
-                        <span>⏱️ 3 hours</span>
-                        <span>👥 2100 learners</span>
-                    </div>
-                    <button class="btn-start-learning">Start Learning</button>
-                </div>
-                <div class="course-card">
-                    <div class="course-image">🐛</div>
-                    <h4>Pest Management Strategies</h4>
-                    <p class="instructor">A Amit Patal</p>
-                    <div class="course-meta">
-                        <span>⏱️ 1.5 hours</span>
-                        <span>👥 980 learners</span>
-                    </div>
-                    <button class="btn-start-learning">Start Learning</button>
-                </div>
-                <div class="course-card">
-                    <div class="course-image">🌿</div>
-                    <h4>Soil Health & Nutrition</h4>
-                    <p class="instructor">A Dr. Meena Singh</p>
-                    <div class="course-meta">
-                        <span>⏱️ 2.5 hours</span>
-                        <span>👥 1580 learners</span>
-                    </div>
-                    <button class="btn-start-learning">Start Learning</button>
-                </div>
+                {% empty %}
+                <p class="section-subtitle">No content yet. Experts can share tips after signing up!</p>
+                {% endfor %}
             </div>
+            {% if farming_tips %}
             <div class="view-all-link">
-                <a href="#">View All Courses <span>→</span></a>
+                <a href="/login/?next=/user/dashboard/">View more after login <span>→</span></a>
             </div>
+            {% endif %}
         </div>
     </section>
 
@@ -250,9 +216,10 @@
                     <li>✓ Get personalized farming recommendations</li>
                 </ul>
                 <div class="experts-buttons">
-                    <button class="btn-consult">Consult Now</button>
-                    <button class="btn-upload">📤 Upload Photo</button>
+                    <a href="/login/?next=/user/dashboard/" class="btn-consult">Consult Now</a>
+                    <a href="/login/?next=/user/dashboard/" class="btn-upload" style="display:inline-flex;align-items:center;gap:0.5rem;">📤 Upload Photo</a>
                 </div>
+                {% if experts_count %}<p style="margin-top:1rem;font-size:0.95rem;"><strong>{{ experts_count }}</strong> agricultural expert{{ experts_count|pluralize }} available</p>{% endif %}
             </div>
         </div>
     </section>
@@ -261,43 +228,25 @@
     <section class="prices-section">
         <div class="section-container">
             <h2 class="section-title">Live Market Prices</h2>
+            <p class="section-subtitle">From our marketplace</p>
             <div class="prices-grid">
+                {% for item in crop_prices %}
                 <div class="price-card">
-                    <div class="price-image">🍅</div>
-                    <h4>Tomato</h4>
+                    <div class="price-image">🌾</div>
+                    <h4>{{ item.name }}</h4>
                     <div class="price-info">
-                        <span class="price-value">₹45/kg</span>
-                        <span class="price-change up">↑ 5.2%</span>
+                        <span class="price-value">Rs. {{ item.min_price }}/kg</span>
                     </div>
                 </div>
-                <div class="price-card">
-                    <div class="price-image">🥬</div>
-                    <h4>Cabbage</h4>
-                    <div class="price-info">
-                        <span class="price-value">₹20/kg</span>
-                        <span class="price-change down">↓ 1.8%</span>
-                    </div>
-                </div>
-                <div class="price-card">
-                    <div class="price-image">🥔</div>
-                    <h4>Potato</h4>
-                    <div class="price-info">
-                        <span class="price-value">₹28/kg</span>
-                        <span class="price-change up">↑ 3.4%</span>
-                    </div>
-                </div>
-                <div class="price-card">
-                    <div class="price-image">🧅</div>
-                    <h4>Onion</h4>
-                    <div class="price-info">
-                        <span class="price-value">₹32/kg</span>
-                        <span class="price-change down">↓ 2.1%</span>
-                    </div>
-                </div>
+                {% empty %}
+                <p class="section-subtitle">No price data yet. Crops will appear here once farmers list them.</p>
+                {% endfor %}
             </div>
+            {% if crop_prices %}
             <div class="view-all-link">
-                <a href="#">View All <span>→</span></a>
+                <a href="/login/?next=/user/dashboard/">View marketplace <span>→</span></a>
             </div>
+            {% endif %}
         </div>
     </section>
 

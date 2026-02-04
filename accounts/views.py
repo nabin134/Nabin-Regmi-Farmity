@@ -760,7 +760,29 @@ class ResetPasswordView(APIView):
 # FRONTEND PAGES
 # ======================
 def landing_page(request):
-    return render(request, 'landing.html')
+    """Landing page with real data: crops, tools, vendors, experts, learning tips."""
+    crops = FarmerProduct.objects.filter(is_available=True).select_related('farmer', 'farmer__user').order_by('-created_at')[:8]
+    tools = VendorTool.objects.filter(is_available=True, stock_quantity__gt=0).select_related('vendor', 'vendor__user').order_by('-created_at')[:8]
+    experts = ExpertProfile.objects.select_related('user').all()[:6]
+    farming_tips = FarmingTip.objects.filter(is_published=True).select_related('expert', 'expert__user').order_by('-created_at')[:4]
+    farmers_count = FarmerProfile.objects.count()
+    vendors_count = VendorProfile.objects.count()
+    experts_count = ExpertProfile.objects.count()
+    vendors = VendorProfile.objects.annotate(tool_count=Count('tools')).filter(tool_count__gt=0).select_related('user').order_by('-tool_count')[:6]
+    from django.db.models import Min
+    crop_prices = FarmerProduct.objects.filter(is_available=True, quantity__gt=0).values('name').annotate(min_price=Min('price_per_unit')).order_by('name')[:8]
+    context = {
+        'crops': crops,
+        'tools': tools,
+        'experts': experts,
+        'farming_tips': farming_tips,
+        'vendors': vendors,
+        'farmers_count': farmers_count,
+        'vendors_count': vendors_count,
+        'experts_count': experts_count,
+        'crop_prices': crop_prices,
+    }
+    return render(request, 'landing.html', context)
 
 
 def role_selection(request):
