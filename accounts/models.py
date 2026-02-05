@@ -111,6 +111,9 @@ class VendorProfile(models.Model):
     logo = models.ImageField(upload_to='vendor_logos/', blank=True, null=True)
     address = models.TextField(blank=True, null=True)
     contact = models.CharField(max_length=20, blank=True, null=True)
+    website = models.URLField(max_length=255, blank=True, null=True)
+    business_type = models.CharField(max_length=100, blank=True, null=True, help_text="e.g., Equipment supplier, Seeds & fertilizers")
+    description = models.TextField(blank=True, null=True, help_text="Business description")
 
     def __str__(self):
         return self.company_name or self.user.email

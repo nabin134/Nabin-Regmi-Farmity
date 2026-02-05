@@ -1081,57 +1081,103 @@ def profile_page(request):
     
     if user.role == 'farmer':
         profile, _ = FarmerProfile.objects.get_or_create(user=user)
-        if request.method == 'POST' and 'update_profile' in request.POST:
-            profile.name = request.POST.get('name')
-            profile.location = request.POST.get('location')
-            profile.contact = request.POST.get('contact')
-            profile.farm_size = request.POST.get('farm_size')
-            profile.crop_types = request.POST.get('crop_types')
-            if request.FILES.get('photo'):
-                profile.photo = request.FILES.get('photo')
-            profile.save()
-            messages.success(request, 'Profile updated successfully!')
-            return redirect('profile')
+        if request.method == 'POST':
+            if 'update_photo' in request.POST:
+                photo_file = request.FILES.get('photo')
+                if photo_file:
+                    profile.photo = photo_file
+                    profile.save()
+                    messages.success(request, 'Profile picture updated successfully!')
+                else:
+                    messages.error(request, 'Please select an image file.')
+                return redirect('profile')
+            elif 'update_profile' in request.POST:
+                profile.name = request.POST.get('name', profile.name)
+                profile.location = request.POST.get('location', profile.location)
+                profile.contact = request.POST.get('contact', profile.contact)
+                profile.farm_size = request.POST.get('farm_size', profile.farm_size)
+                profile.crop_types = request.POST.get('crop_types', profile.crop_types)
+                profile.livestock_details = request.POST.get('livestock_details', profile.livestock_details)
+                if request.FILES.get('photo'):
+                    profile.photo = request.FILES.get('photo')
+                profile.save()
+                messages.success(request, 'Profile updated successfully!')
+                return redirect('profile')
         context['profile'] = profile
         
     elif user.role == 'vendor':
         profile, _ = VendorProfile.objects.get_or_create(user=user)
-        if request.method == 'POST' and 'update_profile' in request.POST:
-            profile.company_name = request.POST.get('company_name', profile.company_name)
-            profile.address = request.POST.get('address', profile.address)
-            profile.contact = request.POST.get('contact', profile.contact)
-            if request.FILES.get('photo'):
-                profile.logo = request.FILES.get('photo')
-            profile.save()
-            messages.success(request, 'Profile updated successfully!')
-            return redirect('profile')
+        if request.method == 'POST':
+            if 'update_photo' in request.POST:
+                photo_file = request.FILES.get('photo')
+                if photo_file:
+                    profile.logo = photo_file
+                    profile.save()
+                    messages.success(request, 'Profile picture updated successfully!')
+                else:
+                    messages.error(request, 'Please select an image file.')
+                return redirect('profile')
+            elif 'update_profile' in request.POST:
+                profile.company_name = request.POST.get('company_name', profile.company_name)
+                profile.address = request.POST.get('address', profile.address)
+                profile.contact = request.POST.get('contact', profile.contact)
+                profile.website = request.POST.get('website', profile.website) or None
+                profile.business_type = request.POST.get('business_type', profile.business_type)
+                profile.description = request.POST.get('description', profile.description)
+                if request.FILES.get('photo'):
+                    profile.logo = request.FILES.get('photo')
+                profile.save()
+                messages.success(request, 'Profile updated successfully!')
+                return redirect('profile')
+        from .models import VendorTool
         context['profile'] = profile
+        context['tools_count'] = VendorTool.objects.filter(vendor=profile).count()
         
     elif user.role == 'agricultural_expert':
         profile, _ = ExpertProfile.objects.get_or_create(user=user)
-        if request.method == 'POST' and 'update_profile' in request.POST:
-            profile.name = request.POST.get('name', profile.name)
-            profile.specialization = request.POST.get('specialization', profile.specialization)
-            profile.experience = request.POST.get('experience', profile.experience)
-            profile.qualification = request.POST.get('qualifications', profile.qualification)
-            if request.FILES.get('photo'):
-                profile.photo = request.FILES.get('photo')
-            profile.save()
-            messages.success(request, 'Profile updated successfully!')
-            return redirect('profile')
+        if request.method == 'POST':
+            if 'update_photo' in request.POST:
+                photo_file = request.FILES.get('photo')
+                if photo_file:
+                    profile.photo = photo_file
+                    profile.save()
+                    messages.success(request, 'Profile picture updated successfully!')
+                else:
+                    messages.error(request, 'Please select an image file.')
+                return redirect('profile')
+            elif 'update_profile' in request.POST:
+                profile.name = request.POST.get('name', profile.name)
+                profile.specialization = request.POST.get('specialization', profile.specialization)
+                profile.experience = request.POST.get('experience', profile.experience)
+                profile.qualification = request.POST.get('qualifications', profile.qualification)
+                if request.FILES.get('photo'):
+                    profile.photo = request.FILES.get('photo')
+                profile.save()
+                messages.success(request, 'Profile updated successfully!')
+                return redirect('profile')
         context['profile'] = profile
         
     elif user.role == 'buyer':
         profile, _ = UserProfile.objects.get_or_create(user=user)
-        if request.method == 'POST' and 'update_profile' in request.POST:
-            profile.name = request.POST.get('name', profile.name)
-            profile.phone = request.POST.get('contact', profile.phone)
-            profile.address = request.POST.get('location', profile.address)
-            if request.FILES.get('photo'):
-                profile.photo = request.FILES.get('photo')
-            profile.save()
-            messages.success(request, 'Profile updated successfully!')
-            return redirect('profile')
+        if request.method == 'POST':
+            if 'update_photo' in request.POST:
+                photo_file = request.FILES.get('photo')
+                if photo_file:
+                    profile.photo = photo_file
+                    profile.save()
+                    messages.success(request, 'Profile picture updated successfully!')
+                else:
+                    messages.error(request, 'Please select an image file.')
+                return redirect('profile')
+            elif 'update_profile' in request.POST:
+                profile.name = request.POST.get('name', profile.name)
+                profile.phone = request.POST.get('contact', profile.phone)
+                profile.address = request.POST.get('location', profile.address)
+                if request.FILES.get('photo'):
+                    profile.photo = request.FILES.get('photo')
+                profile.save()
+                messages.success(request, 'Profile updated successfully!')
+                return redirect('profile')
         context['profile'] = profile
     else:
         context['profile'] = user
