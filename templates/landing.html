@@ -33,7 +33,7 @@
                 <div class="weather-info" id="weatherInfo">
                     <span class="weather-icon" id="weatherIcon">☀️</span>
                     <span id="weatherTemp">--°C</span>
-                    <span id="weatherLocation" style="font-size:0.75rem;opacity:0.9;">Kathmandu</span>
+                    <span id="weatherLocation" style="font-size:0.75rem;opacity:0.9;">Biratnagar</span>
                 </div>
                 <!-- Auth buttons will be injected here by JS -->
                 <div id="authButtons" class="auth-buttons">
@@ -57,7 +57,7 @@
                         Get Started
                         <span class="btn-arrow">→</span>
                     </a>
-                    <a href="/role-selection/?role=farmer" class="btn-secondary-large">I'm a Farmer</a>
+                    <a href="/role-selection/?role=farmer" class="btn-secondary-large">Join as a Farmer</a>
                 </div>
             </div>
             <div class="hero-image">
@@ -95,8 +95,8 @@
             </div>
             <div class="feature-card">
                 <div class="feature-icon green">📈</div>
-                <h3>Advisory</h3>
-                <p>Access market insights, forecasts</p>
+                <h3>Buyers</h3>
+                <p>Get fresh produce directly from farms</p>
             </div>
         </div>
     </section>
@@ -210,8 +210,7 @@
         <div class="experts-container">
             <div class="experts-image">
                 <div class="expert-img-placeholder" style="position:relative; overflow:hidden;">
-                    <img id="expertSectionHeroImg" src="{% static 'images/agri expert.jpg' %}" alt="Agricultural expert consultation" style="display:block; width:100%; height:400px; object-fit:cover;" loading="lazy" onerror="this.style.display='none'; document.getElementById('expertSectionHeroFallback').style.display='flex';">
-                    <div id="expertSectionHeroFallback" style="display:none; width:100%; height:400px; background:rgba(255,255,255,0.1); border-radius:20px; align-items:center; justify-content:center; font-size:8rem;">👩‍🔬</div>
+                    <img id="expertSectionHeroImg" src="{% static 'images/agri expert.jpg' %}" alt="Agricultural expert consultation" style="display:block; width:100%; height:400px; object-fit:cover;" loading="lazy" onerror="this.style.display='none'; document.getElementById('expertSectionHeroFallback').style.display='flex';">                    <div id="expertSectionHeroFallback" style="display:none; width:100%; height:400px; background:rgba(255,255,255,0.1); border-radius:20px; align-items:center; justify-content:center; font-size:8rem;">👩‍🔬</div>
                 </div>
             </div>
             <div class="experts-content">
@@ -293,7 +292,7 @@
             </div>
             {% if crop_prices %}
             <div class="view-all-link">
-                <a href="/login/?next=/user/dashboard/">View marketplace <span>→</span></a>
+                <a href="/login/?next=/user-dashboard/">View marketplace <span>→</span></a>
             </div>
             {% endif %}
             {% endif %}

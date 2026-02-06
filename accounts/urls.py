@@ -8,7 +8,8 @@ from .views import (
     admin_marketplace_oversight, admin_appointment_management, admin_chat_reports,
     kyc_page, profile_page, settings_page, change_password,
     appointment_request_page,
-    chat_threads_page, chat_thread_detail,
+    chat_threads_page, chat_thread_detail, chat_start,
+    api_chat_messages, api_chat_send, api_chat_start,
     forgot_password_page, reset_password_page, otp_verification_page,
     logout_view
 )
@@ -42,7 +43,11 @@ urlpatterns = [
     path('admin-dashboard/chats-reports/', admin_chat_reports, name='admin_chat_reports'),
     path('appointments/request/', appointment_request_page, name='appointment_request'),
     path('chat/', chat_threads_page, name='chat_threads'),
+    path('chat/start/<int:expert_id>/', chat_start, name='chat_start'),
     path('chat/<int:thread_id>/', chat_thread_detail, name='chat_thread'),
+    path('api/chat/thread/<int:thread_id>/messages/', api_chat_messages, name='api_chat_messages'),
+    path('api/chat/thread/<int:thread_id>/send/', api_chat_send, name='api_chat_send'),
+    path('api/chat/start/<int:expert_id>/', api_chat_start, name='api_chat_start'),
     path('logout/', logout_view, name='logout'),
 ]
 

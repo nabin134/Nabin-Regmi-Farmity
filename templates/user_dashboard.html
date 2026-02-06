@@ -1314,9 +1314,9 @@
                                 </p>
                             </div>
                             <div class="expert-actions">
-                                <a href="{% url 'chat_threads' %}" class="btn-chat">
+                                <button type="button" class="btn-chat" onclick="openChatWithExpert({{ expert.id }}, '{{ expert.name|default:expert.user.email|escapejs }}', '{{ expert.qualification|default:""|escapejs }}', '{{ expert.specialization|default:""|escapejs }}', '{{ expert.experience|default:""|escapejs }}')">
                                     <i class="fas fa-comments"></i> Chat
-                                </a>
+                                </button>
                                 <button class="btn-appoint" onclick="openAppointmentModal({{ expert.id }}, '{{ expert.name|default:expert.user.email }}')">
                                     <i class="fas fa-calendar"></i> Appoint
                                 </button>
@@ -1411,29 +1411,33 @@
             <!-- ========== CHAT SECTION ========== -->
             <div id="chat" class="content-section" style="display: none;">
                 <h2 class="section-title"><i class="fas fa-comments"></i> Chat with experts</h2>
-                <div class="appointments-list">
-                        {% for thread in chat_threads %}
-                        <a href="{% url 'chat_thread' thread.id %}" style="text-decoration: none; color: inherit;">
-                            <div class="appointment-item" style="cursor: pointer;">
-                                <div class="appointment-info">
-                                    <h4><i class="fas fa-comments"></i> Chat with {{ thread.expert.name|default:thread.expert.user.email }}</h4>
-                                    <p>Click to open chat conversation</p>
-                                </div>
-                                <i class="fas fa-chevron-right" style="color: #999;"></i>
+                <div class="chat-container" style="display: flex; height: 500px; border: 2px solid #e9ecef; border-radius: 12px; overflow: hidden; background: white;">
+                    <div class="chat-sidebar" style="width: 280px; background: #f8f9fa; border-right: 2px solid #e9ecef; overflow-y: auto;">
+                        <ul class="chat-list" style="list-style: none; padding: 0; margin: 0;">
+                            {% for thread in chat_threads %}
+                            <li class="chat-item" onclick="loadBuyerChatThread({{ thread.id }}, '{{ thread.expert.name|default:thread.expert.user.email|escapejs }}', '{{ thread.expert.qualification|default:""|escapejs }}', '{{ thread.expert.specialization|default:""|escapejs }}', '{{ thread.expert.experience|default:""|escapejs }}')" style="padding: 1rem; border-bottom: 1px solid #e9ecef; cursor: pointer;">
+                                <div style="font-weight: 600;">{{ thread.expert.name|default:thread.expert.user.email }}</div>
+                                <div style="font-size: 0.85rem; color: #666;">{{ thread.expert.specialization|default:"Expert" }}{% if thread.expert.qualification %} • {{ thread.expert.qualification }}{% endif %}{% if thread.expert.experience %} • {{ thread.expert.experience }}{% endif %}</div>
+                            </li>
+                            {% empty %}
+                            <li style="padding: 1rem; text-align: center; color: #999;">No chats yet. Start from Experts.</li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    <div class="chat-main" style="flex: 1; display: flex; flex-direction: column;">
+                        <div class="chat-header" id="buyerChatHeader" style="padding: 1rem 1.5rem; background: var(--primary); color: white; font-weight: 600;">Select an expert to chat</div>
+                        <div class="chat-messages" id="buyerChatMessages" style="flex: 1; padding: 1.5rem; overflow-y: auto; background: white;">
+                            <div style="text-align: center; color: #999; padding: 2rem;">Select a chat from the sidebar or start a new one from Experts</div>
+                        </div>
+                        <div class="chat-input-area" id="buyerChatInputArea" style="display: none; padding: 1rem; border-top: 2px solid #e9ecef;">
+                            <div style="display: flex; gap: 0.75rem;">
+                                <input type="text" class="chat-input" id="buyerChatInput" placeholder="Type your message..." style="flex: 1; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px;">
+                                <button class="btn-primary" onclick="sendBuyerMessage()" style="padding: 0.75rem 1.5rem;">
+                                    <i class="fas fa-paper-plane"></i> Send
+                                </button>
                             </div>
-                        </a>
-                        {% empty %}
-                        <div class="empty-state">
-                            <i class="fas fa-comments"></i>
-                            <h3>No chat threads</h3>
-                            <p>Start a conversation with an expert</p>
                         </div>
-                        {% endfor %}
-                        <div style="padding: 1.5rem; text-align: center; border-top: 1px solid #f0f0f0;">
-                            <a href="{% url 'chat_threads' %}" class="btn-primary" style="display: inline-block; text-decoration: none;">
-                                <i class="fas fa-plus"></i> Start New Chat
-                            </a>
-                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -2134,6 +2138,90 @@
             window.apptFlatpickrInstances[elId] = flatpickr(el, opts);
             return window.apptFlatpickrInstances[elId];
         }
+        var buyerChatThreadId = null;
+        var buyerChatExpertName = '';
+        function getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]')?.value || document.cookie.replace(/(?:(?:^|.*;\s*)csrftoken\s*=\s*([^;]*).*$)|^.*$/, '$1');
+        }
+        function setBuyerChatHeader(name, qual, spec, exp) {
+            var parts = [];
+            if (qual) parts.push(qual);
+            if (spec) parts.push(spec);
+            if (exp) parts.push(exp + ' experience');
+            var sub = parts.length ? parts.join(' • ') : '';
+            var h = document.getElementById('buyerChatHeader');
+            h.innerHTML = '<div>Chat with ' + (name || 'Expert') + '</div>' + (sub ? '<div style="font-size:0.85rem;opacity:0.9;margin-top:0.25rem;">' + sub + '</div>' : '');
+        }
+        function openChatWithExpert(expertId, expertName, qual, spec, exp) {
+            switchTab('chat');
+            document.getElementById('buyerChatHeader').innerHTML = '<div>Chat with ' + (expertName || 'Expert') + ' (loading...)</div>';
+            document.getElementById('buyerChatInputArea').style.display = 'none';
+            document.getElementById('buyerChatMessages').innerHTML = '<div style="text-align: center; color: #999; padding: 2rem;">Starting chat...</div>';
+            fetch('/api/chat/start/' + expertId + '/', {
+                method: 'POST',
+                headers: { 'X-CSRFToken': getCsrfToken(), 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'csrfmiddlewaretoken=' + encodeURIComponent(getCsrfToken())
+            }).then(r => r.json()).then(data => {
+                if (data.error) {
+                    document.getElementById('buyerChatMessages').innerHTML = '<div style="text-align: center; color: #dc3545; padding: 2rem;">' + data.error + '</div>';
+                    return;
+                }
+                buyerChatThreadId = data.thread_id;
+                buyerChatExpertName = data.expert_name || expertName;
+                setBuyerChatHeader(buyerChatExpertName, data.qualification || qual, data.specialization || spec, data.experience || exp);
+                document.getElementById('buyerChatInputArea').style.display = 'block';
+                loadBuyerChatMessages();
+            }).catch(() => {
+                document.getElementById('buyerChatMessages').innerHTML = '<div style="text-align: center; color: #dc3545; padding: 2rem;">Failed to start chat.</div>';
+            });
+        }
+        function loadBuyerChatThread(threadId, expertName, qual, spec, exp) {
+            switchTab('chat');
+            buyerChatThreadId = threadId;
+            buyerChatExpertName = expertName || 'Expert';
+            setBuyerChatHeader(expertName, qual, spec, exp);
+            document.getElementById('buyerChatInputArea').style.display = 'block';
+            loadBuyerChatMessages();
+        }
+        function loadBuyerChatMessages() {
+            if (!buyerChatThreadId) return;
+            const el = document.getElementById('buyerChatMessages');
+            el.innerHTML = '<div style="text-align: center; color: #999; padding: 2rem;">Loading messages...</div>';
+            fetch('/api/chat/thread/' + buyerChatThreadId + '/messages/').then(r => r.json()).then(data => {
+                if (data.error) { el.innerHTML = '<div style="text-align: center; color: #dc3545;">' + data.error + '</div>'; return; }
+                if (!data.messages || data.messages.length === 0) {
+                    el.innerHTML = '<div style="text-align: center; color: #999; padding: 2rem;">No messages yet. Say hello!</div>';
+                    return;
+                }
+                el.innerHTML = data.messages.map(m => {
+                    const cls = m.is_mine ? 'sent' : 'received';
+                    const align = m.is_mine ? 'flex-end' : 'flex-start';
+                    return '<div style="margin-bottom: 1rem; display: flex; justify-content: ' + align + ';"><div style="max-width: 70%; padding: 0.75rem 1rem; border-radius: 12px; background: ' + (m.is_mine ? 'var(--primary)' : '#f0f0f0') + '; color: ' + (m.is_mine ? 'white' : '#333') + ';">' + (m.message.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')) + '<div style="font-size:0.75rem;opacity:0.8;margin-top:0.25rem;">' + m.created_at + '</div></div></div>';
+                }).join('');
+                el.scrollTop = el.scrollHeight;
+            }).catch(() => { el.innerHTML = '<div style="text-align: center; color: #dc3545;">Failed to load messages.</div>'; });
+        }
+        function sendBuyerMessage() {
+            const input = document.getElementById('buyerChatInput');
+            const msg = input.value.trim();
+            if (!msg || !buyerChatThreadId) return;
+            input.value = '';
+            const el = document.getElementById('buyerChatMessages');
+            const placeholder = document.createElement('div');
+            placeholder.style.cssText = 'margin-bottom: 1rem; display: flex; justify-content: flex-end;';
+            placeholder.innerHTML = '<div style="max-width: 70%; padding: 0.75rem 1rem; border-radius: 12px; background: var(--primary); color: white;">' + msg.replace(/</g,'&lt;') + ' <span style="font-size:0.75rem;">Sending...</span></div>';
+            el.appendChild(placeholder);
+            el.scrollTop = el.scrollHeight;
+            const fd = new FormData();
+            fd.append('message', msg);
+            fd.append('csrfmiddlewaretoken', getCsrfToken());
+            fetch('/api/chat/thread/' + buyerChatThreadId + '/send/', { method: 'POST', body: fd, headers: { 'X-CSRFToken': getCsrfToken() } }).then(r => r.json()).then(data => {
+                if (data.error) { placeholder.querySelector('div').innerHTML = msg + ' <span style="color:#fff3cd;">(Failed)</span>'; return; }
+                placeholder.querySelector('div').innerHTML = data.message.replace(/</g,'&lt;') + '<div style="font-size:0.75rem;opacity:0.8;margin-top:0.25rem;">' + data.created_at + '</div>';
+            }).catch(() => { placeholder.querySelector('div').innerHTML = msg + ' <span style="color:#fff3cd;">(Failed)</span>'; });
+        }
+        document.getElementById('buyerChatInput')?.addEventListener('keypress', function(e) { if (e.key === 'Enter') sendBuyerMessage(); });
+
         function openAppointmentModal(expertId, expertName) {
             document.getElementById('apptExpertId').value = expertId;
             document.getElementById('apptExpertName').value = expertName || '';

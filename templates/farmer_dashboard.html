@@ -1591,9 +1591,15 @@
                                     <p style="margin: 0; color: #666; font-size: 0.9rem;">{{ expert.qualification|default:"" }} {% if expert.experience %}• {{ expert.experience }} years experience{% endif %}</p>
                                 </div>
                                 <div style="display: flex; gap: 1rem;">
-                                    <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openChatWithExpert({{ expert.id }}, '{{ expert.name|escapejs }}'){% else %}alert('KYC verification required to chat with experts'){% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+                                    {% if kyc_status == 'approved' %}
+                                    <button class="btn-primary" onclick="openChatWithExpert({{ expert.id }}, '{{ expert.name|default:expert.user.email|escapejs }}', '{{ expert.qualification|default:""|escapejs }}', '{{ expert.specialization|default:""|escapejs }}', '{{ expert.experience|default:""|escapejs }}')" style="display: inline-flex; align-items: center; gap: 0.5rem;">
                                         <i class="fas fa-comments"></i> Chat
                                     </button>
+                                    {% else %}
+                                    <button class="btn-primary" disabled style="opacity: 0.6; cursor: not-allowed;" title="KYC verification required to chat with experts">
+                                        <i class="fas fa-comments"></i> Chat
+                                    </button>
+                                    {% endif %}
                                     <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openAppointmentModal({{ expert.id }}, '{{ expert.name|escapejs }}'){% else %}alert('KYC verification required to book appointments'){% endif %}" style="background: var(--secondary);" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; background: var(--secondary);"{% endif %}>
                                         <i class="fas fa-calendar"></i> Appointment
                                     </button>
@@ -1623,9 +1629,9 @@
                             <div class="chat-sidebar">
                                 <ul class="chat-list">
                                     {% for thread in chat_threads %}
-                                    <li class="chat-item" onclick="loadChatThread({{ thread.id }}, '{{ thread.expert.name|escapejs }}')">
+                                    <li class="chat-item" onclick="loadChatThread({{ thread.id }}, '{{ thread.expert.name|default:thread.expert.user.email|escapejs }}', '{{ thread.expert.qualification|default:""|escapejs }}', '{{ thread.expert.specialization|default:""|escapejs }}', '{{ thread.expert.experience|default:""|escapejs }}')" style="cursor: pointer;">
                                         <div style="font-weight: 600;">{{ thread.expert.name|default:thread.expert.user.email }}</div>
-                                        <div style="font-size: 0.85rem; color: #666;">{{ thread.expert.specialization|default:"Expert" }}</div>
+                                        <div style="font-size: 0.85rem; color: #666;">{{ thread.expert.specialization|default:"Expert" }}{% if thread.expert.qualification %} • {{ thread.expert.qualification }}{% endif %}{% if thread.expert.experience %} • {{ thread.expert.experience }}{% endif %}</div>
                                     </li>
                                     {% empty %}
                                     <li style="padding: 1rem; text-align: center; color: #999;">No chat threads yet. Start chatting with an expert!</li>
@@ -2548,35 +2554,122 @@
             }
         });
 
-        function openChatWithExpert(expertId, expertName) {
-            showSection('chat');
-            document.getElementById('chatHeader').textContent = 'Chat with ' + expertName;
-            document.getElementById('chatInputArea').style.display = 'flex';
-            // Load chat thread or create new one
-            loadChatThread(null, expertName, expertId);
+        var currentChatThreadId = null;
+        var currentChatExpertName = '';
+
+        function getCsrfToken() {
+            return document.querySelector('[name=csrfmiddlewaretoken]')?.value || document.cookie.replace(/(?:(?:^|.*;\s*)csrftoken\s*=\s*([^;]*).*$)|^.*$/, '$1');
         }
 
-        function loadChatThread(threadId, expertName, expertId) {
-            document.getElementById('chatHeader').textContent = 'Chat with ' + expertName;
+        function setChatHeader(name, qual, spec, exp) {
+            var parts = [];
+            if (qual) parts.push(qual);
+            if (spec) parts.push(spec);
+            if (exp) parts.push(exp + ' experience');
+            var sub = parts.length ? parts.join(' • ') : '';
+            var h = document.getElementById('chatHeader');
+            h.innerHTML = '<div>Chat with ' + (name || 'Expert') + '</div>' + (sub ? '<div style="font-size:0.85rem;opacity:0.9;margin-top:0.25rem;">' + sub + '</div>' : '');
+        }
+        function openChatWithExpert(expertId, expertName, qual, spec, exp) {
+            showSection('chat');
+            setChatHeader(expertName || 'Expert', qual, spec, exp);
+            var h = document.getElementById('chatHeader');
+            h.innerHTML = '<div>Chat with ' + (expertName || 'Expert') + ' (loading...)</div>';
+            document.getElementById('chatInputArea').style.display = 'none';
+            document.getElementById('chatMessages').innerHTML = '<div style="text-align: center; color: #999; padding: 2rem;">Starting chat...</div>';
+            fetch('/api/chat/start/' + expertId + '/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken(),
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'csrfmiddlewaretoken=' + encodeURIComponent(getCsrfToken())
+            }).then(r => r.json()).then(data => {
+                if (data.error) {
+                    document.getElementById('chatMessages').innerHTML = '<div style="text-align: center; color: #dc3545; padding: 2rem;">' + data.error + '</div>';
+                    return;
+                }
+                currentChatThreadId = data.thread_id;
+                currentChatExpertName = data.expert_name || expertName;
+                setChatHeader(currentChatExpertName, data.qualification || qual, data.specialization || spec, data.experience || exp);
+                document.getElementById('chatInputArea').style.display = 'flex';
+                loadChatMessages();
+            }).catch(() => {
+                document.getElementById('chatMessages').innerHTML = '<div style="text-align: center; color: #dc3545; padding: 2rem;">Failed to start chat.</div>';
+            });
+        }
+
+        function loadChatThread(threadId, expertName, qual, spec, exp) {
+            showSection('chat');
+            currentChatThreadId = threadId;
+            currentChatExpertName = expertName || 'Expert';
+            setChatHeader(expertName, qual, spec, exp);
             document.getElementById('chatInputArea').style.display = 'flex';
-            // TODO: Load messages via AJAX
-            document.getElementById('chatMessages').innerHTML = '<div style="text-align: center; color: #999; padding: 2rem;">Loading messages...</div>';
+            loadChatMessages();
+        }
+
+        function loadChatMessages() {
+            if (!currentChatThreadId) return;
+            const messagesDiv = document.getElementById('chatMessages');
+            messagesDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 2rem;">Loading messages...</div>';
+            fetch('/api/chat/thread/' + currentChatThreadId + '/messages/').then(r => r.json()).then(data => {
+                if (data.error) {
+                    messagesDiv.innerHTML = '<div style="text-align: center; color: #dc3545;">' + data.error + '</div>';
+                    return;
+                }
+                renderMessages(data.messages);
+            }).catch(() => {
+                messagesDiv.innerHTML = '<div style="text-align: center; color: #dc3545;">Failed to load messages.</div>';
+            });
+        }
+
+        function renderMessages(messages) {
+            const messagesDiv = document.getElementById('chatMessages');
+            if (!messages || messages.length === 0) {
+                messagesDiv.innerHTML = '<div style="text-align: center; color: #999; padding: 2rem;">No messages yet. Say hello!</div>';
+                return;
+            }
+            messagesDiv.innerHTML = messages.map(m => {
+                const cls = m.is_mine ? 'sent' : 'received';
+                return '<div class="message ' + cls + '"><div class="message-bubble">' + escapeHtml(m.message) + '<div style="font-size:0.75rem;opacity:0.8;margin-top:0.25rem;">' + m.created_at + '</div></div></div>';
+            }).join('');
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function sendMessage() {
             const input = document.getElementById('chatInput');
             const message = input.value.trim();
-            if (message) {
-                // TODO: Send message via AJAX
-                const messagesDiv = document.getElementById('chatMessages');
-                messagesDiv.innerHTML += `
-                    <div class="message sent">
-                        <div class="message-bubble">${message}</div>
-                    </div>
-                `;
-                input.value = '';
-                messagesDiv.scrollTop = messagesDiv.scrollHeight;
-            }
+            if (!message || !currentChatThreadId) return;
+            const msg = message;
+            input.value = '';
+            const messagesDiv = document.getElementById('chatMessages');
+            const placeholder = document.createElement('div');
+            placeholder.className = 'message sent';
+            placeholder.innerHTML = '<div class="message-bubble">' + escapeHtml(msg) + '<div style="font-size:0.75rem;opacity:0.8;margin-top:0.25rem;">Sending...</div></div>';
+            messagesDiv.appendChild(placeholder);
+            messagesDiv.scrollTop = messagesDiv.scrollHeight;
+            const formData = new FormData();
+            formData.append('message', msg);
+            formData.append('csrfmiddlewaretoken', getCsrfToken());
+            fetch('/api/chat/thread/' + currentChatThreadId + '/send/', {
+                method: 'POST',
+                body: formData,
+                headers: { 'X-CSRFToken': getCsrfToken() }
+            }).then(r => r.json()).then(data => {
+                if (data.error) {
+                    placeholder.querySelector('.message-bubble').innerHTML = escapeHtml(msg) + ' <span style="color:#dc3545;">(Failed)</span>';
+                    return;
+                }
+                placeholder.querySelector('.message-bubble').innerHTML = escapeHtml(data.message) + '<div style="font-size:0.75rem;opacity:0.8;margin-top:0.25rem;">' + data.created_at + '</div>';
+            }).catch(() => {
+                placeholder.querySelector('.message-bubble').innerHTML = escapeHtml(msg) + ' <span style="color:#dc3545;">(Failed)</span>';
+            });
         }
 
         // Close modal when clicking outside

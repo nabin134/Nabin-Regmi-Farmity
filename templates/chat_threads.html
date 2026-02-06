@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat - Farmity</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #E9EBF1; min-height: 100vh; display: flex; flex-direction: column; margin: 0; }
+        .main-content { flex: 1; padding: 2rem; max-width: 800px; margin: 0 auto; width: 100%; }
+        .page-title { font-size: 1.75rem; font-weight: 700; color: #1a1a1a; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem; }
+        .page-subtitle { color: #666; margin-bottom: 1.5rem; }
+        .btn-back { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.6rem 1rem; background: #358D58; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; margin-bottom: 1.5rem; }
+        .btn-back:hover { background: #2a6f45; color: white; }
+        .chat-card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden; }
+        .thread-list { list-style: none; padding: 0; margin: 0; }
+        .thread-item { display: flex; align-items: center; justify-content: space-between; padding: 1.25rem 1.5rem; border-bottom: 1px solid #f0f0f0; gap: 1rem; text-decoration: none; color: inherit; transition: background 0.2s; }
+        .thread-item:hover { background: #f8f9fa; }
+        .thread-item:last-child { border-bottom: none; }
+        .thread-info { flex: 1; min-width: 0; }
+        .thread-info h4 { margin: 0 0 0.25rem 0; font-size: 1.1rem; color: #1a1a1a; }
+        .thread-info p { margin: 0; color: #666; font-size: 0.9rem; }
+        .thread-meta { font-size: 0.85rem; color: #999; margin-top: 0.35rem; }
+        .btn-open { padding: 0.5rem 1rem; background: #358D58; color: white; border-radius: 8px; font-weight: 600; font-size: 0.9rem; display: inline-flex; align-items: center; gap: 0.5rem; flex-shrink: 0; }
+        .btn-open:hover { background: #2a6f45; color: white; }
+        .empty-state { padding: 3rem 2rem; text-align: center; color: #666; }
+        .empty-state i { font-size: 3rem; color: #ccc; margin-bottom: 1rem; display: block; }
+        .empty-state h3 { margin: 0 0 0.5rem 0; color: #333; }
+        .btn-start { display: inline-flex; align-items: center; gap: 0.5rem; margin-top: 1rem; padding: 0.75rem 1.5rem; background: #358D58; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; }
+        .btn-start:hover { background: #2a6f45; color: white; }
+        .alert { padding: 1rem 1.25rem; border-radius: 10px; margin-bottom: 1.5rem; font-weight: 500; }
+        .alert-error { background: #F8D7DA; color: #721C24; }
+        .alert-success { background: #D4EDDA; color: #155724; }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo">
+                <a href="/" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity" class="logo-img" onerror="this.style.display='none'">
+                    <span class="logo-text">Farmity</span>
+                </a>
+            </div>
+            <nav class="main-nav">
+                {% if request.user.role == 'farmer' %}<a href="{% url 'farmer_dashboard' %}">Dashboard</a>
+                {% elif request.user.role == 'buyer' %}<a href="{% url 'user_dashboard' %}">Dashboard</a>
+                {% elif request.user.role == 'agricultural_expert' %}<a href="{% url 'expert_dashboard' %}">Dashboard</a>
+                {% else %}<a href="{% url 'dashboard' %}">Dashboard</a>{% endif %}
+                <a href="{% url 'profile' %}">Profile</a>
+                <a href="{% url 'chat_threads' %}">Chat</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <a href="{% if request.user.role == 'farmer' %}{% url 'farmer_dashboard' %}{% elif request.user.role == 'buyer' %}{% url 'user_dashboard' %}{% else %}{% url 'expert_dashboard' %}{% endif %}" class="btn-back">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <h1 class="page-title"><i class="fas fa-comments" style="color: #358D58;"></i> Chat</h1>
+        <p class="page-subtitle">
+            {% if request.user.role == 'agricultural_expert' %}
+                Your conversations with farmers and buyers
+            {% else %}
+                Your conversations with agricultural experts
+            {% endif %}
+        </p>
+
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}"><i class="fas fa-info-circle"></i> {{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <div class="chat-card">
+            {% if threads %}
+            <ul class="thread-list">
+                {% for thread in threads %}
+                <a href="{% url 'chat_thread' thread.id %}" class="thread-item">
+                    <div class="thread-info">
+                        <h4>
+                            {% if request.user.role == 'agricultural_expert' %}
+                                {{ thread.created_by.email }}
+                                {% if thread.created_by.role == 'farmer' %}<span style="font-size:0.75rem;color:#999;">(Farmer)</span>{% elif thread.created_by.role == 'buyer' %}<span style="font-size:0.75rem;color:#999;">(Buyer)</span>{% endif %}
+                            {% else %}
+                                {{ thread.expert.name|default:thread.expert.user.email }}
+                                <span style="font-size:0.75rem;color:#999;">(Expert)</span>
+                            {% endif %}
+                        </h4>
+                        <p>{{ thread.expert.specialization|default:"Agricultural Expert" }}</p>
+                        <p class="thread-meta">Last updated: {{ thread.updated_at|date:"M d, Y h:i A" }}</p>
+                    </div>
+                    <span class="btn-open"><i class="fas fa-comment-dots"></i> Open</span>
+                </a>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-comments"></i>
+                <h3>No conversations yet</h3>
+                <p>
+                    {% if request.user.role == 'agricultural_expert' %}
+                        Farmers and buyers will appear here when they start a chat with you.
+                    {% else %}
+                        Start a chat with an expert from your dashboard.
+                    {% endif %}
+                </p>
+                {% if request.user.role != 'agricultural_expert' %}
+                <a href="{% if request.user.role == 'farmer' %}{% url 'farmer_dashboard' %}{% else %}{% url 'user_dashboard' %}{% endif %}" class="btn-start">
+                    <i class="fas fa-plus"></i> Go to Dashboard
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </main>
+</body>
+</html>

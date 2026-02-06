@@ -5,6 +5,7 @@ from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
+from django.http import JsonResponse
 from django.contrib import messages
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -1908,7 +1909,9 @@ def expert_dashboard(request):
     appointments = ExpertAppointment.objects.filter(expert=profile).select_related('requester').order_by('-created_at')
     
     # Get chat threads (for display - limited)
-    chat_threads = ExpertChatThread.objects.filter(expert=profile).select_related('created_by').order_by('-created_at')[:10]
+    chat_threads = ExpertChatThread.objects.filter(expert=profile).select_related(
+        'created_by', 'created_by__farmer_profile', 'created_by__user_profile'
+    ).order_by('-updated_at')[:10]
     
     # Get all chat threads for statistics (not limited)
     all_chat_threads = ExpertChatThread.objects.filter(expert=profile).select_related('created_by')
@@ -3304,17 +3307,55 @@ def appointment_request_page(request):
 
 @login_required
 def chat_threads_page(request):
-    if request.user.role not in {'buyer', 'farmer'}:
+    if request.user.role not in {'buyer', 'farmer', 'agricultural_expert'}:
         return _redirect_to_role_home_response(request.user)
     
-    threads = ExpertChatThread.objects.filter(created_by=request.user).select_related('expert', 'expert__user').order_by('-updated_at')
+    if request.user.role == 'agricultural_expert':
+        profile = ExpertProfile.objects.get(user=request.user)
+        threads = ExpertChatThread.objects.filter(expert=profile).select_related('created_by', 'expert', 'expert__user').order_by('-updated_at')
+    else:
+        # Farmer or buyer - their threads with experts
+        if request.user.role == 'farmer':
+            kyc_request = request.user.kyc_requests.first()
+            kyc_status = kyc_request.status if kyc_request else None
+            if kyc_status != 'approved':
+                messages.error(request, 'KYC verification is required to chat with experts. Please complete your KYC verification first.')
+                return redirect('farmer_dashboard')
+        threads = ExpertChatThread.objects.filter(created_by=request.user).select_related('expert', 'expert__user').order_by('-updated_at')
+    
     context = {'threads': threads}
     return render(request, 'chat_threads.html', context)
 
 
 @login_required
-def chat_thread_detail(request, thread_id):
+def chat_start(request, expert_id):
+    """Farmer or buyer starts a chat with an expert. Creates thread if not exists."""
     if request.user.role not in {'buyer', 'farmer'}:
+        return _redirect_to_role_home_response(request.user)
+    
+    if request.user.role == 'farmer':
+        kyc_request = request.user.kyc_requests.first()
+        kyc_status = kyc_request.status if kyc_request else None
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to chat with experts. Please complete your KYC verification first.')
+            return redirect('farmer_dashboard')
+    
+    try:
+        expert = ExpertProfile.objects.get(id=expert_id)
+    except ExpertProfile.DoesNotExist:
+        messages.error(request, 'Expert not found.')
+        return redirect('chat_threads')
+    
+    thread, created = ExpertChatThread.objects.get_or_create(
+        expert=expert,
+        created_by=request.user
+    )
+    return redirect('chat_thread', thread_id=thread.id)
+
+
+@login_required
+def chat_thread_detail(request, thread_id):
+    if request.user.role not in {'buyer', 'farmer', 'agricultural_expert'}:
         return _redirect_to_role_home_response(request.user)
     
     # Check KYC for farmers (buyers don't need KYC)
@@ -3326,10 +3367,21 @@ def chat_thread_detail(request, thread_id):
             return redirect('farmer_dashboard')
     
     try:
-        thread = ExpertChatThread.objects.select_related('expert', 'expert__user', 'created_by').get(id=thread_id, created_by=request.user)
+        thread = ExpertChatThread.objects.select_related('expert', 'expert__user', 'created_by').get(id=thread_id)
     except ExpertChatThread.DoesNotExist:
         messages.error(request, 'Chat thread not found.')
         return redirect('chat_threads')
+    
+    # Check access: farmer/buyer must be created_by; expert must be the thread's expert
+    if request.user.role == 'agricultural_expert':
+        profile = ExpertProfile.objects.get(user=request.user)
+        if thread.expert_id != profile.id:
+            messages.error(request, 'You do not have access to this chat.')
+            return redirect('chat_threads')
+    else:
+        if thread.created_by_id != request.user.id:
+            messages.error(request, 'You do not have access to this chat.')
+            return redirect('chat_threads')
     
     if request.method == 'POST':
         message_text = (request.POST.get('message') or '').strip()
@@ -3349,3 +3401,94 @@ def chat_thread_detail(request, thread_id):
         'messages': messages_list,
     }
     return render(request, 'chat_thread_detail.html', context)
+
+
+# ---------- Chat API (for inline chat, no redirect) ----------
+def _check_chat_access(request, thread):
+    """Returns (ok, error_response). If ok, error_response is None."""
+    if request.user.role == 'agricultural_expert':
+        profile = ExpertProfile.objects.get(user=request.user)
+        if thread.expert_id != profile.id:
+            return False, JsonResponse({'error': 'Access denied'}, status=403)
+    else:
+        if thread.created_by_id != request.user.id:
+            return False, JsonResponse({'error': 'Access denied'}, status=403)
+    return True, None
+
+
+@login_required
+def api_chat_messages(request, thread_id):
+    """GET: Return JSON list of messages for a thread."""
+    try:
+        thread = ExpertChatThread.objects.get(id=thread_id)
+    except ExpertChatThread.DoesNotExist:
+        return JsonResponse({'error': 'Thread not found'}, status=404)
+    ok, err = _check_chat_access(request, thread)
+    if not ok:
+        return err
+    msgs = ExpertChatMessage.objects.filter(thread=thread).select_related('sender').order_by('created_at')
+    data = [{
+        'id': m.id,
+        'message': m.message,
+        'sender_email': m.sender.email,
+        'sender_id': m.sender_id,
+        'created_at': m.created_at.strftime('%b %d, %I:%M %p'),
+        'is_mine': m.sender_id == request.user.id,
+    } for m in msgs]
+    return JsonResponse({'messages': data})
+
+
+@login_required
+def api_chat_send(request, thread_id):
+    """POST: Send a message. Returns JSON with new message."""
+    try:
+        thread = ExpertChatThread.objects.get(id=thread_id)
+    except ExpertChatThread.DoesNotExist:
+        return JsonResponse({'error': 'Thread not found'}, status=404)
+    ok, err = _check_chat_access(request, thread)
+    if not ok:
+        return err
+    message_text = (request.POST.get('message') or '').strip()
+    if not message_text:
+        return JsonResponse({'error': 'Message is required'}, status=400)
+    msg = ExpertChatMessage.objects.create(
+        thread=thread,
+        sender=request.user,
+        message=message_text
+    )
+    thread.updated_at = timezone.now()
+    thread.save()
+    return JsonResponse({
+        'id': msg.id,
+        'message': msg.message,
+        'sender_email': msg.sender.email,
+        'sender_id': msg.sender_id,
+        'created_at': msg.created_at.strftime('%b %d, %I:%M %p'),
+        'is_mine': True,
+    })
+
+
+@login_required
+def api_chat_start(request, expert_id):
+    """POST: Start or get thread with expert. Returns JSON with thread_id."""
+    if request.user.role not in {'buyer', 'farmer'}:
+        return JsonResponse({'error': 'For farmers and buyers only'}, status=403)
+    if request.user.role == 'farmer':
+        kyc_request = request.user.kyc_requests.first()
+        if kyc_request and kyc_request.status != 'approved':
+            return JsonResponse({'error': 'KYC verification required'}, status=403)
+    try:
+        expert = ExpertProfile.objects.get(id=expert_id)
+    except ExpertProfile.DoesNotExist:
+        return JsonResponse({'error': 'Expert not found'}, status=404)
+    thread, _ = ExpertChatThread.objects.get_or_create(
+        expert=expert,
+        created_by=request.user
+    )
+    return JsonResponse({
+        'thread_id': thread.id,
+        'expert_name': expert.name or expert.user.email,
+        'qualification': expert.qualification or '',
+        'specialization': expert.specialization or '',
+        'experience': expert.experience or '',
+    })
