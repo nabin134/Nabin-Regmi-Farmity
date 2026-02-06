@@ -122,66 +122,89 @@
             color: var(--sea-green);
             font-size: 1rem;
         }
-        .btn-edit-profile {
+        .btn-save-profile {
             background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
             color: white;
             border: none;
-            padding: 0.4rem 0.85rem;
-            border-radius: 8px;
+            padding: 0.35rem 0.7rem;
+            border-radius: 6px;
             font-weight: 600;
-            font-size: 0.8rem;
+            font-size: 0.75rem;
             cursor: pointer;
             transition: all 0.3s;
             display: inline-flex;
             align-items: center;
-            gap: 0.35rem;
-            box-shadow: 0 2px 8px rgba(53, 141, 88, 0.2);
+            gap: 0.3rem;
+            box-shadow: 0 2px 6px rgba(53, 141, 88, 0.2);
         }
-        .btn-edit-profile:hover {
+        .btn-save-profile:hover {
             transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(53, 141, 88, 0.3);
+            box-shadow: 0 3px 10px rgba(53, 141, 88, 0.3);
         }
-        .btn-edit-profile i {
-            font-size: 0.75rem;
+        .btn-save-profile i {
+            font-size: 0.7rem;
         }
-        .profile-img-wrapper {
-            position: relative;
-            display: inline-block;
-        }
-        .profile-img-wrapper:hover .change-photo-overlay {
-            opacity: 1;
-        }
-        .change-photo-overlay {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            background: rgba(0,0,0,0.5);
+        .profile-img-area {
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.25s;
-            cursor: pointer;
+            gap: 1rem;
         }
-        .change-photo-overlay span {
+        .change-photo-form {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        .btn-change-photo {
+            background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
             color: white;
-            font-size: 0.8rem;
-            font-weight: 600;
-            text-align: center;
-            padding: 0 0.5rem;
-        }
-        .change-photo-overlay i {
-            margin-right: 0.35rem;
+            border: none;
+            padding: 0.6rem 1.25rem;
+            border-radius: 10px;
             font-size: 0.9rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 2px 8px rgba(53, 141, 88, 0.25);
         }
-        .edit-form {
-            display: none;
-            margin-top: 2.5rem;
-            padding-top: 2.5rem;
+        .btn-change-photo:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 14px rgba(53, 141, 88, 0.35);
+        }
+        .btn-change-photo i {
+            font-size: 1rem;
+        }
+        .profile-form-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
             border-top: 2px solid #f0f0f0;
         }
-        .edit-form.active {
-            display: block;
+        .read-only-field {
+            background: #f8f9fa;
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-weight: 600;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .read-only-field i {
+            color: var(--sea-green);
+        }
+        .profile-form-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 1.25rem;
+        }
+        .profile-form-grid .form-group {
+            margin-bottom: 0;
+        }
+        .form-group-full {
+            grid-column: 1 / -1;
         }
         .form-row {
             display: grid;
@@ -262,7 +285,7 @@
                 flex-direction: column;
                 text-align: center;
             }
-            .profile-info-grid {
+            .profile-form-grid {
                 grid-template-columns: 1fr;
             }
             .form-row {
@@ -270,10 +293,6 @@
             }
             .form-actions {
                 flex-direction: column;
-            }
-            .change-photo-overlay {
-                opacity: 1;
-                background: rgba(0,0,0,0.4);
             }
         }
     </style>
@@ -324,13 +343,13 @@
         <div class="profile-card">
             <div class="section-title">
                 <span><i class="fas fa-user-circle" style="color: var(--sea-green); margin-right: 0.5rem;"></i>My Profile</span>
-                <button class="btn-edit-profile" onclick="toggleEdit()">
-                    <i class="fas fa-edit"></i> Edit Profile
+                <button type="submit" form="profileForm" class="btn-save-profile">
+                    <i class="fas fa-save"></i> Save
                 </button>
             </div>
 
             <div class="profile-header">
-                <div class="profile-img-wrapper">
+                <div class="profile-img-area">
                     {% if request.user.role == 'vendor' %}
                         {% if profile.logo %}
                             <img src="{{ profile.logo.url }}" alt="Profile" class="profile-img-large">
@@ -348,16 +367,14 @@
                             </div>
                         {% endif %}
                     {% endif %}
-                    <form id="photoForm" method="POST" enctype="multipart/form-data" style="position:absolute;inset:0;margin:0;">
+                    <form id="photoForm" method="POST" enctype="multipart/form-data" class="change-photo-form">
                         {% csrf_token %}
                         <input type="hidden" name="update_photo" value="true">
-                        <input type="file" name="photo" id="photoInput" accept="image/*" onchange="this.form.submit()" 
-                               style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;margin:0;" 
-                               title="Change profile picture">
+                        <input type="file" name="photo" id="photoInput" accept="image/*" onchange="this.form.submit()" style="display:none;">
+                        <button type="button" class="btn-change-photo" onclick="document.getElementById('photoInput').click()">
+                            <i class="fas fa-camera"></i> Change profile picture
+                        </button>
                     </form>
-                    <div class="change-photo-overlay" style="pointer-events:none;">
-                        <span><i class="fas fa-camera"></i> Change profile picture</span>
-                    </div>
                 </div>
                 <div class="profile-header-info">
                     <h2>
@@ -382,200 +399,37 @@
                 </div>
             </div>
 
-            <div class="profile-info-grid">
-                <div class="info-card">
-                    <span class="info-label">Email Address</span>
-                    <span class="info-value">
-                        <i class="fas fa-envelope"></i>
-                        {{ request.user.email }}
-                    </span>
-                </div>
-                
-                {% if request.user.role == 'farmer' %}
-                <div class="info-card">
-                    <span class="info-label">Contact Number</span>
-                    <span class="info-value">
-                        <i class="fas fa-phone"></i>
-                        {{ profile.contact|default:"Not set" }}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Location</span>
-                    <span class="info-value">
-                        <i class="fas fa-map-marker-alt"></i>
-                        {{ profile.location|default:"Not set" }}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Farm Size</span>
-                    <span class="info-value">
-                        <i class="fas fa-tractor"></i>
-                        {{ profile.farm_size|default:"Not set" }}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Main Crops</span>
-                    <span class="info-value">
-                        <i class="fas fa-seedling"></i>
-                        {{ profile.crop_types|default:"Not set" }}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Livestock Details</span>
-                    <span class="info-value">
-                        <i class="fas fa-paw"></i>
-                        {{ profile.livestock_details|default:"Not set" }}
-                    </span>
-                </div>
-                {% elif request.user.role == 'vendor' %}
-                <div class="info-card">
-                    <span class="info-label">Company Name</span>
-                    <span class="info-value">
-                        <i class="fas fa-building"></i>
-                        {{ profile.company_name|default:"Not set" }}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Contact Number</span>
-                    <span class="info-value">
-                        <i class="fas fa-phone"></i>
-                        {{ profile.contact|default:"Not set" }}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Address</span>
-                    <span class="info-value">
-                        <i class="fas fa-map-marker-alt"></i>
-                        {{ profile.address|default:"Not set" }}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Website</span>
-                    <span class="info-value">
-                        <i class="fas fa-globe"></i>
-                        {% if profile.website %}
-                        <a href="{{ profile.website }}" target="_blank" rel="noopener" style="color: var(--sea-green); text-decoration: none;">{{ profile.website }}</a>
-                        {% else %}
-                        Not set
-                        {% endif %}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Business Type</span>
-                    <span class="info-value">
-                        <i class="fas fa-tag"></i>
-                        {{ profile.business_type|default:"Not set" }}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Business Description</span>
-                    <span class="info-value">
-                        <i class="fas fa-align-left"></i>
-                        {{ profile.description|default:"Not set"|truncatewords:30 }}
-                    </span>
-                </div>
-                {% if tools_count is not None %}
-                <div class="info-card">
-                    <span class="info-label">Tools Listed</span>
-                    <span class="info-value">
-                        <i class="fas fa-tools"></i>
-                        {{ tools_count }}
-                    </span>
-                </div>
-                {% endif %}
-                {% elif request.user.role == 'agricultural_expert' %}
-                <div class="info-card">
-                    <span class="info-label">Name</span>
-                    <span class="info-value">
-                        <i class="fas fa-user"></i>
-                        {{ profile.name|default:"Not set" }}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Specialization</span>
-                    <span class="info-value">
-                        <i class="fas fa-user-graduate"></i>
-                        {{ profile.specialization|default:"Not set" }}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Experience</span>
-                    <span class="info-value">
-                        <i class="fas fa-briefcase"></i>
-                        {{ profile.experience|default:"Not set" }}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Qualification</span>
-                    <span class="info-value">
-                        <i class="fas fa-graduation-cap"></i>
-                        {{ profile.qualification|default:"Not set" }}
-                    </span>
-                </div>
-                {% elif request.user.role == 'buyer' %}
-                <div class="info-card">
-                    <span class="info-label">Name</span>
-                    <span class="info-value">
-                        <i class="fas fa-user"></i>
-                        {{ profile.name|default:"Not set" }}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Phone</span>
-                    <span class="info-value">
-                        <i class="fas fa-phone"></i>
-                        {{ profile.phone|default:"Not set" }}
-                    </span>
-                </div>
-                <div class="info-card">
-                    <span class="info-label">Address</span>
-                    <span class="info-value">
-                        <i class="fas fa-map-marker-alt"></i>
-                        {{ profile.address|default:"Not set" }}
-                    </span>
-                </div>
-                {% endif %}
-                
-                <div class="info-card">
-                    <span class="info-label">Member Since</span>
-                    <span class="info-value">
-                        <i class="fas fa-calendar"></i>
-                        {{ request.user.date_joined|date:"M d, Y" }}
-                    </span>
-                </div>
-            </div>
-
-            <!-- Edit Form -->
-            <form method="POST" enctype="multipart/form-data" class="edit-form" id="editForm">
+            <form method="POST" enctype="multipart/form-data" class="profile-form-section" id="profileForm">
                 {% csrf_token %}
                 <input type="hidden" name="update_profile" value="true">
-                
-                <h3 style="margin-bottom: 1.5rem; color: var(--sea-green);">
-                    <i class="fas fa-edit"></i> Edit Profile Details
-                </h3>
-                
-                {% if request.user.role == 'farmer' %}
-                <div class="form-row">
+
+                <div class="profile-form-grid">
+                    <!-- Signup data: Email (read-only) -->
                     <div class="form-group">
-                        <label>Full Name</label>
-                        <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" required>
+                        <label>Email Address</label>
+                        <div class="read-only-field">
+                            <i class="fas fa-envelope"></i>
+                            {{ request.user.email }}
+                        </div>
+                    </div>
+
+                    {% if request.user.role == 'farmer' %}
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Full name">
                     </div>
                     <div class="form-group">
                         <label>Contact Number</label>
-                        <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}">
+                        <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Phone number">
                     </div>
-                </div>
-                <div class="form-row">
                     <div class="form-group">
                         <label>Location</label>
-                        <input type="text" name="location" class="form-control" value="{{ profile.location|default:'' }}">
+                        <input type="text" name="location" class="form-control" value="{{ profile.location|default:'' }}" placeholder="Farm location">
                     </div>
                     <div class="form-group">
                         <label>Farm Size</label>
                         <input type="text" name="farm_size" class="form-control" value="{{ profile.farm_size|default:'' }}" placeholder="e.g., 5 acres">
                     </div>
-                </div>
-                <div class="form-row">
                     <div class="form-group">
                         <label>Main Crops (comma separated)</label>
                         <input type="text" name="crop_types" class="form-control" value="{{ profile.crop_types|default:'' }}" placeholder="e.g., Wheat, Rice, Corn">
@@ -584,108 +438,93 @@
                         <label>Livestock Details</label>
                         <input type="text" name="livestock_details" class="form-control" value="{{ profile.livestock_details|default:'' }}" placeholder="e.g., 10 cows, 20 chickens">
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Profile Photo</label>
-                    <input type="file" name="photo" class="form-control" accept="image/*">
-                    <small style="color: #666; font-size: 0.85rem;">Recommended: Square image, max 5MB</small>
-                </div>
-                {% elif request.user.role == 'vendor' %}
-                <div class="form-row">
+                    {% elif request.user.role == 'vendor' %}
                     <div class="form-group">
                         <label>Company Name</label>
-                        <input type="text" name="company_name" class="form-control" value="{{ profile.company_name|default:'' }}">
+                        <input type="text" name="company_name" class="form-control" value="{{ profile.company_name|default:'' }}" placeholder="Company or business name">
                     </div>
                     <div class="form-group">
                         <label>Contact Number</label>
-                        <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}">
+                        <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Phone number">
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Address</label>
-                    <textarea name="address" class="form-control" rows="2">{{ profile.address|default:'' }}</textarea>
-                </div>
-                <div class="form-row">
+                    <div class="form-group form-group-full">
+                        <label>Address</label>
+                        <textarea name="address" class="form-control" rows="2" placeholder="Business address">{{ profile.address|default:'' }}</textarea>
+                    </div>
                     <div class="form-group">
                         <label>Website</label>
                         <input type="url" name="website" class="form-control" value="{{ profile.website|default:'' }}" placeholder="https://example.com">
                     </div>
                     <div class="form-group">
                         <label>Business Type</label>
-                        <input type="text" name="business_type" class="form-control" value="{{ profile.business_type|default:'' }}" placeholder="e.g., Equipment supplier, Seeds & fertilizers">
+                        <input type="text" name="business_type" class="form-control" value="{{ profile.business_type|default:'' }}" placeholder="e.g., Equipment supplier, Seeds">
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Business Description</label>
-                    <textarea name="description" class="form-control" rows="3" placeholder="Describe your business, products, and services">{{ profile.description|default:'' }}</textarea>
-                </div>
-                <div class="form-group">
-                    <label>Company Logo</label>
-                    <input type="file" name="photo" class="form-control" accept="image/*">
-                    <small style="color: #666; font-size: 0.85rem;">Or click "Change profile picture" on your logo above. Recommended: Square image, max 5MB</small>
-                </div>
-                {% elif request.user.role == 'agricultural_expert' %}
-                <div class="form-row">
+                    <div class="form-group form-group-full">
+                        <label>Business Description</label>
+                        <textarea name="description" class="form-control" rows="3" placeholder="Describe your business, products, and services">{{ profile.description|default:'' }}</textarea>
+                    </div>
+                    {% if tools_count is not None %}
+                    <div class="form-group">
+                        <label>Tools Listed</label>
+                        <div class="read-only-field">
+                            <i class="fas fa-tools"></i>
+                            {{ tools_count }}
+                        </div>
+                    </div>
+                    {% endif %}
+                    {% elif request.user.role == 'agricultural_expert' %}
                     <div class="form-group">
                         <label>Name</label>
-                        <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}">
+                        <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Full name">
                     </div>
                     <div class="form-group">
                         <label>Specialization</label>
                         <input type="text" name="specialization" class="form-control" value="{{ profile.specialization|default:'' }}" placeholder="e.g., Crop Management">
                     </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Experience</label>
-                        <input type="text" name="experience" class="form-control" value="{{ profile.experience|default:'' }}" placeholder="e.g., 5+ years">
-                    </div>
                     <div class="form-group">
                         <label>Qualification</label>
                         <input type="text" name="qualifications" class="form-control" value="{{ profile.qualification|default:'' }}" placeholder="e.g., B.Sc Agriculture">
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Profile Photo</label>
-                    <input type="file" name="photo" class="form-control" accept="image/*">
-                    <small style="color: #666; font-size: 0.85rem;">Recommended: Square image, max 5MB</small>
-                </div>
-                {% elif request.user.role == 'buyer' %}
-                <div class="form-row">
+                    <div class="form-group">
+                        <label>Experience</label>
+                        <input type="text" name="experience" class="form-control" value="{{ profile.experience|default:'' }}" placeholder="e.g., 5+ years">
+                    </div>
+                    {% elif request.user.role == 'buyer' %}
                     <div class="form-group">
                         <label>Name</label>
-                        <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}">
+                        <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Full name">
                     </div>
                     <div class="form-group">
                         <label>Phone</label>
-                        <input type="text" name="contact" class="form-control" value="{{ profile.phone|default:'' }}">
+                        <input type="text" name="contact" class="form-control" value="{{ profile.phone|default:'' }}" placeholder="Phone number">
                     </div>
-                </div>
-                <div class="form-group">
-                    <label>Address</label>
-                    <textarea name="location" class="form-control" rows="3">{{ profile.address|default:'' }}</textarea>
-                </div>
-                <div class="form-group">
-                    <label>Profile Photo</label>
-                    <input type="file" name="photo" class="form-control" accept="image/*">
-                    <small style="color: #666; font-size: 0.85rem;">Recommended: Square image, max 5MB</small>
-                </div>
-                {% else %}
-                <div class="form-group">
-                    <label>Full Name</label>
-                    <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}">
-                </div>
-                <div class="form-group">
-                    <label>Profile Photo</label>
-                    <input type="file" name="photo" class="form-control" accept="image/*">
-                </div>
-                {% endif %}
+                    <div class="form-group form-group-full">
+                        <label>Address</label>
+                        <textarea name="location" class="form-control" rows="2" placeholder="Address">{{ profile.address|default:'' }}</textarea>
+                    </div>
+                    {% else %}
+                    <div class="form-group">
+                        <label>Name</label>
+                        <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Full name">
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input type="text" name="contact" class="form-control" value="{{ profile.phone|default:'' }}" placeholder="Phone number">
+                    </div>
+                    <div class="form-group form-group-full">
+                        <label>Address</label>
+                        <textarea name="location" class="form-control" rows="2" placeholder="Address">{{ profile.address|default:'' }}</textarea>
+                    </div>
+                    {% endif %}
 
-                <div class="form-actions">
-                    <button type="button" class="btn-cancel" onclick="toggleEdit()">Cancel</button>
-                    <button type="submit" class="btn-save">
-                        <i class="fas fa-save"></i> Save Changes
-                    </button>
+                    <!-- Member Since (read-only) -->
+                    <div class="form-group">
+                        <label>Member Since</label>
+                        <div class="read-only-field">
+                            <i class="fas fa-calendar"></i>
+                            {{ request.user.date_joined|date:"M d, Y" }}
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -734,14 +573,5 @@
     </footer>
 
     <script src="/static/js/main.js"></script>
-    <script>
-        function toggleEdit() {
-            const form = document.getElementById('editForm');
-            form.classList.toggle('active');
-            if (form.classList.contains('active')) {
-                form.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            }
-        }
-    </script>
 </body>
 </html>
