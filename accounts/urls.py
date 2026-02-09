@@ -11,7 +11,7 @@ from .views import (
     chat_threads_page, chat_thread_detail, chat_start,
     api_chat_messages, api_chat_send, api_chat_start,
     forgot_password_page, reset_password_page, otp_verification_page,
-    logout_view
+    logout_view, google_signup_start_view
 )
 urlpatterns = [
     # Frontend pages
@@ -19,6 +19,7 @@ urlpatterns = [
     path('home/', home_page, name='home'),
     path('role-selection/', role_selection, name='role-selection'),
     path('register/', register_page, name='register'),
+    path('register/google-signup/', google_signup_start_view, name='google_signup_start'),
     path('login/', login_page, name='login'),
     path('forgot-password/', forgot_password_page, name='forgot_password'),
     path('otp-verification/', otp_verification_page, name='otp_verification'),

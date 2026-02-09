@@ -5,6 +5,8 @@ from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
+VALID_SIGNUP_ROLES = {'farmer', 'vendor', 'agricultural_expert', 'buyer'}
+
 
 def get_user_display(user):
     """Custom function to display user - uses email instead of username"""
@@ -43,26 +45,67 @@ class CustomAccountAdapter(DefaultAccountAdapter):
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
     def pre_social_login(self, request, sociallogin):
         """
-        Called before the social login is completed.
-        This is where we can handle existing users connecting Google accounts.
+        The selected Google email MUST determine which account opens.
+        - Log out any authenticated user first.
+        - If SocialAccount links this Google UID to a user whose email doesn't match
+          the OAuth email (e.g. wrong link to admin), re-link to the user that owns
+          the selected email.
         """
-        # If user is already authenticated, connect the social account
+        from django.contrib.auth import logout
+
         if request.user.is_authenticated:
-            # Connect the social account to existing user
-            sociallogin.connect(request, request.user)
-        # For new users, let the default flow create the account
+            logout(request)
+
+        # Ensure the SocialAccount points to the user that owns the selected email.
+        # Get OAuth email from extra_data or email_addresses (Google provides it).
+        email = None
+        if hasattr(sociallogin, 'account') and sociallogin.account:
+            extra = getattr(sociallogin.account, 'extra_data', {}) or {}
+            if isinstance(extra, dict):
+                email = (
+                    extra.get('email')
+                    or extra.get('Email')
+                    or extra.get('mail')
+                )
+                if email:
+                    email = str(email).strip().lower()
+        if not email and getattr(sociallogin, 'email_addresses', None):
+            for ea in sociallogin.email_addresses:
+                addr = getattr(ea, 'email', None)
+                if addr:
+                    email = str(addr).strip().lower()
+                    break
+        if email:
+            correct_user = User.objects.filter(email__iexact=email).first()
+            linked_user = sociallogin.user
+            # Re-link when: (a) linked user differs from email owner, or
+            # (b) linked user is admin but email belongs to a non-admin.
+            needs_relink = (
+                correct_user
+                and linked_user
+                and linked_user.pk
+                and linked_user.pk != correct_user.pk
+            )
+            if needs_relink and hasattr(sociallogin, 'account') and sociallogin.account:
+                if sociallogin.account.pk:
+                    sociallogin.account.user = correct_user
+                    sociallogin.account.save(update_fields=['user'])
+                sociallogin.user = correct_user
 
     def populate_user(self, request, sociallogin, data):
         """
         Populate user with Google account data (name, email).
-        This is called before user is saved.
+        Use signup_role from session when user came from role-specific register page.
         """
         user = super().populate_user(request, sociallogin, data)
-        
-        # Set default role to buyer for social logins
-        if not hasattr(user, 'role') or not user.role:
+
+        # Use role from session if present (user came from /register/?role=vendor etc.)
+        signup_role = request.session.get('signup_role')
+        if signup_role in VALID_SIGNUP_ROLES:
+            user.role = signup_role
+        elif not hasattr(user, 'role') or not user.role:
             user.role = 'buyer'
-        
+
         # Extract email from Google account data
         if isinstance(data, dict):
             # Get email from Google data
@@ -85,17 +128,20 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         """
         user = super().save_user(request, sociallogin, form)
         if user:
-            # Set default role if not set (for new signups)
-            if not hasattr(user, 'role') or not user.role:
+            # Use signup_role only for NEW users (don't overwrite existing admin etc.)
+            signup_role = request.session.get('signup_role')
+            if signup_role in VALID_SIGNUP_ROLES and (not user.role or user.role == 'buyer'):
+                user.role = signup_role
+                request.session.pop('signup_role', None)
+            elif not hasattr(user, 'role') or not user.role:
                 user.role = 'buyer'
-            
+
             # Auto-verify and activate social logins (both signup and login)
             user.is_verified = True
             user.is_active = True
             user.save()
             
-            # Create profile for buyer with Google account data
-            from .models import UserProfile
+            from .models import UserProfile, FarmerProfile, VendorProfile, ExpertProfile
             import requests
             from django.core.files.base import ContentFile
             
@@ -122,61 +168,56 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
             if not name and user.email:
                 name = user.email.split('@')[0]
             
-            # Get or create user profile
-            profile, created = UserProfile.objects.get_or_create(
-                user=user,
-                defaults={'name': name}
-            )
-            
-            # Update name if it was empty and we now have it
-            if not profile.name and name:
-                profile.name = name
-            
-            # Download and save profile picture from Google if available
-            if picture_url and (not profile.photo or created):
+            # Create role-specific profile
+            if user.role == 'farmer':
+                profile, _ = FarmerProfile.objects.get_or_create(user=user, defaults={'name': name})
+                if not profile.name and name:
+                    profile.name = name
+            elif user.role == 'vendor':
+                profile, _ = VendorProfile.objects.get_or_create(user=user, defaults={'company_name': name or user.email})
+                if not profile.company_name and name:
+                    profile.company_name = name
+            elif user.role == 'agricultural_expert':
+                profile, _ = ExpertProfile.objects.get_or_create(user=user, defaults={'name': name})
+                if not profile.name and name:
+                    profile.name = name
+            else:
+                profile, _ = UserProfile.objects.get_or_create(user=user, defaults={'name': name})
+                if not profile.name and name:
+                    profile.name = name
+
+            if profile and picture_url:
                 try:
-                    response = requests.get(picture_url, timeout=10)
-                    if response.status_code == 200:
-                        # Get file extension from URL or default to jpg
-                        file_extension = picture_url.split('.')[-1].split('?')[0] if '.' in picture_url else 'jpg'
-                        if file_extension not in ['jpg', 'jpeg', 'png', 'gif']:
-                            file_extension = 'jpg'
-                        
-                        filename = f"google_profile_{user.id}.{file_extension}"
-                        profile.photo.save(
-                            filename,
-                            ContentFile(response.content),
-                            save=True
-                        )
-                except Exception as e:
-                    # Log error but don't fail authentication
-                    import logging
-                    logger = logging.getLogger(__name__)
-                    logger.warning(f"Error downloading Google profile picture: {str(e)}")
-            
-            profile.save()
+                    resp = requests.get(picture_url, timeout=10)
+                    if resp.status_code == 200:
+                        ext = picture_url.split('.')[-1].split('?')[0] if '.' in picture_url else 'jpg'
+                        if ext not in ['jpg', 'jpeg', 'png', 'gif']:
+                            ext = 'jpg'
+                        fname = f"google_profile_{user.id}.{ext}"
+                        if user.role == 'vendor':
+                            profile.logo.save(fname, ContentFile(resp.content), save=True)
+                        elif hasattr(profile, 'photo'):
+                            profile.photo.save(fname, ContentFile(resp.content), save=True)
+                except Exception:
+                    pass
+            if profile:
+                profile.save()
             
         return user
 
     def get_login_redirect_url(self, request):
-        """Redirect to role-specific dashboard after social login/signup"""
+        """Redirect to the dashboard for the account that matches the selected email."""
         if request.user.is_authenticated:
-            # Import here to avoid circular imports
-            from django.urls import reverse
             from .views import _redirect_to_role_home
+
+            # Clear signup_role - we always open the account that owns the selected email
+            request.session.pop('signup_role', None)
+
             try:
-                # Get the redirect URL path
                 redirect_url = _redirect_to_role_home(request.user)
-                # Ensure it's a string (reverse returns a string)
-                if isinstance(redirect_url, str):
-                    return redirect_url
-                # If it's a reverse object, convert to string
-                return str(redirect_url)
+                return str(redirect_url) if redirect_url else '/dashboard/'
             except Exception as e:
-                # Log error for debugging
                 import logging
-                logger = logging.getLogger(__name__)
-                logger.error(f"Error getting redirect URL for social login: {str(e)}")
-                # Fallback to default dashboard
+                logging.getLogger(__name__).error(f"Redirect URL error: {e}")
                 return '/dashboard/'
         return super().get_login_redirect_url(request)

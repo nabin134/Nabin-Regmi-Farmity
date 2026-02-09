@@ -47,6 +47,53 @@ otp_storage = {}  # Store OTPs: {email: {'otp': '123456', 'token': '...', 'creat
 def _user_requires_kyc(user):
     return user.role in {'farmer', 'vendor', 'agricultural_expert'}
 
+def _ensure_google_oauth(request=None):
+    """
+    Fix Google OAuth setup for local development:
+    - Set Site domain to match request host (so redirect_uri matches Google Console)
+    - Create/update SocialApp from env vars (GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET) if present
+    """
+    try:
+        from django.contrib.sites.models import Site
+        from allauth.socialaccount.models import SocialApp
+
+        site = Site.objects.get_current()
+        client_id = getattr(settings, 'GOOGLE_CLIENT_ID', '') or ''
+        client_secret = getattr(settings, 'GOOGLE_CLIENT_SECRET', '') or ''
+
+        # Fix Site domain: use request host so redirect_uri matches what user registered in Google Console
+        if getattr(settings, 'DEBUG', False):
+            needs_update = site.domain in ('example.com', 'localhost') or site.domain.startswith('127.0.0.1')
+            if needs_update:
+                if request and request.get_host():
+                    site.domain = request.get_host()
+                else:
+                    site.domain = '127.0.0.1:8000'
+                site.name = site.name or 'Farmity Local'
+                site.save()
+
+        # Auto-create SocialApp from env if credentials exist
+        if client_id and client_secret and 'PLACEHOLDER' not in str(client_id):
+            social_app, created = SocialApp.objects.get_or_create(
+                provider='google',
+                defaults={
+                    'name': 'Google',
+                    'client_id': client_id,
+                    'secret': client_secret,
+                    'key': '',
+                }
+            )
+            if not created and (social_app.client_id != client_id or social_app.secret != client_secret):
+                social_app.client_id = client_id
+                social_app.secret = client_secret
+                social_app.save()
+            if site not in social_app.sites.all():
+                social_app.sites.add(site)
+    except Exception as e:
+        if getattr(settings, 'DEBUG', False):
+            import logging
+            logging.getLogger(__name__).warning(f"Google OAuth setup: {e}")
+
 def _ensure_role_profile(user):
     """Ensure every user has a profile for their role (including admin-created users)."""
     if user.role == 'farmer':
@@ -868,7 +915,9 @@ def role_selection(request):
 def register_page(request):
     from django.contrib.sites.models import Site
     from allauth.socialaccount.models import SocialApp
-    
+
+    _ensure_google_oauth(request)
+
     role = (request.GET.get('role', '') or '').strip().lower()
     # Clean up role - ensure no None/null values and only allow valid roles
     if role in ['none', 'null', 'undefined', '']:
@@ -895,14 +944,28 @@ def register_page(request):
         else:
             google_oauth_error = "Google OAuth credentials not configured. Please set up Google OAuth in admin panel."
     except SocialApp.DoesNotExist:
-        google_oauth_error = "Google OAuth not set up. Please configure Google OAuth credentials."
+        google_oauth_error = "Google OAuth not set up. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env, then run: python manage.py setup_google_oauth"
     except Exception as e:
         google_oauth_error = f"Error checking Google OAuth: {str(e)}"
     
+    scheme = 'https' if request.is_secure() else 'http'
+    host = request.get_host() if request.get_host() else '127.0.0.1:8000'
+    google_redirect_uri = f"{scheme}://{host}/accounts/google/login/callback/"
+    
+    # Store signup role in session so Google OAuth callback can assign it to new users
+    if role in {'farmer', 'vendor', 'agricultural_expert', 'buyer'}:
+        request.session['signup_role'] = role
+        request.session.modified = True
+
+    signup_error = request.GET.get('error', '')
+    if signup_error == 'email_exists':
+        messages.error(request, 'This email is already registered. Please sign in instead, or use a different email to create a new vendor/farmer/expert account.')
+
     context = {
         'role': role,
         'google_oauth_enabled': google_oauth_enabled,
-        'google_oauth_error': google_oauth_error
+        'google_oauth_error': google_oauth_error,
+        'google_redirect_uri': google_redirect_uri,
     }
     return render(request, 'register.html', context)
 
@@ -910,7 +973,9 @@ def register_page(request):
 def login_page(request):
     from django.contrib.sites.models import Site
     from allauth.socialaccount.models import SocialApp
-    
+
+    _ensure_google_oauth(request)
+
     # Check if Google OAuth is configured
     google_oauth_enabled = False
     google_oauth_error = None
@@ -929,15 +994,32 @@ def login_page(request):
         else:
             google_oauth_error = "Google OAuth credentials not configured. Please set up Google OAuth in admin panel."
     except SocialApp.DoesNotExist:
-        google_oauth_error = "Google OAuth not set up. Please configure Google OAuth credentials."
+        google_oauth_error = "Google OAuth not set up. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET to .env, then run: python manage.py setup_google_oauth"
     except Exception as e:
         google_oauth_error = f"Error checking Google OAuth: {str(e)}"
     
+    # Build redirect URI hint for Google Console
+    scheme = 'https' if request.is_secure() else 'http'
+    host = request.get_host() if request.get_host() else '127.0.0.1:8000'
+    google_redirect_uri = f"{scheme}://{host}/accounts/google/login/callback/"
+    
     context = {
         'google_oauth_enabled': google_oauth_enabled,
-        'google_oauth_error': google_oauth_error
+        'google_oauth_error': google_oauth_error,
+        'google_redirect_uri': google_redirect_uri,
     }
     return render(request, 'login.html', context)
+
+
+def google_signup_start_view(request):
+    """Set signup_role in session and redirect to Google OAuth. Ensures role is set right before OAuth."""
+    role = (request.GET.get('role', '') or '').strip().lower()
+    valid = {'farmer', 'vendor', 'agricultural_expert', 'buyer'}
+    if role not in valid:
+        role = 'buyer'
+    request.session['signup_role'] = role
+    request.session.modified = True
+    return redirect(f'/accounts/google/login/?process=signup')
 
 
 def forgot_password_page(request):
@@ -3268,8 +3350,11 @@ def admin_chat_reports(request):
 
 @login_required
 def logout_view(request):
+    next_url = request.GET.get('next')
     logout(request)
     messages.success(request, 'You have been logged out successfully.')
+    if next_url and next_url.startswith('/'):
+        return redirect(next_url)
     return redirect('landing')
 
 

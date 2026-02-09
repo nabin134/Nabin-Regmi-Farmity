@@ -36,10 +36,9 @@ class Command(BaseCommand):
             self.stdout.write('\nTo get credentials:')
             self.stdout.write('1. Go to: https://console.cloud.google.com/')
             self.stdout.write('2. Create/select a project')
-            self.stdout.write('3. Enable Google+ API')
-            self.stdout.write('4. Configure OAuth consent screen')
-            self.stdout.write('5. Create OAuth Client ID (Web application)')
-            self.stdout.write('6. Add redirect URI: http://127.0.0.1:8000/accounts/google/login/callback/')
+            self.stdout.write('3. Configure OAuth consent screen (APIs & Services > OAuth consent screen)')
+            self.stdout.write('4. Create OAuth Client ID (APIs & Services > Credentials > Create Credentials)')
+            self.stdout.write('5. Add redirect URI: http://127.0.0.1:8000/accounts/google/login/callback/')
             self.stdout.write('\n' + '-'*70)
             
             if not google_client_id:
@@ -61,7 +60,14 @@ class Command(BaseCommand):
         try:
             # Get the current site
             site = Site.objects.get_current()
-            
+
+            # Fix Site domain for local development (critical for OAuth redirect_uri)
+            if getattr(settings, 'DEBUG', False) and site.domain in ('example.com', 'localhost'):
+                site.domain = '127.0.0.1:8000'
+                site.name = site.name or 'Farmity Local'
+                site.save()
+                self.stdout.write(self.style.SUCCESS(f'Updated Site domain to {site.domain} for local OAuth'))
+
             # Create or update Google SocialApp
             social_app, created = SocialApp.objects.get_or_create(
                 provider='google',

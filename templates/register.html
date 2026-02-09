@@ -780,6 +780,13 @@
 
         <!-- Right Panel - White Form (signup-role-selected when role from role page) -->
         <div class="register-right{% if role %} signup-role-selected{% endif %}">
+            {% if messages %}
+            {% for message in messages %}
+            <div class="message {% if message.tags %}{{ message.tags }}{% endif %}" style="margin-bottom: 1rem; padding: 1rem; border-radius: 10px; {% if message.tags == 'error' %}background: #F8D7DA; color: #721C24;{% else %}background: #D4EDDA; color: #155724;{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
             <div class="form-header">
                 <h2>Create Account</h2>
                 <p>Fill in your details to get started</p>
@@ -901,7 +908,7 @@
 
                 <div class="social-buttons">
                     {% if google_oauth_enabled %}
-                    <a href="/accounts/google/login/?process=signup" class="social-btn google-btn" title="Sign up with Google">
+                    <a href="{% url 'google_signup_start' %}?role={{ role|default:'buyer' }}" class="social-btn google-btn" title="Sign up with Google">
                         <i class="fab fa-google social-icon" style="color: #4285F4;"></i>
                         <span>Continue with Google</span>
                     </a>
@@ -912,6 +919,9 @@
                     </div>
                     {% if google_oauth_error %}
                     <small style="display: block; color: #dc3545; margin-top: 8px; font-size: 12px;">{{ google_oauth_error }}</small>
+                    {% if google_redirect_uri %}
+                    <small style="display: block; color: #666; margin-top: 4px; font-size: 11px;">Add to Google Console → Redirect URIs: <code style="word-break: break-all;">{{ google_redirect_uri }}</code></small>
+                    {% endif %}
                     {% endif %}
                     {% endif %}
                     <a href="/accounts/facebook/login/?process=signup" class="social-btn facebook-btn" onclick="event.preventDefault(); alert('Facebook signup coming soon!'); return false;" title="Sign up with Facebook">

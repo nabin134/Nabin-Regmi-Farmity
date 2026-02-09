@@ -571,6 +571,9 @@
                     </div>
                     {% if google_oauth_error %}
                     <small style="display: block; color: #dc3545; margin-top: 8px; font-size: 12px;">{{ google_oauth_error }}</small>
+                    {% if google_redirect_uri %}
+                    <small style="display: block; color: #666; margin-top: 4px; font-size: 11px;">Add this to Google Console → Authorized redirect URIs:<br><code style="word-break: break-all;">{{ google_redirect_uri }}</code></small>
+                    {% endif %}
                     {% endif %}
                     {% endif %}
                     <a href="/accounts/facebook/login/?process=login" class="social-btn facebook" onclick="event.preventDefault(); alert('Facebook login coming soon!'); return false;" title="Sign in with Facebook">

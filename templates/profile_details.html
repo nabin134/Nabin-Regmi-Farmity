@@ -367,12 +367,12 @@
                             </div>
                         {% endif %}
                     {% endif %}
-                    <form id="photoForm" method="POST" enctype="multipart/form-data" class="change-photo-form">
+                    <form id="photoForm" method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="change-photo-form">
                         {% csrf_token %}
                         <input type="hidden" name="update_photo" value="true">
                         <input type="file" name="photo" id="photoInput" accept="image/*" onchange="this.form.submit()" style="display:none;">
                         <button type="button" class="btn-change-photo" onclick="document.getElementById('photoInput').click()">
-                            <i class="fas fa-camera"></i> Change profile picture
+                            <i class="fas fa-camera"></i> {% if request.user.role == 'vendor' %}Change logo{% else %}Change profile picture{% endif %}
                         </button>
                     </form>
                 </div>
@@ -399,7 +399,7 @@
                 </div>
             </div>
 
-            <form method="POST" enctype="multipart/form-data" class="profile-form-section" id="profileForm">
+            <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="profile-form-section" id="profileForm">
                 {% csrf_token %}
                 <input type="hidden" name="update_profile" value="true">
 
@@ -525,6 +525,11 @@
                             {{ request.user.date_joined|date:"M d, Y" }}
                         </div>
                     </div>
+                </div>
+                <div class="form-actions" style="margin-top: 1.5rem;">
+                    <button type="submit" class="btn-save-profile">
+                        <i class="fas fa-save"></i> Save Changes
+                    </button>
                 </div>
             </form>
         </div>
