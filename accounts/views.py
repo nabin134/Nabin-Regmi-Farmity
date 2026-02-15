@@ -2245,6 +2245,116 @@ def user_dashboard(request):
             messages.error(request, f'An error occurred: {str(e)}')
         return _redirect_same_page(request, 'user_dashboard')
     
+    # Handle Cart Checkout (multiple items, grocery-style)
+    if request.method == 'POST' and 'checkout_cart' in request.POST:
+        payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
+        if payment_method == Order.PAYMENT_ESEWA:
+            messages.info(request, 'eSewa payment is coming soon! Please use Cash on Delivery for now.')
+            return _redirect_same_page(request, 'user_dashboard')
+        cart_json = request.POST.get('cart_items', '[]')
+        try:
+            cart_items = json.loads(cart_json)
+        except (ValueError, TypeError):
+            messages.error(request, 'Invalid cart data. Please try again.')
+            return _redirect_same_page(request, 'user_dashboard')
+        if not cart_items:
+            messages.error(request, 'Your cart is empty.')
+            return _redirect_same_page(request, 'user_dashboard')
+        shipping_address = request.POST.get('shipping_address', '').strip()
+        if not shipping_address:
+            messages.error(request, 'Shipping address is required.')
+            return _redirect_same_page(request, 'user_dashboard')
+        notes = request.POST.get('notes', '')
+        errors = []
+        orders_created = []
+        for item in cart_items:
+            typ = (item.get('type') or '').lower()
+            item_id = item.get('id')
+            try:
+                qty = float(item.get('quantity', 1)) if typ == 'crop' else int(item.get('quantity', 1))
+            except (ValueError, TypeError):
+                errors.append(f"Invalid quantity for item {item.get('name', item_id)}")
+                continue
+            if qty <= 0:
+                continue
+            if typ == 'crop':
+                try:
+                    crop = FarmerProduct.objects.get(id=item_id, is_available=True)
+                    if crop.quantity < qty:
+                        errors.append(f"{crop.name}: only {crop.quantity} {crop.unit} available")
+                        continue
+                    total_amount = float(crop.price_per_unit) * qty
+                    order = Order.objects.create(
+                        buyer=request.user,
+                        crop=crop,
+                        quantity=int(round(qty)),
+                        total_amount=total_amount,
+                        status=Order.STATUS_CONFIRMED,
+                        payment_method=payment_method,
+                        payment_status='pending',
+                        shipping_address=shipping_address,
+                        notes=notes
+                    )
+                    crop.quantity -= qty
+                    if crop.quantity <= 0:
+                        crop.is_available = False
+                    crop.save()
+                    CropSale.objects.create(
+                        crop=crop,
+                        order=order,
+                        quantity_sold=qty,
+                        price_per_unit=crop.price_per_unit,
+                        total_amount=total_amount,
+                        sold_to=request.user,
+                        sold_at=timezone.now()
+                    )
+                    orders_created.append(order)
+                except FarmerProduct.DoesNotExist:
+                    errors.append(f"Crop (id {item_id}) no longer available")
+            elif typ == 'tool':
+                try:
+                    tool = VendorTool.objects.get(id=item_id, is_available=True, stock_quantity__gt=0)
+                    if tool.stock_quantity < qty:
+                        errors.append(f"{tool.name}: only {tool.stock_quantity} units available")
+                        continue
+                    total_amount = float(tool.price) * qty
+                    order = Order.objects.create(
+                        buyer=request.user,
+                        tool=tool,
+                        quantity=int(qty),
+                        total_amount=total_amount,
+                        status=Order.STATUS_CONFIRMED,
+                        payment_method=payment_method,
+                        payment_status='pending',
+                        shipping_address=shipping_address,
+                        notes=notes
+                    )
+                    tool.stock_quantity -= int(qty)
+                    if tool.stock_quantity == 0:
+                        tool.is_available = False
+                    tool.save()
+                    orders_created.append(order)
+                except VendorTool.DoesNotExist:
+                    errors.append(f"Tool (id {item_id}) no longer available")
+            else:
+                errors.append(f"Unknown item type: {typ}")
+        if errors:
+            for err in errors[:5]:
+                messages.error(request, err)
+            if len(errors) > 5:
+                messages.error(request, f"... and {len(errors) - 5} more issues.")
+            return _redirect_same_page(request, 'user_dashboard')
+        grand_total = sum(float(o.total_amount) for o in orders_created)
+        messages.success(request, f'Order placed for {len(orders_created)} item(s)! Total: Rs. {grand_total:.2f} (Cash on Delivery).')
+        from urllib.parse import urlencode
+        url = reverse('user_dashboard')
+        section = (request.POST.get('return_section') or request.GET.get('section') or '').strip()
+        params = {'checkout_success': '1'}
+        if section:
+            params['section'] = section
+        url = url + '?' + urlencode(params)
+        return redirect(url)
+    
     # Buyers don't require KYC - full access immediately
     # Get all available tools from vendors
     tools = VendorTool.objects.filter(is_available=True, stock_quantity__gt=0).select_related('vendor', 'vendor__user').order_by('-created_at')

@@ -1457,6 +1457,26 @@
                             <h3 style="color: #666; margin-bottom: 0.5rem;">Your cart is empty</h3>
                             <p style="color: #999;">Add items to your cart to see them here</p>
                         </div>
+                        <!-- Cart summary (grocery-style: subtotal + total + checkout button) -->
+                        <div id="cartSummary" style="display: none; background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); padding: 1.5rem; margin-top: 1.5rem; border: 2px solid #f0f0f0;">
+                            <h4 style="margin: 0 0 1rem 0; color: #333; font-size: 1.1rem; font-weight: 600;">Order summary</h4>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: #555;">
+                                <span>Subtotal</span>
+                                <span id="cartSubtotal">Rs. 0.00</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: #555;">
+                                <span>Delivery</span>
+                                <span>Rs. 0.00</span>
+                            </div>
+                            <hr style="border: none; border-top: 1px solid #eee; margin: 1rem 0;">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                                <span style="font-weight: 700; font-size: 1.15rem; color: #333;">Total to pay</span>
+                                <span id="cartGrandTotal" style="font-size: 1.5rem; font-weight: bold; color: var(--primary);">Rs. 0.00</span>
+                            </div>
+                            <button type="button" id="proceedToCheckoutBtn" onclick="openCheckoutModal()" class="btn-primary" style="width: 100%; padding: 1rem; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                <i class="fas fa-lock"></i> Proceed to checkout
+                            </button>
+                        </div>
                     </div>
 
                     <!-- Purchase History -->
@@ -1994,6 +2014,62 @@
         </div>
     </div>
 
+    <!-- Cart Checkout Modal (multiple items, grocery-style) -->
+    <div id="checkoutCartModal" class="modal">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-shopping-bag"></i> Checkout</h3>
+                <button class="close-modal" onclick="closeModal('checkoutCartModal')">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'user_dashboard' %}" id="checkoutCartForm">
+                {% csrf_token %}
+                <input type="hidden" name="checkout_cart" value="1">
+                <input type="hidden" name="return_section" value="orders">
+                <input type="hidden" name="cart_items" id="checkoutCartItemsInput">
+                <div id="checkoutOrderSummary" style="background: var(--light-bg); border-radius: 12px; padding: 1rem; margin-bottom: 1.25rem; max-height: 220px; overflow-y: auto;">
+                    <!-- Filled by JS -->
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: #555;">
+                    <span>Subtotal</span>
+                    <span id="checkoutSubtotal">Rs. 0.00</span>
+                </div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #555;">
+                    <span>Delivery</span>
+                    <span>Rs. 0.00</span>
+                </div>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 0.75rem 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
+                    <span style="font-weight: 700; color: #333;">Total to pay</span>
+                    <span id="checkoutGrandTotal" style="font-size: 1.35rem; font-weight: bold; color: var(--primary);">Rs. 0.00</span>
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600;">Payment Method <span style="color: red;">*</span></label>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <label style="flex: 1; min-width: 180px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: white;">
+                            <input type="radio" name="payment_method" value="cod" checked style="margin-right: 0.5rem;">
+                            <i class="fas fa-money-bill-wave" style="color: var(--primary);"></i> Cash on Delivery
+                        </label>
+                        <label style="flex: 1; min-width: 180px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: white;">
+                            <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;">
+                            <i class="fas fa-mobile-alt" style="color: #5B5FEF;"></i> eSewa
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Shipping Address <span style="color: red;">*</span></label>
+                    <textarea name="shipping_address" class="form-control" rows="3" required placeholder="Enter your delivery address..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Notes (Optional)</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="Any special instructions..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem;">
+                    <i class="fas fa-lock"></i> Place order — Pay on delivery
+                </button>
+            </form>
+        </div>
+    </div>
+
     <footer class="main-footer">
         <div class="footer-container">
             <div class="footer-section">
@@ -2360,11 +2436,21 @@
             if (cart.length === 0) {
                 cartItemsList.style.display = 'none';
                 if (emptyCart) emptyCart.style.display = 'block';
+                const cartSummaryEl = document.getElementById('cartSummary');
+                if (cartSummaryEl) cartSummaryEl.style.display = 'none';
                 return;
             }
             
             if (emptyCart) emptyCart.style.display = 'none';
             cartItemsList.style.display = 'block';
+            const cartSummaryEl = document.getElementById('cartSummary');
+            if (cartSummaryEl) cartSummaryEl.style.display = 'block';
+            let subtotal = 0;
+            cart.forEach(item => { subtotal += item.price * (item.quantity || 1); });
+            const subtotalEl = document.getElementById('cartSubtotal');
+            const grandTotalEl = document.getElementById('cartGrandTotal');
+            if (subtotalEl) subtotalEl.textContent = 'Rs. ' + subtotal.toFixed(2);
+            if (grandTotalEl) grandTotalEl.textContent = 'Rs. ' + subtotal.toFixed(2);
             
             cartItemsList.innerHTML = cart.map((item, index) => {
                 const total = item.price * (item.quantity || 1);
@@ -2438,6 +2524,28 @@
                     openPurchaseToolModal(item.id, item.name, item.price, item.available);
                 }
             }
+        }
+
+        function openCheckoutModal() {
+            const cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            if (cart.length === 0) {
+                alert('Your cart is empty.');
+                return;
+            }
+            let subtotal = 0;
+            const lines = cart.map(item => {
+                const qty = item.quantity || 1;
+                const lineTotal = item.price * qty;
+                subtotal += lineTotal;
+                const unit = item.unit || 'units';
+                return `<div style="display: flex; justify-content: space-between; padding: 0.5rem 0; border-bottom: 1px solid #eee;"><span>${item.name} × ${qty} ${unit}</span><span>Rs. ${lineTotal.toFixed(2)}</span></div>`;
+            }).join('');
+            document.getElementById('checkoutOrderSummary').innerHTML = lines;
+            document.getElementById('checkoutSubtotal').textContent = 'Rs. ' + subtotal.toFixed(2);
+            document.getElementById('checkoutGrandTotal').textContent = 'Rs. ' + subtotal.toFixed(2);
+            const payload = cart.map(item => ({ type: item.type, id: item.id, quantity: item.quantity || 1, name: item.name }));
+            document.getElementById('checkoutCartItemsInput').value = JSON.stringify(payload);
+            document.getElementById('checkoutCartModal').classList.add('active');
         }
 
         function openPurchaseCropModal(cropId, cropName, price, available, unit) {
@@ -2532,7 +2640,16 @@
 
         // Initialize - set active nav link and show default section
         document.addEventListener('DOMContentLoaded', function() {
-            var sectionFromUrl = new URLSearchParams(window.location.search).get('section');
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('checkout_success') === '1') {
+                localStorage.removeItem('cart');
+                updateCartBadge();
+                displayCartItems();
+                params.delete('checkout_success');
+                var newUrl = window.location.pathname + (params.toString() ? '?' + params.toString() : '');
+                if (window.history.replaceState) window.history.replaceState({}, '', newUrl);
+            }
+            var sectionFromUrl = params.get('section');
             var defaultSection = sectionFromUrl || 'crops';
             document.body.dataset.currentSection = defaultSection;
             if (defaultSection && document.getElementById(defaultSection)) {
