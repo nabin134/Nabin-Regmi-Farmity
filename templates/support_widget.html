@@ -1,0 +1,295 @@
+{% load static %}
+<div id="farmity-support-widget" class="farmity-support-widget">
+    <button type="button" class="farmity-support-btn" id="farmitySupportToggle" aria-label="Support">
+        <i class="fas fa-headset"></i>
+    </button>
+    <div class="farmity-support-panel" id="farmitySupportPanel">
+        <div class="farmity-support-panel-header">
+            <h3><i class="fas fa-headset"></i> Support</h3>
+            <button type="button" class="farmity-support-close" id="farmitySupportClose" aria-label="Close">&times;</button>
+        </div>
+        <div class="farmity-support-tabs">
+            <button type="button" class="farmity-tab active" data-tab="faq">FAQ</button>
+            <button type="button" class="farmity-tab" data-tab="mytickets">My tickets</button>
+            <button type="button" class="farmity-tab" data-tab="new">New request</button>
+            <button type="button" class="farmity-tab farmity-tab-staff" data-tab="open" id="farmityTabOpen" style="display:none;">Open (Admin)</button>
+        </div>
+        <div class="farmity-support-body">
+            <div class="farmity-tab-content active" id="farmityContentFaq">
+                <div class="farmity-faq-list" id="farmityFaqList">Loading…</div>
+            </div>
+            <div class="farmity-tab-content" id="farmityContentMytickets">
+                <div class="farmity-ticket-list" id="farmityMyTicketsList">Loading…</div>
+            </div>
+            <div class="farmity-tab-content" id="farmityContentNew">
+                <form id="farmityNewTicketForm" class="farmity-form">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                    <div class="farmity-field">
+                        <label for="farmitySubject">Subject</label>
+                        <input type="text" id="farmitySubject" name="subject" placeholder="Brief description" required>
+                    </div>
+                    <div class="farmity-field">
+                        <label for="farmityMessage">Message</label>
+                        <textarea id="farmityMessage" name="message" rows="4" placeholder="Describe your issue…" required></textarea>
+                    </div>
+                    <button type="submit" class="farmity-btn-primary"><i class="fas fa-paper-plane"></i> Submit</button>
+                </form>
+            </div>
+            <div class="farmity-tab-content" id="farmityContentOpen">
+                <div class="farmity-ticket-list" id="farmityOpenTicketsList">Loading…</div>
+            </div>
+        </div>
+        <div class="farmity-support-detail" id="farmityTicketDetail" style="display:none;">
+            <div class="farmity-detail-header">
+                <button type="button" class="farmity-back" id="farmityDetailBack"><i class="fas fa-arrow-left"></i> Back</button>
+                <h4 id="farmityDetailSubject"></h4>
+                <div class="farmity-detail-meta" id="farmityDetailMeta"></div>
+                <div class="farmity-detail-actions" id="farmityDetailActions" style="display:none;"></div>
+            </div>
+            <div class="farmity-detail-messages" id="farmityDetailMessages"></div>
+            <div class="farmity-detail-reply" id="farmityDetailReply" style="display:none;">
+                <form id="farmityReplyForm">
+                    <input type="hidden" name="csrfmiddlewaretoken" value="{{ csrf_token }}">
+                    <textarea name="message" rows="2" placeholder="Type your reply…" required></textarea>
+                    <button type="submit" class="farmity-btn-primary"><i class="fas fa-paper-plane"></i> Send</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+<style>
+.farmity-support-widget { --support-primary: #358D58; --support-primary-dark: #2a6f45; --support-bg: #fff; --support-border: #e5e7eb; }
+.farmity-support-btn {
+    position: fixed; bottom: 24px; right: 24px; z-index: 99998;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--support-primary) 0%, #4a9d6a 100%);
+    color: #fff; border: none; cursor: pointer; box-shadow: 0 4px 20px rgba(53,141,88,0.4);
+    display: flex; align-items: center; justify-content: center; font-size: 1.4rem;
+    transition: transform 0.2s, box-shadow 0.2s;
+}
+.farmity-support-btn:hover { transform: scale(1.05); box-shadow: 0 6px 24px rgba(53,141,88,0.5); }
+.farmity-support-panel {
+    position: fixed; top: 0; right: 0; bottom: 0; width: 380px; max-width: 100%;
+    background: var(--support-bg); box-shadow: -4px 0 24px rgba(0,0,0,0.12);
+    z-index: 99999; display: flex; flex-direction: column;
+    transform: translateX(100%); transition: transform 0.3s ease;
+}
+.farmity-support-panel.is-open { transform: translateX(0); }
+.farmity-support-panel-header {
+    padding: 1rem 1.25rem; border-bottom: 2px solid var(--support-border);
+    display: flex; align-items: center; justify-content: space-between;
+    background: linear-gradient(135deg, var(--support-primary) 0%, #4a9d6a 100%); color: #fff;
+}
+.farmity-support-panel-header h3 { margin: 0; font-size: 1.1rem; font-weight: 600; display: flex; align-items: center; gap: 0.5rem; }
+.farmity-support-close { background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; padding: 0 0.25rem; line-height: 1; opacity: 0.9; }
+.farmity-support-close:hover { opacity: 1; }
+.farmity-support-tabs { display: flex; flex-wrap: wrap; gap: 0; border-bottom: 1px solid var(--support-border); padding: 0 0.5rem; background: #fafafa; }
+.farmity-tab { padding: 0.6rem 0.75rem; border: none; background: none; cursor: pointer; font-size: 0.85rem; color: #666; border-bottom: 2px solid transparent; }
+.farmity-tab:hover { color: var(--support-primary); }
+.farmity-tab.active { color: var(--support-primary); font-weight: 600; border-bottom-color: var(--support-primary); }
+.farmity-support-body { flex: 1; overflow-y: auto; padding: 1rem; }
+.farmity-tab-content { display: none; min-height: 200px; }
+.farmity-tab-content.active { display: block; }
+.farmity-faq-list { }
+.farmity-faq-item { border-bottom: 1px solid var(--support-border); }
+.farmity-faq-q { padding: 0.75rem 0; cursor: pointer; font-weight: 500; color: #333; display: flex; justify-content: space-between; align-items: center; }
+.farmity-faq-q:hover { background: #f8f9fa; }
+.farmity-faq-q i { color: var(--support-primary); transition: transform 0.2s; font-size: 0.75rem; }
+.farmity-faq-item.open .farmity-faq-q i { transform: rotate(180deg); }
+.farmity-faq-a { padding: 0 0 0.75rem 0; color: #555; font-size: 0.9rem; line-height: 1.5; display: none; }
+.farmity-faq-item.open .farmity-faq-a { display: block; }
+.farmity-ticket-list { }
+.farmity-ticket-item { padding: 0.75rem; border: 1px solid var(--support-border); border-radius: 10px; margin-bottom: 0.5rem; cursor: pointer; transition: background 0.2s; }
+.farmity-ticket-item:hover { background: #f8faf9; }
+.farmity-ticket-item .subj { font-weight: 500; color: #1a1a1a; }
+.farmity-ticket-item .meta { font-size: 0.75rem; color: #666; margin-top: 0.25rem; }
+.farmity-ticket-item .stag { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; margin-top: 0.35rem; }
+.farmity-ticket-item .stag.open { background: #fff3cd; color: #856404; }
+.farmity-ticket-item .stag.in_progress { background: #cce5ff; color: #004085; }
+.farmity-ticket-item .stag.answered { background: #d4edda; color: #155724; }
+.farmity-ticket-item .stag.closed { background: #e2e3e5; color: #383d41; }
+.farmity-form .farmity-field { margin-bottom: 0.75rem; }
+.farmity-form label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.25rem; color: #333; }
+.farmity-form input, .farmity-form textarea { width: 100%; padding: 0.5rem 0.75rem; border: 2px solid var(--support-border); border-radius: 8px; font-size: 0.95rem; box-sizing: border-box; }
+.farmity-form input:focus, .farmity-form textarea:focus { outline: none; border-color: var(--support-primary); }
+.farmity-btn-primary { margin-top: 0.5rem; padding: 0.5rem 1rem; background: var(--support-primary); color: #fff; border: none; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.5rem; }
+.farmity-btn-primary:hover { background: var(--support-primary-dark); }
+.farmity-detail-header { padding: 0.75rem; border-bottom: 1px solid var(--support-border); }
+.farmity-back { background: none; border: none; color: var(--support-primary); cursor: pointer; font-size: 0.9rem; margin-bottom: 0.5rem; padding: 0; }
+.farmity-detail-header h4 { margin: 0 0 0.35rem 0; font-size: 1rem; }
+.farmity-detail-meta { font-size: 0.8rem; color: #666; }
+.farmity-detail-messages { flex: 1; overflow-y: auto; padding: 1rem; max-height: 280px; }
+.farmity-msg { margin-bottom: 0.75rem; }
+.farmity-msg.mine .farmity-msg-bubble { background: var(--support-primary); color: #fff; margin-left: auto; }
+.farmity-msg-bubble { max-width: 85%; padding: 0.5rem 0.75rem; border-radius: 10px; background: #f0f0f0; color: #333; font-size: 0.9rem; }
+.farmity-msg-meta { font-size: 0.7rem; color: #999; margin-top: 0.2rem; }
+.farmity-detail-reply { padding: 0.75rem; border-top: 1px solid var(--support-border); }
+.farmity-detail-reply form { display: flex; flex-direction: column; gap: 0.5rem; }
+.farmity-detail-reply textarea { width: 100%; padding: 0.5rem; border: 2px solid var(--support-border); border-radius: 8px; box-sizing: border-box; resize: vertical; }
+.farmity-empty { text-align: center; color: #999; padding: 1.5rem; font-size: 0.9rem; }
+</style>
+<script>
+(function() {
+    var panel = document.getElementById('farmitySupportPanel');
+    var toggle = document.getElementById('farmitySupportToggle');
+    var closeBtn = document.getElementById('farmitySupportClose');
+    var csrf = document.querySelector('#farmity-support-widget input[name=csrfmiddlewaretoken]');
+    var getToken = function() { return csrf ? csrf.value : ''; };
+    var api = function(url, options) {
+        options = options || {};
+        var h = { 'X-CSRFToken': getToken(), 'Accept': 'application/json' };
+        if (options.body && !(options.body instanceof FormData)) h['Content-Type'] = 'application/x-www-form-urlencoded';
+        return fetch(url, { credentials: 'same-origin', headers: h }).then(function(r) { return r.json().catch(function() { return {}; }); });
+    };
+    var post = function(url, data) {
+        var body = new FormData();
+        for (var k in data) if (data.hasOwnProperty(k)) body.append(k, data[k]);
+        return api(url, { method: 'POST', body: body });
+    };
+    var openPanel = function() { panel.classList.add('is-open'); };
+    var closePanel = function() { panel.classList.remove('is-open'); };
+    toggle.addEventListener('click', function() { panel.classList.toggle('is-open'); if (panel.classList.contains('is-open')) loadAll(); });
+    closeBtn.addEventListener('click', closePanel);
+
+    var tabs = panel.querySelectorAll('.farmity-tab');
+    var contents = panel.querySelectorAll('.farmity-tab-content');
+    tabs.forEach(function(t) {
+        t.addEventListener('click', function() {
+            var tab = t.getAttribute('data-tab');
+            tabs.forEach(function(x) { x.classList.remove('active'); });
+            contents.forEach(function(c) { c.classList.remove('active'); });
+            t.classList.add('active');
+            var id = 'farmityContent' + tab.charAt(0).toUpperCase() + tab.slice(1).replace(/^mytickets/, 'Mytickets').replace(/^open/, 'Open');
+            var el = document.getElementById(id);
+            if (el) { el.classList.add('active'); }
+        });
+    });
+
+    var isStaff = false;
+    var currentTicketId = null;
+
+    function loadConfig() {
+        api('/api/support/config/').then(function(d) { isStaff = d.is_staff || false; document.getElementById('farmityTabOpen').style.display = isStaff ? '' : 'none'; });
+    }
+    function loadFaq() {
+        api('/api/support/faqs/').then(function(d) {
+            var list = document.getElementById('farmityFaqList');
+            if (!d.faqs || d.faqs.length === 0) { list.innerHTML = '<div class="farmity-empty">No FAQs yet.</div>'; return; }
+            list.innerHTML = d.faqs.map(function(f) {
+                return '<div class="farmity-faq-item"><div class="farmity-faq-q">' + escapeHtml(f.question) + ' <i class="fas fa-chevron-down"></i></div><div class="farmity-faq-a">' + escapeHtml(f.answer) + '</div></div>';
+            }).join('');
+            list.querySelectorAll('.farmity-faq-q').forEach(function(q) {
+                q.addEventListener('click', function() { q.closest('.farmity-faq-item').classList.toggle('open'); });
+            });
+        });
+    }
+    function escapeHtml(s) { var d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+    function loadMyTickets() {
+        api('/api/support/my-tickets/').then(function(d) {
+            var list = document.getElementById('farmityMyTicketsList');
+            if (!d.tickets || d.tickets.length === 0) { list.innerHTML = '<div class="farmity-empty">No tickets yet.</div>'; return; }
+            list.innerHTML = d.tickets.map(function(t) {
+                return '<div class="farmity-ticket-item" data-id="' + t.id + '"><div class="subj">' + escapeHtml(t.subject) + '</div><div class="meta">#' + t.id + ' · ' + escapeHtml(t.updated_at) + '</div><span class="stag ' + t.status + '">' + escapeHtml(t.status_display) + '</span></div>';
+            }).join('');
+            list.querySelectorAll('.farmity-ticket-item').forEach(function(item) {
+                item.addEventListener('click', function() { showTicket(parseInt(item.getAttribute('data-id'), 10)); });
+            });
+        });
+    }
+    function loadOpenTickets() {
+        if (!isStaff) return;
+        api('/api/support/open-tickets/').then(function(d) {
+            var list = document.getElementById('farmityOpenTicketsList');
+            if (!d.tickets || d.tickets.length === 0) { list.innerHTML = '<div class="farmity-empty">No open tickets.</div>'; return; }
+            list.innerHTML = d.tickets.map(function(t) {
+                return '<div class="farmity-ticket-item" data-id="' + t.id + '"><div class="subj">' + escapeHtml(t.subject) + '</div><div class="meta">' + escapeHtml(t.user_email) + ' · ' + escapeHtml(t.updated_at) + '</div><span class="stag ' + t.status + '">' + escapeHtml(t.status_display) + '</span></div>';
+            }).join('');
+            list.querySelectorAll('.farmity-ticket-item').forEach(function(item) {
+                item.addEventListener('click', function() { showTicket(parseInt(item.getAttribute('data-id'), 10)); });
+            });
+        });
+    }
+    function loadAll() {
+        loadFaq();
+        loadMyTickets();
+        api('/api/support/config/').then(function(d) {
+            isStaff = d.is_staff || false;
+            document.getElementById('farmityTabOpen').style.display = isStaff ? '' : 'none';
+            if (isStaff) loadOpenTickets();
+        });
+    }
+
+    function showTicket(id) {
+        currentTicketId = id;
+        document.querySelector('.farmity-support-body').style.display = 'none';
+        document.getElementById('farmityTicketDetail').style.display = 'block';
+        api('/api/support/tickets/' + id + '/').then(function(d) {
+            if (d.error) { backToList(); return; }
+            var t = d.ticket;
+            document.getElementById('farmityDetailSubject').textContent = '#' + t.id + ' — ' + t.subject;
+            document.getElementById('farmityDetailMeta').textContent = t.user_email + ' · ' + t.status_display + (t.assigned_to ? ' · ' + t.assigned_to : '');
+            var msgsEl = document.getElementById('farmityDetailMessages');
+            msgsEl.innerHTML = (d.messages || []).map(function(m) {
+                return '<div class="farmity-msg ' + (m.is_mine ? 'mine' : '') + '"><div class="farmity-msg-bubble">' + escapeHtml(m.message) + '</div><div class="farmity-msg-meta">' + escapeHtml(m.sender_email) + ' · ' + escapeHtml(m.created_at) + '</div></div>';
+            }).join('');
+            var replyEl = document.getElementById('farmityDetailReply');
+            replyEl.style.display = t.status === 'closed' ? 'none' : 'block';
+            var actionsEl = document.getElementById('farmityDetailActions');
+            if (d.is_staff) {
+                actionsEl.style.display = 'block';
+                actionsEl.innerHTML = '<button type="button" class="farmity-btn-primary" id="farmityAssignBtn">Assign to me</button> <select id="farmityStatusSelect">' +
+                    '<option value="open"' + (t.status === 'open' ? ' selected' : '') + '>Open</option>' +
+                    '<option value="in_progress"' + (t.status === 'in_progress' ? ' selected' : '') + '>In progress</option>' +
+                    '<option value="answered"' + (t.status === 'answered' ? ' selected' : '') + '>Answered</option>' +
+                    '<option value="closed"' + (t.status === 'closed' ? ' selected' : '') + '>Closed</option></select>';
+                var assignBtn = document.getElementById('farmityAssignBtn');
+                if (assignBtn) assignBtn.addEventListener('click', function() {
+                    post('/api/support/tickets/' + id + '/assign/', {}).then(function() { showTicket(id); });
+                });
+                var sel = document.getElementById('farmityStatusSelect');
+                if (sel) sel.addEventListener('change', function() {
+                    post('/api/support/tickets/' + id + '/status/', { status: sel.value }).then(function() { showTicket(id); });
+                });
+            } else { actionsEl.style.display = 'none'; }
+            document.getElementById('farmityReplyForm').querySelector('textarea').value = '';
+        });
+    }
+    function backToList() {
+        currentTicketId = null;
+        document.getElementById('farmityTicketDetail').style.display = 'none';
+        document.querySelector('.farmity-support-body').style.display = 'block';
+        loadMyTickets();
+        if (isStaff) loadOpenTickets();
+    }
+    document.getElementById('farmityDetailBack').addEventListener('click', backToList);
+
+    document.getElementById('farmityNewTicketForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var form = e.target;
+        var data = { subject: form.subject.value.trim(), message: form.message.value.trim(), csrfmiddlewaretoken: getToken() };
+        if (!data.subject || !data.message) return;
+        post('/api/support/tickets/', data).then(function(d) {
+            if (d.error) { alert(d.error); return; }
+            form.reset();
+            showTicket(d.id);
+        });
+    });
+
+    document.getElementById('farmityReplyForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        var form = e.target;
+        var msg = form.message.value.trim();
+        if (!msg || !currentTicketId) return;
+        post('/api/support/tickets/' + currentTicketId + '/reply/', { message: msg, csrfmiddlewaretoken: getToken() }).then(function(d) {
+            if (d.error) { alert(d.error); return; }
+            form.message.value = '';
+            showTicket(currentTicketId);
+        });
+    });
+
+    api('/api/support/config/').then(function(d) {
+        isStaff = d.is_staff || false;
+        document.getElementById('farmityTabOpen').style.display = isStaff ? '' : 'none';
+    });
+})();
+</script>

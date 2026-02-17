@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer Support - Farmity</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #358D58;
+            --primary-dark: #2a6f45;
+            --secondary: #A8AD3B;
+            --light-bg: #E9EBF1;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #E9EBF1; min-height: 100vh; margin: 0; display: flex; flex-direction: column; }
+        .main-content { flex: 1; padding: 1.5rem; max-width: 900px; margin: 0 auto; width: 100%; }
+        .support-hero { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; padding: 2rem; border-radius: 16px; margin-bottom: 1.5rem; text-align: center; }
+        .support-hero h1 { margin: 0 0 0.5rem 0; font-size: 1.75rem; }
+        .support-hero p { margin: 0; opacity: 0.95; font-size: 1rem; }
+        .card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 1.5rem; overflow: hidden; }
+        .card-header { padding: 1rem 1.5rem; border-bottom: 2px solid #f0f0f0; background: #fafafa; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem; }
+        .card-body { padding: 1.5rem; }
+        .faq-item { border-bottom: 1px solid #eee; }
+        .faq-item:last-child { border-bottom: none; }
+        .faq-question { padding: 1rem 1.5rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 500; color: #333; }
+        .faq-question:hover { background: #f8f9fa; }
+        .faq-question i { color: var(--primary); transition: transform 0.2s; }
+        .faq-item.open .faq-question i { transform: rotate(180deg); }
+        .faq-answer { padding: 0 1.5rem 1rem; color: #555; line-height: 1.6; display: none; }
+        .faq-item.open .faq-answer { display: block; }
+        .faq-answer p { margin: 0; }
+        .staff-list { display: grid; gap: 1rem; }
+        .staff-card { display: flex; align-items: center; justify-content: space-between; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 12px; background: #fafafa; }
+        .staff-card .name { font-weight: 600; color: #1a1a1a; }
+        .staff-card .contact { font-size: 0.9rem; color: #666; margin-top: 0.25rem; }
+        .staff-card a { color: var(--primary); text-decoration: none; font-weight: 500; }
+        .staff-card a:hover { text-decoration: underline; }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; color: #333; }
+        .form-group input, .form-group textarea { width: 100%; padding: 0.75rem 1rem; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 1rem; font-family: inherit; }
+        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
+        .form-group textarea { min-height: 120px; resize: vertical; }
+        .btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem; text-decoration: none; }
+        .btn-primary:hover { background: var(--primary-dark); color: white; }
+        .btn-secondary { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #6c757d; color: white; border-radius: 8px; font-size: 0.9rem; text-decoration: none; }
+        .btn-secondary:hover { color: white; background: #5a6268; }
+        .ticket-list { list-style: none; padding: 0; margin: 0; }
+        .ticket-list li { padding: 1rem 1.5rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
+        .ticket-list li:last-child { border-bottom: none; }
+        .ticket-list li:hover { background: #f8f9fa; }
+        .ticket-subject { font-weight: 500; color: #1a1a1a; }
+        .ticket-meta { font-size: 0.85rem; color: #666; }
+        .ticket-status { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500; }
+        .ticket-status.open { background: #fff3cd; color: #856404; }
+        .ticket-status.in_progress { background: #cce5ff; color: #004085; }
+        .ticket-status.answered { background: #d4edda; color: #155724; }
+        .ticket-status.closed { background: #e2e3e5; color: #383d41; }
+        .alert { padding: 1rem; border-radius: 10px; margin-bottom: 1rem; }
+        .alert-error { background: #F8D7DA; color: #721C24; }
+        .alert-success { background: #D4EDDA; color: #155724; }
+        .empty-state { text-align: center; color: #666; padding: 2rem; }
+        .empty-state i { font-size: 2.5rem; color: #ccc; margin-bottom: 0.5rem; }
+    </style>
+</head>
+<body>
+    <header class="main-header">
+        <div class="header-container">
+            <div class="logo">
+                <a href="{% url 'landing' %}" style="display: flex; align-items: center; gap: 0.5rem; text-decoration: none; color: inherit;">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity" class="logo-img" onerror="this.style.display='none'">
+                    <span class="logo-text">Farmity</span>
+                </a>
+            </div>
+            <nav class="main-nav">
+                {% if request.user.role == 'farmer' %}<a href="{% url 'farmer_dashboard' %}">Dashboard</a>
+                {% elif request.user.role == 'buyer' %}<a href="{% url 'user_dashboard' %}">Dashboard</a>
+                {% elif request.user.role == 'agricultural_expert' %}<a href="{% url 'expert_dashboard' %}">Dashboard</a>
+                {% elif request.user.role == 'vendor' %}<a href="{% url 'vendor_dashboard' %}">Dashboard</a>
+                {% elif request.user.role == 'admin' %}<a href="{% url 'admin_dashboard' %}">Dashboard</a>
+                {% else %}<a href="{% url 'dashboard' %}">Dashboard</a>{% endif %}
+                <a href="{% url 'support_hub' %}" style="font-weight: 600;">Support</a>
+                {% if request.user.role == 'buyer' or request.user.role == 'farmer' or request.user.role == 'agricultural_expert' %}<a href="{% url 'chat_threads' %}">Chat</a>{% endif %}
+                <a href="{% url 'profile' %}">Profile</a>
+            </nav>
+        </div>
+    </header>
+
+    <main class="main-content">
+        <div class="support-hero">
+            <h1><i class="fas fa-headset"></i> Customer Support</h1>
+            <p>Find answers in our FAQ, contact support staff, or open a ticket.</p>
+        </div>
+
+        {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}"><i class="fas fa-info-circle"></i> {{ message }}</div>
+            {% endfor %}
+        {% endif %}
+
+        <!-- FAQ -->
+        <div class="card">
+            <div class="card-header"><i class="fas fa-question-circle"></i> Frequently Asked Questions</div>
+            <div class="card-body" style="padding: 0;">
+                {% if faqs %}
+                    {% for faq in faqs %}
+                    <div class="faq-item" onclick="this.classList.toggle('open')">
+                        <div class="faq-question">
+                            <span>{{ faq.question }}</span>
+                            <i class="fas fa-chevron-down"></i>
+                        </div>
+                        <div class="faq-answer"><p>{{ faq.answer|linebreaksbr }}</p></div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-info-circle"></i><br>
+                        No FAQs added yet. You can still contact support below.
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Contact support staff -->
+        <div class="card">
+            <div class="card-header"><i class="fas fa-user-headset"></i> Contact Support Staff</div>
+            <div class="card-body">
+                {% if support_staff %}
+                <p style="margin: 0 0 1rem 0; color: #666;">Reach out directly to our available support team:</p>
+                <div class="staff-list">
+                    {% for staff in support_staff %}
+                    <div class="staff-card">
+                        <div>
+                            <div class="name">{{ staff.display_name|default:staff.user.get_full_name|default:staff.user.email }}</div>
+                            <div class="contact">
+                                <a href="mailto:{{ staff.user.email }}"><i class="fas fa-envelope"></i> {{ staff.user.email }}</a>
+                                {% if staff.contact_info %} &nbsp;|&nbsp; {{ staff.contact_info }}{% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-user-clock"></i><br>
+                    No support staff are marked available at the moment. Open a ticket below and we’ll get back to you.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- New request -->
+        <div class="card">
+            <div class="card-header"><i class="fas fa-plus-circle"></i> New Support Request</div>
+            <div class="card-body">
+                <form method="POST" action="">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="create_ticket">
+                    <div class="form-group">
+                        <label for="subject">Subject</label>
+                        <input type="text" id="subject" name="subject" placeholder="Brief description of your issue" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="message">Message</label>
+                        <textarea id="message" name="message" placeholder="Describe your question or issue in detail..." required></textarea>
+                    </div>
+                    <button type="submit" class="btn-primary"><i class="fas fa-paper-plane"></i> Submit request</button>
+                </form>
+            </div>
+        </div>
+
+        <!-- My tickets -->
+        <div class="card">
+            <div class="card-header"><i class="fas fa-ticket-alt"></i> My Support Tickets</div>
+            <div class="card-body" style="padding: 0;">
+                {% if my_tickets %}
+                <ul class="ticket-list">
+                    {% for t in my_tickets %}
+                    <li>
+                        <div>
+                            <a href="{% url 'support_ticket' t.id %}" class="ticket-subject">{{ t.subject }}</a>
+                            <div class="ticket-meta">#{{ t.id }} • {{ t.updated_at|date:"M d, Y H:i" }}{% if t.assigned_to %} • Assigned to {{ t.assigned_to.email }}{% endif %}</div>
+                        </div>
+                        <span class="ticket-status {{ t.status }}">{{ t.get_status_display }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i><br>
+                    You have no support tickets yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        {% if is_support_staff and open_tickets_for_staff %}
+        <div class="card">
+            <div class="card-header"><i class="fas fa-tasks"></i> Open Tickets (Staff)</div>
+            <div class="card-body" style="padding: 0;">
+                <ul class="ticket-list">
+                    {% for t in open_tickets_for_staff %}
+                    <li>
+                        <div>
+                            <a href="{% url 'support_ticket' t.id %}" class="ticket-subject">{{ t.subject }}</a>
+                            <div class="ticket-meta">#{{ t.id }} • {{ t.user.email }} • {{ t.updated_at|date:"M d, H:i" }}{% if t.assigned_to %} • {{ t.assigned_to.email }}{% endif %}</div>
+                        </div>
+                        <span class="ticket-status {{ t.status }}">{{ t.get_status_display }}</span>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        {% endif %}
+    </main>
+</body>
+</html>

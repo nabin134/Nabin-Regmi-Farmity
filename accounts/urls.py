@@ -11,7 +11,11 @@ from .views import (
     chat_threads_page, chat_thread_detail, chat_start,
     api_chat_messages, api_chat_send, api_chat_start,
     forgot_password_page, reset_password_page, otp_verification_page,
-    logout_view, google_signup_start_view
+    logout_view, google_signup_start_view,
+    support_hub, support_ticket_detail,
+    api_support_config, api_support_faqs, api_support_my_tickets, api_support_create_ticket,
+    api_support_ticket_detail, api_support_reply, api_support_open_tickets,
+    api_support_assign, api_support_status,
 )
 urlpatterns = [
     # Frontend pages
@@ -49,6 +53,17 @@ urlpatterns = [
     path('api/chat/thread/<int:thread_id>/messages/', api_chat_messages, name='api_chat_messages'),
     path('api/chat/thread/<int:thread_id>/send/', api_chat_send, name='api_chat_send'),
     path('api/chat/start/<int:expert_id>/', api_chat_start, name='api_chat_start'),
+    path('support/', support_hub, name='support_hub'),
+    path('support/ticket/<int:ticket_id>/', support_ticket_detail, name='support_ticket'),
+    path('api/support/config/', api_support_config, name='api_support_config'),
+    path('api/support/faqs/', api_support_faqs, name='api_support_faqs'),
+    path('api/support/my-tickets/', api_support_my_tickets, name='api_support_my_tickets'),
+    path('api/support/tickets/', api_support_create_ticket, name='api_support_create_ticket'),
+    path('api/support/tickets/<int:ticket_id>/', api_support_ticket_detail, name='api_support_ticket_detail'),
+    path('api/support/tickets/<int:ticket_id>/reply/', api_support_reply, name='api_support_reply'),
+    path('api/support/open-tickets/', api_support_open_tickets, name='api_support_open_tickets'),
+    path('api/support/tickets/<int:ticket_id>/assign/', api_support_assign, name='api_support_assign'),
+    path('api/support/tickets/<int:ticket_id>/status/', api_support_status, name='api_support_status'),
     path('logout/', logout_view, name='logout'),
 ]
 

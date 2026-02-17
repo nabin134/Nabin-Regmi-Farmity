@@ -36,6 +36,10 @@ from .models import (
     Order,
     CropSale,
     OTP,
+    FAQ,
+    SupportStaffProfile,
+    SupportTicket,
+    SupportMessage,
 )
 from .serializers import SignupSerializer, LoginSerializer, UserSerializer, OTPVerificationSerializer
 from .decorators import kyc_required, kyc_optional
@@ -3705,3 +3709,234 @@ def api_chat_start(request, expert_id):
         'specialization': expert.specialization or '',
         'experience': expert.experience or '',
     })
+
+
+# ======================
+# Customer Support
+# ======================
+
+def _is_support_staff(user):
+    """Return True if user can handle support: admin only for now, or has SupportStaffProfile (addable by admin)."""
+    if user.role == 'admin':
+        return True
+    return SupportStaffProfile.objects.filter(user=user).exists()
+
+
+@login_required
+def support_hub(request):
+    """Redirect to role dashboard; support is handled by the floating widget."""
+    return _redirect_to_role_home_response(request.user)
+
+
+@login_required
+def support_ticket_detail(request, ticket_id):
+    """View a ticket and its messages; reply or (if staff) assign/update status."""
+    try:
+        ticket = SupportTicket.objects.select_related('user', 'assigned_to').get(id=ticket_id)
+    except SupportTicket.DoesNotExist:
+        messages.error(request, 'Support ticket not found.')
+        return redirect('support_hub')
+    is_staff = _is_support_staff(request.user)
+    is_owner = ticket.user_id == request.user.id
+    if not is_owner and not is_staff:
+        messages.error(request, 'You do not have access to this ticket.')
+        return redirect('support_hub')
+
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'reply':
+            msg_text = (request.POST.get('message') or '').strip()
+            if msg_text:
+                SupportMessage.objects.create(
+                    ticket=ticket,
+                    sender=request.user,
+                    message=msg_text
+                )
+                ticket.updated_at = timezone.now()
+                if is_staff and ticket.status == SupportTicket.STATUS_OPEN:
+                    ticket.status = SupportTicket.STATUS_IN_PROGRESS
+                ticket.save()
+                messages.success(request, 'Message sent.')
+                return redirect('support_ticket', ticket_id=ticket_id)
+        elif action == 'assign_me' and is_staff:
+            ticket.assigned_to = request.user
+            ticket.status = SupportTicket.STATUS_IN_PROGRESS
+            ticket.updated_at = timezone.now()
+            ticket.save()
+            messages.success(request, 'Ticket assigned to you.')
+            return redirect('support_ticket', ticket_id=ticket_id)
+        elif action == 'update_status' and is_staff:
+            new_status = request.POST.get('status')
+            if new_status in dict(SupportTicket.STATUS_CHOICES):
+                ticket.status = new_status
+                ticket.updated_at = timezone.now()
+                ticket.save()
+                messages.success(request, 'Status updated.')
+                return redirect('support_ticket', ticket_id=ticket_id)
+
+    messages_list = SupportMessage.objects.filter(ticket=ticket).select_related('sender').order_by('created_at')
+    context = {
+        'ticket': ticket,
+        'messages_list': messages_list,
+        'is_support_staff': is_staff,
+    }
+    return render(request, 'support_ticket_detail.html', context)
+
+
+# ---------- Support widget APIs (JSON for floating widget) ----------
+@login_required
+def api_support_config(request):
+    return JsonResponse({'is_staff': _is_support_staff(request.user)})
+
+
+@login_required
+def api_support_faqs(request):
+    faqs = FAQ.objects.filter(is_active=True).order_by('order', 'created_at')
+    data = [{'id': f.id, 'question': f.question, 'answer': f.answer, 'category': f.category or ''} for f in faqs]
+    return JsonResponse({'faqs': data})
+
+
+@login_required
+def api_support_my_tickets(request):
+    tickets = SupportTicket.objects.filter(user=request.user).select_related('assigned_to').order_by('-updated_at')
+    data = [{
+        'id': t.id,
+        'subject': t.subject,
+        'status': t.status,
+        'status_display': t.get_status_display(),
+        'updated_at': t.updated_at.strftime('%b %d, %H:%M'),
+        'assigned_to': t.assigned_to.email if t.assigned_to else None,
+    } for t in tickets]
+    return JsonResponse({'tickets': data})
+
+
+@login_required
+def api_support_create_ticket(request):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    subject = (request.POST.get('subject') or '').strip()
+    message = (request.POST.get('message') or '').strip()
+    if not subject or not message:
+        return JsonResponse({'error': 'Subject and message required'}, status=400)
+    ticket = SupportTicket.objects.create(user=request.user, subject=subject, status=SupportTicket.STATUS_OPEN)
+    SupportMessage.objects.create(ticket=ticket, sender=request.user, message=message)
+    return JsonResponse({
+        'id': ticket.id,
+        'subject': ticket.subject,
+        'status': ticket.status,
+        'status_display': ticket.get_status_display(),
+        'updated_at': ticket.updated_at.strftime('%b %d, %H:%M'),
+    })
+
+
+def _api_support_ticket_to_json(ticket):
+    return {
+        'id': ticket.id,
+        'subject': ticket.subject,
+        'status': ticket.status,
+        'status_display': ticket.get_status_display(),
+        'user_email': ticket.user.email,
+        'assigned_to': ticket.assigned_to.email if ticket.assigned_to else None,
+        'created_at': ticket.created_at.strftime('%b %d, %Y %H:%M'),
+        'updated_at': ticket.updated_at.strftime('%b %d, %H:%M'),
+    }
+
+
+@login_required
+def api_support_ticket_detail(request, ticket_id):
+    try:
+        ticket = SupportTicket.objects.select_related('user', 'assigned_to').get(id=ticket_id)
+    except SupportTicket.DoesNotExist:
+        return JsonResponse({'error': 'Not found'}, status=404)
+    is_staff = _is_support_staff(request.user)
+    if ticket.user_id != request.user.id and not is_staff:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+    messages_list = SupportMessage.objects.filter(ticket=ticket).select_related('sender').order_by('created_at')
+    msgs = [{
+        'id': m.id,
+        'message': m.message,
+        'sender_email': m.sender.email,
+        'sender_id': m.sender_id,
+        'created_at': m.created_at.strftime('%b %d, %H:%M'),
+        'is_mine': m.sender_id == request.user.id,
+    } for m in messages_list]
+    return JsonResponse({
+        'ticket': _api_support_ticket_to_json(ticket),
+        'messages': msgs,
+        'is_staff': is_staff,
+    })
+
+
+@login_required
+def api_support_reply(request, ticket_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    try:
+        ticket = SupportTicket.objects.get(id=ticket_id)
+    except SupportTicket.DoesNotExist:
+        return JsonResponse({'error': 'Not found'}, status=404)
+    is_staff = _is_support_staff(request.user)
+    if ticket.user_id != request.user.id and not is_staff:
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+    if ticket.status == SupportTicket.STATUS_CLOSED:
+        return JsonResponse({'error': 'Ticket is closed'}, status=400)
+    message = (request.POST.get('message') or '').strip()
+    if not message:
+        return JsonResponse({'error': 'Message required'}, status=400)
+    SupportMessage.objects.create(ticket=ticket, sender=request.user, message=message)
+    ticket.updated_at = timezone.now()
+    if is_staff and ticket.status == SupportTicket.STATUS_OPEN:
+        ticket.status = SupportTicket.STATUS_IN_PROGRESS
+    ticket.save()
+    return JsonResponse({'ok': True})
+
+
+@login_required
+def api_support_open_tickets(request):
+    if not _is_support_staff(request.user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+    tickets = SupportTicket.objects.filter(
+        status__in=[SupportTicket.STATUS_OPEN, SupportTicket.STATUS_IN_PROGRESS]
+    ).exclude(user=request.user).select_related('user', 'assigned_to').order_by('-updated_at')[:30]
+    data = [{
+        'id': t.id,
+        'subject': t.subject,
+        'status': t.status,
+        'status_display': t.get_status_display(),
+        'user_email': t.user.email,
+        'assigned_to': t.assigned_to.email if t.assigned_to else None,
+        'updated_at': t.updated_at.strftime('%b %d, %H:%M'),
+    } for t in tickets]
+    return JsonResponse({'tickets': data})
+
+
+@login_required
+def api_support_assign(request, ticket_id):
+    if request.method != 'POST' or not _is_support_staff(request.user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+    try:
+        ticket = SupportTicket.objects.get(id=ticket_id)
+    except SupportTicket.DoesNotExist:
+        return JsonResponse({'error': 'Not found'}, status=404)
+    ticket.assigned_to = request.user
+    ticket.status = SupportTicket.STATUS_IN_PROGRESS
+    ticket.updated_at = timezone.now()
+    ticket.save()
+    return JsonResponse({'ok': True})
+
+
+@login_required
+def api_support_status(request, ticket_id):
+    if request.method != 'POST' or not _is_support_staff(request.user):
+        return JsonResponse({'error': 'Forbidden'}, status=403)
+    try:
+        ticket = SupportTicket.objects.get(id=ticket_id)
+    except SupportTicket.DoesNotExist:
+        return JsonResponse({'error': 'Not found'}, status=404)
+    status_val = (request.POST.get('status') or '').strip()
+    if status_val not in dict(SupportTicket.STATUS_CHOICES):
+        return JsonResponse({'error': 'Invalid status'}, status=400)
+    ticket.status = status_val
+    ticket.updated_at = timezone.now()
+    ticket.save()
+    return JsonResponse({'ok': True})

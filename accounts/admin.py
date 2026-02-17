@@ -16,6 +16,10 @@ from .models import (
     ExpertChatMessage,
     Order,
     CropSale,
+    FAQ,
+    SupportStaffProfile,
+    SupportTicket,
+    SupportMessage,
 )
 
 
@@ -92,3 +96,33 @@ admin.site.register(ExpertChatThread)
 admin.site.register(ExpertChatMessage)
 admin.site.register(Order)
 admin.site.register(CropSale)
+
+
+# Customer Support
+@admin.register(FAQ)
+class FAQAdmin(admin.ModelAdmin):
+    list_display = ('question', 'category', 'order', 'is_active', 'created_at')
+    list_filter = ('category', 'is_active')
+    search_fields = ('question', 'answer')
+    ordering = ('order',)
+
+
+@admin.register(SupportStaffProfile)
+class SupportStaffProfileAdmin(admin.ModelAdmin):
+    list_display = ('user', 'display_name', 'is_available', 'contact_info')
+    list_filter = ('is_available',)
+    search_fields = ('user__email', 'display_name')
+
+
+@admin.register(SupportTicket)
+class SupportTicketAdmin(admin.ModelAdmin):
+    list_display = ('id', 'subject', 'user', 'status', 'assigned_to', 'created_at')
+    list_filter = ('status',)
+    search_fields = ('subject', 'user__email')
+    raw_id_fields = ('user', 'assigned_to')
+
+
+@admin.register(SupportMessage)
+class SupportMessageAdmin(admin.ModelAdmin):
+    list_display = ('id', 'ticket', 'sender', 'created_at')
+    raw_id_fields = ('ticket', 'sender')
