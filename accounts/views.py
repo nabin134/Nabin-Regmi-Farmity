@@ -2594,6 +2594,9 @@ def admin_dashboard(request):
         # Chart Data - JSON serialized
         'user_growth': json.dumps(user_growth),
         'revenue_data': json.dumps(revenue_data),
+        'open_support_count': SupportTicket.objects.filter(
+            status__in=[SupportTicket.STATUS_OPEN, SupportTicket.STATUS_IN_PROGRESS]
+        ).count(),
     }
     
     return render(request, 'admin_dashboard.html', context)
@@ -3724,8 +3727,36 @@ def _is_support_staff(user):
 
 @login_required
 def support_hub(request):
-    """Redirect to role dashboard; support is handled by the floating widget."""
+    """Redirect: support staff to Support Desk (admin UI), others to their role dashboard."""
+    if _is_support_staff(request.user):
+        return redirect('admin_support_desk')
     return _redirect_to_role_home_response(request.user)
+
+
+@login_required
+def admin_support_desk(request):
+    """Support desk inside admin dashboard UI: list and manage tickets."""
+    if request.user.role != 'admin' and not _is_support_staff(request.user):
+        messages.error(request, 'You do not have access to the support desk.')
+        return redirect('support_hub')
+    status_filter = request.GET.get('status', '').strip()
+    qs = SupportTicket.objects.select_related('user', 'assigned_to').order_by('-updated_at')
+    if status_filter and status_filter in dict(SupportTicket.STATUS_CHOICES):
+        qs = qs.filter(status=status_filter)
+    tickets = qs
+    open_count = SupportTicket.objects.filter(
+        status__in=[SupportTicket.STATUS_OPEN, SupportTicket.STATUS_IN_PROGRESS]
+    ).count()
+    pending_kyc = KYCRequest.objects.filter(status=KYCRequest.STATUS_PENDING).count()
+    context = {
+        'tickets': tickets,
+        'status_filter': status_filter,
+        'status_choices': SupportTicket.STATUS_CHOICES,
+        'open_count': open_count,
+        'open_support_count': open_count,
+        'pending_kyc': pending_kyc,
+    }
+    return render(request, 'admin_support_desk.html', context)
 
 
 @login_required
@@ -3780,6 +3811,12 @@ def support_ticket_detail(request, ticket_id):
         'messages_list': messages_list,
         'is_support_staff': is_staff,
     }
+    if is_staff:
+        context['pending_kyc'] = KYCRequest.objects.filter(status=KYCRequest.STATUS_PENDING).count()
+        context['open_support_count'] = SupportTicket.objects.filter(
+            status__in=[SupportTicket.STATUS_OPEN, SupportTicket.STATUS_IN_PROGRESS]
+        ).count()
+        return render(request, 'admin_support_ticket_detail.html', context)
     return render(request, 'support_ticket_detail.html', context)
 
 

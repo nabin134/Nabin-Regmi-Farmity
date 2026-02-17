@@ -441,6 +441,13 @@
                 <i class="fas fa-comments"></i>
                 <span>Chat & Reports</span>
             </a>
+            <a href="{% url 'admin_support_desk' %}" class="menu-item">
+                <i class="fas fa-headset"></i>
+                <span>Support Desk</span>
+                {% if open_support_count and open_support_count > 0 %}
+                <span style="margin-left: auto; background: var(--danger); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">{{ open_support_count }}</span>
+                {% endif %}
+            </a>
             <a href="{% url 'logout' %}" class="menu-item">
                 <i class="fas fa-sign-out-alt"></i>
                 <span>Logout</span>

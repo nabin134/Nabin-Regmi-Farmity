@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Support Desk - Admin Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        :root {
+            --primary: #358D58;
+            --primary-dark: #2a6f45;
+            --secondary: #F29900;
+            --danger: #dc3545;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+            --dark: #343a40;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f7fa; color: #333; }
+        .sidebar {
+            position: fixed; left: 0; top: 0; width: var(--sidebar-width); height: 100vh;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white; z-index: 1000; overflow-y: auto; box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 12px; }
+        .sidebar-header h2 { font-size: 24px; font-weight: 600; }
+        .sidebar-menu { padding: 20px 0; }
+        .menu-item {
+            display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+            color: rgba(255,255,255,0.9); text-decoration: none; transition: all 0.3s ease;
+            border-left: 3px solid transparent;
+        }
+        .menu-item:hover, .menu-item.active { background: rgba(255,255,255,0.1); border-left-color: var(--secondary); color: white; }
+        .menu-item i { width: 20px; text-align: center; }
+        .main-content { margin-left: var(--sidebar-width); min-height: 100vh; }
+        .top-header {
+            background: white; height: var(--header-height); display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100;
+        }
+        .header-title { font-size: 24px; font-weight: 600; color: var(--dark); }
+        .dashboard-content { padding: 30px; }
+        .page-header { margin-bottom: 24px; }
+        .page-title { font-size: 28px; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
+        .page-subtitle { color: #666; font-size: 14px; }
+        .support-card {
+            background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;
+        }
+        .filters-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; padding: 1rem 1.25rem; border-bottom: 1px solid #eee; background: #fafafa; }
+        .filters-bar a {
+            padding: 0.5rem 1rem; border-radius: 8px; text-decoration: none; font-weight: 500; font-size: 0.9rem;
+            color: #555; background: white; border: 2px solid #e5e7eb;
+        }
+        .filters-bar a:hover { border-color: var(--primary); color: var(--primary); }
+        .filters-bar a.active { background: var(--primary); color: white; border-color: var(--primary); }
+        .ticket-list { list-style: none; padding: 0; margin: 0; }
+        .ticket-list li {
+            padding: 1rem 1.25rem; border-bottom: 1px solid #eee;
+            display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem;
+            transition: background 0.2s;
+        }
+        .ticket-list li:last-child { border-bottom: none; }
+        .ticket-list li:hover { background: #f8f9fa; }
+        .ticket-list a.ticket-link { font-weight: 600; color: #1a1a1a; text-decoration: none; }
+        .ticket-list a.ticket-link:hover { color: var(--primary); text-decoration: underline; }
+        .ticket-meta { font-size: 0.85rem; color: #666; margin-top: 0.25rem; }
+        .ticket-status { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500; }
+        .ticket-status.open { background: #fff3cd; color: #856404; }
+        .ticket-status.in_progress { background: #cce5ff; color: #004085; }
+        .ticket-status.answered { background: #d4edda; color: #155724; }
+        .ticket-status.closed { background: #e2e3e5; color: #383d41; }
+        .open-badge { background: var(--danger); color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
+        .empty-state { text-align: center; color: #666; padding: 2.5rem 1.5rem; }
+        .empty-state i { font-size: 2.5rem; color: #ccc; margin-bottom: 0.5rem; display: block; }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <img src="/static/images/Farmity%20logo.png" alt="Farmity" class="sidebar-logo-img" style="width:42px;height:42px;object-fit:contain;border-radius:8px;" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline-block';">
+            <i class="fas fa-seedling" style="display:none; font-size:1.5rem;"></i>
+            <h2>Farmity Admin</h2>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="{% url 'admin_dashboard' %}" class="menu-item">
+                <i class="fas fa-chart-line"></i>
+                <span>Dashboard</span>
+            </a>
+            <a href="{% url 'admin_kyc_management' %}" class="menu-item">
+                <i class="fas fa-id-card"></i>
+                <span>KYC Management</span>
+                {% if pending_kyc > 0 %}
+                <span style="margin-left: auto; background: var(--danger); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">{{ pending_kyc }}</span>
+                {% endif %}
+            </a>
+            <a href="{% url 'admin_user_management' %}" class="menu-item">
+                <i class="fas fa-users"></i>
+                <span>User Management</span>
+            </a>
+            <a href="{% url 'admin_content_management' %}" class="menu-item">
+                <i class="fas fa-file-alt"></i>
+                <span>Content Management</span>
+            </a>
+            <a href="{% url 'admin_marketplace_oversight' %}" class="menu-item">
+                <i class="fas fa-store"></i>
+                <span>Marketplace</span>
+            </a>
+            <a href="{% url 'admin_appointment_management' %}" class="menu-item">
+                <i class="fas fa-calendar-check"></i>
+                <span>Appointments</span>
+            </a>
+            <a href="{% url 'admin_chat_reports' %}" class="menu-item">
+                <i class="fas fa-comments"></i>
+                <span>Chat & Reports</span>
+            </a>
+            <a href="{% url 'admin_support_desk' %}" class="menu-item active">
+                <i class="fas fa-headset"></i>
+                <span>Support Desk</span>
+                {% if open_support_count > 0 %}
+                <span style="margin-left: auto; background: var(--danger); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">{{ open_support_count }}</span>
+                {% endif %}
+            </a>
+            <a href="{% url 'logout' %}" class="menu-item">
+                <i class="fas fa-sign-out-alt"></i>
+                <span>Logout</span>
+            </a>
+        </nav>
+    </aside>
+
+    <div class="main-content">
+        <header class="top-header">
+            <h1 class="header-title">Support Desk</h1>
+            {% if open_count > 0 %}
+            <span class="open-badge">{{ open_count }} open</span>
+            {% endif %}
+        </header>
+
+        <div class="dashboard-content">
+            <div class="page-header">
+                <h2 class="page-title">Customer support tickets</h2>
+                <p class="page-subtitle">View and reply to support requests. Click a ticket to open the conversation.</p>
+            </div>
+
+            <div class="support-card">
+                <div class="filters-bar">
+                    <a href="{% url 'admin_support_desk' %}" class="{% if not status_filter %}active{% endif %}">All</a>
+                    {% for value, label in status_choices %}
+                    <a href="{% url 'admin_support_desk' %}?status={{ value }}" class="{% if status_filter == value %}active{% endif %}">{{ label }}</a>
+                    {% endfor %}
+                </div>
+                <ul class="ticket-list">
+                    {% for t in tickets %}
+                    <li>
+                        <div>
+                            <a href="{% url 'support_ticket' t.id %}" class="ticket-link">#{{ t.id }} — {{ t.subject }}</a>
+                            <div class="ticket-meta">
+                                {{ t.user.email }} • {{ t.updated_at|date:"M d, Y H:i" }}{% if t.assigned_to %} • Assigned to {{ t.assigned_to.email }}{% endif %}
+                            </div>
+                        </div>
+                        <span class="ticket-status {{ t.status }}">{{ t.get_status_display }}</span>
+                    </li>
+                    {% empty %}
+                    <li>
+                        <div class="empty-state">
+                            <i class="fas fa-inbox"></i>
+                            No tickets found.{% if status_filter %} Try changing the filter.{% endif %}
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -70,7 +70,7 @@
     </header>
 
     <main class="main-content">
-        <a href="{% url 'support_hub' %}" class="btn-back"><i class="fas fa-arrow-left"></i> Back to Support</a>
+        {% if is_support_staff %}<a href="{% url 'admin_support_desk' %}" class="btn-back"><i class="fas fa-arrow-left"></i> Back to Support Desk</a>{% else %}<a href="{% url 'support_hub' %}" class="btn-back"><i class="fas fa-arrow-left"></i> Back to Support</a>{% endif %}
 
         {% if messages %}
             {% for message in messages %}
@@ -89,13 +89,13 @@
                 {% if is_support_staff %}
                 <div class="staff-actions">
                     {% if not ticket.assigned_to or ticket.assigned_to_id == request.user.id %}
-                    <form method="POST" action="" style="display: inline;">
+                    <form method="POST" action="{% url 'support_ticket' ticket.id %}" style="display: inline;">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="assign_me">
                         <button type="submit" class="btn-secondary" style="padding: 0.5rem 1rem; font-size: 0.9rem;"><i class="fas fa-user-check"></i> Assign to me</button>
                     </form>
                     {% endif %}
-                    <form method="POST" action="" style="display: inline;">
+                    <form method="POST" action="{% url 'support_ticket' ticket.id %}" style="display: inline;">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="update_status">
                         <select name="status" onchange="this.form.submit()" style="padding: 0.5rem; border-radius: 8px; border: 2px solid #e5e7eb;">
@@ -125,7 +125,7 @@
 
             {% if ticket.status != 'closed' %}
             <div class="reply-form">
-                <form method="POST" action="">
+                <form method="POST" action="{% url 'support_ticket' ticket.id %}">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="reply">
                     <textarea name="message" placeholder="Type your reply..." required></textarea>
