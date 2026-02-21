@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if success %}Payment Successful{% else %}Payment Cancelled{% endif %} - Farmity</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --primary: #3C894B; --sea-green: #358D58; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f0f7f2 0%, #e8f5e9 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .result-container {
+            width: 100%;
+            max-width: 420px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(53, 141, 88, 0.12);
+            overflow: hidden;
+            text-align: center;
+        }
+        .result-header {
+            padding: 2.5rem 2rem 1.5rem;
+        }
+        .result-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            margin: 0 auto 1.25rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+        }
+        .result-icon.success { background: #E8F5E9; color: var(--sea-green); }
+        .result-icon.failure { background: #FFF3E0; color: #E65100; }
+        .result-container h1 {
+            font-size: 1.5rem;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+        .result-container p {
+            color: #666;
+            font-size: 1rem;
+            line-height: 1.5;
+        }
+        .result-body {
+            padding: 0 2rem 2rem;
+        }
+        .redirect-msg {
+            font-size: 0.9rem;
+            color: #888;
+            margin-top: 1rem;
+        }
+        .btn-dashboard {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-top: 1.5rem;
+            padding: 0.9rem 1.75rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--sea-green) 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            box-shadow: 0 4px 14px rgba(53, 141, 88, 0.35);
+            transition: transform 0.2s;
+        }
+        .btn-dashboard:hover { transform: translateY(-2px); color: white; }
+    </style>
+</head>
+<body>
+    <div class="result-container">
+        <div class="result-header">
+            <div class="result-icon {% if success %}success{% else %}failure{% endif %}">
+                {% if success %}<i class="fas fa-check"></i>{% else %}<i class="fas fa-times"></i>{% endif %}
+            </div>
+            <h1>{% if success %}Payment Successful{% else %}Payment Cancelled{% endif %}</h1>
+            <p>
+                {% if success %}
+                Your payment was completed. Your order has been confirmed.
+                {% else %}
+                The payment was cancelled or could not be completed. You can try again or use Cash on Delivery.
+                {% endif %}
+            </p>
+        </div>
+        <div class="result-body">
+            <p class="redirect-msg">Redirecting to your dashboard in a moment...</p>
+            <a href="{{ redirect_url }}" class="btn-dashboard">
+                <i class="fas fa-th-large"></i> Go to Dashboard
+            </a>
+        </div>
+    </div>
+    <script>
+        setTimeout(function() { window.location.href = "{{ redirect_url|escapejs }}"; }, 3500);
+    </script>
+</body>
+</html>

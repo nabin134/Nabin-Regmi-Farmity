@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pay with eSewa - Farmity</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <style>
+        :root {
+            --sea-green: #358D58;
+            --sushi: #A8AD3B;
+            --primary: #3C894B;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #f0f7f2 0%, #e8f5e9 50%, #f5f5f5 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        .payment-container {
+            width: 100%;
+            max-width: 440px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(53, 141, 88, 0.12), 0 2px 12px rgba(0,0,0,0.06);
+            overflow: hidden;
+        }
+        .payment-header {
+            background: linear-gradient(135deg, var(--primary) 0%, #2d6b3d 100%);
+            color: white;
+            padding: 2rem 2rem 2.5rem;
+            text-align: center;
+            position: relative;
+        }
+        .payment-header::after {
+            content: '';
+            position: absolute;
+            bottom: -30px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60px;
+            height: 60px;
+            background: white;
+            border-radius: 50%;
+            box-shadow: 0 -4px 15px rgba(0,0,0,0.08);
+        }
+        .logo-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        .logo-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+        }
+        .logo-text {
+            font-size: 1.5rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+        }
+        .payment-header h1 {
+            font-size: 1.35rem;
+            font-weight: 600;
+            opacity: 0.98;
+            margin-bottom: 0.25rem;
+        }
+        .payment-header p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        .payment-body {
+            padding: 2.5rem 2rem 2rem;
+            text-align: center;
+        }
+        .amount-card {
+            background: linear-gradient(135deg, #f8fdf9 0%, #f0f7f2 100%);
+            border: 2px solid rgba(53, 141, 88, 0.2);
+            border-radius: 16px;
+            padding: 1.5rem;
+            margin-bottom: 1.75rem;
+        }
+        .amount-label {
+            font-size: 0.85rem;
+            color: #666;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.35rem;
+        }
+        .amount-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+        }
+        .amount-value span { font-size: 1.25rem; font-weight: 600; color: #333; }
+        {% if order_count > 1 %}
+        .order-count {
+            font-size: 0.9rem;
+            color: #666;
+            margin-top: 0.5rem;
+        }
+        {% endif %}
+        .esewa-brand {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+            background: #5B5FEF;
+            color: white;
+            padding: 0.6rem 1.25rem;
+            border-radius: 12px;
+            font-weight: 600;
+            font-size: 1rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 4px 14px rgba(91, 95, 239, 0.35);
+        }
+        .esewa-brand i { font-size: 1.25rem; }
+        .spinner-wrap {
+            margin: 1rem 0 1.25rem;
+        }
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 4px solid #e8f5e9;
+            border-top-color: var(--primary);
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+            margin: 0 auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .redirect-msg {
+            color: #555;
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+        .redirect-msg strong { color: #333; }
+        .btn-esewa {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            width: 100%;
+            padding: 1rem 1.5rem;
+            margin-top: 1.25rem;
+            background: linear-gradient(135deg, #5B5FEF 0%, #4a4ed6 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            box-shadow: 0 4px 16px rgba(91, 95, 239, 0.4);
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .btn-esewa:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(91, 95, 239, 0.45);
+        }
+        .btn-esewa i { font-size: 1.2rem; }
+        .secure-note {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+            margin-top: 1.25rem;
+            font-size: 0.8rem;
+            color: #888;
+        }
+        .secure-note i { color: var(--primary); }
+        .footer-link {
+            margin-top: 2rem;
+            font-size: 0.85rem;
+        }
+        .footer-link a {
+            color: var(--primary);
+            text-decoration: none;
+            font-weight: 500;
+        }
+        .footer-link a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="payment-container">
+        <div class="payment-header">
+            <div class="logo-row">
+                <span class="logo-icon">🌾</span>
+                <span class="logo-text">Farmity</span>
+            </div>
+            <h1>Pay with eSewa</h1>
+            <p>Secure payment powered by eSewa</p>
+        </div>
+
+        <div class="payment-body">
+            <div class="amount-card">
+                <div class="amount-label">Amount to pay</div>
+                <div class="amount-value">Rs. {{ total_amount|floatformat:2 }}</div>
+                {% if order_count > 1 %}
+                <div class="order-count">{{ order_count }} items in this order</div>
+                {% endif %}
+            </div>
+
+            <div class="esewa-brand">
+                <i class="fas fa-wallet"></i>
+                <span>eSewa</span>
+            </div>
+
+            <div class="spinner-wrap">
+                <div class="spinner"></div>
+            </div>
+            <p class="redirect-msg">
+                <strong>Redirecting you to eSewa...</strong><br>
+                Please wait. Do not close this page.
+            </p>
+
+            <form id="esewaForm" method="POST" action="{{ form_url }}" style="display: none;">
+                {% for key, value in form_data.items %}
+                <input type="hidden" name="{{ key }}" value="{{ value }}">
+                {% endfor %}
+            </form>
+            <button type="button" class="btn-esewa" id="btnContinue" onclick="document.getElementById('esewaForm').submit();">
+                <i class="fas fa-external-link-alt"></i>
+                Continue to eSewa
+            </button>
+
+            <div class="secure-note">
+                <i class="fas fa-lock"></i>
+                <span>Your payment is secured by eSewa</span>
+            </div>
+        </div>
+    </div>
+
+    <p class="footer-link">
+        <a href="/">← Back to Farmity</a>
+    </p>
+
+    <script>
+        (function() {
+            var form = document.getElementById('esewaForm');
+            var btn = document.getElementById('btnContinue');
+            // Auto-submit after a short delay so user sees the UI
+            setTimeout(function() {
+                form.submit();
+            }, 1800);
+        })();
+    </script>
+</body>
+</html>

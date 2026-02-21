@@ -221,6 +221,12 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID', '')
 GOOGLE_CLIENT_SECRET = os.environ.get('GOOGLE_CLIENT_SECRET', '')
 
+# eSewa ePay (Nepal) - https://developer.esewa.com.np/pages/Epay-V2
+# UAT: product_code EPAYTEST, secret 8gBm/:&EnhH.1/q . For production get credentials from eSewa.
+ESEWA_MERCHANT_CODE = os.environ.get('ESEWA_MERCHANT_CODE', 'EPAYTEST')
+ESEWA_SECRET_KEY = os.environ.get('ESEWA_SECRET_KEY', '8gBm/:&EnhH.1/q')
+ESEWA_USE_UAT = os.environ.get('ESEWA_USE_UAT', 'true').lower() in ('1', 'true', 'yes')
+
 # Google provider: credentials come from SocialApp in DB (via setup_google_oauth or _ensure_google_oauth)
 # APP in settings is NOT used - django-allauth uses SocialApp model
 SOCIALACCOUNT_PROVIDERS = {

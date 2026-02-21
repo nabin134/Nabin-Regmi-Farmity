@@ -18,6 +18,7 @@ import secrets
 import hashlib
 import json
 from datetime import timedelta, datetime, date
+from decimal import Decimal
 import calendar
 
 from .models import (
@@ -1030,6 +1031,170 @@ def google_signup_start_view(request):
     return redirect(f'/accounts/google/login/?process=signup')
 
 
+# ------------------------------
+# eSewa ePay (Nepal) integration
+# ------------------------------
+@login_required
+def esewa_initiate(request):
+    """
+    Initiate eSewa payment for an order. GET/POST: order_id (single order) or cart (cart checkout).
+    Builds signed form and returns HTML that auto-posts to eSewa.
+    """
+    from .esewa import get_esewa_config, esewa_build_form_data
+    from .models import Order
+
+    merchant_code, secret, form_url = get_esewa_config()
+    if not merchant_code or not secret:
+        messages.error(request, 'eSewa is not configured. Please use Cash on Delivery.')
+        return _redirect_to_role_home_response(request.user)
+
+    order_id = request.GET.get('order_id') or request.POST.get('order_id')
+    if order_id:
+        try:
+            order_id = int(order_id)
+            order = Order.objects.get(id=order_id, buyer=request.user, payment_method=Order.PAYMENT_ESEWA)
+        except (ValueError, Order.DoesNotExist):
+            messages.error(request, 'Order not found or invalid.')
+            return _redirect_to_role_home_response(request.user)
+        if order.payment_status == Order.PAYMENT_STATUS_COMPLETED:
+            messages.info(request, 'This order is already paid.')
+            return _redirect_to_role_home_response(request.user)
+        total_amount = order.total_amount
+        transaction_uuid = f'order-{order.id}'
+        order_ids = [order.id]
+    else:
+        # Cart checkout: order ids stored in session
+        order_ids = request.session.get('esewa_pending_order_ids', [])
+        if not order_ids:
+            messages.error(request, 'No pending eSewa payment found. Please try checkout again.')
+            return redirect(reverse('user_dashboard'))
+        orders = Order.objects.filter(id__in=order_ids, buyer=request.user, payment_method=Order.PAYMENT_ESEWA)
+        if orders.count() != len(order_ids):
+            request.session.pop('esewa_pending_order_ids', None)
+            messages.error(request, 'Invalid pending orders.')
+            return redirect(reverse('user_dashboard'))
+        total_amount = sum(o.total_amount for o in orders)
+        transaction_uuid = f'cart-{order_ids[0]}-{len(order_ids)}'
+
+    scheme = 'https' if request.is_secure() else 'http'
+    host = request.get_host() or '127.0.0.1:8000'
+    base = f'{scheme}://{host}'
+    success_url = base + reverse('esewa_success')
+    failure_url = base + reverse('esewa_failure')
+
+    form_data = esewa_build_form_data(
+        total_amount=total_amount,
+        transaction_uuid=transaction_uuid,
+        success_url=success_url,
+        failure_url=failure_url,
+    )
+    if not form_data:
+        messages.error(request, 'eSewa configuration error.')
+        return _redirect_to_role_home_response(request.user)
+
+    # Store ref for success callback (cart: we need to know which orders to mark paid)
+    request.session['esewa_transaction_ref'] = transaction_uuid
+    request.session['esewa_order_ids'] = order_ids
+    request.session.modified = True
+
+    return render(request, 'esewa_redirect.html', {
+        'form_url': form_url,
+        'form_data': form_data,
+        'total_amount': total_amount,
+        'order_count': len(order_ids),
+    })
+
+
+def esewa_success(request):
+    """
+    eSewa redirects here after successful payment with ?data=<base64>.
+    Decode, verify signature, update order(s) payment_status to completed.
+    """
+    from .esewa import get_esewa_config, esewa_verify_callback_signature
+    from .models import Order
+    from urllib.parse import unquote
+    import base64
+    import json
+
+    data_b64 = (request.GET.get('data') or request.GET.get('q') or '').strip()
+    if not data_b64:
+        messages.error(request, 'Invalid eSewa callback.')
+        return redirect(reverse('user_dashboard'))
+
+    # URL-decode in case eSewa sends encoded query string
+    data_b64 = unquote(data_b64)
+    raw = None
+    for attempt in [data_b64, data_b64 + '=' * (4 - len(data_b64) % 4) if len(data_b64) % 4 else data_b64]:
+        try:
+            raw = base64.b64decode(attempt)
+            break
+        except Exception:
+            try:
+                raw = base64.urlsafe_b64decode(attempt.replace('-', '+').replace('_', '/'))
+                break
+            except Exception:
+                continue
+    if raw is None:
+        messages.error(request, 'Invalid eSewa response.')
+        return redirect(reverse('user_dashboard'))
+    try:
+        data_str = raw.decode('utf-8')
+        data = json.loads(data_str)
+    except Exception:
+        messages.error(request, 'Invalid eSewa response.')
+        return redirect(reverse('user_dashboard'))
+
+    if data.get('status') != 'COMPLETE':
+        messages.warning(request, 'Payment was not completed.')
+        return redirect(reverse('user_dashboard'))
+
+    from .esewa import esewa_verify_callback_signature
+    _, secret, _ = get_esewa_config()
+    if not secret or not esewa_verify_callback_signature(data, secret):
+        messages.error(request, 'Payment verification failed.')
+        return redirect(reverse('user_dashboard'))
+
+    transaction_uuid = data.get('transaction_uuid', '')
+    if transaction_uuid.startswith('order-'):
+        try:
+            order_id = int(transaction_uuid.replace('order-', ''))
+            Order.objects.filter(id=order_id, payment_method=Order.PAYMENT_ESEWA).update(
+                payment_status=Order.PAYMENT_STATUS_COMPLETED
+            )
+        except ValueError:
+            pass
+    elif transaction_uuid.startswith('cart-'):
+        order_ids = request.session.get('esewa_order_ids', [])
+        if order_ids:
+            Order.objects.filter(id__in=order_ids, payment_method=Order.PAYMENT_ESEWA).update(
+                payment_status=Order.PAYMENT_STATUS_COMPLETED
+            )
+        request.session.pop('esewa_order_ids', None)
+        request.session.pop('esewa_pending_order_ids', None)
+        request.session.pop('esewa_transaction_ref', None)
+    request.session.pop('esewa_transaction_ref', None)
+    request.session.pop('esewa_order_ids', None)
+    request.session.pop('esewa_pending_order_ids', None)
+
+    messages.success(request, 'Payment successful! Your order has been confirmed.')
+    return render(request, 'esewa_result.html', {
+        'success': True,
+        'redirect_url': reverse('user_dashboard'),
+    })
+
+
+def esewa_failure(request):
+    """eSewa redirects here on payment failure or cancel."""
+    request.session.pop('esewa_order_ids', None)
+    request.session.pop('esewa_pending_order_ids', None)
+    request.session.pop('esewa_transaction_ref', None)
+    messages.warning(request, 'eSewa payment was cancelled or failed. You can try again or use Cash on Delivery.')
+    return render(request, 'esewa_result.html', {
+        'success': False,
+        'redirect_url': reverse('user_dashboard'),
+    })
+
+
 def forgot_password_page(request):
     # Check for messages from redirects
     context = {}
@@ -1437,10 +1602,6 @@ def farmer_dashboard(request):
         
         from .models import Order, VendorTool
         payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
-        if payment_method == Order.PAYMENT_ESEWA:
-            messages.info(request, 'eSewa payment is coming soon! Please use Cash on Delivery for now.')
-            return _redirect_same_page(request, 'farmer_dashboard')
-        
         tool_id = request.POST.get('tool_id')
         quantity = int(request.POST.get('quantity', 1))
         shipping_address = request.POST.get('shipping_address', '')
@@ -1473,7 +1634,8 @@ def farmer_dashboard(request):
                 if tool.stock_quantity == 0:
                     tool.is_available = False
                 tool.save()
-                
+                if payment_method == Order.PAYMENT_ESEWA:
+                    return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
                 messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
             else:
                 messages.error(request, 'Insufficient stock!')
@@ -2158,10 +2320,6 @@ def user_dashboard(request):
     # Handle Crop Purchase
     if request.method == 'POST' and 'purchase_crop' in request.POST:
         payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
-        if payment_method == Order.PAYMENT_ESEWA:
-            messages.info(request, 'eSewa payment is coming soon! Please use Cash on Delivery for now.')
-            return _redirect_same_page(request, 'user_dashboard')
-        
         crop_id = request.POST.get('crop_id')
         try:
             quantity = float(request.POST.get('quantity', 1))
@@ -2188,7 +2346,7 @@ def user_dashboard(request):
                 )
                 
                 # Update crop quantity (keep as decimal)
-                crop.quantity -= quantity
+                crop.quantity -= Decimal(str(quantity))
                 if crop.quantity <= 0:
                     crop.is_available = False
                 crop.save()
@@ -2203,7 +2361,8 @@ def user_dashboard(request):
                     sold_to=request.user,
                     sold_at=timezone.now()
                 )
-                
+                if payment_method == Order.PAYMENT_ESEWA:
+                    return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
                 messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
             else:
                 messages.error(request, f'Insufficient quantity. Available: {crop.quantity} {crop.unit}')
@@ -2216,10 +2375,6 @@ def user_dashboard(request):
     # Handle Tool Purchase
     if request.method == 'POST' and 'purchase_tool' in request.POST:
         payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
-        if payment_method == Order.PAYMENT_ESEWA:
-            messages.info(request, 'eSewa payment is coming soon! Please use Cash on Delivery for now.')
-            return _redirect_same_page(request, 'user_dashboard')
-        
         tool_id = request.POST.get('tool_id')
         quantity = int(request.POST.get('quantity', 1))
         
@@ -2246,7 +2401,8 @@ def user_dashboard(request):
                 if tool.stock_quantity == 0:
                     tool.is_available = False
                 tool.save()
-                
+                if payment_method == Order.PAYMENT_ESEWA:
+                    return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
                 messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
             else:
                 messages.error(request, f'Insufficient stock. Available: {tool.stock_quantity} units')
@@ -2259,9 +2415,6 @@ def user_dashboard(request):
     # Handle Cart Checkout (multiple items, grocery-style)
     if request.method == 'POST' and 'checkout_cart' in request.POST:
         payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
-        if payment_method == Order.PAYMENT_ESEWA:
-            messages.info(request, 'eSewa payment is coming soon! Please use Cash on Delivery for now.')
-            return _redirect_same_page(request, 'user_dashboard')
         cart_json = request.POST.get('cart_items', '[]')
         try:
             cart_items = json.loads(cart_json)
@@ -2306,7 +2459,7 @@ def user_dashboard(request):
                         shipping_address=shipping_address,
                         notes=notes
                     )
-                    crop.quantity -= qty
+                    crop.quantity -= Decimal(str(qty))
                     if crop.quantity <= 0:
                         crop.is_available = False
                     crop.save()
@@ -2356,6 +2509,10 @@ def user_dashboard(request):
                 messages.error(request, f"... and {len(errors) - 5} more issues.")
             return _redirect_same_page(request, 'user_dashboard')
         grand_total = sum(float(o.total_amount) for o in orders_created)
+        if payment_method == Order.PAYMENT_ESEWA:
+            request.session['esewa_pending_order_ids'] = [o.id for o in orders_created]
+            request.session.modified = True
+            return redirect(reverse('esewa_initiate'))
         messages.success(request, f'Order placed for {len(orders_created)} item(s)! Total: Rs. {grand_total:.2f} (Cash on Delivery).')
         from urllib.parse import urlencode
         url = reverse('user_dashboard')
