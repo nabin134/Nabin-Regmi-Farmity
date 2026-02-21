@@ -318,6 +318,8 @@
                 <a href="{% url 'vendor_dashboard' %}">Dashboard</a>
                 {% elif request.user.role == 'agricultural_expert' %}
                 <a href="{% url 'expert_dashboard' %}">Dashboard</a>
+                {% elif request.user.role == 'admin' and request.user.is_staff %}
+                <a href="{% url 'admin_dashboard' %}">Admin</a>
                 {% else %}
                 <a href="{% url 'dashboard' %}">Dashboard</a>
                 {% endif %}
@@ -404,13 +406,14 @@
                 <input type="hidden" name="update_profile" value="true">
 
                 <div class="profile-form-grid">
-                    <!-- Signup data: Email (read-only) -->
+                    <!-- Account email: one per account, read-only -->
                     <div class="form-group">
                         <label>Email Address</label>
                         <div class="read-only-field">
                             <i class="fas fa-envelope"></i>
                             {{ request.user.email }}
                         </div>
+                        <small class="form-text text-muted" style="display:block; margin-top:0.35rem; color:#6c757d; font-size:0.85rem;">One email per account. This cannot be changed here.</small>
                     </div>
 
                     {% if request.user.role == 'farmer' %}
@@ -526,6 +529,7 @@
                         </div>
                     </div>
                 </div>
+                <p style="margin-top:1rem; font-size:0.9rem; color:#666;">Keep your profile up to date so others can reach you. All fields are optional except your account email.</p>
                 <div class="form-actions" style="margin-top: 1.5rem;">
                     <button type="submit" class="btn-save-profile">
                         <i class="fas fa-save"></i> Save Changes

@@ -126,7 +126,10 @@ def _redirect_to_role_home(user):
         if kyc_status is None:
             return reverse('kyc')
     
-    # Redirect to appropriate dashboard - return URL path
+    # Redirect to appropriate dashboard - return URL path.
+    # Only staff/superuser go to admin panel; after Google sign-in/login, normal users must not land on admin.
+    if user.role == 'admin' and (user.is_staff or user.is_superuser):
+        return reverse('admin_dashboard')
     if user.role == 'farmer':
         return reverse('farmer_dashboard')
     if user.role == 'vendor':
@@ -134,7 +137,8 @@ def _redirect_to_role_home(user):
     if user.role == 'agricultural_expert':
         return reverse('expert_dashboard')
     if user.role == 'admin':
-        return reverse('admin_dashboard')
+        # Non-staff user with admin role: send to user dashboard, not admin panel
+        return reverse('user_dashboard')
     if user.role == 'buyer':
         return reverse('user_dashboard')
     return reverse('landing')
@@ -1210,12 +1214,15 @@ def profile_page(request):
                     messages.error(request, 'Please select an image file.')
                 return redirect('profile')
             elif 'update_profile' in request.POST:
-                profile.company_name = request.POST.get('company_name', profile.company_name)
-                profile.address = request.POST.get('address', profile.address)
-                profile.contact = request.POST.get('contact', profile.contact)
-                profile.website = request.POST.get('website', profile.website) or None
-                profile.business_type = request.POST.get('business_type', profile.business_type)
-                profile.description = request.POST.get('description', profile.description)
+                website = (request.POST.get('website') or '').strip() or None
+                if website and not (website.startswith('http://') or website.startswith('https://')):
+                    website = 'https://' + website
+                profile.company_name = (request.POST.get('company_name') or profile.company_name or '').strip() or profile.company_name
+                profile.address = (request.POST.get('address') or profile.address or '').strip() or profile.address
+                profile.contact = (request.POST.get('contact') or profile.contact or '').strip() or profile.contact
+                profile.website = website
+                profile.business_type = (request.POST.get('business_type') or profile.business_type or '').strip() or profile.business_type
+                profile.description = (request.POST.get('description') or profile.description or '').strip() or profile.description
                 profile.save()
                 messages.success(request, 'Profile updated successfully!')
                 return redirect('profile')

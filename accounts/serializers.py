@@ -1,14 +1,33 @@
+import re
 from rest_framework import serializers
 from .models import User
 
 
+# Basic valid email pattern (consistent with Django's EmailValidator)
+EMAIL_REGEX = re.compile(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$')
+
+
 class SignupSerializer(serializers.ModelSerializer):
+    email = serializers.EmailField(required=True, help_text="Valid email address (one account per email)")
     password = serializers.CharField(write_only=True, min_length=8)
     role = serializers.ChoiceField(choices=User.ROLE_CHOICES, default='buyer', required=False)
 
     class Meta:
         model = User
         fields = ('email', 'password', 'role')
+
+    def validate_email(self, value):
+        """Ensure email is valid and not already used by another account."""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Email is required.")
+        value = value.strip().lower()
+        if not EMAIL_REGEX.match(value):
+            raise serializers.ValidationError("Please enter a valid email address.")
+        if User.objects.filter(email__iexact=value).exists():
+            raise serializers.ValidationError(
+                "This email is already registered. Please sign in or use a different email to create an account."
+            )
+        return value
 
     def validate_role(self, value):
         """Validate that role is one of the allowed choices"""

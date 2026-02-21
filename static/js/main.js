@@ -340,10 +340,20 @@ async function handleRegister(e) {
         } else {
             let errorMsg = data.error || 'Registration failed.';
             if (data.details) {
-                // Simplified error handling for demo
-                errorMsg = JSON.stringify(data.details);
+                if (data.details.email && Array.isArray(data.details.email)) {
+                    errorMsg = data.details.email[0];
+                } else if (typeof data.details.email === 'string') {
+                    errorMsg = data.details.email;
+                } else if (data.details.email) {
+                    errorMsg = data.details.email;
+                } else {
+                    const firstKey = Object.keys(data.details)[0];
+                    const firstVal = firstKey ? data.details[firstKey] : null;
+                    if (firstVal && Array.isArray(firstVal)) errorMsg = firstVal[0];
+                    else if (firstVal && typeof firstVal === 'string') errorMsg = firstVal;
+                    else errorMsg = JSON.stringify(data.details);
+                }
             }
-            
             if (messageDiv) {
                 messageDiv.textContent = errorMsg;
                 messageDiv.className = 'message error';
