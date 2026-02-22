@@ -1831,17 +1831,19 @@
                                 {% endif %}
                                 <div class="tool-footer" style="display: flex; flex-direction: column; gap: 0.75rem;">
                                     <span class="price" style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">Rs. {{ tool.price }}</span>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <button class="btn-buy" onclick="openPurchaseToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}, '{% if tool.image %}{{ tool.image.url|escapejs }}{% endif %}')" style="flex: 1; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+                                        <label style="font-size: 0.85rem; color: #666;">Qty:</label>
+                                        <input type="number" min="1" max="{{ tool.stock_quantity }}" value="1" class="tool-qty-input" data-tool-id="{{ tool.id }}" style="width: 60px; padding: 0.4rem 0.5rem; border: 2px solid #e9ecef; border-radius: 8px; font-weight: 600;">
+                                        <button class="btn-buy" onclick="openPurchaseToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}, '{% if tool.image %}{{ tool.image.url|escapejs }}{% endif %}')" style="flex: 1; min-width: 100px; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                             <i class="fas fa-shopping-bag"></i> Buy Now
                                         </button>
-                                        <button class="btn-cart" {% if tool.image %}data-image-url="{{ request.scheme }}://{{ request.get_host }}{{ tool.image.url }}"{% endif %} onclick="addToCart(event, 'tool', {{ tool.id }}, '{{ tool.name|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}, 'unit')" style="flex: 1; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                        <button class="btn-cart tool-add-cart" {% if tool.image %}data-image-url="{{ request.scheme }}://{{ request.get_host }}{{ tool.image.url }}"{% endif %} data-tool-id="{{ tool.id }}" data-name="{{ tool.name|escapejs }}" data-price="{{ tool.price }}" data-stock="{{ tool.stock_quantity }}" style="flex: 1; min-width: 100px; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                             <i class="fas fa-shopping-cart"></i> Add to Cart
                                         </button>
                                     </div>
                                 </div>
                                 <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem; padding: 0.5rem; background: var(--light-bg); border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
-                                    <i class="fas fa-box" style="color: var(--primary);"></i> <strong>Stock:</strong> {{ tool.stock_quantity }} units
+                                    <i class="fas fa-box" style="color: var(--primary);"></i> <strong>Available:</strong> {{ tool.stock_quantity }} units
                                 </p>
                             </div>
                         </div>
@@ -2064,8 +2066,13 @@
                                     {% if order.shipping_address %}
                                     <p class="order-card-meta"><i class="fas fa-map-marker-alt"></i> {{ order.shipping_address|truncatewords:12 }}</p>
                                     {% endif %}
-                                    {% if order.tracking_number %}
-                                    <p class="order-card-meta tracking"><i class="fas fa-truck"></i> Tracking: {{ order.tracking_number }}</p>
+                                    {% if order.payment_status == 'completed' %}
+                                    <p class="order-card-meta" style="color: var(--success);"><i class="fas fa-check-circle"></i> Payment received — order can be tracked</p>
+                                    {% endif %}
+                                    {% if order.status == 'shipped' or order.tracking_number %}
+                                    <p class="order-card-meta tracking"><i class="fas fa-truck"></i> {% if order.status == 'shipped' %}On the way{% endif %}{% if order.tracking_number %} — Tracking: {{ order.tracking_number }}{% endif %}</p>
+                                    {% elif order.status == 'delivered' %}
+                                    <p class="order-card-meta tracking"><i class="fas fa-check-double"></i> Delivered{% if order.tracking_number %} ({{ order.tracking_number }}){% endif %}</p>
                                     {% endif %}
                                     <div class="order-card-badges">
                                         <span class="order-status-pill {{ order.status }}">{{ order.get_status_display }}</span>
@@ -2790,6 +2797,19 @@
             return false;
         }
 
+        // Tool Add to Cart with quantity (delegated)
+        document.addEventListener('click', function(event) {
+            const btn = event.target.closest('.tool-add-cart');
+            if (btn) {
+                event.preventDefault();
+                const card = btn.closest('.tool-card');
+                const qtyInput = card ? card.querySelector('.tool-qty-input') : null;
+                const qty = qtyInput ? Math.min(Math.max(1, parseInt(qtyInput.value, 10) || 1), parseInt(btn.dataset.stock, 10)) : 1;
+                addToCart(event, 'tool', parseInt(btn.dataset.toolId, 10), btn.dataset.name, parseFloat(btn.dataset.price), parseInt(btn.dataset.stock, 10), 'unit', qty);
+                displayCartItems();
+                updateCartBadge();
+            }
+        });
         // Close dropdown when clicking outside
         document.addEventListener('click', function(event) {
             const profileMenu = document.querySelector('.profile-menu');
@@ -2961,7 +2981,8 @@
             document.getElementById(modalId).classList.remove('active');
         }
 
-        function addToCart(event, type, id, name, price, available, unit) {
+        function addToCart(event, type, id, name, price, available, unit, quantity) {
+            quantity = (quantity === undefined || quantity === null) ? 1 : Math.max(1, Math.min(parseInt(quantity, 10) || 1, available));
             var imageUrl = '';
             if (event && event.currentTarget) {
                 imageUrl = event.currentTarget.getAttribute('data-image-url') || '';
@@ -2969,7 +2990,7 @@
             let cart = JSON.parse(localStorage.getItem('cart') || '[]');
             const existingItem = cart.find(item => item.type === type && item.id === id);
             if (existingItem) {
-                existingItem.quantity = (existingItem.quantity || 1) + 1;
+                existingItem.quantity = (existingItem.quantity || 1) + quantity;
                 if (existingItem.quantity > available) {
                     existingItem.quantity = available;
                     alert('Maximum available quantity reached!');
@@ -2983,7 +3004,7 @@
                     price: price,
                     available: available,
                     unit: unit,
-                    quantity: 1,
+                    quantity: quantity,
                     imageUrl: imageUrl
                 });
             }

@@ -1067,12 +1067,12 @@ def esewa_initiate(request):
         order_ids = request.session.get('esewa_pending_order_ids', [])
         if not order_ids:
             messages.error(request, 'No pending eSewa payment found. Please try checkout again.')
-            return redirect(reverse('user_dashboard'))
+            return _redirect_to_role_home_response(request.user)
         orders = Order.objects.filter(id__in=order_ids, buyer=request.user, payment_method=Order.PAYMENT_ESEWA)
         if orders.count() != len(order_ids):
             request.session.pop('esewa_pending_order_ids', None)
             messages.error(request, 'Invalid pending orders.')
-            return redirect(reverse('user_dashboard'))
+            return _redirect_to_role_home_response(request.user)
         total_amount = sum(o.total_amount for o in orders)
         transaction_uuid = f'cart-{order_ids[0]}-{len(order_ids)}'
 
@@ -1198,26 +1198,32 @@ def esewa_success(request):
         request.session.pop('esewa_order_ids', None)
         request.session.pop('esewa_pending_order_ids', None)
         request.session.pop('esewa_transaction_ref', None)
+    redirect_after = request.session.pop('esewa_redirect_after', 'user_dashboard')
     request.session.pop('esewa_transaction_ref', None)
     request.session.pop('esewa_order_ids', None)
     request.session.pop('esewa_pending_order_ids', None)
 
     messages.success(request, 'Payment successful! Your order has been confirmed.')
+    redirect_url = reverse(redirect_after)
+    if redirect_after == 'farmer_dashboard':
+        from urllib.parse import urlencode
+        redirect_url = redirect_url + '?' + urlencode({'checkout_success': '1', 'section': 'tools'})
     return render(request, 'esewa_result.html', {
         'success': True,
-        'redirect_url': reverse('user_dashboard'),
+        'redirect_url': redirect_url,
     })
 
 
 def esewa_failure(request):
     """eSewa redirects here on payment failure or cancel."""
+    redirect_after = request.session.pop('esewa_redirect_after', 'user_dashboard')
     request.session.pop('esewa_order_ids', None)
     request.session.pop('esewa_pending_order_ids', None)
     request.session.pop('esewa_transaction_ref', None)
     messages.warning(request, 'eSewa payment was cancelled or failed. You can try again or use Cash on Delivery.')
     return render(request, 'esewa_result.html', {
         'success': False,
-        'redirect_url': reverse('user_dashboard'),
+        'redirect_url': reverse(redirect_after),
     })
 
 
@@ -1677,6 +1683,91 @@ def farmer_dashboard(request):
             messages.error(request, f'An error occurred: {str(e)}')
         return _redirect_same_page(request, 'farmer_dashboard')
 
+    # Handle Tools Cart Checkout (multiple different tools in one go)
+    if request.method == 'POST' and 'checkout_tools_cart' in request.POST:
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to purchase tools. Please complete your KYC verification first.')
+            return _redirect_same_page(request, 'farmer_dashboard')
+        from .models import Order, VendorTool
+        cart_json = request.POST.get('cart_items', '[]')
+        try:
+            cart_items = json.loads(cart_json)
+        except (ValueError, TypeError):
+            messages.error(request, 'Invalid cart data. Please try again.')
+            return _redirect_same_page(request, 'farmer_dashboard')
+        if not cart_items:
+            messages.error(request, 'Your tools cart is empty.')
+            return _redirect_same_page(request, 'farmer_dashboard')
+        payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
+        shipping_address = (request.POST.get('shipping_address') or '').strip()
+        contact_number = (request.POST.get('contact_number') or '').strip()
+        order_email = (request.POST.get('order_email') or '').strip() or None
+        notes = (request.POST.get('notes') or '').strip()
+        if not shipping_address:
+            messages.error(request, 'Shipping address is required.')
+            return _redirect_same_page(request, 'farmer_dashboard')
+        if not contact_number:
+            messages.error(request, 'Contact number is required.')
+            return _redirect_same_page(request, 'farmer_dashboard')
+        errors = []
+        orders_created = []
+        for item in cart_items:
+            if (item.get('type') or '').lower() != 'tool':
+                continue
+            item_id = item.get('id')
+            try:
+                qty = int(item.get('quantity', 1))
+            except (ValueError, TypeError):
+                errors.append(f"Invalid quantity for {item.get('name', item_id)}")
+                continue
+            if qty <= 0:
+                continue
+            try:
+                tool = VendorTool.objects.get(id=item_id, is_available=True, stock_quantity__gt=0)
+                if tool.stock_quantity < qty:
+                    errors.append(f"{tool.name}: only {tool.stock_quantity} units available")
+                    continue
+                total_amount = float(tool.price) * qty
+                order = Order.objects.create(
+                    buyer=request.user,
+                    tool=tool,
+                    quantity=qty,
+                    total_amount=total_amount,
+                    status=Order.STATUS_CONFIRMED,
+                    payment_method=payment_method,
+                    payment_status='pending',
+                    shipping_address=shipping_address,
+                    contact_number=contact_number,
+                    order_email=order_email,
+                    notes=notes
+                )
+                tool.stock_quantity -= qty
+                if tool.stock_quantity == 0:
+                    tool.is_available = False
+                tool.save()
+                orders_created.append(order)
+            except VendorTool.DoesNotExist:
+                errors.append(f"Tool (id {item_id}) no longer available")
+        if errors:
+            for err in errors[:5]:
+                messages.error(request, err)
+            if len(errors) > 5:
+                messages.error(request, f"... and {len(errors) - 5} more issues.")
+            return _redirect_same_page(request, 'farmer_dashboard')
+        if not orders_created:
+            messages.error(request, 'No valid items in cart.')
+            return _redirect_same_page(request, 'farmer_dashboard')
+        grand_total = sum(float(o.total_amount) for o in orders_created)
+        if payment_method == Order.PAYMENT_ESEWA:
+            request.session['esewa_pending_order_ids'] = [o.id for o in orders_created]
+            request.session['esewa_redirect_after'] = 'farmer_dashboard'
+            request.session.modified = True
+            return redirect(reverse('esewa_initiate'))
+        messages.success(request, f'Order placed for {len(orders_created)} tool(s)! Total: Rs. {grand_total:.2f} (Cash on Delivery).')
+        from urllib.parse import urlencode
+        params = {'checkout_success': '1', 'section': (request.POST.get('return_section') or 'tools').strip()}
+        return redirect(reverse('farmer_dashboard') + '?' + urlencode(params))
+
     # Get products
     products = FarmerProduct.objects.filter(farmer=profile).order_by('-created_at')
     
@@ -1812,7 +1903,9 @@ def farmer_dashboard(request):
     from .models import VendorTool
     available_tools = VendorTool.objects.filter(is_available=True, stock_quantity__gt=0).select_related('vendor', 'vendor__user').order_by('-created_at')[:12]
     
-    # Get purchase history (orders)
+    # Orders placed by buyers for THIS farmer's crops (shipping handled by admin)
+    farmer_orders = Order.objects.filter(crop__farmer=profile).select_related('buyer', 'crop').order_by('-created_at')[:30]
+    # Farmer's own tool purchases (for "My purchases" if needed)
     purchase_history = Order.objects.filter(buyer=request.user).select_related('tool', 'crop').order_by('-created_at')[:10]
 
     # Determine if features should be restricted
@@ -1840,6 +1933,7 @@ def farmer_dashboard(request):
         # Tools and orders
         'available_tools': available_tools,
         'purchase_history': purchase_history,
+        'farmer_orders': farmer_orders,
     }
     return render(request, 'farmer_dashboard.html', context)
 
@@ -2738,9 +2832,9 @@ def admin_dashboard(request):
     completed_transactions = Order.objects.filter(status=Order.STATUS_DELIVERED).count()
     pending_transactions = Order.objects.filter(status=Order.STATUS_PENDING).count()
     
-    # Active Listings
+    # Active Listings (only with available stock for tools)
     active_crop_listings = FarmerProduct.objects.filter(is_available=True).count()
-    active_tool_listings = VendorTool.objects.filter(is_available=True).count()
+    active_tool_listings = VendorTool.objects.filter(is_available=True, stock_quantity__gt=0).count()
     total_active_listings = active_crop_listings + active_tool_listings
     
     # Recent Activity
@@ -3473,12 +3567,12 @@ def admin_marketplace_oversight(request):
             )
         context['tools'] = tools
         context['total_tools'] = VendorTool.objects.count()
-        context['available_tools'] = VendorTool.objects.filter(is_available=True).count()
+        context['available_tools'] = VendorTool.objects.filter(is_available=True, stock_quantity__gt=0).count()
     else:
         # Initialize empty queryset for other sections
         context['tools'] = VendorTool.objects.none()
         context['total_tools'] = VendorTool.objects.count()
-        context['available_tools'] = VendorTool.objects.filter(is_available=True).count()
+        context['available_tools'] = VendorTool.objects.filter(is_available=True, stock_quantity__gt=0).count()
     
     # Always load crops when section is crops or overview
     if section == 'overview' or section == 'crops':

@@ -551,6 +551,62 @@
             background: var(--primary-dark);
         }
 
+        .tools-section-grid {
+            display: grid;
+            grid-template-columns: 1fr 340px;
+            gap: 1.5rem;
+            align-items: start;
+        }
+        .tools-col-cart {
+            position: sticky;
+            top: 1rem;
+        }
+        .farmer-tools-cart-panel {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.25rem;
+        }
+        .farmer-tools-cart-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            max-height: 320px;
+            overflow-y: auto;
+        }
+        .farmer-tools-cart-item {
+            display: flex;
+            gap: 0.75rem;
+            align-items: center;
+            padding: 0.75rem;
+            background: white;
+            border-radius: 8px;
+            border: 1px solid #e9ecef;
+        }
+        .farmer-tools-cart-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; }
+        .farmer-tools-cart-item-info { flex: 1; min-width: 0; }
+        .farmer-tools-cart-item-info .name { font-weight: 600; font-size: 0.95rem; }
+        .farmer-tools-cart-item-info .meta { font-size: 0.85rem; color: #666; }
+        .farmer-tools-cart-item-remove { padding: 0.35rem 0.5rem; color: #dc3545; background: transparent; border: 1px solid #dc3545; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+        .farmer-tools-cart-item-remove:hover { background: #dc3545; color: white; }
+        .farmer-tools-cart-qty-controls { display: flex; align-items: center; gap: 0.35rem; margin-top: 0.4rem; }
+        .farmer-tools-cart-qty-btn { width: 28px; height: 28px; padding: 0; border: 1px solid #dee2e6; border-radius: 6px; background: #fff; cursor: pointer; font-size: 1rem; font-weight: 600; color: var(--primary); display: inline-flex; align-items: center; justify-content: center; }
+        .farmer-tools-cart-qty-btn:hover:not(:disabled) { background: var(--primary); color: white; border-color: var(--primary); }
+        .farmer-tools-cart-qty-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+        .farmer-tools-cart-qty-value { min-width: 26px; text-align: center; font-weight: 600; font-size: 0.9rem; }
+        .farmer-tools-cart-empty {
+            text-align: center;
+            padding: 1.5rem 1rem;
+            color: #666;
+            font-size: 0.9rem;
+        }
+        .farmer-tools-cart-empty i { font-size: 2rem; opacity: 0.5; margin-bottom: 0.5rem; display: block; }
+        .farmer-tools-cart-summary .farmer-tools-cart-subtotal { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-weight: 600; }
+        @media (max-width: 1024px) {
+            .tools-section-grid { grid-template-columns: 1fr; }
+            .tools-col-cart { position: static; }
+        }
+
         /* Chat Interface */
         .chat-container {
             display: flex;
@@ -1531,30 +1587,51 @@
                     <div class="section-header">
                         <h2><i class="fas fa-tools"></i> Farming Tools & Equipment</h2>
                     </div>
-                    <div class="section-body">
+                    <div class="section-body tools-section-body">
                         {% if available_tools %}
-                        <div class="tools-grid">
-                            {% for tool in available_tools %}
-                            <div class="tool-card">
-                                {% if tool.image %}
-                                <div class="tool-image-wrapper" style="width: 100%; height: 160px; background: #e9ecef; border-radius: 12px 12px 0 0; overflow: hidden;">
-                                    <img src="{{ tool.image.url }}" alt="{{ tool.name }}" style="width: 100%; height: 100%; object-fit: cover;">
-                                </div>
-                                {% else %}
-                                <div class="tool-icon" style="width: 100%; height: 100px; display: flex; align-items: center; justify-content: center; background: #e9ecef; font-size: 3rem;">🔧</div>
-                                {% endif %}
-                                <div style="padding: 1rem 1.25rem;">
-                                    <h3 class="tool-name">{{ tool.name }}</h3>
-                                    <p class="tool-vendor">Vendor: {{ tool.vendor.company_name|default:tool.vendor.user.email }}</p>
-                                    {% if tool.description %}
-                                    <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">{{ tool.description|truncatewords:20 }}</p>
-                                    {% endif %}
-                                    <div class="tool-price">Rs. {{ tool.price }}</div>
-                                    <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">Stock: {{ tool.stock_quantity }} units</p>
-                                    <button class="btn-buy" onclick="{% if kyc_status == 'approved' %}openPurchaseModal({{ tool.id }}, '{{ tool.name|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}){% else %}alert('KYC verification required to purchase tools'){% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>Buy Now</button>
+                        <div class="tools-section-grid">
+                            <div class="tools-col-list">
+                                <div class="tools-grid">
+                                    {% for tool in available_tools %}
+                                    <div class="tool-card">
+                                        {% if tool.image %}
+                                        <div class="tool-image-wrapper" style="width: 100%; height: 160px; background: #e9ecef; border-radius: 12px 12px 0 0; overflow: hidden;">
+                                            <img src="{{ tool.image.url }}" alt="{{ tool.name }}" style="width: 100%; height: 100%; object-fit: cover;">
+                                        </div>
+                                        {% else %}
+                                        <div class="tool-icon" style="width: 100%; height: 100px; display: flex; align-items: center; justify-content: center; background: #e9ecef; font-size: 3rem;">🔧</div>
+                                        {% endif %}
+                                        <div style="padding: 1rem 1.25rem;">
+                                            <h3 class="tool-name">{{ tool.name }}</h3>
+                                            <p class="tool-vendor">Vendor: {{ tool.vendor.company_name|default:tool.vendor.user.email }}</p>
+                                            {% if tool.description %}
+                                            <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">{{ tool.description|truncatewords:20 }}</p>
+                                            {% endif %}
+                                            <div class="tool-price">Rs. {{ tool.price }}</div>
+                                            <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">Available: {{ tool.stock_quantity }}</p>
+                                            <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
+                                                <button class="btn-buy farmer-tool-buy" data-tool-id="{{ tool.id }}" data-name="{{ tool.name|escapejs }}" data-price="{{ tool.price }}" data-stock="{{ tool.stock_quantity }}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; flex: 1; min-width: 100px;"{% else %}style="flex: 1; min-width: 100px;"{% endif %}>Buy Now</button>
+                                                <button class="btn-farmer-tool-cart" {% if tool.image %}data-image-url="{{ request.scheme }}://{{ request.get_host }}{{ tool.image.url }}"{% endif %} data-tool-id="{{ tool.id }}" data-name="{{ tool.name|escapejs }}" data-price="{{ tool.price }}" data-stock="{{ tool.stock_quantity }}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; flex: 1; min-width: 100px; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.6rem 0.75rem; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;"{% else %}style="flex: 1; min-width: 100px; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.6rem 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;"{% endif %}><i class="fas fa-cart-plus"></i> Add to Cart</button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
                                 </div>
                             </div>
-                            {% endfor %}
+                            <div class="tools-col-cart">
+                                <div class="farmer-tools-cart-panel">
+                                    <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-shopping-cart"></i> Tools cart <span class="farmer-tools-cart-count" id="farmerToolsCartCount" style="display: none;">0 items</span></h3>
+                                    <div id="farmerToolsCartList" class="farmer-tools-cart-list"></div>
+                                    <div id="farmerToolsCartEmpty" class="farmer-tools-cart-empty">
+                                        <i class="fas fa-shopping-cart"></i>
+                                        <p>Your tools cart is empty. Add tools above and checkout together.</p>
+                                    </div>
+                                    <div id="farmerToolsCartSummary" class="farmer-tools-cart-summary" style="display: none;">
+                                        <div class="farmer-tools-cart-subtotal"><span>Subtotal</span><span id="farmerToolsCartSubtotal">Rs. 0.00</span></div>
+                                        <button type="button" id="farmerToolsCheckoutBtn" class="btn-primary" style="width: 100%; padding: 0.75rem; margin-top: 0.75rem;" onclick="openFarmerToolsCheckoutModal()"><i class="fas fa-lock"></i> Proceed to checkout</button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                         {% else %}
                         <div class="empty-state">
@@ -1746,47 +1823,46 @@
                 </div>
             </div>
 
-            <!-- Orders Section -->
+            <!-- Orders Section: Placed orders for farmer's crops (shipping by admin) -->
             <div id="orders-section" class="dashboard-section" style="display: none;">
                 <div class="content-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-shopping-cart"></i> <span data-translate="orders.title">Purchase History</span></h2>
+                        <h2><i class="fas fa-shopping-cart"></i> <span data-translate="orders.title">Placed orders (for my crops)</span></h2>
                     </div>
                     <div class="section-body">
-                        {% if purchase_history %}
+                        <p style="margin: -0.5rem 0 1rem 0; font-size: 0.9rem; color: #666;"><i class="fas fa-truck"></i> Shipping is handled by admin. You earn from sales when orders are completed.</p>
+                        {% if farmer_orders %}
                         <table class="orders-table">
                             <thead>
                                 <tr>
-                                    <th data-translate="orders.orderId">Order ID</th>
-                                    <th data-translate="orders.item">Item</th>
-                                    <th data-translate="orders.quantity">Quantity</th>
-                                    <th data-translate="orders.amount">Amount</th>
-                                    <th data-translate="orders.status">Status</th>
-                                    <th data-translate="orders.date">Date</th>
+                                    <th>Order ID</th>
+                                    <th>Buyer</th>
+                                    <th>Item</th>
+                                    <th>Qty</th>
+                                    <th>Amount</th>
+                                    <th>Status</th>
+                                    <th>Payment</th>
+                                    <th>Date</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {% for order in purchase_history %}
+                                {% for order in farmer_orders %}
                                 <tr>
                                     <td>#{{ order.id }}</td>
-                                    <td>{% if order.tool %}{{ order.tool.name }}{% elif order.crop %}{{ order.crop.name }}{% else %}N/A{% endif %}</td>
-                                    <td>{{ order.quantity }}</td>
+                                    <td>{{ order.buyer.email }}</td>
+                                    <td>{% if order.crop %}{{ order.crop.name }}{% else %}—{% endif %}</td>
+                                    <td>{{ order.quantity }} {% if order.crop %}{{ order.crop.unit }}{% endif %}</td>
                                     <td>Rs. {{ order.total_amount }}</td>
                                     <td>
-                                        <span class="order-status status-{{ order.status }}">
-                                            {{ order.get_status_display }}
-                                        </span>
-                                        {% if order.payment_method %}
-                                        <br>
-                                        <small style="color: #666; font-size: 0.8rem;">
-                                            {% if order.payment_method == 'esewa' %}
-                                                <i class="fas fa-mobile-alt"></i> eSewa
-                                            {% else %}
-                                                <i class="fas fa-money-bill-wave"></i> Cash on Delivery
-                                            {% endif %}
-                                        </small>
-                                        {% endif %}
+                                        <span class="order-status status-{{ order.status }}">{{ order.get_status_display }}</span>
                                     </td>
+                                    <td>
+                                        {% if order.payment_method == 'esewa' %}
+                                            <i class="fas fa-mobile-alt"></i> eSewa
+                                        {% else %}
+                                            <i class="fas fa-money-bill-wave"></i> COD
+                                        {% endif %}
+                                        {% if order.payment_status == 'completed' %}<br><small style="color: var(--success);">Paid</small>{% endif %}
                                     </td>
                                     <td>{{ order.created_at|date:"M d, Y" }}</td>
                                 </tr>
@@ -1796,8 +1872,8 @@
                         {% else %}
                         <div class="empty-state">
                             <i class="fas fa-shopping-cart"></i>
-                            <h3 data-translate="orders.noOrders">No Orders Yet</h3>
-                            <p data-translate="orders.noOrdersDesc">Your purchase history will appear here</p>
+                            <h3>No orders for your crops yet</h3>
+                            <p>When buyers place orders for your crops, they will appear here. Shipping is handled by admin.</p>
                         </div>
                         {% endif %}
                     </div>
@@ -2152,7 +2228,7 @@
                 <div class="form-group">
                     <label>Quantity <span style="color: red;">*</span></label>
                     <input type="number" name="quantity" id="purchase_quantity" class="form-control" min="1" value="1" required oninput="updatePurchaseTotal()">
-                    <small style="color: #666; font-size: 0.85rem;">Available: <span id="purchase_stock">0</span> units</small>
+                    <small style="color: #666; font-size: 0.85rem;">Available: <span id="purchase_stock">0</span></small>
                 </div>
 
                 <div class="form-group" style="padding: 1rem; background: #f8f9fa; border-radius: 8px; margin: 1rem 0;">
@@ -2213,6 +2289,57 @@
                 <button type="submit" class="btn-primary" style="width: 100%; padding: 0.75rem; font-weight: 600;">
                     <i class="fas fa-shopping-cart"></i> Place Order
                 </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Farmer Tools Cart Checkout Modal -->
+    <div id="farmerToolsCheckoutModal" class="modal">
+        <div class="modal-content" style="max-width: 520px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-shopping-bag"></i> Checkout — Tools</h3>
+                <button class="close-modal" onclick="closeModal('farmerToolsCheckoutModal')">&times;</button>
+            </div>
+            <form method="POST" action="{% url 'farmer_dashboard' %}" id="farmerToolsCheckoutForm">
+                {% csrf_token %}
+                <input type="hidden" name="checkout_tools_cart" value="1">
+                <input type="hidden" name="return_section" value="tools">
+                <input type="hidden" name="cart_items" id="farmerCheckoutCartItemsInput">
+                <div id="farmerCheckoutOrderSummary" style="background: #f8f9fa; border-radius: 12px; padding: 1rem; margin-bottom: 1rem; max-height: 200px; overflow-y: auto;"></div>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;"><span>Subtotal</span><span id="farmerCheckoutSubtotal">Rs. 0.00</span></div>
+                <hr style="border: none; border-top: 1px solid #eee; margin: 0.75rem 0;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <span style="font-weight: 700;">Total</span>
+                    <span id="farmerCheckoutGrandTotal" style="font-size: 1.25rem; font-weight: bold; color: var(--primary);">Rs. 0.00</span>
+                </div>
+                <div class="form-group">
+                    <label style="font-weight: 600;">Payment Method <span style="color: red;">*</span></label>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <label style="flex: 1; min-width: 160px; padding: 0.75rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; background: white;">
+                            <input type="radio" name="payment_method" value="cod" checked style="margin-right: 0.5rem;"> Cash on Delivery
+                        </label>
+                        <label style="flex: 1; min-width: 160px; padding: 0.75rem; border: 2px solid #e9ecef; border-radius: 8px; cursor: pointer; background: white;">
+                            <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;"> eSewa
+                        </label>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label>Location / Shipping Address <span style="color: red;">*</span></label>
+                    <textarea name="shipping_address" class="form-control" rows="3" required placeholder="Enter your delivery address..."></textarea>
+                </div>
+                <div class="form-group">
+                    <label>Contact Number <span style="color: red;">*</span></label>
+                    <input type="text" name="contact_number" class="form-control" required placeholder="e.g. 9800000000" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label>Email (Optional)</label>
+                    <input type="email" name="order_email" class="form-control" placeholder="Email for this order">
+                </div>
+                <div class="form-group">
+                    <label>Notes (Optional)</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="Any special instructions..."></textarea>
+                </div>
+                <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem;"><i class="fas fa-lock"></i> Place order</button>
             </form>
         </div>
     </div>
@@ -2421,14 +2548,15 @@
             document.getElementById('deleteModal').classList.add('active');
         }
 
-        function openPurchaseModal(toolId, toolName, price, stock) {
+        function openPurchaseModal(toolId, toolName, price, stock, initialQuantity) {
             document.getElementById('purchase_tool_id').value = toolId;
             document.getElementById('purchase_tool_name').value = toolName;
             document.getElementById('purchase_tool_price').value = 'Rs. ' + price;
             document.getElementById('purchase_stock').textContent = stock;
-            document.getElementById('purchase_stock_display').value = stock + ' units';
+            document.getElementById('purchase_stock_display').value = stock;
             document.getElementById('purchase_quantity').max = stock;
-            document.getElementById('purchase_quantity').value = 1;
+            var qty = (initialQuantity != null && initialQuantity >= 1) ? Math.min(parseInt(initialQuantity, 10), stock) : 1;
+            document.getElementById('purchase_quantity').value = qty;
             updatePurchaseTotal();
             document.getElementById('purchaseModal').classList.add('active');
         }
@@ -2490,7 +2618,134 @@
             if (codRadio) {
                 codRadio.checked = true;
             }
+            // Farmer tool Buy Now: opens modal (quantity set in modal)
+            document.addEventListener('click', function(e) {
+                var btn = e.target && e.target.closest && e.target.closest('.farmer-tool-buy');
+                if (!btn || btn.disabled) return;
+                var toolId = btn.getAttribute('data-tool-id');
+                var name = btn.getAttribute('data-name');
+                var price = parseFloat(btn.getAttribute('data-price')) || 0;
+                var stock = parseInt(btn.getAttribute('data-stock'), 10) || 1;
+                if (toolId && name != null) {
+                    e.preventDefault();
+                    openPurchaseModal(parseInt(toolId, 10), name, price, stock, 1);
+                }
+            });
+            // Farmer tool Add to Cart (adds 1; change quantity in cart with +/−)
+            document.addEventListener('click', function(e) {
+                var btn = e.target && e.target.closest && e.target.closest('.btn-farmer-tool-cart');
+                if (!btn || btn.disabled) return;
+                e.preventDefault();
+                var toolId = btn.getAttribute('data-tool-id');
+                var name = btn.getAttribute('data-name');
+                var price = parseFloat(btn.getAttribute('data-price')) || 0;
+                var stock = parseInt(btn.getAttribute('data-stock'), 10) || 1;
+                var imageUrl = (btn.getAttribute('data-image-url') || '').trim();
+                if (toolId && name != null) addToFarmerToolsCart(parseInt(toolId, 10), name, price, stock, 1, imageUrl);
+            });
+            displayFarmerToolsCartItems();
+            // Clear tools cart after successful checkout (COD or eSewa success)
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('checkout_success') === '1') {
+                localStorage.removeItem('farmer_tools_cart');
+                displayFarmerToolsCartItems();
+            }
         });
+
+        var FARMER_TOOLS_CART_KEY = 'farmer_tools_cart';
+        function getFarmerToolsCart() { return JSON.parse(localStorage.getItem(FARMER_TOOLS_CART_KEY) || '[]'); }
+        function setFarmerToolsCart(cart) { localStorage.setItem(FARMER_TOOLS_CART_KEY, JSON.stringify(cart)); displayFarmerToolsCartItems(); }
+
+        function addToFarmerToolsCart(toolId, name, price, stock, quantity, imageUrl) {
+            quantity = Math.max(1, Math.min(quantity || 1, stock));
+            var cart = getFarmerToolsCart();
+            var existing = cart.find(function(item) { return item.id === toolId; });
+            if (existing) {
+                existing.quantity = Math.min((existing.quantity || 1) + quantity, stock);
+                existing.available = stock;
+            } else {
+                cart.push({ type: 'tool', id: toolId, name: name, price: price, available: stock, quantity: quantity, imageUrl: imageUrl || '' });
+            }
+            setFarmerToolsCart(cart);
+            var msg = document.createElement('div');
+            msg.className = 'message-alert success';
+            msg.style.cssText = 'position: fixed; top: 100px; right: 20px; z-index: 10000; padding: 1rem 1.5rem; background: #D4EDDA; color: #155724; border-left: 4px solid #28A745; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);';
+            msg.innerHTML = '<i class="fas fa-check-circle"></i> Added to tools cart';
+            document.body.appendChild(msg);
+            setTimeout(function() { msg.remove(); }, 2500);
+        }
+
+        function removeFarmerToolsCartItem(index) {
+            var cart = getFarmerToolsCart();
+            if (index >= 0 && index < cart.length) {
+                cart.splice(index, 1);
+                setFarmerToolsCart(cart);
+            }
+        }
+
+        function updateFarmerToolsCartQuantity(index, newQty) {
+            var cart = getFarmerToolsCart();
+            if (index < 0 || index >= cart.length) return;
+            if (newQty <= 0) {
+                removeFarmerToolsCartItem(index);
+                return;
+            }
+            var maxQty = cart[index].available || 999;
+            cart[index].quantity = Math.min(newQty, maxQty);
+            setFarmerToolsCart(cart);
+        }
+
+        function displayFarmerToolsCartItems() {
+            var cart = getFarmerToolsCart();
+            var listEl = document.getElementById('farmerToolsCartList');
+            var emptyEl = document.getElementById('farmerToolsCartEmpty');
+            var summaryEl = document.getElementById('farmerToolsCartSummary');
+            var countEl = document.getElementById('farmerToolsCartCount');
+            if (!listEl) return;
+            if (cart.length === 0) {
+                listEl.innerHTML = '';
+                listEl.style.display = 'none';
+                if (emptyEl) { emptyEl.style.display = 'block'; }
+                if (summaryEl) summaryEl.style.display = 'none';
+                if (countEl) { countEl.textContent = '0 items'; countEl.style.display = 'none'; }
+                return;
+            }
+            if (emptyEl) emptyEl.style.display = 'none';
+            if (summaryEl) summaryEl.style.display = 'block';
+            var totalItems = cart.reduce(function(s, i) { return s + (i.quantity || 1); }, 0);
+            if (countEl) { countEl.textContent = totalItems + ' item' + (totalItems !== 1 ? 's' : ''); countEl.style.display = 'inline-block'; }
+            var subtotal = 0;
+            listEl.innerHTML = cart.map(function(item, idx) {
+                var qty = item.quantity || 1;
+                var maxQty = item.available || 999;
+                var total = item.price * qty;
+                subtotal += total;
+                var img = (item.imageUrl && item.imageUrl.trim()) ? '<img src="' + (item.imageUrl.replace(/"/g, '&quot;')) + '" alt="">' : '<div style="width:50px;height:50px;background:#e9ecef;border-radius:6px;display:flex;align-items:center;justify-content:center;"><i class="fas fa-tools"></i></div>';
+                var minusDisabled = qty <= 1 ? ' disabled' : '';
+                var plusDisabled = qty >= maxQty ? ' disabled' : '';
+                var qtyControls = '<div class="farmer-tools-cart-qty-controls"><button type="button" class="farmer-tools-cart-qty-btn" onclick="updateFarmerToolsCartQuantity(' + idx + ', ' + (qty - 1) + ')"' + minusDisabled + '>−</button><span class="farmer-tools-cart-qty-value">' + qty + '</span><button type="button" class="farmer-tools-cart-qty-btn" onclick="updateFarmerToolsCartQuantity(' + idx + ', ' + (qty + 1) + ')"' + plusDisabled + '>+</button></div>';
+                return '<div class="farmer-tools-cart-item">' + img + '<div class="farmer-tools-cart-item-info"><span class="name">' + (item.name || '').replace(/</g, '&lt;') + '</span><p class="meta">Rs.' + item.price + ' × <span class="farmer-tools-cart-qty-value">' + qty + '</span> = Rs.' + total.toFixed(2) + '</p>' + qtyControls + '</div><button type="button" class="farmer-tools-cart-item-remove" onclick="removeFarmerToolsCartItem(' + idx + ')"><i class="fas fa-trash"></i></button></div>';
+            }).join('');
+            listEl.style.display = 'flex';
+            var subEl = document.getElementById('farmerToolsCartSubtotal');
+            if (subEl) subEl.textContent = 'Rs. ' + subtotal.toFixed(2);
+        }
+
+        function openFarmerToolsCheckoutModal() {
+            var cart = getFarmerToolsCart();
+            if (!cart.length) { alert('Your tools cart is empty.'); return; }
+            var payload = cart.map(function(item) { return { type: 'tool', id: item.id, name: item.name, price: item.price, quantity: item.quantity || 1 }; });
+            document.getElementById('farmerCheckoutCartItemsInput').value = JSON.stringify(payload);
+            var total = cart.reduce(function(s, i) { return s + (i.price * (i.quantity || 1)); }, 0);
+            document.getElementById('farmerCheckoutSubtotal').textContent = 'Rs. ' + total.toFixed(2);
+            document.getElementById('farmerCheckoutGrandTotal').textContent = 'Rs. ' + total.toFixed(2);
+            var summary = document.getElementById('farmerCheckoutOrderSummary');
+            summary.innerHTML = cart.map(function(item) {
+                var qty = item.quantity || 1;
+                return '<p style="margin:0.35rem 0;">' + (item.name || '').replace(/</g, '&lt;') + ' × ' + qty + ' — Rs.' + (item.price * qty).toFixed(2) + '</p>';
+            }).join('');
+            document.getElementById('farmerToolsCheckoutModal').classList.add('active');
+        }
 
         var expertAvailability = {{ expert_availability_json|safe }};
         function initApptFlatpickr(elId, enableDates) {
