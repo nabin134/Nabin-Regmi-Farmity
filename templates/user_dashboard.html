@@ -860,64 +860,58 @@
         .orders-section-title i { color: var(--primary); font-size: 1.25rem; }
         .orders-section-grid {
             display: grid;
-            grid-template-columns: 1fr;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr;
             gap: 0;
             background: var(--card-bg);
             border: 1px solid var(--border);
             border-radius: var(--radius-lg);
             box-shadow: var(--shadow-sm);
             overflow: hidden;
+            align-items: stretch;
+            min-height: 420px;
         }
         .orders-section-grid .orders-col-history,
-        .orders-section-grid .orders-col-cart { margin: 0; }
+        .orders-section-grid .orders-col-cart {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            min-height: 0;
+        }
+        .orders-section-grid .orders-col-history {
+            border-right: 1px solid var(--border);
+        }
+        .orders-section-grid .orders-col-cart {
+            align-self: stretch;
+        }
         .orders-section-grid .orders-col-history .orders-subsection,
         .orders-section-grid .orders-col-cart .orders-subsection {
             margin: 0;
             border: none;
             border-radius: 0;
             box-shadow: none;
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
-        @media (max-width: 991px) {
-            .orders-section-grid .orders-col-history .orders-subsection {
-                border-bottom: 1px solid var(--border);
-            }
-            .orders-section-grid .orders-col-cart .orders-subsection {
-                border-top: none;
-            }
+        .orders-section-grid .purchase-history-inner,
+        .orders-section-grid .cart-items-inner {
+            flex: 1;
+            overflow-y: auto;
+            min-height: 0;
+            padding: 1.25rem;
         }
-        @media (min-width: 992px) {
+        @media (max-width: 767px) {
             .orders-section-grid {
-                grid-template-columns: 1fr 1fr;
-                gap: 0;
-                align-items: stretch;
-                min-height: 420px;
+                grid-template-columns: 1fr;
+                min-height: 0;
             }
             .orders-section-grid .orders-col-history {
-                border-right: 1px solid var(--border);
-                display: flex;
-                flex-direction: column;
-                min-width: 0;
+                border-right: none;
+                border-bottom: 1px solid var(--border);
             }
             .orders-section-grid .orders-col-cart {
-                display: flex;
-                flex-direction: column;
-                min-width: 0;
-                position: sticky;
-                top: 5.5rem;
-                align-self: start;
-            }
-            .orders-section-grid .orders-col-history .orders-subsection,
-            .orders-section-grid .orders-col-cart .orders-subsection {
-                flex: 1;
-                display: flex;
-                flex-direction: column;
-            }
-            .orders-section-grid .purchase-history-inner,
-            .orders-section-grid .cart-items-inner {
-                flex: 1;
-                overflow-y: auto;
-                min-height: 0;
-                padding: 1.25rem;
+                position: static;
             }
         }
         .orders-subsection {
@@ -967,19 +961,25 @@
             position: relative;
             width: 88px;
             height: 88px;
+            min-width: 88px;
+            min-height: 88px;
             flex-shrink: 0;
             border-radius: var(--radius-md);
             overflow: hidden;
             border: 1px solid var(--border);
             background: var(--light-bg);
         }
-        .cart-item-thumb {
+        .cart-item-thumb-wrap .cart-item-thumb {
+            position: relative;
+            z-index: 1;
             width: 100%;
             height: 100%;
             object-fit: cover;
             display: block;
         }
-        .cart-item-thumb-placeholder {
+        .cart-item-thumb-wrap .cart-item-thumb-placeholder {
+            position: absolute;
+            inset: 0;
             width: 100%;
             height: 100%;
             display: flex;
@@ -987,8 +987,9 @@
             justify-content: center;
             color: var(--text-muted);
             font-size: 2rem;
+            z-index: 0;
         }
-        .cart-item-thumb-placeholder i { opacity: 0.45; }
+        .cart-item-thumb-wrap .cart-item-thumb-placeholder i { opacity: 0.45; }
         .cart-item-info { flex: 1; min-width: 0; }
         .cart-item-info .cart-item-type {
             font-size: 0.7rem;
@@ -3071,7 +3072,7 @@
                 const safeName = (item.name || '').replace(/</g, '&lt;').replace(/"/g, '&quot;');
                 const thumbContent = rawUrl
                     ? '<img src="' + safeUrl + '" alt="' + safeName + '" class="cart-item-thumb" onerror="var w=this.closest(\'.cart-item-thumb-wrap\');if(w){var p=w.querySelector(\'.cart-item-thumb-placeholder\');if(p){this.style.display=\'none\';p.style.display=\'flex\';}}}">' +
-                      '<div class="cart-item-thumb-placeholder" style="display:none;position:absolute;inset:0;width:100%;height:100%;"><i class="fas fa-' + icon + '"></i></div>'
+                      '<div class="cart-item-thumb-placeholder" style="display:none;position:absolute;inset:0;z-index:0;"><i class="fas fa-' + icon + '"></i></div>'
                     : '<div class="cart-item-thumb-placeholder"><i class="fas fa-' + icon + '"></i></div>';
                 const thumb = '<div class="cart-item-thumb-wrap">' + thumbContent + '</div>';
                 return `
