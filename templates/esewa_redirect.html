@@ -38,43 +38,44 @@
             text-align: center;
             position: relative;
         }
-        .payment-header::after {
-            content: '';
+        .payment-header .logo-curve-wrap {
             position: absolute;
-            bottom: -30px;
+            bottom: -32px;
             left: 50%;
             transform: translateX(-50%);
-            width: 60px;
-            height: 60px;
+            width: 64px;
+            height: 64px;
             background: white;
             border-radius: 50%;
             box-shadow: 0 -4px 15px rgba(0,0,0,0.08);
-        }
-        .logo-row {
             display: flex;
             align-items: center;
             justify-content: center;
-            margin-bottom: 1rem;
+            overflow: hidden;
+            z-index: 1;
         }
-        .logo-row img.farmity-logo {
-            max-height: 48px;
+        .logo-curve-wrap img.farmity-logo {
+            max-height: 40px;
+            max-width: 44px;
             width: auto;
-            max-width: 160px;
+            height: auto;
             object-fit: contain;
             display: block;
         }
-        .logo-row .logo-fallback {
+        .logo-curve-wrap .logo-fallback {
             display: none;
-            font-size: 1.5rem;
+            font-size: 1.25rem;
             font-weight: 700;
-            letter-spacing: -0.02em;
-            color: white;
+            color: var(--primary);
         }
-        .logo-row img.farmity-logo[data-failed="1"] {
+        .logo-curve-wrap img.farmity-logo[data-failed="1"] {
             display: none;
         }
-        .logo-row img.farmity-logo[data-failed="1"] ~ .logo-fallback {
+        .logo-curve-wrap img.farmity-logo[data-failed="1"] ~ .logo-fallback {
             display: block;
+        }
+        .logo-row {
+            display: none;
         }
         .payment-header h1 {
             font-size: 1.35rem;
@@ -198,9 +199,9 @@
 <body>
     <div class="payment-container">
         <div class="payment-header">
-            <div class="logo-row">
+            <div class="logo-curve-wrap">
                 <img src="/static/images/Farmity%20logo.png" alt="Farmity" class="farmity-logo" onerror="this.setAttribute('data-failed','1');">
-                <span class="logo-fallback">Farmity</span>
+                <span class="logo-fallback">F</span>
             </div>
             <h1>Pay with eSewa</h1>
             <p>Secure payment powered by eSewa</p>

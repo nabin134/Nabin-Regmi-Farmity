@@ -2188,10 +2188,17 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Shipping Address <span style="color: red;">*</span></label>
+                    <label>Location / Shipping Address <span style="color: red;">*</span></label>
                     <textarea name="shipping_address" class="form-control" rows="3" required placeholder="Enter your delivery address..."></textarea>
                 </div>
-
+                <div class="form-group">
+                    <label>Contact Number <span style="color: red;">*</span></label>
+                    <input type="text" name="contact_number" class="form-control" required placeholder="e.g. 9800000000" maxlength="20">
+                </div>
+                <div class="form-group">
+                    <label>Email (Optional)</label>
+                    <input type="email" name="order_email" class="form-control" placeholder="Email for this order">
+                </div>
                 <div class="form-group">
                     <label>Notes (Optional)</label>
                     <textarea name="notes" class="form-control" rows="2" placeholder="Any special instructions..."></textarea>

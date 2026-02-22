@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if success %}Payment Successful{% else %}Payment Cancelled{% endif %} - Farmity</title>
+    <title>{% if success %}Payment Successful{% else %}Payment did not succeed{% endif %} - Farmity</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root { --primary: #3C894B; --sea-green: #358D58; }
@@ -87,12 +87,12 @@
             <div class="result-icon {% if success %}success{% else %}failure{% endif %}">
                 {% if success %}<i class="fas fa-check"></i>{% else %}<i class="fas fa-times"></i>{% endif %}
             </div>
-            <h1>{% if success %}Payment Successful{% else %}Payment Cancelled{% endif %}</h1>
+            <h1>{% if success %}Payment Successful{% else %}Payment did not succeed{% endif %}</h1>
             <p>
                 {% if success %}
                 Your payment was completed. Your order has been confirmed.
                 {% else %}
-                The payment was cancelled or could not be completed. You can try again or use Cash on Delivery.
+                Payment with eSewa was cancelled or could not be completed. You can try again or use Cash on Delivery.
                 {% endif %}
             </p>
         </div>

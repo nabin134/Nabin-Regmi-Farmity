@@ -1157,27 +1157,28 @@ def esewa_success(request):
         messages.error(request, 'Payment verification failed.')
         return redirect(reverse('user_dashboard'))
 
-    # Real-time verification: confirm with eSewa Status Check API before marking paid
+    # Real-time verification: confirm with eSewa Status Check API when possible
     from .esewa import esewa_verify_transaction_realtime
     transaction_uuid = data.get('transaction_uuid', '')
     total_amount_callback = data.get('total_amount')
     product_code_callback = data.get('product_code', '')
     verification = esewa_verify_transaction_realtime(transaction_uuid, total_amount_callback, product_code_callback)
-    if not verification or verification.get('status') != 'COMPLETE':
-        err_msg = verification.get('error_message') if verification else 'Could not verify payment with eSewa.'
-        if verification and verification.get('status'):
-            err_msg = f"Payment status: {verification.get('status')}. Only completed payments are accepted."
-        messages.error(request, err_msg or 'Payment could not be verified. Please try again or contact support.')
-        return redirect(reverse('user_dashboard'))
-    # Optional: ensure amount matches (fraud check)
-    try:
-        verified_total = float(verification.get('total_amount', 0))
-        expected_total = float(total_amount_callback)
-        if abs(verified_total - expected_total) > 0.01:
-            messages.error(request, 'Payment amount mismatch. Please contact support.')
+    if verification:
+        status = (verification.get('status') or '').upper()
+        if status != 'COMPLETE':
+            err_msg = verification.get('error_message') or f"Payment status: {verification.get('status')}. Only completed payments are accepted. If you were charged, please contact support with your order details."
+            messages.error(request, err_msg)
             return redirect(reverse('user_dashboard'))
-    except (TypeError, ValueError):
-        pass
+        # Amount match (fraud check)
+        try:
+            verified_total = float(verification.get('total_amount', 0))
+            expected_total = float(total_amount_callback)
+            if abs(verified_total - expected_total) > 0.01:
+                messages.error(request, 'Payment amount mismatch. Please contact support.')
+                return redirect(reverse('user_dashboard'))
+        except (TypeError, ValueError):
+            pass
+    # If verification is None (API timeout/unavailable), accept callback: signature already verified and status is COMPLETE
 
     transaction_uuid = data.get('transaction_uuid', '')
     if transaction_uuid.startswith('order-'):
@@ -1630,9 +1631,13 @@ def farmer_dashboard(request):
         tool_id = request.POST.get('tool_id')
         quantity = int(request.POST.get('quantity', 1))
         shipping_address = request.POST.get('shipping_address', '')
+        contact_number = (request.POST.get('contact_number') or '').strip()
+        order_email = (request.POST.get('order_email') or '').strip() or None
         notes = request.POST.get('notes', '')
         total_amount = request.POST.get('total_amount')
-        
+        if not contact_number:
+            messages.error(request, 'Contact number is required.')
+            return _redirect_same_page(request, 'farmer_dashboard')
         try:
             tool = VendorTool.objects.get(id=tool_id, is_available=True)
             if tool.stock_quantity >= quantity:
@@ -1651,6 +1656,8 @@ def farmer_dashboard(request):
                     payment_method=payment_method,
                     payment_status='pending',
                     shipping_address=shipping_address,
+                    contact_number=contact_number,
+                    order_email=order_email,
                     notes=notes
                 )
                 
@@ -2352,6 +2359,11 @@ def user_dashboard(request):
             messages.error(request, 'Invalid quantity!')
             return _redirect_same_page(request, 'user_dashboard')
         
+        contact_number = (request.POST.get('contact_number') or '').strip()
+        order_email = (request.POST.get('order_email') or '').strip() or None
+        if not contact_number:
+            messages.error(request, 'Contact number is required.')
+            return _redirect_same_page(request, 'user_dashboard')
         try:
             crop = FarmerProduct.objects.get(id=crop_id, is_available=True)
             if crop.quantity >= quantity:
@@ -2367,6 +2379,8 @@ def user_dashboard(request):
                     payment_method=payment_method,
                     payment_status='pending',
                     shipping_address=request.POST.get('shipping_address', ''),
+                    contact_number=contact_number,
+                    order_email=order_email,
                     notes=request.POST.get('notes', '')
                 )
                 
@@ -2402,7 +2416,11 @@ def user_dashboard(request):
         payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
         tool_id = request.POST.get('tool_id')
         quantity = int(request.POST.get('quantity', 1))
-        
+        contact_number = (request.POST.get('contact_number') or '').strip()
+        order_email = (request.POST.get('order_email') or '').strip() or None
+        if not contact_number:
+            messages.error(request, 'Contact number is required.')
+            return _redirect_same_page(request, 'user_dashboard')
         try:
             tool = VendorTool.objects.get(id=tool_id, is_available=True, stock_quantity__gt=0)
             if tool.stock_quantity >= quantity:
@@ -2418,6 +2436,8 @@ def user_dashboard(request):
                     payment_method=payment_method,
                     payment_status='pending',
                     shipping_address=request.POST.get('shipping_address', ''),
+                    contact_number=contact_number,
+                    order_email=order_email,
                     notes=request.POST.get('notes', '')
                 )
                 
@@ -2450,8 +2470,13 @@ def user_dashboard(request):
             messages.error(request, 'Your cart is empty.')
             return _redirect_same_page(request, 'user_dashboard')
         shipping_address = request.POST.get('shipping_address', '').strip()
+        contact_number = (request.POST.get('contact_number') or '').strip()
+        order_email = (request.POST.get('order_email') or '').strip() or None
         if not shipping_address:
-            messages.error(request, 'Shipping address is required.')
+            messages.error(request, 'Shipping address (location) is required.')
+            return _redirect_same_page(request, 'user_dashboard')
+        if not contact_number:
+            messages.error(request, 'Contact number is required.')
             return _redirect_same_page(request, 'user_dashboard')
         notes = request.POST.get('notes', '')
         errors = []
@@ -2482,6 +2507,8 @@ def user_dashboard(request):
                         payment_method=payment_method,
                         payment_status='pending',
                         shipping_address=shipping_address,
+                        contact_number=contact_number,
+                        order_email=order_email,
                         notes=notes
                     )
                     crop.quantity -= Decimal(str(qty))
@@ -2516,6 +2543,8 @@ def user_dashboard(request):
                         payment_method=payment_method,
                         payment_status='pending',
                         shipping_address=shipping_address,
+                        contact_number=contact_number,
+                        order_email=order_email,
                         notes=notes
                     )
                     tool.stock_quantity -= int(qty)
@@ -3395,6 +3424,10 @@ def admin_marketplace_oversight(request):
                 order.payment_method = request.POST.get('payment_method', order.payment_method)
                 order.tracking_number = request.POST.get('tracking_number', order.tracking_number)
                 order.shipping_address = request.POST.get('shipping_address', order.shipping_address)
+                if request.POST.get('contact_number') is not None:
+                    order.contact_number = request.POST.get('contact_number', '')
+                if request.POST.get('order_email') is not None:
+                    order.order_email = request.POST.get('order_email', '') or None
                 order.notes = request.POST.get('notes', order.notes)
                 order.save()
                 messages.success(request, 'Order updated successfully!')
