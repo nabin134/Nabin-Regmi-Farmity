@@ -190,7 +190,11 @@
                     {% endif %}
                 </div>
 
-                {% if ticket.status != 'closed' %}
+                {% if ticket.status == 'answered' or ticket.status == 'closed' %}
+                <div class="conversation-ended" style="padding: 1rem 1.5rem; border-top: 2px solid #f0f0f0; background: #f8f9fa; color: #666; text-align: center;">
+                    <i class="fas fa-lock"></i> This conversation has ended. No further replies.
+                </div>
+                {% else %}
                 <div class="reply-form">
                     <form method="POST" action="{% url 'support_ticket' ticket.id %}">
                         {% csrf_token %}

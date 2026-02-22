@@ -3891,10 +3891,44 @@ def _is_support_staff(user):
 
 @login_required
 def support_hub(request):
-    """Redirect: support staff to Support Desk (admin UI), others to their role dashboard."""
+    """Support staff → Support Desk on GET; others see support page. POST create_ticket allowed for all."""
+    # Handle POST first so creating a ticket always works (any user, including staff)
+    if request.method == 'POST' and request.POST.get('action') == 'create_ticket':
+        subject = (request.POST.get('subject') or '').strip()
+        message = (request.POST.get('message') or '').strip()
+        if subject and message:
+            ticket = SupportTicket.objects.create(
+                user=request.user,
+                subject=subject,
+                status=SupportTicket.STATUS_OPEN,
+            )
+            SupportMessage.objects.create(ticket=ticket, sender=request.user, message=message)
+            messages.success(request, 'Support request created. You can view and reply below.')
+            return redirect('support_ticket', ticket_id=ticket.id)
+        else:
+            messages.error(request, 'Please provide both subject and message.')
+            # Fall through to show form again with error (non-staff) or redirect (staff)
+
+    # Support staff see the admin desk instead of the support page
     if _is_support_staff(request.user):
         return redirect('admin_support_desk')
-    return _redirect_to_role_home_response(request.user)
+
+    # Build context for support page (non-staff only)
+    faqs = FAQ.objects.filter(is_active=True).order_by('order', 'created_at')
+    support_staff = SupportStaffProfile.objects.filter(is_available=True).select_related('user')
+    all_my_tickets = SupportTicket.objects.filter(user=request.user).select_related('assigned_to').order_by('-updated_at')
+    open_tickets = [t for t in all_my_tickets if t.status in (SupportTicket.STATUS_OPEN, SupportTicket.STATUS_IN_PROGRESS)]
+    past_tickets = [t for t in all_my_tickets if t.status in (SupportTicket.STATUS_ANSWERED, SupportTicket.STATUS_CLOSED)]
+    context = {
+        'faqs': faqs,
+        'support_staff': support_staff,
+        'my_tickets': all_my_tickets,
+        'open_tickets': open_tickets,
+        'past_tickets': past_tickets,
+        'is_support_staff': False,
+        'open_tickets_for_staff': [],
+    }
+    return render(request, 'support.html', context)
 
 
 @login_required
@@ -3937,9 +3971,17 @@ def support_ticket_detail(request, ticket_id):
         messages.error(request, 'You do not have access to this ticket.')
         return redirect('support_hub')
 
+    # Customers cannot open ended conversations; staff can still view them
+    if is_owner and not is_staff and ticket.status in (SupportTicket.STATUS_ANSWERED, SupportTicket.STATUS_CLOSED):
+        messages.info(request, 'This conversation has ended and can no longer be opened.')
+        return redirect('support_hub')
+
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'reply':
+            if ticket.status in (SupportTicket.STATUS_ANSWERED, SupportTicket.STATUS_CLOSED):
+                messages.error(request, 'This conversation has ended. No further replies can be added.')
+                return redirect('support_ticket', ticket_id=ticket_id)
             msg_text = (request.POST.get('message') or '').strip()
             if msg_text:
                 SupportMessage.objects.create(
@@ -4079,8 +4121,8 @@ def api_support_reply(request, ticket_id):
     is_staff = _is_support_staff(request.user)
     if ticket.user_id != request.user.id and not is_staff:
         return JsonResponse({'error': 'Forbidden'}, status=403)
-    if ticket.status == SupportTicket.STATUS_CLOSED:
-        return JsonResponse({'error': 'Ticket is closed'}, status=400)
+    if ticket.status in (SupportTicket.STATUS_CLOSED, SupportTicket.STATUS_ANSWERED):
+        return JsonResponse({'error': 'This conversation has ended.'}, status=400)
     message = (request.POST.get('message') or '').strip()
     if not message:
         return JsonResponse({'error': 'Message required'}, status=400)

@@ -108,6 +108,8 @@
 .farmity-ticket-item .stag.in_progress { background: #cce5ff; color: #004085; }
 .farmity-ticket-item .stag.answered { background: #d4edda; color: #155724; }
 .farmity-ticket-item .stag.closed { background: #e2e3e5; color: #383d41; }
+.farmity-ticket-item.farmity-ticket-ended { opacity: 0.8; cursor: default; }
+.farmity-ticket-item.farmity-ticket-ended:hover { background: #f5f5f5; }
 .farmity-form .farmity-field { margin-bottom: 0.75rem; }
 .farmity-form label { display: block; font-size: 0.85rem; font-weight: 500; margin-bottom: 0.25rem; color: #333; }
 .farmity-form input, .farmity-form textarea { width: 100%; padding: 0.5rem 0.75rem; border: 2px solid var(--support-border); border-radius: 8px; font-size: 0.95rem; box-sizing: border-box; }
@@ -139,7 +141,10 @@
         options = options || {};
         var h = { 'X-CSRFToken': getToken(), 'Accept': 'application/json' };
         if (options.body && !(options.body instanceof FormData)) h['Content-Type'] = 'application/x-www-form-urlencoded';
-        return fetch(url, { credentials: 'same-origin', headers: h }).then(function(r) { return r.json().catch(function() { return {}; }); });
+        var fetchOpts = { credentials: 'same-origin', headers: h };
+        if (options.method) fetchOpts.method = options.method;
+        if (options.body) fetchOpts.body = options.body;
+        return fetch(url, fetchOpts).then(function(r) { return r.json().catch(function() { return {}; }); });
     };
     var post = function(url, data) {
         var body = new FormData();
@@ -188,11 +193,20 @@
         api('/api/support/my-tickets/').then(function(d) {
             var list = document.getElementById('farmityMyTicketsList');
             if (!d.tickets || d.tickets.length === 0) { list.innerHTML = '<div class="farmity-empty">No tickets yet.</div>'; return; }
+            var ended = { answered: 1, closed: 1 };
             list.innerHTML = d.tickets.map(function(t) {
-                return '<div class="farmity-ticket-item" data-id="' + t.id + '"><div class="subj">' + escapeHtml(t.subject) + '</div><div class="meta">#' + t.id + ' · ' + escapeHtml(t.updated_at) + '</div><span class="stag ' + t.status + '">' + escapeHtml(t.status_display) + '</span></div>';
+                var endedClass = ended[t.status] ? ' farmity-ticket-ended' : '';
+                return '<div class="farmity-ticket-item' + endedClass + '" data-id="' + t.id + '" data-status="' + escapeHtml(t.status) + '"><div class="subj">' + escapeHtml(t.subject) + '</div><div class="meta">#' + t.id + ' · ' + escapeHtml(t.updated_at) + (ended[t.status] ? ' · Ended' : '') + '</div><span class="stag ' + t.status + '">' + escapeHtml(t.status_display) + '</span></div>';
             }).join('');
             list.querySelectorAll('.farmity-ticket-item').forEach(function(item) {
-                item.addEventListener('click', function() { showTicket(parseInt(item.getAttribute('data-id'), 10)); });
+                item.addEventListener('click', function() {
+                    var status = item.getAttribute('data-status');
+                    if (status === 'answered' || status === 'closed') {
+                        alert('This conversation has ended and can no longer be opened.');
+                        return;
+                    }
+                    showTicket(parseInt(item.getAttribute('data-id'), 10));
+                });
             });
         });
     }
