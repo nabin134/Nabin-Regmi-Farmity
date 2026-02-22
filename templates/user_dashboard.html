@@ -2506,7 +2506,7 @@
                     <textarea name="notes" class="form-control" rows="2" placeholder="Any special instructions..."></textarea>
                 </div>
 
-                <button type="submit" class="btn-primary" style="width: 100%;">
+                <button type="submit" class="btn-primary" id="purchaseCropSubmitBtn" style="width: 100%;">
                     <i class="fas fa-shopping-cart"></i> Place Order
                 </button>
             </form>
@@ -2591,7 +2591,7 @@
                     <textarea name="notes" class="form-control" rows="2" placeholder="Any special instructions..."></textarea>
                 </div>
 
-                <button type="submit" class="btn-primary" style="width: 100%;">
+                <button type="submit" class="btn-primary" id="purchaseToolSubmitBtn" style="width: 100%;">
                     <i class="fas fa-shopping-cart"></i> Place Order
                 </button>
             </form>
@@ -2630,11 +2630,11 @@
                     <label style="font-weight: 600;">Payment Method <span style="color: red;">*</span></label>
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                         <label style="flex: 1; min-width: 180px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: white;">
-                            <input type="radio" name="payment_method" value="cod" checked style="margin-right: 0.5rem;">
+                            <input type="radio" name="payment_method" value="cod" checked style="margin-right: 0.5rem;" onchange="updateCheckoutCartButtonText()">
                             <i class="fas fa-money-bill-wave" style="color: var(--primary);"></i> Cash on Delivery
                         </label>
                         <label style="flex: 1; min-width: 180px; padding: 1rem; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: white;">
-                            <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;">
+                            <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;" onchange="updateCheckoutCartButtonText()">
                             <i class="fas fa-mobile-alt" style="color: #5B5FEF;"></i> eSewa
                         </label>
                     </div>
@@ -2647,7 +2647,7 @@
                     <label>Notes (Optional)</label>
                     <textarea name="notes" class="form-control" rows="2" placeholder="Any special instructions..."></textarea>
                 </div>
-                <button type="submit" class="btn-primary" style="width: 100%; padding: 1rem;">
+                <button type="submit" class="btn-primary" id="checkoutCartSubmitBtn" style="width: 100%; padding: 1rem;">
                     <i class="fas fa-lock"></i> Place order — Pay on delivery
                 </button>
             </form>
@@ -3155,6 +3155,7 @@
             const payload = cart.map(item => ({ type: item.type, id: item.id, quantity: item.quantity || 1, name: item.name }));
             document.getElementById('checkoutCartItemsInput').value = JSON.stringify(payload);
             document.getElementById('checkoutCartModal').classList.add('active');
+            updateCheckoutCartButtonText();
         }
 
         function openPurchaseCropModal(cropId, cropName, price, available, unit, imageUrl) {
@@ -3220,6 +3221,30 @@
             } else {
                 if (esewaCropInfo) esewaCropInfo.style.display = 'none';
                 if (esewaToolInfo) esewaToolInfo.style.display = 'none';
+            }
+            // Update submit button text: "Place order and continue with eSewa" vs "Place Order"
+            const form = radio.closest('form');
+            if (form) {
+                const btn = form.querySelector('button[type="submit"]');
+                if (btn) {
+                    if (radio.value === 'esewa') {
+                        btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Place order and continue with eSewa';
+                    } else {
+                        btn.innerHTML = '<i class="fas fa-shopping-cart"></i> Place Order';
+                    }
+                }
+            }
+        }
+
+        function updateCheckoutCartButtonText() {
+            const btn = document.getElementById('checkoutCartSubmitBtn');
+            if (!btn) return;
+            const form = document.getElementById('checkoutCartForm');
+            const selected = form && form.querySelector('input[name="payment_method"]:checked');
+            if (selected && selected.value === 'esewa') {
+                btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Place order and continue with eSewa';
+            } else {
+                btn.innerHTML = '<i class="fas fa-lock"></i> Place order — Pay on delivery';
             }
         }
 

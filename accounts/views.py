@@ -1097,11 +1097,14 @@ def esewa_initiate(request):
     request.session['esewa_order_ids'] = order_ids
     request.session.modified = True
 
+    from django.conf import settings
+    esewa_use_uat = getattr(settings, 'ESEWA_USE_UAT', True)
     return render(request, 'esewa_redirect.html', {
         'form_url': form_url,
         'form_data': form_data,
         'total_amount': total_amount,
         'order_count': len(order_ids),
+        'esewa_use_uat': esewa_use_uat,
     })
 
 

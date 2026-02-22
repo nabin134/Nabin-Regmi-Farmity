@@ -54,23 +54,27 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            gap: 0.5rem;
             margin-bottom: 1rem;
         }
-        .logo-icon {
-            width: 40px;
-            height: 40px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.4rem;
+        .logo-row img.farmity-logo {
+            max-height: 48px;
+            width: auto;
+            max-width: 160px;
+            object-fit: contain;
+            display: block;
         }
-        .logo-text {
+        .logo-row .logo-fallback {
+            display: none;
             font-size: 1.5rem;
             font-weight: 700;
             letter-spacing: -0.02em;
+            color: white;
+        }
+        .logo-row img.farmity-logo[data-failed="1"] {
+            display: none;
+        }
+        .logo-row img.farmity-logo[data-failed="1"] ~ .logo-fallback {
+            display: block;
         }
         .payment-header h1 {
             font-size: 1.35rem;
@@ -195,8 +199,8 @@
     <div class="payment-container">
         <div class="payment-header">
             <div class="logo-row">
-                <span class="logo-icon">🌾</span>
-                <span class="logo-text">Farmity</span>
+                <img src="/static/images/Farmity%20logo.png" alt="Farmity" class="farmity-logo" onerror="this.setAttribute('data-failed','1');">
+                <span class="logo-fallback">Farmity</span>
             </div>
             <h1>Pay with eSewa</h1>
             <p>Secure payment powered by eSewa</p>
@@ -216,6 +220,12 @@
                 <span>eSewa</span>
             </div>
 
+            {% if esewa_use_uat %}
+            <div class="uat-test-note" style="background: #fff8e1; border: 1px solid #ffc107; border-radius: 12px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: #856404; text-align: left;">
+                <strong>Test environment:</strong> Use eSewa ID <strong>9806800001</strong>, Password <strong>Nepal@123</strong>, Token <strong>123456</strong> to complete payment.
+            </div>
+            {% endif %}
+
             <div class="spinner-wrap">
                 <div class="spinner"></div>
             </div>
@@ -231,7 +241,7 @@
             </form>
             <button type="button" class="btn-esewa" id="btnContinue" onclick="document.getElementById('esewaForm').submit();">
                 <i class="fas fa-external-link-alt"></i>
-                Continue to eSewa
+                Continue with eSewa
             </button>
 
             <div class="secure-note">
