@@ -1,25 +1,33 @@
 """
 eSewa ePay V2 integration (Nepal).
 See: https://developer.esewa.com.np/pages/Epay-V2
+Real-time verification: after success redirect, verify transaction with eSewa Status Check API.
 """
 import base64
 import hashlib
 import hmac
+import json
 from decimal import Decimal
+from urllib.parse import urlencode
+from urllib.request import urlopen, Request
+from urllib.error import URLError, HTTPError
+
 from django.conf import settings
 from django.urls import reverse
 
 
 def get_esewa_config():
-    """Return eSewa merchant code, secret, and form URL (UAT or production)."""
+    """Return eSewa merchant code, secret, form URL and status-check URL (UAT or production)."""
     merchant_code = getattr(settings, 'ESEWA_MERCHANT_CODE', '') or ''
     secret = getattr(settings, 'ESEWA_SECRET_KEY', '') or ''
     use_uat = getattr(settings, 'ESEWA_USE_UAT', True)
     if use_uat:
         form_url = 'https://rc-epay.esewa.com.np/api/epay/main/v2/form'
+        status_check_url = 'https://uat.esewa.com.np/api/epay/transaction/status/'
     else:
         form_url = 'https://epay.esewa.com.np/api/epay/main/v2/form'
-    return merchant_code, secret, form_url
+        status_check_url = 'https://epay.esewa.com.np/api/epay/transaction/status/'
+    return merchant_code, secret, form_url, status_check_url
 
 
 def esewa_sign_message(message: str, secret: str) -> str:
@@ -48,7 +56,7 @@ def esewa_build_form_data(
     total_amount: decimal or number (NPR). amount = total - tax - service - delivery (we use amount = total, others 0).
     transaction_uuid: unique ref (e.g. order-123 or cart-abc).
     """
-    merchant_code, _secret, _ = get_esewa_config()
+    merchant_code, _secret, _, _ = get_esewa_config()
     product_code = product_code or merchant_code
     secret = secret or _secret
     if not product_code or not secret:
@@ -78,6 +86,33 @@ def esewa_build_form_data(
         'signed_field_names': signed_field_names,
         'signature': signature,
     }
+
+
+def esewa_verify_transaction_realtime(transaction_uuid: str, total_amount, product_code: str):
+    """
+    Verify transaction with eSewa Status Check API (real-time).
+    total_amount: int or float (NPR).
+    Returns: dict with status, ref_id, product_code, total_amount, transaction_uuid; or None on error.
+    status is one of: COMPLETE, PENDING, NOT_FOUND, CANCELED, FULL_REFUND, PARTIAL_REFUND, AMBIGUOUS.
+    """
+    _, _, _, status_check_url = get_esewa_config()
+    total_str = str(int(round(float(total_amount))))
+    params = urlencode({
+        'product_code': product_code,
+        'total_amount': total_str,
+        'transaction_uuid': transaction_uuid,
+    })
+    url = status_check_url.rstrip('/') + '/?' + params
+    try:
+        req = Request(url, headers={'User-Agent': 'Farmity/1.0'})
+        with urlopen(req, timeout=15) as resp:
+            body = resp.read().decode('utf-8')
+    except (URLError, HTTPError, OSError, Exception):
+        return None
+    try:
+        return json.loads(body)
+    except json.JSONDecodeError:
+        return None
 
 
 def esewa_verify_callback_signature(data: dict, secret: str) -> bool:

@@ -1043,7 +1043,7 @@ def esewa_initiate(request):
     from .esewa import get_esewa_config, esewa_build_form_data
     from .models import Order
 
-    merchant_code, secret, form_url = get_esewa_config()
+    merchant_code, secret, form_url, _ = get_esewa_config()
     if not merchant_code or not secret:
         messages.error(request, 'eSewa is not configured. Please use Cash on Delivery.')
         return _redirect_to_role_home_response(request.user)
@@ -1149,10 +1149,32 @@ def esewa_success(request):
         return redirect(reverse('user_dashboard'))
 
     from .esewa import esewa_verify_callback_signature
-    _, secret, _ = get_esewa_config()
+    _, secret, _, _ = get_esewa_config()
     if not secret or not esewa_verify_callback_signature(data, secret):
         messages.error(request, 'Payment verification failed.')
         return redirect(reverse('user_dashboard'))
+
+    # Real-time verification: confirm with eSewa Status Check API before marking paid
+    from .esewa import esewa_verify_transaction_realtime
+    transaction_uuid = data.get('transaction_uuid', '')
+    total_amount_callback = data.get('total_amount')
+    product_code_callback = data.get('product_code', '')
+    verification = esewa_verify_transaction_realtime(transaction_uuid, total_amount_callback, product_code_callback)
+    if not verification or verification.get('status') != 'COMPLETE':
+        err_msg = verification.get('error_message') if verification else 'Could not verify payment with eSewa.'
+        if verification and verification.get('status'):
+            err_msg = f"Payment status: {verification.get('status')}. Only completed payments are accepted."
+        messages.error(request, err_msg or 'Payment could not be verified. Please try again or contact support.')
+        return redirect(reverse('user_dashboard'))
+    # Optional: ensure amount matches (fraud check)
+    try:
+        verified_total = float(verification.get('total_amount', 0))
+        expected_total = float(total_amount_callback)
+        if abs(verified_total - expected_total) > 0.01:
+            messages.error(request, 'Payment amount mismatch. Please contact support.')
+            return redirect(reverse('user_dashboard'))
+    except (TypeError, ValueError):
+        pass
 
     transaction_uuid = data.get('transaction_uuid', '')
     if transaction_uuid.startswith('order-'):
