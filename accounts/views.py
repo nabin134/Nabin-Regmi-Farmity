@@ -41,9 +41,11 @@ from .models import (
     SupportStaffProfile,
     SupportTicket,
     SupportMessage,
+    UserNotification,
 )
 from .serializers import SignupSerializer, LoginSerializer, UserSerializer, OTPVerificationSerializer
 from .decorators import kyc_required, kyc_optional
+from .notifications import create_notification
 
 # Password reset tokens storage (in production, use Redis or database)
 password_reset_tokens = {}
@@ -1672,6 +1674,15 @@ def farmer_dashboard(request):
                 if tool.stock_quantity == 0:
                     tool.is_available = False
                 tool.save()
+                vendor_user = getattr(tool.vendor, 'user', None)
+                if vendor_user:
+                    create_notification(
+                        vendor_user,
+                        'New tool order',
+                        f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f}',
+                        reverse('vendor_dashboard'),
+                        UserNotification.TYPE_ORDER
+                    )
                 if payment_method == Order.PAYMENT_ESEWA:
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
                 messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
@@ -2264,6 +2275,13 @@ def expert_dashboard(request):
                 appointment.status = ExpertAppointment.STATUS_ACCEPTED
                 appointment.response_message = response_message or 'Appointment accepted. Looking forward to our session.'
                 appointment.save()
+                create_notification(
+                    appointment.requester,
+                    'Appointment accepted',
+                    f'Your appointment with {profile.name or profile.user.email} on {appointment.date} has been accepted.',
+                    reverse('user_dashboard') + '?section=appointments',
+                    UserNotification.TYPE_APPOINTMENT
+                )
                 messages.success(request, 'Appointment accepted! The requester will see your response.')
             elif 'reject_appointment' in request.POST:
                 if not response_message:
@@ -2272,6 +2290,13 @@ def expert_dashboard(request):
                 appointment.status = ExpertAppointment.STATUS_REJECTED
                 appointment.response_message = response_message
                 appointment.save()
+                create_notification(
+                    appointment.requester,
+                    'Appointment not accepted',
+                    f'Your appointment with {profile.name or profile.user.email} on {appointment.date} was not accepted. Reason: ' + (response_message or 'See your appointments.'),
+                    reverse('user_dashboard') + '?section=appointments',
+                    UserNotification.TYPE_APPOINTMENT
+                )
                 messages.success(request, 'Appointment rejected. The requester will see your reason.')
         except ExpertAppointment.DoesNotExist:
             messages.error(request, 'Appointment not found!')
@@ -2494,6 +2519,15 @@ def user_dashboard(request):
                     sold_to=request.user,
                     sold_at=timezone.now()
                 )
+                farmer_user = getattr(crop.farmer, 'user', None)
+                if farmer_user:
+                    create_notification(
+                        farmer_user,
+                        'New order for your crop',
+                        f'Order #{order.id}: {crop.name} x{int(round(quantity))} — Rs. {total_amount:.2f}',
+                        reverse('farmer_dashboard') + '?section=orders',
+                        UserNotification.TYPE_ORDER
+                    )
                 if payment_method == Order.PAYMENT_ESEWA:
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
                 messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
@@ -2540,6 +2574,15 @@ def user_dashboard(request):
                 if tool.stock_quantity == 0:
                     tool.is_available = False
                 tool.save()
+                vendor_user = getattr(tool.vendor, 'user', None)
+                if vendor_user:
+                    create_notification(
+                        vendor_user,
+                        'New tool order',
+                        f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f}',
+                        reverse('vendor_dashboard'),
+                        UserNotification.TYPE_ORDER
+                    )
                 if payment_method == Order.PAYMENT_ESEWA:
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
                 messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
@@ -2618,6 +2661,15 @@ def user_dashboard(request):
                         sold_to=request.user,
                         sold_at=timezone.now()
                     )
+                    farmer_user = getattr(crop.farmer, 'user', None)
+                    if farmer_user:
+                        create_notification(
+                            farmer_user,
+                            'New order for your crop',
+                            f'Order #{order.id}: {crop.name} x{int(round(qty))} — Rs. {total_amount:.2f}',
+                            reverse('farmer_dashboard') + '?section=orders',
+                            UserNotification.TYPE_ORDER
+                        )
                     orders_created.append(order)
                 except FarmerProduct.DoesNotExist:
                     errors.append(f"Crop (id {item_id}) no longer available")
@@ -2645,6 +2697,15 @@ def user_dashboard(request):
                     if tool.stock_quantity == 0:
                         tool.is_available = False
                     tool.save()
+                    vendor_user = getattr(tool.vendor, 'user', None)
+                    if vendor_user:
+                        create_notification(
+                            vendor_user,
+                            'New tool order',
+                            f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f}',
+                            reverse('vendor_dashboard'),
+                            UserNotification.TYPE_ORDER
+                        )
                     orders_created.append(order)
                 except VendorTool.DoesNotExist:
                     errors.append(f"Tool (id {item_id}) no longer available")
@@ -2966,6 +3027,13 @@ def admin_kyc_management(request):
                 kyc.save()
                 kyc.user.is_verified = True
                 kyc.user.save()
+                create_notification(
+                    kyc.user,
+                    'KYC approved',
+                    'Your KYC verification has been approved. You now have full access to your account features.',
+                    reverse('kyc_page') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile_page'),
+                    UserNotification.TYPE_KYC
+                )
                 messages.success(request, f'KYC request for {kyc.user.email} has been approved.')
             elif action == 'reject':
                 if not rejection_reason:
@@ -2978,6 +3046,13 @@ def admin_kyc_management(request):
                     kyc.save()
                     kyc.user.is_verified = False
                     kyc.user.save()
+                    create_notification(
+                        kyc.user,
+                        'KYC rejected',
+                        'Your KYC verification was not approved. Reason: ' + (rejection_reason or 'See details in KYC page.'),
+                        reverse('kyc_page') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile_page'),
+                        UserNotification.TYPE_KYC
+                    )
                     messages.success(request, f'KYC request for {kyc.user.email} has been rejected.')
             elif action == 'edit_kyc':
                 # Update KYC details
@@ -4283,6 +4358,14 @@ def api_support_reply(request, ticket_id):
     if is_staff and ticket.status == SupportTicket.STATUS_OPEN:
         ticket.status = SupportTicket.STATUS_IN_PROGRESS
     ticket.save()
+    if is_staff and ticket.user_id != request.user.id:
+        create_notification(
+            ticket.user,
+            'New reply on your support ticket',
+            f'#{ticket.id}: {ticket.subject}',
+            reverse('support_ticket', args=[ticket.id]),
+            UserNotification.TYPE_SUPPORT
+        )
     return JsonResponse({'ok': True})
 
 
@@ -4334,4 +4417,42 @@ def api_support_status(request, ticket_id):
     ticket.status = status_val
     ticket.updated_at = timezone.now()
     ticket.save()
+    return JsonResponse({'ok': True})
+
+
+# ---------- Notifications API (for bell dropdown on all user dashboards) ----------
+@login_required
+def api_notifications_list(request):
+    """GET: list recent notifications for current user (JSON)."""
+    limit = min(int(request.GET.get('limit', 20)), 50)
+    qs = UserNotification.objects.filter(user=request.user).order_by('-created_at')[:limit]
+    unread_count = UserNotification.objects.filter(user=request.user, is_read=False).count()
+    items = [{
+        'id': n.id,
+        'title': n.title,
+        'message': n.message,
+        'link': n.link,
+        'type': n.notification_type,
+        'is_read': n.is_read,
+        'created_at': n.created_at.strftime('%b %d, %H:%M'),
+    } for n in qs]
+    return JsonResponse({'notifications': items, 'unread_count': unread_count})
+
+
+@login_required
+def api_notification_mark_read(request, notification_id):
+    """POST: mark one notification as read."""
+    try:
+        n = UserNotification.objects.get(id=notification_id, user=request.user)
+    except UserNotification.DoesNotExist:
+        return JsonResponse({'error': 'Not found'}, status=404)
+    n.is_read = True
+    n.save()
+    return JsonResponse({'ok': True})
+
+
+@login_required
+def api_notification_mark_all_read(request):
+    """POST: mark all notifications as read for current user."""
+    UserNotification.objects.filter(user=request.user, is_read=False).update(is_read=True)
     return JsonResponse({'ok': True})

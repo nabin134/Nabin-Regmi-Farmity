@@ -1,4 +1,5 @@
 from django.db import models
+from django.conf import settings
 from django.contrib.auth.models import (
     AbstractBaseUser, PermissionsMixin, BaseUserManager
 )
@@ -506,3 +507,39 @@ class SupportMessage(models.Model):
 
     def __str__(self):
         return f"Msg {self.id} (Ticket #{self.ticket_id})"
+
+
+class UserNotification(models.Model):
+    """In-app notifications for users (orders, KYC, appointments, support, etc.)."""
+    TYPE_ORDER = 'order'
+    TYPE_KYC = 'kyc'
+    TYPE_APPOINTMENT = 'appointment'
+    TYPE_SUPPORT = 'support'
+    TYPE_CHAT = 'chat'
+    TYPE_INFO = 'info'
+    TYPE_CHOICES = (
+        (TYPE_ORDER, 'Order'),
+        (TYPE_KYC, 'KYC'),
+        (TYPE_APPOINTMENT, 'Appointment'),
+        (TYPE_SUPPORT, 'Support'),
+        (TYPE_CHAT, 'Chat'),
+        (TYPE_INFO, 'Info'),
+    )
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name='notifications'
+    )
+    title = models.CharField(max_length=255)
+    message = models.TextField(blank=True)
+    link = models.CharField(max_length=500, blank=True, help_text='URL or hash to open when clicked')
+    notification_type = models.CharField(max_length=20, choices=TYPE_CHOICES, default=TYPE_INFO)
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('-created_at',)
+
+    def __str__(self):
+        return f"{self.title} ({self.user.email})"

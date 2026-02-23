@@ -20,6 +20,7 @@ from .models import (
     SupportStaffProfile,
     SupportTicket,
     SupportMessage,
+    UserNotification,
 )
 
 
@@ -126,3 +127,12 @@ class SupportTicketAdmin(admin.ModelAdmin):
 class SupportMessageAdmin(admin.ModelAdmin):
     list_display = ('id', 'ticket', 'sender', 'created_at')
     raw_id_fields = ('ticket', 'sender')
+
+
+@admin.register(UserNotification)
+class UserNotificationAdmin(admin.ModelAdmin):
+    list_display = ('id', 'user', 'title', 'notification_type', 'is_read', 'created_at')
+    list_filter = ('notification_type', 'is_read')
+    search_fields = ('title', 'message', 'user__email')
+    raw_id_fields = ('user',)
+    readonly_fields = ('created_at',)

@@ -17,6 +17,7 @@ from .views import (
     api_support_config, api_support_faqs, api_support_my_tickets, api_support_create_ticket,
     api_support_ticket_detail, api_support_reply, api_support_open_tickets,
     api_support_assign, api_support_status,
+    api_notifications_list, api_notification_mark_read, api_notification_mark_all_read,
 )
 urlpatterns = [
     # Frontend pages
@@ -69,6 +70,9 @@ urlpatterns = [
     path('api/support/open-tickets/', api_support_open_tickets, name='api_support_open_tickets'),
     path('api/support/tickets/<int:ticket_id>/assign/', api_support_assign, name='api_support_assign'),
     path('api/support/tickets/<int:ticket_id>/status/', api_support_status, name='api_support_status'),
+    path('api/notifications/', api_notifications_list, name='api_notifications_list'),
+    path('api/notifications/<int:notification_id>/read/', api_notification_mark_read, name='api_notification_mark_read'),
+    path('api/notifications/mark-all-read/', api_notification_mark_all_read, name='api_notification_mark_all_read'),
     path('logout/', logout_view, name='logout'),
 ]
 
