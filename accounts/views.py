@@ -130,8 +130,8 @@ def _redirect_to_role_home(user):
             return reverse('kyc')
     
     # Redirect to appropriate dashboard - return URL path.
-    # Only staff/superuser go to admin panel; after Google sign-in/login, normal users must not land on admin.
-    if user.role == 'admin' and (user.is_staff or user.is_superuser):
+    # Only staff/superuser with admin role go to admin panel (prevents new signups from landing there).
+    if user.role == 'admin' and (getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False)):
         return reverse('admin_dashboard')
     if user.role == 'farmer':
         return reverse('farmer_dashboard')
@@ -140,7 +140,7 @@ def _redirect_to_role_home(user):
     if user.role == 'agricultural_expert':
         return reverse('expert_dashboard')
     if user.role == 'admin':
-        # Non-staff user with admin role: send to user dashboard, not admin panel
+        # Admin role but not staff/superuser: treat as normal user (e.g. misconfigured or new account)
         return reverse('user_dashboard')
     if user.role == 'buyer':
         return reverse('user_dashboard')
