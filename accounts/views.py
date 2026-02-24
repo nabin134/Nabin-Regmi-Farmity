@@ -1183,12 +1183,14 @@ def esewa_success(request):
     # If verification is None (API timeout/unavailable), accept callback: signature already verified and status is COMPLETE
 
     transaction_uuid = data.get('transaction_uuid', '')
+    order_ids_to_notify = []
     if transaction_uuid.startswith('order-'):
         try:
             order_id = int(transaction_uuid.replace('order-', ''))
             Order.objects.filter(id=order_id, payment_method=Order.PAYMENT_ESEWA).update(
                 payment_status=Order.PAYMENT_STATUS_COMPLETED
             )
+            order_ids_to_notify = [order_id]
         except ValueError:
             pass
     elif transaction_uuid.startswith('cart-'):
@@ -1197,6 +1199,7 @@ def esewa_success(request):
             Order.objects.filter(id__in=order_ids, payment_method=Order.PAYMENT_ESEWA).update(
                 payment_status=Order.PAYMENT_STATUS_COMPLETED
             )
+            order_ids_to_notify = list(order_ids)
         request.session.pop('esewa_order_ids', None)
         request.session.pop('esewa_pending_order_ids', None)
         request.session.pop('esewa_transaction_ref', None)
@@ -1204,6 +1207,36 @@ def esewa_success(request):
     request.session.pop('esewa_transaction_ref', None)
     request.session.pop('esewa_order_ids', None)
     request.session.pop('esewa_pending_order_ids', None)
+
+    # Notify buyer and seller (vendor/farmer) for each paid order
+    if order_ids_to_notify:
+        orders = Order.objects.filter(id__in=order_ids_to_notify).select_related(
+            'buyer', 'tool', 'tool__vendor', 'crop', 'crop__farmer'
+        )
+        for order in orders:
+            item_name = (order.tool.name if order.tool else order.crop.name) if (order.tool or order.crop) else 'Order'
+            amt = float(order.total_amount)
+            if order.buyer:
+                create_notification(
+                    order.buyer,
+                    'Payment successful',
+                    f'Payment of Rs. {amt:.2f} received for Order #{order.id} ({item_name}).',
+                    reverse('user_dashboard') + '?section=orders',
+                    UserNotification.TYPE_ORDER
+                )
+            seller_user = None
+            if order.tool and getattr(order.tool.vendor, 'user', None):
+                seller_user = order.tool.vendor.user
+            elif order.crop and getattr(order.crop.farmer, 'user', None):
+                seller_user = order.crop.farmer.user
+            if seller_user:
+                create_notification(
+                    seller_user,
+                    'Payment received',
+                    f'Order #{order.id}: {item_name} — Rs. {amt:.2f} paid by buyer.',
+                    reverse('vendor_dashboard') if order.tool else (reverse('farmer_dashboard') + '?section=orders'),
+                    UserNotification.TYPE_ORDER
+                )
 
     messages.success(request, 'Payment successful! Your order has been confirmed.')
     redirect_url = reverse(redirect_after)
@@ -1588,6 +1621,13 @@ def farmer_dashboard(request):
             if request.FILES.get('product_image'):
                 product.image = request.FILES.get('product_image')
                 product.save()
+            create_notification(
+                request.user,
+                'Crop listed',
+                f'"{product.name}" is now available for buyers.',
+                reverse('farmer_dashboard'),
+                UserNotification.TYPE_ORDER
+            )
             messages.success(request, 'Crop added successfully!')
         return _redirect_same_page(request, 'farmer_dashboard')
 
@@ -1683,6 +1723,13 @@ def farmer_dashboard(request):
                         reverse('vendor_dashboard'),
                         UserNotification.TYPE_ORDER
                     )
+                create_notification(
+                    request.user,
+                    'Order placed',
+                    f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f}',
+                    reverse('farmer_dashboard') + '?section=tools',
+                    UserNotification.TYPE_ORDER
+                )
                 if payment_method == Order.PAYMENT_ESEWA:
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
                 messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
@@ -1756,6 +1803,22 @@ def farmer_dashboard(request):
                 if tool.stock_quantity == 0:
                     tool.is_available = False
                 tool.save()
+                vendor_user = getattr(tool.vendor, 'user', None)
+                if vendor_user:
+                    create_notification(
+                        vendor_user,
+                        'New tool order',
+                        f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f}',
+                        reverse('vendor_dashboard'),
+                        UserNotification.TYPE_ORDER
+                    )
+                create_notification(
+                    request.user,
+                    'Order placed',
+                    f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f}',
+                    reverse('farmer_dashboard') + '?section=tools',
+                    UserNotification.TYPE_ORDER
+                )
                 orders_created.append(order)
             except VendorTool.DoesNotExist:
                 errors.append(f"Tool (id {item_id}) no longer available")
@@ -1996,6 +2059,13 @@ def vendor_dashboard(request):
             if request.FILES.get('image'):
                 tool.image = request.FILES.get('image')
                 tool.save()
+            create_notification(
+                request.user,
+                'Tool added',
+                f'"{tool.name}" has been listed. Buyers can now order it.',
+                reverse('vendor_dashboard'),
+                UserNotification.TYPE_ORDER
+            )
             messages.success(request, 'Tool added successfully!')
         return _redirect_same_page(request, 'vendor_dashboard')
     
@@ -2052,6 +2122,17 @@ def vendor_dashboard(request):
             if tracking_number:
                 order.tracking_number = tracking_number
             order.save()
+            # Notify buyer when order is shipped or delivered
+            if order.buyer and new_status in (Order.STATUS_SHIPPED, Order.STATUS_DELIVERED):
+                status_label = order.get_status_display()
+                create_notification(
+                    order.buyer,
+                    f'Order #{order.id} {status_label.lower()}',
+                    f'Your order for {order.tool.name if order.tool else "item"} is now {status_label.lower()}.'
+                    + (f' Tracking: {tracking_number}' if tracking_number else ''),
+                    reverse('user_dashboard') + '?section=orders',
+                    UserNotification.TYPE_ORDER
+                )
             messages.success(request, f'Order #{order_id} status updated to {order.get_status_display()}')
         except Order.DoesNotExist:
             messages.error(request, 'Order not found!')
@@ -2528,6 +2609,13 @@ def user_dashboard(request):
                         reverse('farmer_dashboard') + '?section=orders',
                         UserNotification.TYPE_ORDER
                     )
+                create_notification(
+                    request.user,
+                    'Order placed',
+                    f'Order #{order.id}: {crop.name} x{int(round(quantity))} — Rs. {total_amount:.2f}',
+                    reverse('user_dashboard') + '?section=orders',
+                    UserNotification.TYPE_ORDER
+                )
                 if payment_method == Order.PAYMENT_ESEWA:
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
                 messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
@@ -2583,6 +2671,13 @@ def user_dashboard(request):
                         reverse('vendor_dashboard'),
                         UserNotification.TYPE_ORDER
                     )
+                create_notification(
+                    request.user,
+                    'Order placed',
+                    f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f}',
+                    reverse('user_dashboard') + '?section=orders',
+                    UserNotification.TYPE_ORDER
+                )
                 if payment_method == Order.PAYMENT_ESEWA:
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
                 messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
@@ -2670,6 +2765,13 @@ def user_dashboard(request):
                             reverse('farmer_dashboard') + '?section=orders',
                             UserNotification.TYPE_ORDER
                         )
+                    create_notification(
+                        request.user,
+                        'Order placed',
+                        f'Order #{order.id}: {crop.name} x{int(round(qty))} — Rs. {total_amount:.2f}',
+                        reverse('user_dashboard') + '?section=orders',
+                        UserNotification.TYPE_ORDER
+                    )
                     orders_created.append(order)
                 except FarmerProduct.DoesNotExist:
                     errors.append(f"Crop (id {item_id}) no longer available")
@@ -2706,6 +2808,13 @@ def user_dashboard(request):
                             reverse('vendor_dashboard'),
                             UserNotification.TYPE_ORDER
                         )
+                    create_notification(
+                        request.user,
+                        'Order placed',
+                        f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f}',
+                        reverse('user_dashboard') + '?section=orders',
+                        UserNotification.TYPE_ORDER
+                    )
                     orders_created.append(order)
                 except VendorTool.DoesNotExist:
                     errors.append(f"Tool (id {item_id}) no longer available")
@@ -3587,7 +3696,9 @@ def admin_marketplace_oversight(request):
         elif action == 'edit_order':
             order_id = request.POST.get('order_id')
             try:
-                order = Order.objects.get(id=order_id)
+                order = Order.objects.select_related('buyer', 'tool', 'tool__vendor', 'crop', 'crop__farmer').get(id=order_id)
+                old_status = order.status
+                old_payment_status = order.payment_status or ''
                 order.status = request.POST.get('status', order.status)
                 order.payment_status = request.POST.get('payment_status', order.payment_status)
                 order.payment_method = request.POST.get('payment_method', order.payment_method)
@@ -3599,6 +3710,43 @@ def admin_marketplace_oversight(request):
                     order.order_email = request.POST.get('order_email', '') or None
                 order.notes = request.POST.get('notes', order.notes)
                 order.save()
+                # Notify buyer when status changes to Shipped/Delivered
+                if order.buyer and order.status != old_status and order.status in (Order.STATUS_SHIPPED, Order.STATUS_DELIVERED):
+                    status_label = order.get_status_display()
+                    item_name = (order.tool.name if order.tool else order.crop.name) if (order.tool or order.crop) else 'item'
+                    create_notification(
+                        order.buyer,
+                        f'Order #{order.id} {status_label.lower()}',
+                        f'Your order for {item_name} is now {status_label.lower()}.'
+                        + (f' Tracking: {order.tracking_number}' if order.tracking_number else ''),
+                        reverse('user_dashboard') + '?section=orders',
+                        UserNotification.TYPE_ORDER
+                    )
+                # Notify buyer and seller when payment status changes to completed
+                if order.payment_status == Order.PAYMENT_STATUS_COMPLETED and order.payment_status != old_payment_status:
+                    item_name = (order.tool.name if order.tool else order.crop.name) if (order.tool or order.crop) else 'Order'
+                    amt = float(order.total_amount)
+                    if order.buyer:
+                        create_notification(
+                            order.buyer,
+                            'Payment recorded',
+                            f'Payment of Rs. {amt:.2f} for Order #{order.id} ({item_name}) has been recorded.',
+                            reverse('user_dashboard') + '?section=orders',
+                            UserNotification.TYPE_ORDER
+                        )
+                    seller_user = None
+                    if order.tool and getattr(order.tool.vendor, 'user', None):
+                        seller_user = order.tool.vendor.user
+                    elif order.crop and getattr(order.crop.farmer, 'user', None):
+                        seller_user = order.crop.farmer.user
+                    if seller_user:
+                        create_notification(
+                            seller_user,
+                            'Payment recorded',
+                            f'Order #{order.id}: {item_name} — Rs. {amt:.2f} payment recorded by admin.',
+                            reverse('vendor_dashboard') if order.tool else (reverse('farmer_dashboard') + '?section=orders'),
+                            UserNotification.TYPE_ORDER
+                        )
                 messages.success(request, 'Order updated successfully!')
             except Order.DoesNotExist:
                 messages.error(request, 'Order not found!')
@@ -3961,6 +4109,14 @@ def chat_start(request, expert_id):
         expert=expert,
         created_by=request.user
     )
+    if created and expert.user_id:
+        create_notification(
+            expert.user,
+            'New chat started',
+            f'{request.user.email} started a chat with you.',
+            reverse('chat_thread', kwargs={'thread_id': thread.id}),
+            UserNotification.TYPE_CHAT
+        )
     return redirect('chat_thread', thread_id=thread.id)
 
 
@@ -4004,6 +4160,17 @@ def chat_thread_detail(request, thread_id):
             )
             thread.updated_at = timezone.now()
             thread.save()
+            # Notify the other participant in the chat
+            recipient = thread.created_by if thread.expert.user_id == request.user.id else thread.expert.user
+            if recipient and recipient.id != request.user.id:
+                preview = (message_text[:60] + '…') if len(message_text) > 60 else message_text
+                create_notification(
+                    recipient,
+                    'New chat message',
+                    f'{request.user.email}: {preview}',
+                    reverse('chat_thread', kwargs={'thread_id': thread_id}),
+                    UserNotification.TYPE_CHAT
+                )
             return redirect('chat_thread', thread_id=thread_id)
     
     messages_list = ExpertChatMessage.objects.filter(thread=thread).select_related('sender').order_by('created_at')
@@ -4053,7 +4220,7 @@ def api_chat_messages(request, thread_id):
 def api_chat_send(request, thread_id):
     """POST: Send a message. Returns JSON with new message."""
     try:
-        thread = ExpertChatThread.objects.get(id=thread_id)
+        thread = ExpertChatThread.objects.select_related('expert', 'expert__user', 'created_by').get(id=thread_id)
     except ExpertChatThread.DoesNotExist:
         return JsonResponse({'error': 'Thread not found'}, status=404)
     ok, err = _check_chat_access(request, thread)
@@ -4069,6 +4236,17 @@ def api_chat_send(request, thread_id):
     )
     thread.updated_at = timezone.now()
     thread.save()
+    # Notify the other participant in the chat
+    recipient = thread.created_by if thread.expert.user_id == request.user.id else thread.expert.user
+    if recipient and recipient.id != request.user.id:
+        preview = (message_text[:60] + '…') if len(message_text) > 60 else message_text
+        create_notification(
+            recipient,
+            'New chat message',
+            f'{request.user.email}: {preview}',
+            reverse('chat_thread', kwargs={'thread_id': thread_id}),
+            UserNotification.TYPE_CHAT
+        )
     return JsonResponse({
         'id': msg.id,
         'message': msg.message,
@@ -4089,13 +4267,21 @@ def api_chat_start(request, expert_id):
         if kyc_request and kyc_request.status != 'approved':
             return JsonResponse({'error': 'KYC verification required'}, status=403)
     try:
-        expert = ExpertProfile.objects.get(id=expert_id)
+        expert = ExpertProfile.objects.select_related('user').get(id=expert_id)
     except ExpertProfile.DoesNotExist:
         return JsonResponse({'error': 'Expert not found'}, status=404)
-    thread, _ = ExpertChatThread.objects.get_or_create(
+    thread, created = ExpertChatThread.objects.get_or_create(
         expert=expert,
         created_by=request.user
     )
+    if created and getattr(expert, 'user', None):
+        create_notification(
+            expert.user,
+            'New chat started',
+            f'{request.user.email} started a chat with you.',
+            reverse('chat_thread', kwargs={'thread_id': thread.id}),
+            UserNotification.TYPE_CHAT
+        )
     return JsonResponse({
         'thread_id': thread.id,
         'expert_name': expert.name or expert.user.email,
