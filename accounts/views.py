@@ -4071,6 +4071,26 @@ def admin_chat_reports(request):
 
 
 @login_required
+def admin_chat_thread_view(request, thread_id):
+    """Admin read-only view of a single chat thread."""
+    if request.user.role != 'admin':
+        return _redirect_to_role_home_response(request.user)
+    try:
+        thread = ExpertChatThread.objects.select_related(
+            'expert', 'expert__user', 'created_by'
+        ).get(id=thread_id)
+    except ExpertChatThread.DoesNotExist:
+        messages.error(request, 'Chat thread not found.')
+        return redirect('admin_chat_reports')
+    messages_list = ExpertChatMessage.objects.filter(thread=thread).select_related('sender').order_by('created_at')
+    context = {
+        'thread': thread,
+        'messages_list': messages_list,
+    }
+    return render(request, 'admin_chat_thread_view.html', context)
+
+
+@login_required
 def logout_view(request):
     next_url = request.GET.get('next')
     logout(request)

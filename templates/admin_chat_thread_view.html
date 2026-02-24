@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View Chat - Admin</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #358D58;
+            --primary-dark: #2a6f45;
+            --sidebar-width: 280px;
+            --header-height: 70px;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f5f7fa; margin: 0; }
+        .sidebar {
+            position: fixed; left: 0; top: 0; width: var(--sidebar-width); height: 100vh;
+            background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white; z-index: 1000; overflow-y: auto; box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        .sidebar-header { padding: 20px; border-bottom: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; gap: 12px; }
+        .sidebar-header h2 { font-size: 24px; font-weight: 600; }
+        .menu-item {
+            display: flex; align-items: center; gap: 12px; padding: 14px 20px;
+            color: rgba(255,255,255,0.9); text-decoration: none; transition: all 0.3s ease; border-left: 3px solid transparent;
+        }
+        .menu-item:hover, .menu-item.active { background: rgba(255,255,255,0.1); border-left-color: #F29900; color: white; }
+        .menu-item i { width: 20px; text-align: center; }
+        .sidebar-menu { padding: 20px 0; }
+        .main-content { margin-left: var(--sidebar-width); min-height: 100vh; }
+        .top-header {
+            background: white; height: var(--header-height); display: flex; align-items: center; padding: 0 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100;
+        }
+        .header-title { font-size: 24px; font-weight: 600; color: #343a40; }
+        .dashboard-content { padding: 30px; max-width: 800px; margin: 0 auto; }
+        .btn-back {
+            display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: var(--primary); color: white;
+            text-decoration: none; border-radius: 8px; font-weight: 600; margin-bottom: 1.5rem;
+        }
+        .btn-back:hover { background: var(--primary-dark); color: white; }
+        .chat-card {
+            background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); overflow: hidden;
+        }
+        .chat-header {
+            padding: 1rem 1.5rem; border-bottom: 2px solid #f0f0f0; background: #fafafa;
+        }
+        .chat-header h2 { margin: 0; font-size: 1.1rem; color: #1a1a1a; }
+        .chat-header p { margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #666; }
+        .chat-messages {
+            padding: 1.5rem; max-height: 60vh; overflow-y: auto;
+        }
+        .msg { margin-bottom: 1rem; display: flex; }
+        .msg.expert { flex-direction: row; }
+        .msg.user { flex-direction: row-reverse; }
+        .msg-bubble { max-width: 75%; padding: 0.75rem 1rem; border-radius: 12px; }
+        .msg.user .msg-bubble { background: #358D58; color: white; margin-left: auto; }
+        .msg.expert .msg-bubble { background: #f0f0f0; color: #333; }
+        .msg-meta { font-size: 0.75rem; color: #999; margin-top: 0.25rem; }
+        .msg.user .msg-meta { text-align: right; }
+        .empty-msg { text-align: center; color: #999; padding: 2rem; font-size: 0.95rem; }
+        .admin-badge { font-size: 0.7rem; color: #666; margin-top: 2px; }
+    </style>
+</head>
+<body>
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <i class="fas fa-seedling"></i>
+            <h2>Farmity Admin</h2>
+        </div>
+        <nav class="sidebar-menu">
+            <a href="{% url 'admin_dashboard' %}" class="menu-item"><i class="fas fa-chart-line"></i><span>Dashboard</span></a>
+            <a href="{% url 'admin_kyc_management' %}" class="menu-item"><i class="fas fa-id-card"></i><span>KYC Management</span></a>
+            <a href="{% url 'admin_user_management' %}" class="menu-item"><i class="fas fa-users"></i><span>User Management</span></a>
+            <a href="{% url 'admin_content_management' %}" class="menu-item"><i class="fas fa-file-alt"></i><span>Content Management</span></a>
+            <a href="{% url 'admin_marketplace_oversight' %}" class="menu-item"><i class="fas fa-store"></i><span>Marketplace</span></a>
+            <a href="{% url 'admin_appointment_management' %}" class="menu-item"><i class="fas fa-calendar-check"></i><span>Appointments</span></a>
+            <a href="{% url 'admin_chat_reports' %}" class="menu-item active"><i class="fas fa-comments"></i><span>Chat & Reports</span></a>
+            <a href="{% url 'admin_support_desk' %}" class="menu-item"><i class="fas fa-headset"></i><span>Support Desk</span></a>
+            <a href="{% url 'logout' %}" class="menu-item"><i class="fas fa-sign-out-alt"></i><span>Logout</span></a>
+        </nav>
+    </aside>
+
+    <div class="main-content">
+        <header class="top-header">
+            <h1 class="header-title">View Chat (Read-only)</h1>
+        </header>
+        <div class="dashboard-content">
+            <a href="{% url 'admin_chat_reports' %}?section=chats" class="btn-back"><i class="fas fa-arrow-left"></i> Back to Chat Threads</a>
+
+            <div class="chat-card">
+                <div class="chat-header">
+                    <h2>
+                        <i class="fas fa-user-graduate"></i> Expert: {{ thread.expert.name|default:thread.expert.user.email }}
+                        <span style="font-weight:400;color:#666;">|</span>
+                        <i class="fas fa-user"></i> User: {{ thread.created_by.email }}
+                        {% if thread.created_by.role %}<span style="font-weight:400;color:#666;">({{ thread.created_by.get_role_display }})</span>{% endif %}
+                    </h2>
+                    <p>{{ thread.expert.specialization|default:"Agricultural Expert" }} · Thread created {{ thread.created_at|date:"M d, Y" }}</p>
+                </div>
+
+                <div class="chat-messages">
+                    {% if messages_list %}
+                        {% for msg in messages_list %}
+                        <div class="msg {% if msg.sender_id == thread.expert.user_id %}expert{% else %}user{% endif %}">
+                            <div class="msg-bubble">
+                                {{ msg.message|linebreaksbr }}
+                                <div class="msg-meta">{{ msg.created_at|date:"M d, h:i A" }} · {{ msg.sender.email }}{% if msg.sender_id == thread.expert.user_id %} (Expert){% else %} (User){% endif %}</div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-msg">
+                            <i class="fas fa-comment-dots" style="font-size:2rem;margin-bottom:0.5rem;"></i><br>
+                            No messages in this thread.
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
