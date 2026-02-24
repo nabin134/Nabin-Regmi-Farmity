@@ -900,7 +900,7 @@ def landing_page(request):
     crops = FarmerProduct.objects.filter(is_available=True).select_related('farmer', 'farmer__user').order_by('-created_at')[:8]
     tools = VendorTool.objects.filter(is_available=True, stock_quantity__gt=0).select_related('vendor', 'vendor__user').order_by('-created_at')[:8]
     experts = ExpertProfile.objects.select_related('user').all()[:6]
-    farming_tips = FarmingTip.objects.filter(is_published=True).select_related('expert', 'expert__user').order_by('-created_at')[:4]
+    farming_tips = FarmingTip.objects.filter(is_published=True, approval_status=FarmingTip.APPROVAL_APPROVED).select_related('expert', 'expert__user').order_by('-created_at')[:4]
     farmers_count = FarmerProfile.objects.count()
     vendors_count = VendorProfile.objects.count()
     experts_count = ExpertProfile.objects.count()
@@ -1927,7 +1927,7 @@ def farmer_dashboard(request):
     expert_availability_json = json.dumps(expert_availability)
     
     # Get farming tips
-    tips = FarmingTip.objects.filter(is_published=True).select_related('expert', 'expert__user').order_by('-created_at')[:10]
+    tips = FarmingTip.objects.filter(is_published=True, approval_status=FarmingTip.APPROVAL_APPROVED).select_related('expert', 'expert__user').order_by('-created_at')[:10]
     
     # Get appointments
     appointments = ExpertAppointment.objects.filter(requester=request.user).select_related('expert', 'expert__user').order_by('-created_at')
@@ -2262,19 +2262,19 @@ def expert_dashboard(request):
         
         title = request.POST.get('title')
         content = request.POST.get('content')
-        is_published = request.POST.get('is_published') == 'on'
         
         if title and content:
             tip = FarmingTip.objects.create(
                 expert=profile,
                 title=title,
                 content=content,
-                is_published=is_published
+                is_published=False,
+                approval_status=FarmingTip.APPROVAL_PENDING
             )
             if request.FILES.get('image'):
                 tip.image = request.FILES.get('image')
                 tip.save()
-            messages.success(request, 'Content uploaded successfully!')
+            messages.success(request, 'Content submitted for admin approval. It will be visible to users once approved.')
         return _redirect_same_page(request, 'expert_dashboard')
     
     # Handle Edit Tip - Require KYC approval
@@ -2288,7 +2288,8 @@ def expert_dashboard(request):
             tip = FarmingTip.objects.get(id=tip_id, expert=profile)
             tip.title = request.POST.get('title')
             tip.content = request.POST.get('content')
-            tip.is_published = request.POST.get('is_published') == 'on'
+            if tip.approval_status == FarmingTip.APPROVAL_APPROVED:
+                tip.is_published = request.POST.get('is_published') == 'on'
             if request.FILES.get('image'):
                 tip.image = request.FILES.get('image')
             tip.save()
@@ -2895,7 +2896,7 @@ def user_dashboard(request):
     expert_availability_json = json.dumps(expert_availability)
     
     # Get farming tips/content from experts
-    tips = FarmingTip.objects.filter(is_published=True).select_related('expert', 'expert__user').order_by('-created_at')[:10]
+    tips = FarmingTip.objects.filter(is_published=True, approval_status=FarmingTip.APPROVAL_APPROVED).select_related('expert', 'expert__user').order_by('-created_at')[:10]
     
     # Get user's appointments
     appointments = ExpertAppointment.objects.filter(requester=request.user).select_related('expert', 'expert__user').order_by('-created_at')
@@ -3551,7 +3552,10 @@ def admin_content_management(request):
                 tip = FarmingTip.objects.get(id=tip_id)
                 tip.title = request.POST.get('title', tip.title)
                 tip.content = request.POST.get('content', tip.content)
-                tip.is_published = request.POST.get('is_published') == 'on'
+                is_pub = request.POST.get('is_published') == 'on'
+                tip.is_published = is_pub
+                if is_pub:
+                    tip.approval_status = FarmingTip.APPROVAL_APPROVED
                 if request.FILES.get('image'):
                     tip.image = request.FILES.get('image')
                 tip.save()
@@ -3568,6 +3572,28 @@ def admin_content_management(request):
             except FarmingTip.DoesNotExist:
                 messages.error(request, 'Content not found!')
         
+        elif action == 'approve_tip':
+            tip_id = request.POST.get('tip_id')
+            try:
+                tip = FarmingTip.objects.get(id=tip_id)
+                tip.approval_status = FarmingTip.APPROVAL_APPROVED
+                tip.is_published = True
+                tip.save()
+                messages.success(request, f'"{tip.title}" approved and now visible to users.')
+            except FarmingTip.DoesNotExist:
+                messages.error(request, 'Content not found!')
+        
+        elif action == 'reject_tip':
+            tip_id = request.POST.get('tip_id')
+            try:
+                tip = FarmingTip.objects.get(id=tip_id)
+                tip.approval_status = FarmingTip.APPROVAL_REJECTED
+                tip.is_published = False
+                tip.save()
+                messages.success(request, f'"{tip.title}" rejected.')
+            except FarmingTip.DoesNotExist:
+                messages.error(request, 'Content not found!')
+        
         return _redirect_same_admin_page(request, 'admin_content_management')
     
     # Get filter parameters
@@ -3579,9 +3605,13 @@ def admin_content_management(request):
     tips = FarmingTip.objects.select_related('expert', 'expert__user').order_by('-created_at')
     
     if status_filter == 'published':
-        tips = tips.filter(is_published=True)
+        tips = tips.filter(approval_status=FarmingTip.APPROVAL_APPROVED)
+    elif status_filter == 'pending':
+        tips = tips.filter(approval_status=FarmingTip.APPROVAL_PENDING)
+    elif status_filter == 'rejected':
+        tips = tips.filter(approval_status=FarmingTip.APPROVAL_REJECTED)
     elif status_filter == 'unpublished':
-        tips = tips.filter(is_published=False)
+        tips = tips.filter(approval_status__in=(FarmingTip.APPROVAL_PENDING, FarmingTip.APPROVAL_REJECTED))
     
     if search_query:
         tips = tips.filter(
@@ -3593,8 +3623,9 @@ def admin_content_management(request):
     
     # Statistics
     total_tips = FarmingTip.objects.count()
-    published_tips = FarmingTip.objects.filter(is_published=True).count()
-    unpublished_tips = FarmingTip.objects.filter(is_published=False).count()
+    published_tips = FarmingTip.objects.filter(approval_status=FarmingTip.APPROVAL_APPROVED).count()
+    pending_tips = FarmingTip.objects.filter(approval_status=FarmingTip.APPROVAL_PENDING).count()
+    unpublished_tips = FarmingTip.objects.filter(approval_status__in=(FarmingTip.APPROVAL_PENDING, FarmingTip.APPROVAL_REJECTED)).count()
     total_experts = ExpertProfile.objects.count()
     
     context = {
@@ -3604,6 +3635,7 @@ def admin_content_management(request):
         'search_query': search_query,
         'total_tips': total_tips,
         'published_tips': published_tips,
+        'pending_tips': pending_tips,
         'unpublished_tips': unpublished_tips,
         'total_experts': total_experts,
     }

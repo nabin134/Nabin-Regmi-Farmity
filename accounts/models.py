@@ -215,11 +215,25 @@ class VendorTool(models.Model):
 
 
 class FarmingTip(models.Model):
+    APPROVAL_PENDING = 'pending'
+    APPROVAL_APPROVED = 'approved'
+    APPROVAL_REJECTED = 'rejected'
+    APPROVAL_CHOICES = (
+        (APPROVAL_PENDING, 'Pending approval'),
+        (APPROVAL_APPROVED, 'Approved'),
+        (APPROVAL_REJECTED, 'Rejected'),
+    )
     expert = models.ForeignKey(ExpertProfile, on_delete=models.CASCADE, related_name='tips')
     title = models.CharField(max_length=255)
     content = models.TextField()
     image = models.ImageField(upload_to='expert_content_images/', blank=True, null=True)
-    is_published = models.BooleanField(default=True)
+    is_published = models.BooleanField(default=False, help_text='Set to True when admin approves.')
+    approval_status = models.CharField(
+        max_length=20,
+        choices=APPROVAL_CHOICES,
+        default=APPROVAL_PENDING,
+        help_text='Content is visible to users only when Approved by admin.'
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

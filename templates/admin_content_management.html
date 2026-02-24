@@ -286,8 +286,11 @@
             text-transform: uppercase;
         }
 
-        .status-badge.published { background: #d4edda; color: #155724; }
-        .status-badge.unpublished { background: #fff3cd; color: #856404; }
+        .status-badge.published,
+        .status-badge.approved { background: #d4edda; color: #155724; }
+        .status-badge.unpublished,
+        .status-badge.pending { background: #fff3cd; color: #856404; }
+        .status-badge.rejected { background: #f8d7da; color: #721c24; }
 
         .btn {
             padding: 8px 16px;
@@ -305,6 +308,16 @@
         }
 
         .btn-delete {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-approve {
+            background: var(--success);
+            color: white;
+        }
+
+        .btn-reject {
             background: var(--danger);
             color: white;
         }
@@ -482,6 +495,10 @@
                     <div class="stat-label">Published</div>
                 </div>
                 <div class="stat-card">
+                    <div class="stat-value">{{ pending_tips }}</div>
+                    <div class="stat-label">Pending approval</div>
+                </div>
+                <div class="stat-card">
                     <div class="stat-value">{{ unpublished_tips }}</div>
                     <div class="stat-label">Unpublished</div>
                 </div>
@@ -499,8 +516,10 @@
                             <label class="filter-label">Status</label>
                             <select name="status" class="filter-select">
                                 <option value="all" {% if status_filter == 'all' %}selected{% endif %}>All Status</option>
-                                <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Published</option>
-                                <option value="unpublished" {% if status_filter == 'unpublished' %}selected{% endif %}>Unpublished</option>
+                                <option value="published" {% if status_filter == 'published' %}selected{% endif %}>Approved</option>
+                                <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending approval</option>
+                                <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                                <option value="unpublished" {% if status_filter == 'unpublished' %}selected{% endif %}>Unpublished (pending + rejected)</option>
                             </select>
                         </div>
                         <div class="filter-group">
@@ -530,8 +549,8 @@
                                 <i class="fas fa-calendar"></i> {{ tip.created_at|date:"M d, Y" }}
                             </div>
                         </div>
-                        <span class="status-badge {% if tip.is_published %}published{% else %}unpublished{% endif %}">
-                            {% if tip.is_published %}Published{% else %}Unpublished{% endif %}
+                        <span class="status-badge {% if tip.approval_status == 'approved' %}approved{% elif tip.approval_status == 'pending' %}pending{% else %}rejected{% endif %}">
+                            {% if tip.approval_status == 'approved' %}Approved{% elif tip.approval_status == 'pending' %}Pending approval{% else %}Rejected{% endif %}
                         </span>
                     </div>
                     <div class="content-expert">
@@ -544,11 +563,25 @@
                         </div>
                     </div>
                     <div class="content-preview">{{ tip.content|truncatewords:30 }}</div>
-                    <div style="display: flex; gap: 8px; margin-top: 16px;">
-                        <button class="btn btn-edit" onclick="openEditTipModal({{ tip.id }}, '{{ tip.title|escapejs }}', '{{ tip.content|escapejs }}', {{ tip.is_published|yesno:"true,false" }})" style="flex: 1;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;">
+                        {% if tip.approval_status == 'pending' %}
+                        <form method="POST" action="{% url 'admin_content_management' %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="approve_tip">
+                            <input type="hidden" name="tip_id" value="{{ tip.id }}">
+                            <button type="submit" class="btn btn-approve"><i class="fas fa-check"></i> Approve</button>
+                        </form>
+                        <form method="POST" action="{% url 'admin_content_management' %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="reject_tip">
+                            <input type="hidden" name="tip_id" value="{{ tip.id }}">
+                            <button type="submit" class="btn btn-reject"><i class="fas fa-times"></i> Reject</button>
+                        </form>
+                        {% endif %}
+                        <button class="btn btn-edit" onclick="openEditTipModal({{ tip.id }}, '{{ tip.title|escapejs }}', '{{ tip.content|escapejs }}', {{ tip.is_published|yesno:"true,false" }})" style="flex: 0 0 auto;">
                             <i class="fas fa-edit"></i> Edit
                         </button>
-                        <button class="btn btn-delete" onclick="confirmDeleteTip({{ tip.id }}, '{{ tip.title|escapejs }}')" style="flex: 1;">
+                        <button class="btn btn-delete" onclick="confirmDeleteTip({{ tip.id }}, '{{ tip.title|escapejs }}')" style="flex: 0 0 auto;">
                             <i class="fas fa-trash"></i> Delete
                         </button>
                     </div>

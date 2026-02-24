@@ -518,6 +518,11 @@
             color: #856404;
         }
 
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
         /* Appointments List */
         .appointments-list {
             background: white;
@@ -1167,8 +1172,8 @@
                                 <div class="content-body">
                                     <p class="content-text">{{ tip.content|truncatewords:50 }}</p>
                                     <div class="content-footer">
-                                        <span class="content-status status-{% if tip.is_published %}published{% else %}draft{% endif %}">
-                                            {% if tip.is_published %}Published{% else %}Draft{% endif %}
+                                        <span class="content-status status-{% if tip.approval_status == 'approved' %}published{% elif tip.approval_status == 'pending' %}draft{% else %}rejected{% endif %}">
+                                            {% if tip.approval_status == 'approved' %}Approved{% elif tip.approval_status == 'pending' %}Pending approval{% else %}Rejected{% endif %}
                                         </span>
                                         <span style="font-size: 0.85rem; color: #666;">{{ tip.created_at|date:"M d, Y" }}</span>
                                     </div>
@@ -1578,10 +1583,13 @@
                     </div>
                 </div>
 
-                <div class="form-group">
+                <div id="content_submit_note" class="form-group" style="padding: 0.75rem; background: #f0f7f0; border-radius: 8px; font-size: 0.9rem; color: #2a6f45;">
+                    <i class="fas fa-info-circle"></i> This content will be submitted for admin approval and will be visible to users once approved.
+                </div>
+                <div id="content_publish_option" class="form-group" style="display: none;">
                     <label class="form-checkbox">
-                        <input type="checkbox" id="content_published" name="is_published" checked>
-                        <span>Publish Immediately</span>
+                        <input type="checkbox" id="content_published" name="is_published">
+                        <span>Published (visible to users)</span>
                     </label>
                 </div>
 
@@ -1803,6 +1811,8 @@
             document.getElementById('content_action').name = 'add_tip';
             document.getElementById('content_action').value = '1';
             document.getElementById('content_image_preview').style.display = 'none';
+            document.getElementById('content_submit_note').style.display = 'block';
+            document.getElementById('content_publish_option').style.display = 'none';
         }
 
         function closeContentModal() {
@@ -1815,6 +1825,8 @@
             document.getElementById('content_id').value = id;
             document.getElementById('content_title').value = title;
             document.getElementById('content_text').value = content;
+            document.getElementById('content_submit_note').style.display = 'none';
+            document.getElementById('content_publish_option').style.display = 'block';
             document.getElementById('content_published').checked = isPublished;
             document.getElementById('content_action').name = 'edit_tip';
             document.getElementById('content_action').value = '1';
