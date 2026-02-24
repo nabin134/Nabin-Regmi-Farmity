@@ -910,19 +910,11 @@
             </div>
             {% endif %}
 
-            <!-- Messages -->
-            {% if messages %}
-            <div class="messages">
-                {% for message in messages %}
-                <div class="message-alert {{ message.tags }}">
-                    {{ message }}
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
+            {% include 'includes/messages_block.html' %}
 
             <!-- Dashboard Section -->
             <div id="dashboard-section" class="dashboard-section">
+                {% if active_section == 'dashboard' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <!-- Summary Cards -->
                 <div class="stats-grid">
                     <div class="stat-card tools">
@@ -1016,6 +1008,7 @@
 
             <!-- Tools Section -->
             <div id="tools-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'tools' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-tools"></i> My Tools</h2>
@@ -1079,6 +1072,7 @@
 
             <!-- Orders Section -->
             <div id="orders-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'orders' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-shopping-cart"></i> Customer Orders</h2>
@@ -1158,6 +1152,7 @@
 
             <!-- Analytics Section -->
             <div id="analytics-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'analytics' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-chart-bar"></i> Analytics</h2>
@@ -1191,6 +1186,7 @@
 
             <!-- Profile Section -->
             <div id="profile-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'profile' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <h2><i class="fas fa-user"></i> My Profile</h2>
@@ -1266,6 +1262,7 @@
 
             <!-- Settings Section -->
             <div id="settings-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'settings' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-cog"></i> Settings</h2>

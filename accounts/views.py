@@ -168,6 +168,20 @@ def _redirect_same_page(request, view_name, section_param='return_section'):
     return redirect(url)
 
 
+def _redirect_same_admin_page(request, view_name):
+    """
+    Redirect back to the same admin page preserving all current GET parameters
+    (section, status, search, etc.) so the user stays in the same place and
+    messages display on that page.
+    """
+    from urllib.parse import urlencode
+    url = reverse(view_name)
+    if request.GET:
+        query = request.GET.copy()
+        url = url + '?' + query.urlencode()
+    return redirect(url)
+
+
 def _clear_stored_messages(request):
     """
     Clear any messages stored in the session so they are not shown on the next
@@ -319,6 +333,8 @@ class LoginView(APIView):
                 # Login the user directly
                 login(request, user)
                 _clear_stored_messages(request)
+                request.session['show_login_success'] = True
+                request.session.modified = True
                 
                 # Check KYC status for roles that require it
                 if user.role in {'farmer', 'vendor', 'agricultural_expert'}:
@@ -459,6 +475,8 @@ class OTPVerificationView(APIView):
                 # Login the user
                 login(request, user)
                 _clear_stored_messages(request)
+                request.session['show_login_success'] = True
+                request.session.modified = True
                 
                 # Check KYC status for roles that require it
                 if user.role in {'farmer', 'vendor', 'agricultural_expert'}:
@@ -1309,6 +1327,8 @@ def dashboard(request):
 def kyc_page(request):
     if not _user_requires_kyc(request.user):
         return _redirect_to_role_home_response(request.user)
+    if request.session.pop('show_login_success', None):
+        messages.success(request, 'Welcome back! You have been logged in successfully.')
 
     # Ensure profile exists for get_full_name() to work
     _ensure_role_profile(request.user)
@@ -1573,6 +1593,8 @@ def change_password(request):
 def farmer_dashboard(request):
     if request.user.role != 'farmer':
         return _redirect_to_role_home_response(request.user)
+    if request.session.pop('show_login_success', None):
+        messages.success(request, 'Welcome back! You have been logged in successfully.')
     
     # Ensure profile exists
     profile, created = FarmerProfile.objects.get_or_create(user=request.user)
@@ -1985,6 +2007,7 @@ def farmer_dashboard(request):
     # Determine if features should be restricted
     features_restricted = (kyc_status != 'approved')
     
+    active_section = (request.GET.get('section') or 'dashboard').strip()
     context = {
         'profile': profile,
         'products': products,
@@ -1998,6 +2021,7 @@ def farmer_dashboard(request):
         'kyc_status': kyc_status,
         'features_restricted': features_restricted,
         'products_count': products.count(),
+        'active_section': active_section,
         # Statistics
         'total_crops_added': total_crops_added,
         'total_crops_sold': float(total_crops_sold),
@@ -2016,6 +2040,8 @@ def farmer_dashboard(request):
 def vendor_dashboard(request):
     if request.user.role != 'vendor':
         return _redirect_to_role_home_response(request.user)
+    if request.session.pop('show_login_success', None):
+        messages.success(request, 'Welcome back! You have been logged in successfully.')
     
     # Ensure profile exists
     profile, created = VendorProfile.objects.get_or_create(user=request.user)
@@ -2197,6 +2223,7 @@ def vendor_dashboard(request):
         'shipped_orders': shipped_orders,
         'delivered_orders': delivered_orders,
         'revenue_data': revenue_data_json,
+        'active_section': (request.GET.get('section') or 'dashboard').strip(),
     }
     return render(request, 'vendor_dashboard.html', context)
 
@@ -2205,6 +2232,8 @@ def vendor_dashboard(request):
 def expert_dashboard(request):
     if request.user.role != 'agricultural_expert':
         return _redirect_to_role_home_response(request.user)
+    if request.session.pop('show_login_success', None):
+        messages.success(request, 'Welcome back! You have been logged in successfully.')
     
     # Ensure profile exists
     profile, created = ExpertProfile.objects.get_or_create(user=request.user)
@@ -2540,6 +2569,7 @@ def expert_dashboard(request):
         'total_content_views': total_content_views,
         'appointments_data': appointments_data_json,
         'content_data': content_data_json,
+        'active_section': (request.GET.get('section') or 'dashboard').strip(),
     }
     return render(request, 'expert_dashboard.html', context)
 
@@ -2548,6 +2578,8 @@ def expert_dashboard(request):
 def user_dashboard(request):
     if request.user.role != 'buyer':
         return _redirect_to_role_home_response(request.user)
+    if request.session.pop('show_login_success', None):
+        messages.success(request, 'Welcome back! You have been logged in successfully.')
     
     # Handle Crop Purchase
     if request.method == 'POST' and 'purchase_crop' in request.POST:
@@ -2974,6 +3006,7 @@ def user_dashboard(request):
         'pending_orders': pending_orders,
         'completed_orders': completed_orders,
         'kyc_status': None,  # Buyers don't need KYC
+        'active_section': (request.GET.get('section') or 'crops').strip(),
     }
     return render(request, 'user_dashboard.html', context)
 
@@ -2982,6 +3015,8 @@ def user_dashboard(request):
 def admin_dashboard(request):
     if request.user.role != 'admin':
         return _redirect_to_role_home_response(request.user)
+    if request.session.pop('show_login_success', None):
+        messages.success(request, 'Welcome back! You have been logged in successfully.')
     
     # Get all users by role
     User = get_user_model()
@@ -3404,7 +3439,7 @@ def admin_user_management(request):
                     if new_email and new_email != user.email:
                         if User.objects.filter(email=new_email).exclude(id=user.id).exists():
                             messages.error(request, 'Email already exists.')
-                            return redirect('admin_user_management')
+                            return _redirect_same_admin_page(request, 'admin_user_management')
                         user.email = new_email
                     
                     user.role = new_role
@@ -3533,7 +3568,7 @@ def admin_content_management(request):
             except FarmingTip.DoesNotExist:
                 messages.error(request, 'Content not found!')
         
-        return redirect('admin_content_management')
+        return _redirect_same_admin_page(request, 'admin_content_management')
     
     # Get filter parameters
     content_type = request.GET.get('type', 'all')  # 'tips', 'all'
@@ -3760,9 +3795,8 @@ def admin_marketplace_oversight(request):
             except Order.DoesNotExist:
                 messages.error(request, 'Order not found!')
         
-        # Redirect back to the same section
-        section = request.GET.get('section', 'overview')
-        return redirect(f"{reverse('admin_marketplace_oversight')}?section={section}")
+        # Redirect back to the same page with all filters preserved
+        return _redirect_same_admin_page(request, 'admin_marketplace_oversight')
     
     # Get filter parameters
     section = request.GET.get('section', 'overview')  # 'overview', 'tools', 'crops', 'orders', 'payments'
@@ -3897,7 +3931,7 @@ def admin_appointment_management(request):
             except ExpertAppointment.DoesNotExist:
                 messages.error(request, 'Appointment not found!')
         
-        return redirect('admin_appointment_management')
+        return _redirect_same_admin_page(request, 'admin_appointment_management')
     
     # Get filter parameters
     status_filter = request.GET.get('status', 'all')

@@ -139,6 +139,7 @@
         </header>
 
         <div class="dashboard-content">
+            {% include 'includes/admin_messages_block.html' %}
             <a href="{% url 'admin_support_desk' %}" class="btn-back"><i class="fas fa-arrow-left"></i> Back to ticket list</a>
 
             {% if messages %}

@@ -431,6 +431,7 @@
         </header>
 
         <div class="dashboard-content">
+            {% include 'includes/admin_messages_block.html' %}
             <div class="page-header">
                 <h2 class="page-title">Expert Appointments</h2>
                 <p class="page-subtitle">Manage and monitor appointment requests</p>
@@ -628,6 +629,21 @@
                 }
             });
         }
+
+        document.querySelectorAll('form[action*="admin_appointment_management"]').forEach(function(f) {
+            if (f.method && f.method.toLowerCase() === 'post') {
+                f.addEventListener('submit', function() { sessionStorage.setItem('admin_appointment_scroll', window.scrollY); });
+            }
+        });
+        (function() {
+            var saved = sessionStorage.getItem('admin_appointment_scroll');
+            if (saved !== null && document.querySelector('.admin-messages .message-alert')) {
+                sessionStorage.removeItem('admin_appointment_scroll');
+                var y = parseInt(saved, 10) || 0;
+                requestAnimationFrame(function() { window.scrollTo(0, y); });
+                setTimeout(function() { window.scrollTo(0, y); }, 0);
+            }
+        })();
     </script>
 </body>
 </html>

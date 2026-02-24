@@ -1352,18 +1352,11 @@
             {% endif %}
 
             <!-- Messages -->
-            {% if messages %}
-            <div class="messages">
-                {% for message in messages %}
-                <div class="message-alert {{ message.tags }}">
-                    {{ message }}
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
+            {% include 'includes/messages_block.html' %}
 
             <!-- Dashboard Section -->
             <div id="dashboard-section" class="dashboard-section" style="display: block;">
+                {% if active_section == 'dashboard' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <!-- Summary Cards -->
                 <div class="stats-grid" style="display: grid !important; visibility: visible !important;">
                     <div class="stat-card">
@@ -1525,6 +1518,7 @@
 
             <!-- Crops Section -->
             <div id="crops-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'crops' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-seedling"></i> <span data-translate="crops.title">My Crops</span></h2>
@@ -1584,6 +1578,7 @@
 
             <!-- Tools Section -->
             <div id="tools-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'tools' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-tools"></i> Farming Tools & Equipment</h2>
@@ -1647,6 +1642,7 @@
 
             <!-- Experts Section -->
             <div id="experts-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'experts' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-user-graduate"></i> Agricultural Experts</h2>
@@ -1698,6 +1694,7 @@
 
             <!-- Chat Section -->
             <div id="chat-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'chat' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-comments"></i> Chat with Experts</h2>
@@ -1737,6 +1734,7 @@
 
             <!-- Education Section -->
             <div id="education-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'education' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-book"></i> Educational Content</h2>
@@ -1775,6 +1773,7 @@
 
             <!-- Appointments Section -->
             <div id="appointments-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'appointments' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-calendar-check"></i> My Appointments</h2>
@@ -1826,6 +1825,7 @@
 
             <!-- Orders Section: Placed orders for farmer's crops (shipping by admin) -->
             <div id="orders-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'orders' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-shopping-cart"></i> <span data-translate="orders.title">Placed orders (for my crops)</span></h2>
@@ -1883,6 +1883,7 @@
 
             <!-- Profile Section -->
             <div id="profile-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'profile' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
                         <h2><i class="fas fa-user"></i> <span data-translate="profile.title">My Profile</span></h2>
@@ -1975,6 +1976,7 @@
 
             <!-- Settings Section -->
             <div id="settings-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'settings' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-cog"></i> <span data-translate="settings.title">Settings</span></h2>

@@ -1746,16 +1746,7 @@
         </div>
 
         <div class="dashboard-container">
-            <!-- Messages -->
-            {% if messages %}
-            <div>
-                {% for message in messages %}
-                <div class="message-alert {{ message.tags }}">
-                    {{ message }}
-                </div>
-                {% endfor %}
-            </div>
-            {% endif %}
+            {% include 'includes/messages_block.html' %}
 
             <!-- Welcome & quick stats strip -->
             <div class="buyer-welcome-strip">
@@ -1771,6 +1762,7 @@
             
             <!-- ========== CROPS SECTION ========== -->
             <div id="crops" class="content-section" style="display: block;">
+                {% if active_section == 'crops' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <h2 class="section-title"><i class="fas fa-seedling"></i> Fresh produce</h2>
                 <div class="products-grid">
                         {% for crop in crops %}
@@ -1813,6 +1805,7 @@
 
             <!-- ========== TOOLS SECTION ========== -->
             <div id="tools" class="content-section" style="display: none;">
+                {% if active_section == 'tools' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <h2 class="section-title"><i class="fas fa-tools"></i> Tools & equipment</h2>
                 <div class="tools-grid">
                         {% for tool in tools %}
@@ -1860,6 +1853,7 @@
 
             <!-- ========== EXPERTS SECTION ========== -->
             <div id="experts" class="content-section" style="display: none;">
+                {% if active_section == 'experts' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <h2 class="section-title"><i class="fas fa-user-graduate"></i> Agricultural experts</h2>
                 <div class="experts-grid">
                         {% for expert in experts %}
@@ -1899,6 +1893,7 @@
 
             <!-- ========== EXPERT CONTENT SECTION ========== -->
             <div id="tips" class="content-section" style="display: none;">
+                {% if active_section == 'tips' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <h2 class="section-title"><i class="fas fa-lightbulb"></i> Expert content</h2>
                 <div class="tips-grid">
                         {% for tip in tips %}
@@ -1928,6 +1923,7 @@
 
             <!-- ========== APPOINTMENTS SECTION ========== -->
             <div id="appointments" class="content-section" style="display: none;">
+                {% if active_section == 'appointments' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <h2 class="section-title"><i class="fas fa-calendar-check"></i> My appointments</h2>
                 <div class="appointments-wrap">
                     <div class="appointments-list">
@@ -1982,6 +1978,7 @@
 
             <!-- ========== CHAT SECTION ========== -->
             <div id="chat" class="content-section" style="display: none;">
+                {% if active_section == 'chat' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <h2 class="section-title"><i class="fas fa-comments"></i> Chat with experts</h2>
                 <div class="chat-container">
                     <div class="chat-sidebar">
@@ -2016,6 +2013,7 @@
 
             <!-- ========== ORDERS SECTION ========== -->
             <div id="orders" class="content-section" style="display: none;">
+                {% if active_section == 'orders' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="orders-section-wrap">
                     <h2 class="orders-section-title"><i class="fas fa-shopping-bag"></i> Orders & Cart</h2>
                     <div class="orders-section-grid">
@@ -2134,6 +2132,7 @@
 
             <!-- ========== PROFILE SECTION ========== -->
             <div id="profile" class="content-section" style="display: none !important;">
+                {% if active_section == 'profile' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div style="background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
                     <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center;">
                         <h2 style="margin: 0; color: #333; font-size: 1.75rem; display: flex; align-items: center; gap: 0.75rem;">
@@ -2244,6 +2243,7 @@
 
             <!-- ========== SETTINGS SECTION ========== -->
             <div id="settings" class="content-section" style="display: none !important;">
+                {% if active_section == 'settings' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div style="background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08);">
                         <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #f0f0f0;">
                             <h2 style="margin: 0; color: #333; font-size: 1.75rem; display: flex; align-items: center; gap: 0.75rem;">
