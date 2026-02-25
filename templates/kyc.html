@@ -538,12 +538,13 @@
             </div>
 
             {% if messages %}
-            <div class="kyc-page-messages" style="position: fixed; top: 0; left: 0; right: 0; z-index: 99999; padding: 0.75rem 1.5rem; margin: 0; box-shadow: 0 2px 12px rgba(0,0,0,0.12);">
+            <div class="kyc-page-messages messages-auto-dismiss" data-dismiss-ms="3000" style="position: fixed; top: 0; left: 0; right: 0; z-index: 99999; padding: 0.75rem 1.5rem; margin: 0; box-shadow: 0 2px 12px rgba(0,0,0,0.12); transition: opacity 0.3s ease;">
                 {% for message in messages %}
                 <div class="message-alert {{ message.tags }}" role="alert" style="max-width: 1000px; margin: 0 auto 0.5rem; padding: 0.75rem 1.25rem; border-radius: 10px; border-left: 4px solid #28a745; background: #D4EDDA; color: #155724;">{{ message }}</div>
                 {% endfor %}
             </div>
-            <style>.kyc-page-messages .message-alert:last-child { margin-bottom: 0 !important; } .kyc-page-messages .message-alert.error { background: #F8D7DA; color: #721C24; border-left-color: #dc3545; } .kyc-page-messages .message-alert.warning { background: #FFF3CD; color: #856404; border-left-color: #ffc107; } .kyc-page-messages .message-alert.info { background: #D1ECF1; color: #0C5460; border-left-color: #17a2b8; }</style>
+            <style>.kyc-page-messages.messages-hidden { opacity: 0; pointer-events: none; } .kyc-page-messages .message-alert:last-child { margin-bottom: 0 !important; } .kyc-page-messages .message-alert.error { background: #F8D7DA; color: #721C24; border-left-color: #dc3545; } .kyc-page-messages .message-alert.warning { background: #FFF3CD; color: #856404; border-left-color: #ffc107; } .kyc-page-messages .message-alert.info { background: #D1ECF1; color: #0C5460; border-left-color: #17a2b8; }</style>
+            <script>(function(){ var el = document.querySelector('.kyc-page-messages.messages-auto-dismiss'); if (el) { var ms = parseInt(el.getAttribute('data-dismiss-ms')||'3000',10); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
             {% endif %}
 
             <form method="POST" enctype="multipart/form-data" id="kycForm">

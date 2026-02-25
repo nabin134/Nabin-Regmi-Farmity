@@ -741,11 +741,15 @@
         <!-- Right Panel - White Form (signup-role-selected when role from role page) -->
         <div class="register-right{% if role %} signup-role-selected{% endif %}">
             {% if messages %}
+            <div class="register-page-messages messages-auto-dismiss" data-dismiss-ms="3000" style="transition: opacity 0.3s ease;">
             {% for message in messages %}
             <div class="message {% if message.tags %}{{ message.tags }}{% endif %}" style="{% if message.tags == 'error' %}background: #fee2e2; color: #991b1b; border: 1px solid #fecaca;{% else %}background: #dcfce7; color: #166534; border: 1px solid #bbf7d0;{% endif %}">
                 {{ message }}
             </div>
             {% endfor %}
+            </div>
+            <style>.register-page-messages.messages-hidden { opacity: 0; pointer-events: none; }</style>
+            <script>(function(){ var el = document.querySelector('.register-page-messages.messages-auto-dismiss'); if (el) { var ms = parseInt(el.getAttribute('data-dismiss-ms')||'3000',10); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
             {% endif %}
             <div class="form-header">
                 <h2>Create Account</h2>

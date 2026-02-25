@@ -31,6 +31,7 @@
         <p class="page-subtitle">Choose an expert and book a consultation. The doctor will review your request and accept or reject it with a reason.</p>
 
         {% if messages %}
+            <div class="appointment-messages messages-auto-dismiss" data-dismiss-ms="3000" style="transition: opacity 0.3s ease;">
             {% for message in messages %}
             <div class="alert alert-{{ message.tags }}" role="alert">
                 {% if message.tags == 'success' %}<i class="fas fa-check-circle" style="font-size: 1.25rem;"></i><span><strong>Appointment booked successfully!</strong> The doctor has been notified and will accept or reject your request with a reason. Check your dashboard for the status.</span>{% endif %}
@@ -38,6 +39,9 @@
                 {% if message.tags == 'info' %}<i class="fas fa-info-circle" style="font-size: 1.25rem;"></i><span>{{ message }}</span>{% endif %}
             </div>
             {% endfor %}
+            </div>
+            <style>.appointment-messages.messages-hidden { opacity: 0; pointer-events: none; }</style>
+            <script>(function(){ var el = document.querySelector('.appointment-messages.messages-auto-dismiss'); if (el) { var ms = parseInt(el.getAttribute('data-dismiss-ms')||'3000',10); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
         {% endif %}
 
         {% if experts %}

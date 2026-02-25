@@ -1,5 +1,5 @@
 {% if messages %}
-<div class="action-messages messages messages-fixed-top">
+<div class="action-messages messages messages-fixed-top messages-auto-dismiss" data-dismiss-ms="3000">
     {% for message in messages %}
     <div class="message-alert {{ message.tags }}" role="alert">{{ message }}</div>
     {% endfor %}
@@ -16,8 +16,18 @@
     box-shadow: 0 2px 12px rgba(0,0,0,0.12);
     max-height: 40vh;
     overflow-y: auto;
+    transition: opacity 0.3s ease;
 }
+.messages-fixed-top.messages-hidden { opacity: 0; pointer-events: none; }
 .messages-fixed-top .message-alert { margin-bottom: 0.5rem; }
 .messages-fixed-top .message-alert:last-child { margin-bottom: 0; }
 </style>
+<script>
+(function(){
+    var el = document.querySelector('.messages-fixed-top.messages-auto-dismiss');
+    if (!el) return;
+    var ms = parseInt(el.getAttribute('data-dismiss-ms') || '3000', 10);
+    setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display = 'none'; }, 300); }, ms);
+})();
+</script>
 {% endif %}
