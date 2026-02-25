@@ -2288,12 +2288,17 @@ def expert_dashboard(request):
             tip = FarmingTip.objects.get(id=tip_id, expert=profile)
             tip.title = request.POST.get('title')
             tip.content = request.POST.get('content')
-            if tip.approval_status == FarmingTip.APPROVAL_APPROVED:
-                tip.is_published = request.POST.get('is_published') == 'on'
             if request.FILES.get('image'):
                 tip.image = request.FILES.get('image')
-            tip.save()
-            messages.success(request, 'Content updated successfully!')
+            # If content was approved, editing sends it back to pending for re-approval
+            if tip.approval_status == FarmingTip.APPROVAL_APPROVED:
+                tip.approval_status = FarmingTip.APPROVAL_PENDING
+                tip.is_published = False
+                tip.save()
+                messages.success(request, 'Content updated and submitted for admin approval again. It will be visible to users once approved.')
+            else:
+                tip.save()
+                messages.success(request, 'Content updated successfully!')
         except FarmingTip.DoesNotExist:
             messages.error(request, 'Content not found!')
         return _redirect_same_page(request, 'expert_dashboard')
@@ -3550,16 +3555,20 @@ def admin_content_management(request):
             tip_id = request.POST.get('tip_id')
             try:
                 tip = FarmingTip.objects.get(id=tip_id)
-                tip.title = request.POST.get('title', tip.title)
-                tip.content = request.POST.get('content', tip.content)
-                is_pub = request.POST.get('is_published') == 'on'
-                tip.is_published = is_pub
-                if is_pub:
-                    tip.approval_status = FarmingTip.APPROVAL_APPROVED
-                if request.FILES.get('image'):
-                    tip.image = request.FILES.get('image')
-                tip.save()
-                messages.success(request, 'Content updated successfully!')
+                # Admin cannot edit approved content
+                if tip.approval_status == FarmingTip.APPROVAL_APPROVED:
+                    messages.error(request, 'Approved content cannot be edited. It is locked once approved.')
+                else:
+                    tip.title = request.POST.get('title', tip.title)
+                    tip.content = request.POST.get('content', tip.content)
+                    is_pub = request.POST.get('is_published') == 'on'
+                    tip.is_published = is_pub
+                    if is_pub:
+                        tip.approval_status = FarmingTip.APPROVAL_APPROVED
+                    if request.FILES.get('image'):
+                        tip.image = request.FILES.get('image')
+                    tip.save()
+                    messages.success(request, 'Content updated successfully!')
             except FarmingTip.DoesNotExist:
                 messages.error(request, 'Content not found!')
         

@@ -578,9 +578,13 @@
                             <button type="submit" class="btn btn-reject"><i class="fas fa-times"></i> Reject</button>
                         </form>
                         {% endif %}
+                        {% if tip.approval_status != 'approved' %}
                         <button class="btn btn-edit" onclick="openEditTipModal({{ tip.id }}, '{{ tip.title|escapejs }}', '{{ tip.content|escapejs }}', {{ tip.is_published|yesno:"true,false" }})" style="flex: 0 0 auto;">
                             <i class="fas fa-edit"></i> Edit
                         </button>
+                        {% else %}
+                        <span class="btn btn-edit" style="opacity: 0.7; cursor: default;" title="Approved content cannot be edited"><i class="fas fa-lock"></i> Approved (locked)</span>
+                        {% endif %}
                         <button class="btn btn-delete" onclick="confirmDeleteTip({{ tip.id }}, '{{ tip.title|escapejs }}')" style="flex: 0 0 auto;">
                             <i class="fas fa-trash"></i> Delete
                         </button>
