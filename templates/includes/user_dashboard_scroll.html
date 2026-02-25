@@ -1,0 +1,31 @@
+<script>
+(function() {
+    var KEY = 'user_dashboard_scroll';
+    function saveScroll() {
+        try {
+            sessionStorage.setItem(KEY, JSON.stringify({ path: location.pathname, y: window.scrollY }));
+        } catch (e) {}
+    }
+    function restoreScroll() {
+        try {
+            var raw = sessionStorage.getItem(KEY);
+            if (!raw) return;
+            var data = JSON.parse(raw);
+            if (data && data.path === location.pathname && typeof data.y === 'number') {
+                sessionStorage.removeItem(KEY);
+                requestAnimationFrame(function() { window.scrollTo(0, data.y); });
+                setTimeout(function() { window.scrollTo(0, data.y); }, 50);
+            }
+        } catch (e) {}
+    }
+    document.addEventListener('submit', function(e) {
+        var form = e.target;
+        if (form && form.method && form.method.toLowerCase() === 'post') saveScroll();
+    }, true);
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', restoreScroll);
+    } else {
+        restoreScroll();
+    }
+})();
+</script>

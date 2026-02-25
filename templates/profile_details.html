@@ -334,13 +334,15 @@
 
     <main class="main-content">
         {% if messages %}
-        <div class="messages" style="margin-bottom: 1.5rem;">
+        <div class="messages user-page-messages messages-auto-dismiss" data-dismiss-ms="3000" style="margin-bottom: 1.5rem; transition: opacity 0.3s ease;">
             {% for message in messages %}
             <div class="alert alert-{{ message.tags }}" style="padding: 1rem 1.25rem; border-radius: 10px; font-weight: 500; {% if message.tags == 'error' %}background: #F8D7DA; color: #721C24;{% else %}background: #D4EDDA; color: #155724;{% endif %}">
                 <i class="fas {% if message.tags == 'error' %}fa-exclamation-circle{% else %}fa-check-circle{% endif %}"></i> {{ message }}
             </div>
             {% endfor %}
         </div>
+        <style>.user-page-messages.messages-hidden { opacity: 0; pointer-events: none; }</style>
+        <script>(function(){ var el = document.querySelector('.user-page-messages.messages-auto-dismiss'); if (el) { var ms = parseInt(el.getAttribute('data-dismiss-ms')||'3000',10); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
         {% endif %}
         <div class="profile-card">
             <div class="section-title">
@@ -582,5 +584,6 @@
     </footer>
 
     <script src="/static/js/main.js"></script>
+    {% include 'includes/user_dashboard_scroll.html' %}
 </body>
 </html>

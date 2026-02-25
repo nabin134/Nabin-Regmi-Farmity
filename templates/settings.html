@@ -337,7 +337,7 @@
                 <div class="settings-body">
                     <!-- Messages -->
                     {% if messages %}
-                    <div class="message-container">
+                    <div class="message-container user-page-messages messages-auto-dismiss" data-dismiss-ms="3000" style="transition: opacity 0.3s ease;">
                         {% for message in messages %}
                         <div class="message {{ message.tags }}">
                             <i class="fas fa-{% if message.tags == 'success' %}check-circle{% elif message.tags == 'error' %}exclamation-circle{% else %}info-circle{% endif %}"></i>
@@ -345,6 +345,8 @@
                         </div>
                         {% endfor %}
                     </div>
+                    <style>.user-page-messages.messages-hidden { opacity: 0; pointer-events: none; }</style>
+                    <script>(function(){ var el = document.querySelector('.user-page-messages.messages-auto-dismiss'); if (el) { var ms = parseInt(el.getAttribute('data-dismiss-ms')||'3000',10); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
                     {% endif %}
                     
                     <!-- Security Section -->
@@ -517,5 +519,6 @@
             });
         }
     </script>
+    {% include 'includes/user_dashboard_scroll.html' %}
 </body>
 </html>
