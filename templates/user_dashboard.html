@@ -1779,11 +1779,11 @@
                                 </p>
                                 <div class="product-footer" style="display: flex; flex-direction: column; gap: 0.75rem;">
                                     <span class="price" style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">Rs. {{ crop.price_per_unit }}/{{ crop.unit }}</span>
-                                    <div style="display: flex; gap: 0.5rem;">
-                                        <button class="btn-buy" onclick="openPurchaseCropModal({{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.price_per_unit }}, {{ crop.quantity }}, '{{ crop.unit|escapejs }}', '{% if crop.image %}{{ crop.image.url|escapejs }}{% endif %}')" style="flex: 1; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                    <div class="buyer-action-row" style="display: flex; gap: 0.5rem; flex-wrap: nowrap;">
+                                        <button class="btn-buy" onclick="openPurchaseCropModal({{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.price_per_unit }}, {{ crop.quantity }}, '{{ crop.unit|escapejs }}', '{% if crop.image %}{{ crop.image.url|escapejs }}{% endif %}')" style="flex: 1; min-width: 0; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                             <i class="fas fa-shopping-bag"></i> Buy Now
                                         </button>
-                                        <button class="btn-cart" {% if crop.image %}data-image-url="{{ request.scheme }}://{{ request.get_host }}{{ crop.image.url }}"{% endif %} onclick="addToCart(event, 'crop', {{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.price_per_unit }}, {{ crop.quantity }}, '{{ crop.unit|escapejs }}')" style="flex: 1; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                        <button class="btn-cart" {% if crop.image %}data-image-url="{{ request.scheme }}://{{ request.get_host }}{{ crop.image.url }}"{% endif %} onclick="addToCart(event, 'crop', {{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.price_per_unit }}, {{ crop.quantity }}, '{{ crop.unit|escapejs }}')" style="flex: 1; min-width: 0; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                             <i class="fas fa-shopping-cart"></i> Add to Cart
                                         </button>
                                     </div>
@@ -1825,13 +1825,11 @@
                                 {% endif %}
                                 <div class="tool-footer" style="display: flex; flex-direction: column; gap: 0.75rem;">
                                     <span class="price" style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">Rs. {{ tool.price }}</span>
-                                    <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
-                                        <label style="font-size: 0.85rem; color: #666;">Qty:</label>
-                                        <input type="number" min="1" max="{{ tool.stock_quantity }}" value="1" class="tool-qty-input" data-tool-id="{{ tool.id }}" style="width: 60px; padding: 0.4rem 0.5rem; border: 2px solid #e9ecef; border-radius: 8px; font-weight: 600;">
-                                        <button class="btn-buy" onclick="openPurchaseToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}, '{% if tool.image %}{{ tool.image.url|escapejs }}{% endif %}')" style="flex: 1; min-width: 100px; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                    <div class="buyer-action-row" style="display: flex; gap: 0.5rem; flex-wrap: nowrap;">
+                                        <button class="btn-buy" onclick="openPurchaseToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}, '{% if tool.image %}{{ tool.image.url|escapejs }}{% endif %}')" style="flex: 1; min-width: 0; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                             <i class="fas fa-shopping-bag"></i> Buy Now
                                         </button>
-                                        <button class="btn-cart tool-add-cart" {% if tool.image %}data-image-url="{{ request.scheme }}://{{ request.get_host }}{{ tool.image.url }}"{% endif %} data-tool-id="{{ tool.id }}" data-name="{{ tool.name|escapejs }}" data-price="{{ tool.price }}" data-stock="{{ tool.stock_quantity }}" style="flex: 1; min-width: 100px; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                        <button class="btn-cart tool-add-cart" {% if tool.image %}data-image-url="{{ request.scheme }}://{{ request.get_host }}{{ tool.image.url }}"{% endif %} data-tool-id="{{ tool.id }}" data-name="{{ tool.name|escapejs }}" data-price="{{ tool.price }}" data-stock="{{ tool.stock_quantity }}" style="flex: 1; min-width: 0; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                             <i class="fas fa-shopping-cart"></i> Add to Cart
                                         </button>
                                     </div>
@@ -2798,14 +2796,12 @@
             return false;
         }
 
-        // Tool Add to Cart with quantity (delegated)
+        // Tool Add to Cart: adds 1 from card; quantity can be changed in cart with +/-
         document.addEventListener('click', function(event) {
             const btn = event.target.closest('.tool-add-cart');
             if (btn) {
                 event.preventDefault();
-                const card = btn.closest('.tool-card');
-                const qtyInput = card ? card.querySelector('.tool-qty-input') : null;
-                const qty = qtyInput ? Math.min(Math.max(1, parseInt(qtyInput.value, 10) || 1), parseInt(btn.dataset.stock, 10)) : 1;
+                const qty = 1;
                 addToCart(event, 'tool', parseInt(btn.dataset.toolId, 10), btn.dataset.name, parseFloat(btn.dataset.price), parseInt(btn.dataset.stock, 10), 'unit', qty);
                 displayCartItems();
                 updateCartBadge();
