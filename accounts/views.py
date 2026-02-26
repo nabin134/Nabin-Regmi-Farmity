@@ -130,8 +130,7 @@ def _redirect_to_role_home(user):
             return reverse('kyc')
     
     # Redirect to appropriate dashboard - return URL path.
-    # Only staff/superuser with admin role go to admin panel (prevents new signups from landing there).
-    if user.role == 'admin' and (getattr(user, 'is_staff', False) or getattr(user, 'is_superuser', False)):
+    if user.role == 'admin':
         return reverse('admin_dashboard')
     if user.role == 'farmer':
         return reverse('farmer_dashboard')
@@ -139,9 +138,6 @@ def _redirect_to_role_home(user):
         return reverse('vendor_dashboard')
     if user.role == 'agricultural_expert':
         return reverse('expert_dashboard')
-    if user.role == 'admin':
-        # Admin role but not staff/superuser: treat as normal user (e.g. misconfigured or new account)
-        return reverse('user_dashboard')
     if user.role == 'buyer':
         return reverse('user_dashboard')
     return reverse('landing')
@@ -1315,7 +1311,10 @@ def reset_password_page(request):
 
 
 def home_page(request):
-    return render(request, 'home.html')
+    """Redirect /home/ to role dashboard or landing."""
+    if request.user.is_authenticated:
+        return _redirect_to_role_home_response(request.user)
+    return redirect('landing')
 
 
 @login_required

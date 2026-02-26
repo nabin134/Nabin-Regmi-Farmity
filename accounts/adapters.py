@@ -33,12 +33,16 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         return user
 
     def get_login_redirect_url(self, request):
-        """Redirect to role-specific dashboard after login"""
+        """Redirect to role-specific dashboard after login (including admin)."""
         if request.user.is_authenticated:
-            # Import here to avoid circular imports
             from .views import _redirect_to_role_home
-            redirect_url = _redirect_to_role_home(request.user)
-            return redirect_url
+            user = request.user
+            try:
+                user.refresh_from_db()
+            except Exception:
+                pass
+            redirect_url = _redirect_to_role_home(user)
+            return str(redirect_url) if redirect_url else super().get_login_redirect_url(request)
         return super().get_login_redirect_url(request)
 
 
@@ -206,18 +210,18 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         return user
 
     def get_login_redirect_url(self, request):
-        """Redirect to the dashboard for the account that matches the selected email."""
+        """Redirect after Google sign-in/signup to each role's own dashboard (including admin)."""
         if request.user.is_authenticated:
+            from django.urls import reverse
             from .views import _redirect_to_role_home
 
-            # Clear signup_role - we always open the account that owns the selected email
             request.session.pop('signup_role', None)
-
+            user = request.user
             try:
-                redirect_url = _redirect_to_role_home(request.user)
-                return str(redirect_url) if redirect_url else '/dashboard/'
-            except Exception as e:
-                import logging
-                logging.getLogger(__name__).error(f"Redirect URL error: {e}")
-                return '/dashboard/'
+                user.refresh_from_db()
+            except Exception:
+                pass
+            # Use same logic as _redirect_to_role_home so admin goes to admin panel
+            redirect_url = _redirect_to_role_home(user)
+            return str(redirect_url) if redirect_url else str(reverse('user_dashboard'))
         return super().get_login_redirect_url(request)

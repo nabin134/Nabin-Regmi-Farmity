@@ -10,8 +10,7 @@ class AccountsConfig(AppConfig):
         App ready method.
         Note: Google OAuth SocialApp should be configured manually via:
         - Django Admin: /admin/socialaccount/socialapp/
-        - Management command: python setup_google_oauth_simple.py
-        - Script: python update_google_credentials.py
+        - Management command: python manage.py setup_google_oauth
         
         Database access during app initialization is discouraged by Django.
         """

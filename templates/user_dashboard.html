@@ -92,9 +92,9 @@
         }
 
         .dashboard-container {
-            max-width: 1120px;
+            max-width: 1280px;
             margin: -1.5rem auto 2.5rem;
-            padding: 0 1.25rem;
+            padding: 0 1.5rem;
             position: relative;
             z-index: 10;
         }
@@ -175,29 +175,32 @@
             to { transform: translateX(100%); opacity: 0; }
         }
 
-        /* Product/Tool Grid - 4 items per row */
+        /* Product/Tool Grid - wider cards, 3 per row on large screens */
         .products-grid, .tools-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1.5rem;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.75rem;
             grid-auto-flow: row;
         }
         
         @media (min-width: 1200px) {
             .products-grid, .tools-grid {
-                grid-template-columns: repeat(4, 1fr);
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1.75rem;
             }
         }
         
         @media (min-width: 768px) and (max-width: 1199px) {
             .products-grid, .tools-grid {
                 grid-template-columns: repeat(2, 1fr);
+                gap: 1.5rem;
             }
         }
         
         @media (max-width: 767px) {
             .products-grid, .tools-grid {
                 grid-template-columns: 1fr;
+                gap: 1.25rem;
             }
         }
 
@@ -210,6 +213,7 @@
             display: flex;
             flex-direction: column;
             transition: box-shadow 0.2s, border-color 0.2s;
+            min-width: 0;
         }
         .product-card:hover, .tool-card:hover {
             box-shadow: var(--shadow-md);
@@ -217,14 +221,14 @@
         }
         .product-image, .tool-image {
             width: 100%;
-            height: 200px;
+            height: 220px;
             object-fit: cover;
             background: var(--light-bg);
             display: block;
         }
         .product-image-placeholder, .tool-image-placeholder {
             width: 100%;
-            height: 200px;
+            height: 220px;
             background: var(--light-bg);
             display: flex;
             align-items: center;
@@ -236,22 +240,23 @@
             opacity: 0.4;
         }
         .product-card-body, .tool-card-body {
-            padding: 1.25rem 1.5rem;
+            padding: 1.35rem 1.5rem;
             display: flex;
             flex-direction: column;
             flex: 1;
+            min-width: 0;
         }
         .product-card-body h4, .tool-card-body h4 {
-            margin: 0 0 0.4rem 0;
+            margin: 0 0 0.35rem 0;
             color: var(--text-primary);
-            font-size: 1.05rem;
+            font-size: 1.1rem;
             font-weight: 600;
             line-height: 1.35;
         }
         .product-vendor, .tool-vendor {
             color: var(--text-secondary);
-            font-size: 0.85rem;
-            margin-bottom: 0.75rem;
+            font-size: 0.875rem;
+            margin-bottom: 0.5rem;
             display: flex;
             align-items: center;
             gap: 0.4rem;
@@ -260,6 +265,9 @@
             margin-top: auto;
             padding-top: 1rem;
             border-top: 1px solid var(--border);
+        }
+        .buyer-action-row {
+            align-items: stretch;
         }
         .price {
             font-size: 1.25rem;
