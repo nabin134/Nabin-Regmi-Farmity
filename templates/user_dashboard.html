@@ -478,134 +478,170 @@
             gap: 0.4rem;
         }
 
+        /* ---------- Appointments (Buyer) - Redesigned ---------- */
         .appointments-wrap { max-width: 100%; }
         .appointments-list {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 1.25rem;
         }
         .appointment-card {
             display: flex;
-            align-items: flex-start;
-            gap: 1rem;
-            padding: 1.25rem 1.5rem;
-            background: var(--card-bg);
-            border-radius: var(--radius-md);
+            align-items: stretch;
+            gap: 0;
+            background: #fff;
+            border-radius: 14px;
             border: 1px solid var(--border);
-            border-left: 4px solid var(--primary);
-            transition: box-shadow 0.15s;
+            overflow: hidden;
+            transition: box-shadow 0.2s, border-color 0.2s;
         }
-        .appointment-card:hover { box-shadow: var(--shadow-sm); }
-        .appointment-card.status-pending { border-left-color: var(--warning); }
-        .appointment-card.status-accepted { border-left-color: var(--success); }
-        .appointment-card.status-confirmed { border-left-color: var(--info); }
-        .appointment-card.status-rejected { border-left-color: var(--danger); }
-        .appointment-card.status-cancelled { border-left-color: var(--danger); }
-        .appointment-card.status-delivered { border-left-color: var(--success); }
-        .appointment-card-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: var(--radius-md);
-            background: var(--light-bg);
-            border: 1px solid var(--border);
+        .appointment-card:hover { box-shadow: 0 8px 24px rgba(0,0,0,0.08); border-color: rgba(60, 137, 75, 0.25); }
+        .appointment-card.status-pending { border-left: 4px solid #f59e0b; }
+        .appointment-card.status-accepted,
+        .appointment-card.status-confirmed { border-left: 4px solid #10b981; }
+        .appointment-card.status-rejected,
+        .appointment-card.status-cancelled { border-left: 4px solid #ef4444; }
+        .appointment-card.status-delivered { border-left: 4px solid #3b82f6; }
+        .appointment-card-date-strip {
+            width: 88px;
+            flex-shrink: 0;
+            background: linear-gradient(180deg, var(--primary) 0%, #2d6b3d 100%);
+            color: #fff;
             display: flex;
+            flex-direction: column;
             align-items: center;
             justify-content: center;
-            font-size: 1.25rem;
-            color: var(--primary);
-            flex-shrink: 0;
+            padding: 1rem 0.5rem;
+            text-align: center;
         }
-        .appointment-card-body { flex: 1; min-width: 0; }
+        .appointment-card-date-strip .day { font-size: 1.5rem; font-weight: 800; line-height: 1.1; }
+        .appointment-card-date-strip .month { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; margin-top: 0.2rem; opacity: 0.95; }
+        .appointment-card-date-strip .time { font-size: 0.7rem; margin-top: 0.35rem; opacity: 0.9; }
+        .appointment-card.status-pending .appointment-card-date-strip { background: linear-gradient(180deg, #f59e0b 0%, #d97706 100%); }
+        .appointment-card.status-rejected .appointment-card-date-strip,
+        .appointment-card.status-cancelled .appointment-card-date-strip { background: linear-gradient(180deg, #6b7280 0%, #4b5563 100%); }
+        .appointment-card-main {
+            flex: 1;
+            padding: 1.25rem 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            min-width: 0;
+        }
         .appointment-card-head {
             display: flex;
-            align-items: flex-start;
+            align-items: center;
             justify-content: space-between;
             gap: 1rem;
             flex-wrap: wrap;
-            margin-bottom: 0.5rem;
         }
         .appointment-info h4 {
-            margin: 0 0 0.35rem 0;
+            margin: 0;
             color: var(--text-primary);
-            font-weight: 600;
-            font-size: 1.05rem;
+            font-weight: 700;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .appointment-info h4 i { color: var(--primary); font-size: 0.9rem; }
+        .appointment-info > p:first-of-type {
+            margin: 0.35rem 0 0 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
             display: flex;
             align-items: center;
             gap: 0.4rem;
         }
-        .appointment-info h4 i { color: var(--primary); font-size: 0.95rem; }
-        .appointment-info > p:first-of-type {
-            margin: 0.2rem 0;
-            color: var(--text-secondary);
-            font-size: 0.9rem;
-            line-height: 1.45;
-        }
-        .appointment-message {
-            margin-top: 0.5rem;
-            padding: 0.5rem 0.75rem;
-            background: var(--light-bg);
-            border-radius: var(--radius-sm);
-            border-left: 3px solid var(--border);
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-        .appointment-response-box {
-            margin-top: 0.5rem;
-            padding: 0.6rem 0.85rem;
-            border-radius: var(--radius-sm);
-            font-size: 0.875rem;
-            border-left: 3px solid var(--border);
-        }
-        .appointment-response-box.rejected { background: #fef3c7; border-left-color: var(--danger); }
-        .appointment-response-box.accepted { background: var(--primary-light); border-left-color: var(--primary); }
-        .appointment-response-box strong { display: block; margin-bottom: 0.2rem; color: var(--text-primary); font-size: 0.8rem; }
-        .appointment-visit-status { margin-top: 0.5rem; font-size: 0.875rem; color: var(--text-secondary); }
-        .appointment-visit-status strong { color: var(--text-primary); }
-        .appointment-cancel-note { margin-top: 0.6rem; font-size: 0.8rem; color: var(--text-muted); }
-        .appointment-card-actions {
-            display: flex;
-            flex-direction: column;
-            align-items: flex-end;
-            gap: 0.5rem;
-            flex-shrink: 0;
-        }
+        .appointment-info > p:first-of-type i { color: var(--primary); opacity: 0.8; width: 14px; }
         .appointment-status {
-            padding: 0.32rem 0.75rem;
+            padding: 0.4rem 0.85rem;
             border-radius: 999px;
             font-size: 0.75rem;
-            font-weight: 600;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
         }
-        .status-pending { background: #fef3c7; color: #92400e; }
-        .status-accepted, .status-confirmed { background: #d1fae5; color: #065f46; }
-        .status-rejected, .status-cancelled { background: #fee2e2; color: #991b1b; }
-        .status-delivered { background: #dbeafe; color: #1e40af; }
+        .appointment-status.status-pending { background: #fef3c7; color: #b45309; }
+        .appointment-status.status-accepted,
+        .appointment-status.status-confirmed { background: #d1fae5; color: #047857; }
+        .appointment-status.status-rejected,
+        .appointment-status.status-cancelled { background: #fee2e2; color: #b91c1c; }
+        .appointment-status.status-delivered { background: #dbeafe; color: #1d4ed8; }
+        .appointment-message {
+            padding: 0.65rem 1rem;
+            background: #f8fafc;
+            border-radius: 10px;
+            border-left: 3px solid var(--primary);
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+        }
+        .appointment-response-box {
+            padding: 0.75rem 1rem;
+            border-radius: 10px;
+            font-size: 0.875rem;
+            border-left: 3px solid;
+        }
+        .appointment-response-box.rejected { background: #fffbeb; border-left-color: #f59e0b; }
+        .appointment-response-box.accepted { background: #ecfdf5; border-left-color: var(--primary); }
+        .appointment-response-box strong { display: block; margin-bottom: 0.25rem; color: var(--text-primary); font-size: 0.8rem; }
+        .appointment-visit-status { font-size: 0.875rem; color: var(--text-secondary); }
+        .appointment-visit-status strong { color: var(--text-primary); }
+        .appointment-cancel-note { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.25rem; }
+        .appointment-card-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.25rem;
+        }
         .btn-appointment-action {
-            font-size: 0.85rem;
-            padding: 0.5rem 1rem;
-            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            padding: 0.55rem 1.1rem;
+            border-radius: 10px;
             font-weight: 600;
             border: none;
             cursor: pointer;
             display: inline-flex;
             align-items: center;
-            gap: 0.35rem;
-            transition: background 0.2s;
+            gap: 0.4rem;
+            transition: transform 0.15s, box-shadow 0.15s;
         }
+        .btn-appointment-action:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,0.12); }
         .btn-appointment-action.primary { background: var(--primary); color: white; }
-        .btn-appointment-action.primary:hover { background: var(--primary-hover); }
+        .btn-appointment-action.primary:hover { background: var(--primary-hover); color: white; }
         .btn-appointment-action.accent { background: var(--accent); color: white; }
-        .btn-appointment-action.accent:hover { background: #a84a1f; }
+        .btn-appointment-action.accent:hover { background: #a84a1f; color: white; }
         .appointments-empty {
             text-align: center;
-            padding: 2.5rem 1.5rem;
-            color: var(--text-muted);
-            background: var(--light-bg);
-            border-radius: var(--radius-lg);
-            border: 1px dashed var(--border);
+            padding: 3rem 2rem;
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 16px;
+            border: 2px dashed var(--border);
         }
-        .appointments-empty i { font-size: 2.75rem; color: var(--text-muted); margin-bottom: 0.75rem; display: block; opacity: 0.45; }
-        .appointments-empty h3 { margin-bottom: 0.35rem; color: var(--text-secondary); font-size: 1.05rem; font-weight: 600; }
-        .appointments-empty p { margin: 0; font-size: 0.875rem; }
+        .appointments-empty i { font-size: 3rem; color: var(--primary); margin-bottom: 1rem; display: block; opacity: 0.5; }
+        .appointments-empty h3 { margin-bottom: 0.5rem; color: var(--text-primary); font-size: 1.15rem; font-weight: 700; }
+        .appointments-empty p { margin: 0; font-size: 0.9rem; color: var(--text-secondary); }
+
+        /* Appointment modals */
+        .appointment-modal-content { max-width: 420px; }
+        .appointment-modal-header { background: linear-gradient(135deg, var(--primary) 0%, #2d6b3d 100%); color: #fff; padding: 1.25rem 1.5rem; border-radius: 14px 14px 0 0; }
+        .appointment-modal-header h3 { margin: 0; font-size: 1.15rem; font-weight: 700; display: flex; align-items: center; gap: 0.5rem; }
+        .appointment-modal-header .close-modal { color: #fff; opacity: 0.9; }
+        .appointment-modal-header .close-modal:hover { opacity: 1; }
+        .appointment-form { padding: 1.5rem; }
+        .appointment-form-label { font-weight: 600; color: var(--text-primary); display: block; margin-bottom: 0.35rem; }
+        .appointment-form-hint { font-size: 0.85rem; color: var(--text-secondary); margin: 0 0 0.75rem 0; }
+        .appointment-form-row { display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap; }
+        .appointment-form-field { flex: 1; min-width: 120px; }
+        .appointment-form-field label { font-size: 0.85rem; color: var(--text-secondary); display: block; margin-bottom: 0.25rem; }
+        .appointment-form-input-readonly { background: #f1f5f9 !important; color: var(--text-secondary); }
+        .appointment-form-textarea { resize: vertical; min-height: 80px; border-radius: 10px; }
+        .appointment-form-submit { width: 100%; padding: 0.75rem 1.25rem; border-radius: 10px; font-weight: 600; margin-top: 0.5rem; }
+        .appointment-form-submit-accent { background: var(--accent) !important; }
+        .appointment-form-submit-accent:hover { background: #a84a1f !important; }
+        .required { color: #dc2626; }
+        .optional { font-weight: 400; color: var(--text-muted); font-size: 0.9em; }
 
         /* Profile Section - Keep Same as Farmer */
         .profile-section {
@@ -1413,10 +1449,12 @@
             .order-card { flex-direction: column; gap: 1rem; }
             .order-card-head { flex-direction: column; align-items: flex-start; }
             .order-card-icon { margin: 0 auto; }
-            .appointment-card { flex-wrap: wrap; }
+            .appointment-card { flex-direction: column; }
+            .appointment-card-date-strip { width: 100%; flex-direction: row; gap: 0.5rem; padding: 0.75rem 1rem; }
+            .appointment-card-date-strip .day { font-size: 1.25rem; }
+            .appointment-card-date-strip .month, .appointment-card-date-strip .time { margin-top: 0; }
             .appointment-card-head { flex-direction: column; align-items: flex-start; }
-            .appointment-card-actions { width: 100%; align-items: stretch; }
-            .appointment-card-actions .btn-appointment-action { justify-content: center; }
+            .appointment-card-actions .btn-appointment-action { flex: 1; justify-content: center; }
         }
 
         .message-alert {
@@ -1945,14 +1983,16 @@
                     <div class="appointments-list">
                         {% for appointment in appointments %}
                         <div class="appointment-card status-{{ appointment.status }}">
-                            <div class="appointment-card-icon">
-                                <i class="fas fa-user-graduate"></i>
+                            <div class="appointment-card-date-strip">
+                                <span class="day">{{ appointment.requested_date|date:"d" }}</span>
+                                <span class="month">{{ appointment.requested_date|date:"M" }}</span>
+                                <span class="time">{{ appointment.requested_time|time:"g:i A" }}</span>
                             </div>
-                            <div class="appointment-card-body">
+                            <div class="appointment-card-main">
                                 <div class="appointment-card-head">
                                     <div class="appointment-info">
-                                        <h4><i class="fas fa-user-graduate"></i> With {{ appointment.expert.name|default:appointment.expert.user.email }}</h4>
-                                        <p><i class="far fa-calendar"></i> {{ appointment.requested_date|date:"M d, Y" }} at {{ appointment.requested_time|time:"g:i A" }}</p>
+                                        <h4><i class="fas fa-user-graduate"></i> {{ appointment.expert.name|default:appointment.expert.user.email }}</h4>
+                                        <p><i class="far fa-calendar-alt"></i> {{ appointment.requested_date|date:"l, F j, Y" }} · {{ appointment.requested_time|time:"g:i A" }}</p>
                                     </div>
                                     <span class="appointment-status status-{{ appointment.status }}">{{ appointment.get_status_display }}</span>
                                 </div>
@@ -1961,31 +2001,31 @@
                                 {% endif %}
                                 {% if appointment.response_message %}
                                 <div class="appointment-response-box {% if appointment.status == 'rejected' %}rejected{% else %}accepted{% endif %}">
-                                    <strong>{% if appointment.status == 'rejected' %}Reason rejected:{% else %}Expert:{% endif %}</strong> {{ appointment.response_message }}
+                                    <strong>{% if appointment.status == 'rejected' %}Reason:{% else %}Expert reply:{% endif %}</strong> {{ appointment.response_message }}
                                 </div>
                                 {% endif %}
                                 {% if appointment.status == 'accepted' and appointment.visit_status %}
                                 <p class="appointment-visit-status">Visit status: <strong>{{ appointment.get_visit_status_display }}</strong></p>
                                 {% endif %}
-                                <p class="appointment-cancel-note">To cancel this appointment, please contact the Farmity team.</p>
-                            </div>
-                            <div class="appointment-card-actions">
-                                {% if appointment.status == 'pending' %}
-                                <button type="button" class="btn-appointment-action primary" onclick="openChangeAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
-                                    <i class="fas fa-edit"></i> Change date/time
-                                </button>
-                                {% elif appointment.status == 'rejected' %}
-                                <button type="button" class="btn-appointment-action accent" onclick="openReapplyAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
-                                    <i class="fas fa-redo"></i> Edit and apply again
-                                </button>
-                                {% endif %}
+                                <p class="appointment-cancel-note">To cancel, contact the Farmity team.</p>
+                                <div class="appointment-card-actions">
+                                    {% if appointment.status == 'pending' %}
+                                    <button type="button" class="btn-appointment-action primary" onclick="openChangeAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
+                                        <i class="fas fa-edit"></i> Change date/time
+                                    </button>
+                                    {% elif appointment.status == 'rejected' %}
+                                    <button type="button" class="btn-appointment-action accent" onclick="openReapplyAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
+                                        <i class="fas fa-redo"></i> Edit and apply again
+                                    </button>
+                                    {% endif %}
+                                </div>
                             </div>
                         </div>
                         {% empty %}
                         <div class="appointments-empty">
-                            <i class="fas fa-calendar-times"></i>
-                            <h3>No appointments</h3>
-                            <p>Book an appointment with an expert to get started</p>
+                            <i class="fas fa-calendar-plus"></i>
+                            <h3>No appointments yet</h3>
+                            <p>Go to Experts and click “Appoint” to book a session</p>
                         </div>
                         {% endfor %}
                     </div>
@@ -2348,42 +2388,38 @@
 
     <!-- Appointment Modal -->
     <div id="appointmentModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>Book Appointment</h3>
-                <button class="close-modal" onclick="closeModal('appointmentModal')">&times;</button>
+        <div class="modal-content appointment-modal-content">
+            <div class="modal-header appointment-modal-header">
+                <h3><i class="fas fa-calendar-plus"></i> Book appointment</h3>
+                <button class="close-modal" onclick="closeModal('appointmentModal')" aria-label="Close">&times;</button>
             </div>
-            <form method="POST" action="{% url 'appointment_request' %}" id="appointmentBookForm">
+            <form method="POST" action="{% url 'appointment_request' %}" id="appointmentBookForm" class="appointment-form">
                 {% csrf_token %}
                 <input type="hidden" name="expert_id" id="apptExpertId">
-                
                 <div class="form-group">
-                    <label>Expert</label>
-                    <input type="text" id="apptExpertName" class="form-control" readonly style="background: var(--light-bg);">
+                    <label class="appointment-form-label">Expert</label>
+                    <input type="text" id="apptExpertName" class="form-control appointment-form-input-readonly" readonly>
                 </div>
-                
                 <div class="form-group">
-                    <label>Date & time <span style="color: red;">*</span></label>
-                    <small style="display: block; color: #666; margin-bottom: 0.5rem;">Only available dates are selectable in the calendar.</small>
-                    <div class="form-row" style="display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
-                        <div class="form-group" style="flex: 1; min-width: 140px; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Date</label>
-                            <input type="text" name="requested_date" id="apptRequestedDate" class="form-control" placeholder="YYYY-MM-DD" required readonly style="background: #fff;">
+                    <label class="appointment-form-label">Date & time <span class="required">*</span></label>
+                    <p class="appointment-form-hint">Only available dates are selectable.</p>
+                    <div class="appointment-form-row">
+                        <div class="form-group appointment-form-field">
+                            <label>Date</label>
+                            <input type="text" name="requested_date" id="apptRequestedDate" class="form-control" placeholder="YYYY-MM-DD" required readonly>
                         </div>
-                        <div class="form-group" style="flex: 1; min-width: 100px; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Time</label>
+                        <div class="form-group appointment-form-field">
+                            <label>Time</label>
                             <input type="time" name="requested_time" id="apptRequestedTime" class="form-control" required>
                         </div>
                     </div>
                 </div>
-                
                 <div class="form-group">
-                    <label>Message (Optional)</label>
-                    <textarea name="message" class="form-control" rows="3" placeholder="Describe your issue..."></textarea>
+                    <label class="appointment-form-label">Message <span class="optional">(optional)</span></label>
+                    <textarea name="message" class="form-control appointment-form-textarea" rows="3" placeholder="Describe your issue or question..."></textarea>
                 </div>
-
-                <button type="submit" class="btn-primary" style="width: 100%;">
-                    <i class="fas fa-calendar-check"></i> Book Appointment
+                <button type="submit" class="btn-primary appointment-form-submit">
+                    <i class="fas fa-calendar-check"></i> Book appointment
                 </button>
             </form>
         </div>
@@ -2391,64 +2427,64 @@
 
     <!-- Change appointment date/time Modal (pending only) -->
     <div id="changeAppointmentModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-edit"></i> Change appointment date/time</h3>
-                <button class="close-modal" onclick="closeModal('changeAppointmentModal')">&times;</button>
+        <div class="modal-content appointment-modal-content">
+            <div class="modal-header appointment-modal-header">
+                <h3><i class="fas fa-edit"></i> Change date & time</h3>
+                <button class="close-modal" onclick="closeModal('changeAppointmentModal')" aria-label="Close">&times;</button>
             </div>
-            <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #666;">Only available dates are selectable in the calendar.</p>
-            <form method="POST" action="{% url 'user_dashboard' %}" id="changeAppointmentForm">
+            <form method="POST" action="{% url 'user_dashboard' %}" id="changeAppointmentForm" class="appointment-form">
                 {% csrf_token %}
                 <input type="hidden" name="update_appointment" value="1">
                 <input type="hidden" name="return_section" value="appointments">
                 <input type="hidden" name="appointment_id" id="changeApptId">
                 <input type="hidden" id="changeApptExpertId">
+                <p class="appointment-form-hint">Only available dates are selectable.</p>
                 <div class="form-group">
-                    <label>New date & time <span style="color: red;">*</span></label>
-                    <div class="form-row" style="display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
-                        <div class="form-group" style="flex: 1; min-width: 140px; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Date</label>
-                            <input type="text" name="requested_date" id="changeApptDate" class="form-control" placeholder="YYYY-MM-DD" required readonly style="background: #fff;">
+                    <label class="appointment-form-label">New date & time <span class="required">*</span></label>
+                    <div class="appointment-form-row">
+                        <div class="form-group appointment-form-field">
+                            <label>Date</label>
+                            <input type="text" name="requested_date" id="changeApptDate" class="form-control" placeholder="YYYY-MM-DD" required readonly>
                         </div>
-                        <div class="form-group" style="flex: 1; min-width: 100px; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Time</label>
+                        <div class="form-group appointment-form-field">
+                            <label>Time</label>
                             <input type="time" name="requested_time" id="changeApptTime" class="form-control" required>
                         </div>
                     </div>
                 </div>
-                <button type="submit" class="btn-primary" style="width: 100%;"><i class="fas fa-save"></i> Update</button>
+                <button type="submit" class="btn-primary appointment-form-submit"><i class="fas fa-save"></i> Update</button>
             </form>
         </div>
     </div>
 
     <!-- Reapply (rejected) appointment Modal -->
     <div id="reapplyAppointmentModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
+        <div class="modal-content appointment-modal-content">
+            <div class="modal-header appointment-modal-header">
                 <h3><i class="fas fa-redo"></i> Edit and apply again</h3>
-                <button class="close-modal" onclick="closeModal('reapplyAppointmentModal')">&times;</button>
+                <button class="close-modal" onclick="closeModal('reapplyAppointmentModal')" aria-label="Close">&times;</button>
             </div>
-            <p style="margin-bottom: 1rem; color: #666;">Only available dates are selectable in the calendar. The doctor will review your new request.</p>
-            <form method="POST" action="{% url 'user_dashboard' %}" id="reapplyAppointmentForm">
+            <form method="POST" action="{% url 'user_dashboard' %}" id="reapplyAppointmentForm" class="appointment-form">
                 {% csrf_token %}
                 <input type="hidden" name="reapply_appointment" value="1">
                 <input type="hidden" name="return_section" value="appointments">
                 <input type="hidden" name="appointment_id" id="reapplyApptId">
                 <input type="hidden" id="reapplyApptExpertId">
+                <p class="appointment-form-hint">Pick an available date; the expert will review your new request.</p>
                 <div class="form-group">
-                    <label>New date & time <span style="color: red;">*</span></label>
-                    <div class="form-row" style="display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
-                        <div class="form-group" style="flex: 1; min-width: 140px; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Date</label>
-                            <input type="text" name="requested_date" id="reapplyApptDate" class="form-control" placeholder="YYYY-MM-DD" required readonly style="background: #fff;">
+                    <label class="appointment-form-label">New date & time <span class="required">*</span></label>
+                    <div class="appointment-form-row">
+                        <div class="form-group appointment-form-field">
+                            <label>Date</label>
+                            <input type="text" name="requested_date" id="reapplyApptDate" class="form-control" placeholder="YYYY-MM-DD" required readonly>
                         </div>
-                        <div class="form-group" style="flex: 1; min-width: 100px; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Time</label>
+                        <div class="form-group appointment-form-field">
+                            <label>Time</label>
                             <input type="time" name="requested_time" id="reapplyApptTime" class="form-control" required>
                         </div>
                     </div>
                 </div>
-                <button type="submit" class="btn-primary" style="width: 100%; background: #F29900;"><i class="fas fa-paper-plane"></i> Apply again</button>
+                <button type="submit" class="btn-primary appointment-form-submit appointment-form-submit-accent"><i class="fas fa-paper-plane"></i> Apply again</button>
             </form>
         </div>
     </div>
@@ -2461,7 +2497,7 @@
                 <button class="close-modal" onclick="closeModal('purchaseCropModal')">&times;</button>
             </div>
             <div id="purchaseCropImageWrap" class="modal-product-image-wrap" style="display: none;"><i class="fas fa-seedling"></i></div>
-            <form method="POST" action="{% url 'user_dashboard' %}">
+            <form method="POST" action="{% url 'user_dashboard' %}" id="purchaseCropForm">
                 {% csrf_token %}
                 <input type="hidden" name="purchase_crop" value="1">
                 <input type="hidden" name="return_section" id="purchaseCropReturnSection" value="">
@@ -2553,7 +2589,7 @@
                 <button class="close-modal" onclick="closeModal('purchaseToolModal')">&times;</button>
             </div>
             <div id="purchaseToolImageWrap" class="modal-product-image-wrap" style="display: none;"><i class="fas fa-tools"></i></div>
-            <form method="POST" action="{% url 'user_dashboard' %}">
+            <form method="POST" action="{% url 'user_dashboard' %}" id="purchaseToolForm">
                 {% csrf_token %}
                 <input type="hidden" name="purchase_tool" value="1">
                 <input type="hidden" name="return_section" id="purchaseToolReturnSection" value="">
@@ -2994,6 +3030,27 @@
             }
         });
 
+        var purchaseCropForm = document.getElementById('purchaseCropForm');
+        if (purchaseCropForm) {
+            purchaseCropForm.addEventListener('submit', function() {
+                var qtyEl = document.getElementById('purchaseCropQuantity');
+                if (qtyEl) {
+                    var v = parseFloat(qtyEl.value);
+                    if (isNaN(v) || v <= 0) qtyEl.value = '1';
+                }
+            });
+        }
+        var purchaseToolForm = document.getElementById('purchaseToolForm');
+        if (purchaseToolForm) {
+            purchaseToolForm.addEventListener('submit', function() {
+                var qtyEl = document.getElementById('purchaseToolQuantity');
+                if (qtyEl) {
+                    var v = parseInt(qtyEl.value, 10);
+                    if (isNaN(v) || v < 1) qtyEl.value = '1';
+                }
+            });
+        }
+
         function closeModal(modalId) {
             document.getElementById(modalId).classList.remove('active');
         }
@@ -3225,13 +3282,16 @@
             if (sectionEl) sectionEl.value = document.body.dataset.currentSection || 'crops';
             document.getElementById('purchaseCropId').value = cropId;
             document.getElementById('purchaseCropName').value = cropName;
+            var availNum = parseFloat(available);
+            if (isNaN(availNum)) availNum = 0;
             document.getElementById('purchaseCropPrice').value = 'Rs. ' + price + ' per ' + unit;
-            document.getElementById('purchaseCropAvailable').value = available + ' ' + unit;
-            document.getElementById('purchaseCropQuantity').setAttribute('max', available);
+            document.getElementById('purchaseCropAvailable').value = availNum + ' ' + unit;
             var qtyInput = document.getElementById('purchaseCropQuantity');
-            qtyInput.value = (available >= 1) ? '1' : '';
+            qtyInput.setAttribute('max', availNum > 0 ? availNum : 0);
+            var defaultQty = (availNum >= 1) ? 1 : (availNum > 0 ? availNum : '');
+            qtyInput.value = defaultQty === '' ? '' : String(defaultQty);
             document.getElementById('purchaseCropQuantityUnit').textContent = '(' + unit + ')';
-            var total = (available >= 1) ? (price * 1) : 0;
+            var total = (availNum >= 1) ? (price * 1) : (availNum > 0 ? price * availNum : 0);
             document.getElementById('purchaseCropTotal').textContent = 'Rs. ' + total.toFixed(2);
             var imgWrap = document.getElementById('purchaseCropImageWrap');
             if (imgWrap) {
@@ -3247,9 +3307,12 @@
             document.getElementById('purchaseToolId').value = toolId;
             document.getElementById('purchaseToolName').value = toolName;
             document.getElementById('purchaseToolPrice').value = 'Rs. ' + price;
-            document.getElementById('purchaseToolStock').value = stock + ' units';
-            document.getElementById('purchaseToolQuantity').max = stock;
-            document.getElementById('purchaseToolQuantity').value = 1;
+            var stockNum = parseInt(stock, 10);
+            if (isNaN(stockNum)) stockNum = 0;
+            document.getElementById('purchaseToolStock').value = stockNum + ' units';
+            var qtyInput = document.getElementById('purchaseToolQuantity');
+            qtyInput.setAttribute('max', Math.max(1, stockNum));
+            qtyInput.value = '1';
             calculateToolTotal();
             var imgWrap = document.getElementById('purchaseToolImageWrap');
             if (imgWrap) {

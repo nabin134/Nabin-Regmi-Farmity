@@ -2595,12 +2595,18 @@ def user_dashboard(request):
     # Handle Crop Purchase
     if request.method == 'POST' and 'purchase_crop' in request.POST:
         payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
-        crop_id = request.POST.get('crop_id')
-        try:
-            quantity = float(request.POST.get('quantity', 1))
-        except (ValueError, TypeError):
-            messages.error(request, 'Invalid quantity!')
+        crop_id = (request.POST.get('crop_id') or '').strip()
+        if not crop_id:
+            messages.error(request, 'Please select a crop to purchase.')
             return _redirect_same_page(request, 'user_dashboard')
+        try:
+            qty_raw = request.POST.get('quantity', '1').strip()
+            quantity = float(qty_raw) if qty_raw else 1.0
+            if quantity <= 0:
+                quantity = 1.0
+        except (ValueError, TypeError):
+            quantity = 1.0
+        quantity = max(0.01, quantity)
         
         contact_number = (request.POST.get('contact_number') or '').strip()
         order_email = (request.POST.get('order_email') or '').strip() or None
@@ -2673,8 +2679,18 @@ def user_dashboard(request):
     # Handle Tool Purchase
     if request.method == 'POST' and 'purchase_tool' in request.POST:
         payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
-        tool_id = request.POST.get('tool_id')
-        quantity = int(request.POST.get('quantity', 1))
+        tool_id = (request.POST.get('tool_id') or '').strip()
+        if not tool_id:
+            messages.error(request, 'Please select a tool to purchase.')
+            return _redirect_same_page(request, 'user_dashboard')
+        try:
+            qty_raw = request.POST.get('quantity', '1').strip()
+            quantity = int(float(qty_raw)) if qty_raw else 1
+            if quantity < 1:
+                quantity = 1
+        except (ValueError, TypeError):
+            quantity = 1
+        quantity = max(1, quantity)
         contact_number = (request.POST.get('contact_number') or '').strip()
         order_email = (request.POST.get('order_email') or '').strip() or None
         if not contact_number:
