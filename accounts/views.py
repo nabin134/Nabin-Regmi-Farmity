@@ -639,6 +639,7 @@ class ForgotPasswordView(APIView):
             }
             
             # Send forgot-password OTP to the user's email (uses SMTP when EMAIL_HOST_PASSWORD is set)
+            email_failed = False
             try:
                 send_mail(
                     subject='Your Farmity Password Reset OTP',
@@ -660,17 +661,22 @@ Farmity Team''',
                 )
                 print(f"Forgot-password OTP sent to: {user.email}")
             except Exception as e:
+                email_failed = True
                 print(f"Forgot-password email send error: {e}")
                 import traceback
                 traceback.print_exc()
+                if getattr(settings, 'DEBUG', False):
+                    print("[DEBUG] Forgot-password OTP (use this to test when SMTP fails):", otp)
+                    print("[DEBUG] Gmail: use App Password in .env. See: https://support.google.com/accounts/answer/185833")
             
-            return Response(
-                {
-                    "message": "If an account with that email exists, an OTP has been sent.",
-                    "token": token  # Return token for OTP verification page
-                },
-                status=status.HTTP_200_OK
-            )
+            response_data = {
+                "message": "If an account with that email exists, an OTP has been sent.",
+                "token": token,
+            }
+            # When email fails in DEBUG, include OTP so user can complete reset (e.g. Gmail not configured)
+            if getattr(settings, 'DEBUG', False) and email_failed:
+                response_data["dev_otp"] = otp
+            return Response(response_data, status=status.HTTP_200_OK)
         except Exception as e:
             import traceback
             traceback.print_exc()
@@ -4100,7 +4106,8 @@ def admin_chat_thread_view(request, thread_id):
 
 @login_required
 def logout_view(request):
-    next_url = request.GET.get('next')
+    # Accept both GET and POST so links and forms work
+    next_url = request.GET.get('next') or (request.POST.get('next') if request.method == 'POST' else None)
     logout(request)
     messages.success(request, 'You have been logged out successfully.')
     if next_url and next_url.startswith('/'):
@@ -4396,11 +4403,17 @@ def _is_support_staff(user):
     return SupportStaffProfile.objects.filter(user=user).exists()
 
 
-@login_required
 def support_hub(request):
-    """Support staff → Support Desk on GET; others see support page. POST create_ticket allowed for all."""
-    # Handle POST first so creating a ticket always works (any user, including staff)
+    """Public support page: anonymous users see FAQ + contact; logged-in users see full hub. Support staff → Admin desk."""
+    # Logged-in support staff see the admin desk instead
+    if request.user.is_authenticated and _is_support_staff(request.user):
+        return redirect('admin_support_desk')
+
+    # POST create_ticket: only for authenticated users
     if request.method == 'POST' and request.POST.get('action') == 'create_ticket':
+        if not request.user.is_authenticated:
+            messages.info(request, 'Please sign in to submit a support request.')
+            return redirect(reverse('login') + '?next=' + reverse('support_hub'))
         subject = (request.POST.get('subject') or '').strip()
         message = (request.POST.get('message') or '').strip()
         if subject and message:
@@ -4414,18 +4427,20 @@ def support_hub(request):
             return redirect('support_ticket', ticket_id=ticket.id)
         else:
             messages.error(request, 'Please provide both subject and message.')
-            # Fall through to show form again with error (non-staff) or redirect (staff)
 
-    # Support staff see the admin desk instead of the support page
-    if _is_support_staff(request.user):
-        return redirect('admin_support_desk')
-
-    # Build context for support page (non-staff only)
+    # Public content for everyone (anonymous + logged-in)
     faqs = FAQ.objects.filter(is_active=True).order_by('order', 'created_at')
     support_staff = SupportStaffProfile.objects.filter(is_available=True).select_related('user')
-    all_my_tickets = SupportTicket.objects.filter(user=request.user).select_related('assigned_to').order_by('-updated_at')
-    open_tickets = [t for t in all_my_tickets if t.status in (SupportTicket.STATUS_OPEN, SupportTicket.STATUS_IN_PROGRESS)]
-    past_tickets = [t for t in all_my_tickets if t.status in (SupportTicket.STATUS_ANSWERED, SupportTicket.STATUS_CLOSED)]
+
+    if request.user.is_authenticated:
+        all_my_tickets = SupportTicket.objects.filter(user=request.user).select_related('assigned_to').order_by('-updated_at')
+        open_tickets = [t for t in all_my_tickets if t.status in (SupportTicket.STATUS_OPEN, SupportTicket.STATUS_IN_PROGRESS)]
+        past_tickets = [t for t in all_my_tickets if t.status in (SupportTicket.STATUS_ANSWERED, SupportTicket.STATUS_CLOSED)]
+    else:
+        all_my_tickets = []
+        open_tickets = []
+        past_tickets = []
+
     context = {
         'faqs': faqs,
         'support_staff': support_staff,
@@ -4434,6 +4449,7 @@ def support_hub(request):
         'past_tickets': past_tickets,
         'is_support_staff': False,
         'open_tickets_for_staff': [],
+        'user_is_anonymous': not request.user.is_authenticated,
     }
     return render(request, 'support.html', context)
 

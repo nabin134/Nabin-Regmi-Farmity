@@ -1569,12 +1569,19 @@
             opacity: 1 !important;
         }
 
-        .dropdown-item {
+        .dropdown-item,
+        .logout-btn-dropdown {
             padding: 1rem 1.5rem;
             display: flex;
             align-items: center;
             gap: 0.75rem;
             color: #333;
+        }
+        .logout-btn-dropdown:hover {
+            background: #f8fafc;
+            color: var(--accent);
+        }
+        .dropdown-item:not(.logout-btn-dropdown) {
             text-decoration: none;
             transition: background 0.2s;
             font-size: 0.95rem;
@@ -1738,9 +1745,12 @@
                             <i class="fas fa-cog" style="font-size: 1.1rem; color: var(--primary); width: 20px;"></i> <span style="font-weight: 500;">Settings</span>
                         </a>
                         <div class="dropdown-divider" style="height: 1px; background: #f0f0f0; margin: 0.5rem 0;"></div>
-                        <a href="{% url 'logout' %}" class="dropdown-item" style="padding: 1rem 1.5rem; display: flex; align-items: center; gap: 0.75rem; color: var(--accent); text-decoration: none; transition: background 0.2s; font-weight: 500;">
-                            <i class="fas fa-sign-out-alt" style="font-size: 1.1rem; width: 20px;"></i> <span>Logout</span>
-                        </a>
+                        <form method="post" action="{% url 'logout' %}" style="margin: 0; padding: 0; display: block;">
+                            {% csrf_token %}
+                            <button type="submit" class="dropdown-item logout-btn-dropdown" style="width: 100%; padding: 1rem 1.5rem; display: flex; align-items: center; gap: 0.75rem; color: var(--accent); text-decoration: none; transition: background 0.2s; font-weight: 500; border: none; background: none; cursor: pointer; font-size: inherit; text-align: left;">
+                                <i class="fas fa-sign-out-alt" style="font-size: 1.1rem; width: 20px;"></i> <span>Logout</span>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -2716,7 +2726,7 @@
             <div class="footer-section">
                 <h4>Support</h4>
                 <ul>
-                    <li><a href="#">Help Center</a></li>
+                    <li><a href="{% url 'support_hub' %}">Customer Support</a></li>
                     <li><a href="#">Privacy Policy</a></li>
                     <li><a href="#">Terms of Service</a></li>
                 </ul>
@@ -2809,8 +2819,10 @@
             const btn = event.target.closest('.tool-add-cart');
             if (btn) {
                 event.preventDefault();
+                event.stopPropagation();
                 const qty = 1;
-                addToCart(event, 'tool', parseInt(btn.dataset.toolId, 10), btn.dataset.name, parseFloat(btn.dataset.price), parseInt(btn.dataset.stock, 10), 'unit', qty);
+                const imageUrl = btn.getAttribute('data-image-url') || '';
+                addToCart(event, 'tool', parseInt(btn.dataset.toolId, 10), btn.dataset.name, parseFloat(btn.dataset.price), parseInt(btn.dataset.stock, 10), 'unit', qty, imageUrl);
                 displayCartItems();
                 updateCartBadge();
             }
@@ -2986,10 +2998,10 @@
             document.getElementById(modalId).classList.remove('active');
         }
 
-        function addToCart(event, type, id, name, price, available, unit, quantity) {
+        function addToCart(event, type, id, name, price, available, unit, quantity, imageUrlParam) {
             quantity = (quantity === undefined || quantity === null) ? 1 : Math.max(1, Math.min(parseInt(quantity, 10) || 1, available));
-            var imageUrl = '';
-            if (event && event.currentTarget) {
+            var imageUrl = (imageUrlParam !== undefined && imageUrlParam !== null) ? String(imageUrlParam) : '';
+            if (!imageUrl && event && event.currentTarget && event.currentTarget.getAttribute) {
                 imageUrl = event.currentTarget.getAttribute('data-image-url') || '';
             }
             let cart = JSON.parse(localStorage.getItem('cart') || '[]');
@@ -3216,9 +3228,11 @@
             document.getElementById('purchaseCropPrice').value = 'Rs. ' + price + ' per ' + unit;
             document.getElementById('purchaseCropAvailable').value = available + ' ' + unit;
             document.getElementById('purchaseCropQuantity').setAttribute('max', available);
-            document.getElementById('purchaseCropQuantity').value = '';
+            var qtyInput = document.getElementById('purchaseCropQuantity');
+            qtyInput.value = (available >= 1) ? '1' : '';
             document.getElementById('purchaseCropQuantityUnit').textContent = '(' + unit + ')';
-            document.getElementById('purchaseCropTotal').textContent = 'Rs. 0.00';
+            var total = (available >= 1) ? (price * 1) : 0;
+            document.getElementById('purchaseCropTotal').textContent = 'Rs. ' + total.toFixed(2);
             var imgWrap = document.getElementById('purchaseCropImageWrap');
             if (imgWrap) {
                 imgWrap.style.display = 'flex';

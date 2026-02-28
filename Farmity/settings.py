@@ -173,9 +173,13 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # ======================
 # EMAIL – OTP sent to the user from farmityforyou@gmail.com
 # ======================
+# Gmail: You must use an App Password, not your normal password.
+# 1. Go to https://myaccount.google.com/security
+# 2. Turn on 2-Step Verification if needed
+# 3. App passwords → Generate for "Mail" → copy the 16-character password
+# 4. Put it in .env as EMAIL_HOST_PASSWORD=xxxx xxxx xxxx xxxx (no spaces in .env)
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'farmityforyou@gmail.com')
 
-# Send emails (OTP, etc.) using farmityforyou@gmail.com – set EMAIL_HOST_PASSWORD in .env (Gmail App Password)
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() in ('true', '1', 'yes')
@@ -185,13 +189,11 @@ EMAIL_HOST_PASSWORD = (os.environ.get('EMAIL_HOST_PASSWORD', '') or '').strip()
 
 if EMAIL_HOST and EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    # Uncomment next line to confirm at startup that OTP will send from host mail:
-    # print("[Email] SMTP configured: OTP will be sent from", EMAIL_HOST_USER, "to user inbox")
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     import sys
     if 'runserver' in sys.argv:
-        print("[Email] WARNING: SMTP not configured. Set EMAIL_HOST_PASSWORD in .env (same folder as manage.py) so OTP is sent from farmityforyou@gmail.com to user inbox.")
+        print("[Email] WARNING: SMTP not configured. Set EMAIL_HOST_PASSWORD in .env (Gmail App Password). See comments in settings.py.")
 
 # ======================
 # ALLAUTH SETTINGS

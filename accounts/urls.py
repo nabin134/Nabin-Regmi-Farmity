@@ -81,6 +81,7 @@ api_urlpatterns = [
     path('signup/', SignupView.as_view(), name='api-signup'),
     path('login/', LoginView.as_view(), name='api-login'),
     path('verify-otp/', OTPVerificationView.as_view(), name='api-verify-otp'),
+    path('verify-reset-otp/', VerifyOTPView.as_view(), name='api-verify-reset-otp'),
     path('resend-otp/', ResendOTPView.as_view(), name='api-resend-otp'),
     path('forgot-password/', ForgotPasswordView.as_view(), name='api-forgot-password'),
     path('reset-password/', ResetPasswordView.as_view(), name='api-reset-password'),

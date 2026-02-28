@@ -6,64 +6,244 @@
     <title>Customer Support - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #358D58;
-            --primary-dark: #2a6f45;
-            --secondary: #A8AD3B;
-            --light-bg: #E9EBF1;
+            --sup-bg: #f0f9f4;
+            --sup-surface: #ffffff;
+            --sup-primary: #0d9488;
+            --sup-primary-dark: #0f766e;
+            --sup-primary-soft: rgba(13, 148, 136, 0.12);
+            --sup-accent: #f59e0b;
+            --sup-accent-soft: rgba(245, 158, 11, 0.12);
+            --sup-text: #1e293b;
+            --sup-muted: #64748b;
+            --sup-border: #e2e8f0;
+            --sup-radius: 16px;
+            --sup-radius-sm: 12px;
+            --sup-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            --sup-shadow-lg: 0 20px 40px -12px rgba(0,0,0,0.12);
         }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #E9EBF1; min-height: 100vh; margin: 0; display: flex; flex-direction: column; }
-        .main-content { flex: 1; padding: 1.5rem; max-width: 900px; margin: 0 auto; width: 100%; }
-        .support-hero { background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; padding: 2rem; border-radius: 16px; margin-bottom: 1.5rem; text-align: center; }
-        .support-hero h1 { margin: 0 0 0.5rem 0; font-size: 1.75rem; }
-        .support-hero p { margin: 0; opacity: 0.95; font-size: 1rem; }
-        .card { background: white; border-radius: 16px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 1.5rem; overflow: hidden; }
-        .card-header { padding: 1rem 1.5rem; border-bottom: 2px solid #f0f0f0; background: #fafafa; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem; }
-        .card-body { padding: 1.5rem; }
-        .faq-item { border-bottom: 1px solid #eee; }
-        .faq-item:last-child { border-bottom: none; }
-        .faq-question { padding: 1rem 1.5rem; cursor: pointer; display: flex; justify-content: space-between; align-items: center; font-weight: 500; color: #333; }
-        .faq-question:hover { background: #f8f9fa; }
-        .faq-question i { color: var(--primary); transition: transform 0.2s; }
-        .faq-item.open .faq-question i { transform: rotate(180deg); }
-        .faq-answer { padding: 0 1.5rem 1rem; color: #555; line-height: 1.6; display: none; }
-        .faq-item.open .faq-answer { display: block; }
-        .faq-answer p { margin: 0; }
-        .staff-list { display: grid; gap: 1rem; }
-        .staff-card { display: flex; align-items: center; justify-content: space-between; padding: 1rem; border: 1px solid #e5e7eb; border-radius: 12px; background: #fafafa; }
-        .staff-card .name { font-weight: 600; color: #1a1a1a; }
-        .staff-card .contact { font-size: 0.9rem; color: #666; margin-top: 0.25rem; }
-        .staff-card a { color: var(--primary); text-decoration: none; font-weight: 500; }
-        .staff-card a:hover { text-decoration: underline; }
-        .form-group { margin-bottom: 1rem; }
-        .form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; color: #333; }
-        .form-group input, .form-group textarea { width: 100%; padding: 0.75rem 1rem; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 1rem; font-family: inherit; }
-        .form-group input:focus, .form-group textarea:focus { outline: none; border-color: var(--primary); }
-        .form-group textarea { min-height: 120px; resize: vertical; }
-        .btn-primary { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.75rem 1.5rem; background: var(--primary); color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem; text-decoration: none; }
-        .btn-primary:hover { background: var(--primary-dark); color: white; }
-        .btn-secondary { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.5rem 1rem; background: #6c757d; color: white; border-radius: 8px; font-size: 0.9rem; text-decoration: none; }
-        .btn-secondary:hover { color: white; background: #5a6268; }
-        .ticket-list { list-style: none; padding: 0; margin: 0; }
-        .ticket-list li { padding: 1rem 1.5rem; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.5rem; }
-        .ticket-list li:last-child { border-bottom: none; }
-        .ticket-list li:hover { background: #f8f9fa; }
-        .ticket-subject { font-weight: 500; color: #1a1a1a; }
-        .ticket-meta { font-size: 0.85rem; color: #666; }
-        .ticket-status { padding: 0.25rem 0.75rem; border-radius: 20px; font-size: 0.8rem; font-weight: 500; }
-        .ticket-status.open { background: #fff3cd; color: #856404; }
-        .ticket-status.in_progress { background: #cce5ff; color: #004085; }
-        .ticket-status.answered { background: #d4edda; color: #155724; }
-        .ticket-status.closed { background: #e2e3e5; color: #383d41; }
-        .alert { padding: 1rem; border-radius: 10px; margin-bottom: 1rem; }
-        .alert-error { background: #F8D7DA; color: #721C24; }
-        .alert-success { background: #D4EDDA; color: #155724; }
-        .empty-state { text-align: center; color: #666; padding: 2rem; }
-        .empty-state i { font-size: 2.5rem; color: #ccc; margin-bottom: 0.5rem; }
+        body.support-page {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--sup-bg);
+            min-height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .support-page .main-content { flex: 1; padding: 1.5rem 1rem 2.5rem; max-width: 820px; margin: 0 auto; width: 100%; }
+
+        /* Hero – unique bent shape */
+        .sup-hero {
+            position: relative;
+            background: linear-gradient(145deg, #0d9488 0%, #0f766e 50%, #115e59 100%);
+            color: #fff;
+            padding: 2.5rem 2rem;
+            border-radius: var(--sup-radius);
+            margin-bottom: 2rem;
+            overflow: hidden;
+            box-shadow: var(--sup-shadow-lg);
+        }
+        .sup-hero::before {
+            content: '';
+            position: absolute;
+            top: -40%;
+            right: -20%;
+            width: 60%;
+            height: 140%;
+            background: radial-gradient(circle, rgba(255,255,255,0.08) 0%, transparent 70%);
+            pointer-events: none;
+        }
+        .sup-hero-inner { position: relative; z-index: 1; text-align: center; }
+        .sup-hero-icon {
+            width: 72px;
+            height: 72px;
+            margin: 0 auto 1rem;
+            background: rgba(255,255,255,0.2);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+        }
+        .sup-hero h1 { margin: 0 0 0.5rem 0; font-size: 1.75rem; font-weight: 700; letter-spacing: -0.02em; }
+        .sup-hero p { margin: 0; font-size: 1rem; opacity: 0.95; max-width: 420px; margin-left: auto; margin-right: auto; line-height: 1.5; }
+
+        /* Cards */
+        .sup-card {
+            background: var(--sup-surface);
+            border-radius: var(--sup-radius);
+            box-shadow: var(--sup-shadow);
+            border: 1px solid var(--sup-border);
+            margin-bottom: 1.5rem;
+            overflow: hidden;
+        }
+        .sup-card-head {
+            padding: 1rem 1.5rem;
+            background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+            border-bottom: 1px solid var(--sup-border);
+            font-weight: 600;
+            color: var(--sup-text);
+            font-size: 1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .sup-card-head i { color: var(--sup-primary); font-size: 1.1rem; }
+        .sup-card-body { padding: 1.5rem; }
+
+        /* FAQ */
+        .sup-faq-list { list-style: none; padding: 0; margin: 0; }
+        .sup-faq-item {
+            border-bottom: 1px solid var(--sup-border);
+            transition: background 0.2s;
+        }
+        .sup-faq-item:last-child { border-bottom: none; }
+        .sup-faq-q {
+            padding: 1rem 1.5rem;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            color: var(--sup-text);
+            gap: 1rem;
+        }
+        .sup-faq-q:hover { background: var(--sup-primary-soft); }
+        .sup-faq-q i { color: var(--sup-primary); font-size: 0.8rem; transition: transform 0.25s ease; flex-shrink: 0; }
+        .sup-faq-item.open .sup-faq-q i { transform: rotate(180deg); }
+        .sup-faq-a {
+            padding: 0 1.5rem 1rem;
+            color: var(--sup-muted);
+            line-height: 1.6;
+            font-size: 0.95rem;
+            display: none;
+        }
+        .sup-faq-item.open .sup-faq-a { display: block; }
+        .sup-faq-a p { margin: 0; }
+
+        /* Staff */
+        .sup-staff-grid { display: grid; gap: 1rem; }
+        .sup-staff-card {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1rem 1.25rem;
+            background: var(--sup-primary-soft);
+            border: 1px solid rgba(13, 148, 136, 0.2);
+            border-radius: var(--sup-radius-sm);
+            transition: box-shadow 0.2s, transform 0.2s;
+        }
+        .sup-staff-card:hover { box-shadow: 0 4px 12px rgba(13, 148, 136, 0.15); transform: translateY(-1px); }
+        .sup-staff-avatar {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            background: var(--sup-primary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .sup-staff-name { font-weight: 600; color: var(--sup-text); margin-bottom: 0.2rem; }
+        .sup-staff-contact { font-size: 0.9rem; color: var(--sup-muted); }
+        .sup-staff-contact a { color: var(--sup-primary); text-decoration: none; font-weight: 500; }
+        .sup-staff-contact a:hover { text-decoration: underline; }
+
+        /* Form */
+        .sup-form .sup-field { margin-bottom: 1.25rem; }
+        .sup-form label { display: block; font-weight: 500; margin-bottom: 0.4rem; color: var(--sup-text); font-size: 0.9rem; }
+        .sup-form input, .sup-form textarea {
+            width: 100%;
+            padding: 0.75rem 1rem;
+            border: 2px solid var(--sup-border);
+            border-radius: var(--sup-radius-sm);
+            font-size: 1rem;
+            font-family: inherit;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            box-sizing: border-box;
+        }
+        .sup-form input:focus, .sup-form textarea:focus {
+            outline: none;
+            border-color: var(--sup-primary);
+            box-shadow: 0 0 0 3px var(--sup-primary-soft);
+        }
+        .sup-form textarea { min-height: 120px; resize: vertical; }
+        .sup-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.75rem 1.5rem;
+            background: linear-gradient(135deg, var(--sup-primary) 0%, var(--sup-primary-dark) 100%);
+            color: #fff;
+            border: none;
+            border-radius: var(--sup-radius-sm);
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            font-family: inherit;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .sup-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(13, 148, 136, 0.35); color: #fff; }
+
+        /* Ticket lists */
+        .sup-ticket-list { list-style: none; padding: 0; margin: 0; }
+        .sup-ticket-item {
+            padding: 1rem 1.5rem;
+            border-bottom: 1px solid var(--sup-border);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            transition: background 0.2s;
+        }
+        .sup-ticket-item:last-child { border-bottom: none; }
+        .sup-ticket-item a { text-decoration: none; color: inherit; }
+        .sup-ticket-item:hover { background: var(--sup-primary-soft); }
+        .sup-ticket-subj { font-weight: 600; color: var(--sup-text); margin-bottom: 0.25rem; }
+        .sup-ticket-meta { font-size: 0.85rem; color: var(--sup-muted); }
+        .sup-ticket-badge {
+            padding: 0.35rem 0.75rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+        .sup-ticket-badge.open { background: #fef3c7; color: #b45309; }
+        .sup-ticket-badge.in_progress { background: #dbeafe; color: #1d4ed8; }
+        .sup-ticket-badge.answered { background: #d1fae5; color: #047857; }
+        .sup-ticket-badge.closed { background: #f1f5f9; color: #475569; }
+
+        .sup-empty {
+            text-align: center;
+            color: var(--sup-muted);
+            padding: 2.5rem 1.5rem;
+            font-size: 0.95rem;
+        }
+        .sup-empty-icon { font-size: 2.5rem; color: var(--sup-border); margin-bottom: 0.75rem; display: block; }
+
+        .sup-past .sup-ticket-item { opacity: 0.85; }
+        .sup-past .sup-ticket-item:hover { background: transparent; }
+        .sup-past .sup-ticket-subj { font-weight: 500; }
+
+        .alert { padding: 1rem 1.25rem; border-radius: var(--sup-radius-sm); margin-bottom: 1rem; font-size: 0.95rem; }
+        .alert-error { background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca; }
+        .alert-success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+        @media (max-width: 640px) {
+            .sup-hero { padding: 1.75rem 1.25rem; }
+            .sup-hero h1 { font-size: 1.5rem; }
+            .sup-card-body { padding: 1.25rem; }
+        }
     </style>
 </head>
-<body>
+<body class="support-page">
     <header class="main-header">
         <div class="header-container">
             <div class="logo">
@@ -73,6 +253,11 @@
                 </a>
             </div>
             <nav class="main-nav">
+                {% if user_is_anonymous %}
+                <a href="{% url 'support_hub' %}" style="font-weight: 600;">Support</a>
+                <a href="{% url 'login' %}?next={% url 'support_hub' %}">Sign In</a>
+                <a href="{% url 'role_selection' %}">Sign Up</a>
+                {% else %}
                 {% if request.user.role == 'farmer' %}<a href="{% url 'farmer_dashboard' %}">Dashboard</a>
                 {% elif request.user.role == 'buyer' %}<a href="{% url 'user_dashboard' %}">Dashboard</a>
                 {% elif request.user.role == 'agricultural_expert' %}<a href="{% url 'expert_dashboard' %}">Dashboard</a>
@@ -82,159 +267,174 @@
                 <a href="{% url 'support_hub' %}" style="font-weight: 600;">Support</a>
                 {% if request.user.role == 'buyer' or request.user.role == 'farmer' or request.user.role == 'agricultural_expert' %}<a href="{% url 'chat_threads' %}">Chat</a>{% endif %}
                 <a href="{% url 'profile' %}">Profile</a>
+                {% endif %}
             </nav>
         </div>
     </header>
 
     <main class="main-content">
-        <div class="support-hero">
-            <h1><i class="fas fa-headset"></i> Customer Support</h1>
-            <p>Find answers in our FAQ, contact support staff, or open a ticket.</p>
+        <div class="sup-hero">
+            <div class="sup-hero-inner">
+                <div class="sup-hero-icon"><i class="fas fa-headset"></i></div>
+                <h1>Customer Support</h1>
+                <p>Get help from FAQs, reach our team, or open a ticket. We're here for all Farmity users.</p>
+            </div>
         </div>
 
         {% if messages %}
-            <div class="user-page-messages messages-auto-dismiss" data-dismiss-ms="3000" style="transition: opacity 0.3s ease;">
+            <div class="user-page-messages messages-auto-dismiss" data-dismiss-ms="4000" style="transition: opacity 0.3s ease;">
             {% for message in messages %}
             <div class="alert alert-{{ message.tags }}"><i class="fas fa-info-circle"></i> {{ message }}</div>
             {% endfor %}
             </div>
             <style>.user-page-messages.messages-hidden { opacity: 0; pointer-events: none; }</style>
-            <script>(function(){ var el = document.querySelector('.user-page-messages.messages-auto-dismiss'); if (el) { var ms = parseInt(el.getAttribute('data-dismiss-ms')||'3000',10); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
+            <script>(function(){ var el = document.querySelector('.user-page-messages.messages-auto-dismiss'); if (el) { var ms = parseInt(el.getAttribute('data-dismiss-ms')||'4000',10); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
         {% endif %}
 
-        <!-- FAQ -->
-        <div class="card">
-            <div class="card-header"><i class="fas fa-question-circle"></i> Frequently Asked Questions</div>
-            <div class="card-body" style="padding: 0;">
+        <div class="sup-card">
+            <div class="sup-card-head"><i class="fas fa-question-circle"></i> Frequently Asked Questions</div>
+            <div class="sup-card-body" style="padding: 0;">
                 {% if faqs %}
-                    {% for faq in faqs %}
-                    <div class="faq-item" onclick="this.classList.toggle('open')">
-                        <div class="faq-question">
-                            <span>{{ faq.question }}</span>
-                            <i class="fas fa-chevron-down"></i>
-                        </div>
-                        <div class="faq-answer"><p>{{ faq.answer|linebreaksbr }}</p></div>
-                    </div>
-                    {% endfor %}
+                    <ul class="sup-faq-list">
+                        {% for faq in faqs %}
+                        <li class="sup-faq-item" onclick="this.classList.toggle('open')">
+                            <div class="sup-faq-q">
+                                <span>{{ faq.question }}</span>
+                                <i class="fas fa-chevron-down"></i>
+                            </div>
+                            <div class="sup-faq-a"><p>{{ faq.answer|linebreaksbr }}</p></div>
+                        </li>
+                        {% endfor %}
+                    </ul>
                 {% else %}
-                    <div class="empty-state">
-                        <i class="fas fa-info-circle"></i><br>
-                        No FAQs added yet. You can still contact support below.
+                    <div class="sup-empty">
+                        <i class="fas fa-info-circle sup-empty-icon"></i>
+                        No FAQs yet. Contact support below or open a ticket.
                     </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Contact support staff -->
-        <div class="card">
-            <div class="card-header"><i class="fas fa-user-headset"></i> Contact Support Staff</div>
-            <div class="card-body">
+        <div class="sup-card">
+            <div class="sup-card-head"><i class="fas fa-user-headset"></i> Contact Support Staff</div>
+            <div class="sup-card-body">
                 {% if support_staff %}
-                <p style="margin: 0 0 1rem 0; color: #666;">Reach out directly to our available support team:</p>
-                <div class="staff-list">
+                <p style="margin: 0 0 1.25rem 0; color: var(--sup-muted); font-size: 0.95rem;">Reach out to our team:</p>
+                <div class="sup-staff-grid">
                     {% for staff in support_staff %}
-                    <div class="staff-card">
+                    <div class="sup-staff-card">
+                        <div class="sup-staff-avatar">{{ staff.display_name|default:staff.user.get_full_name|default:staff.user.email|slice:":1" }}</div>
                         <div>
-                            <div class="name">{{ staff.display_name|default:staff.user.get_full_name|default:staff.user.email }}</div>
-                            <div class="contact">
+                            <div class="sup-staff-name">{{ staff.display_name|default:staff.user.get_full_name|default:staff.user.email }}</div>
+                            <div class="sup-staff-contact">
                                 <a href="mailto:{{ staff.user.email }}"><i class="fas fa-envelope"></i> {{ staff.user.email }}</a>
-                                {% if staff.contact_info %} &nbsp;|&nbsp; {{ staff.contact_info }}{% endif %}
+                                {% if staff.contact_info %} &nbsp;·&nbsp; {{ staff.contact_info }}{% endif %}
                             </div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
                 {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-user-clock"></i><br>
-                    No support staff are marked available at the moment. Open a ticket below and we’ll get back to you.
+                <div class="sup-empty">
+                    <i class="fas fa-user-clock sup-empty-icon"></i>
+                    No staff available right now.{% if not user_is_anonymous %} Open a ticket below and we’ll get back to you.{% else %} Sign in to open a support ticket.{% endif %}
                 </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- New request -->
-        <div class="card">
-            <div class="card-header"><i class="fas fa-plus-circle"></i> New Support Request</div>
-            <div class="card-body">
-                <form method="POST" action="{% url 'support_hub' %}">
+        {% if user_is_anonymous %}
+        <div class="sup-card sup-signin-cta">
+            <div class="sup-card-head"><i class="fas fa-sign-in-alt"></i> Open a support ticket</div>
+            <div class="sup-card-body">
+                <p style="margin: 0 0 1rem 0; color: var(--sup-muted);">Sign in or create an account to submit a support request and track its status.</p>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.75rem;">
+                    <a href="{% url 'login' %}?next={% url 'support_hub' %}" class="sup-btn" style="text-decoration: none;"><i class="fas fa-sign-in-alt"></i> Sign In</a>
+                    <a href="{% url 'role_selection' %}" class="sup-btn" style="text-decoration: none; background: linear-gradient(135deg, #64748b 0%, #475569 100%); box-shadow: 0 4px 12px rgba(71,85,105,0.3);"><i class="fas fa-user-plus"></i> Sign Up</a>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <div class="sup-card">
+            <div class="sup-card-head"><i class="fas fa-plus-circle"></i> New Support Request</div>
+            <div class="sup-card-body">
+                <form method="POST" action="{% url 'support_hub' %}" class="sup-form">
                     {% csrf_token %}
                     <input type="hidden" name="action" value="create_ticket">
-                    <div class="form-group">
+                    <div class="sup-field">
                         <label for="subject">Subject</label>
                         <input type="text" id="subject" name="subject" placeholder="Brief description of your issue" required>
                     </div>
-                    <div class="form-group">
+                    <div class="sup-field">
                         <label for="message">Message</label>
                         <textarea id="message" name="message" placeholder="Describe your question or issue in detail..." required></textarea>
                     </div>
-                    <button type="submit" class="btn-primary"><i class="fas fa-paper-plane"></i> Submit request</button>
+                    <button type="submit" class="sup-btn"><i class="fas fa-paper-plane"></i> Submit request</button>
                 </form>
             </div>
         </div>
 
-        <!-- Open requests (active) -->
-        <div class="card">
-            <div class="card-header"><i class="fas fa-ticket-alt"></i> Open Requests</div>
-            <div class="card-body" style="padding: 0;">
+        <div class="sup-card">
+            <div class="sup-card-head"><i class="fas fa-ticket-alt"></i> Your Open Requests</div>
+            <div class="sup-card-body" style="padding: 0;">
                 {% if open_tickets %}
-                <ul class="ticket-list">
+                <ul class="sup-ticket-list">
                     {% for t in open_tickets %}
-                    <li>
-                        <div>
-                            <a href="{% url 'support_ticket' t.id %}" class="ticket-subject">{{ t.subject }}</a>
-                            <div class="ticket-meta">#{{ t.id }} • {{ t.updated_at|date:"M d, Y H:i" }}{% if t.assigned_to %} • Assigned to {{ t.assigned_to.email }}{% endif %}</div>
-                        </div>
-                        <span class="ticket-status {{ t.status }}">{{ t.get_status_display }}</span>
+                    <li class="sup-ticket-item">
+                        <a href="{% url 'support_ticket' t.id %}" style="flex: 1; min-width: 0;">
+                            <div class="sup-ticket-subj">{{ t.subject }}</div>
+                            <div class="sup-ticket-meta">#{{ t.id }} · {{ t.updated_at|date:"M d, Y H:i" }}{% if t.assigned_to %} · {{ t.assigned_to.email }}{% endif %}</div>
+                        </a>
+                        <span class="sup-ticket-badge {{ t.status }}">{{ t.get_status_display }}</span>
                     </li>
                     {% endfor %}
                 </ul>
                 {% else %}
-                <div class="empty-state">
-                    <i class="fas fa-inbox"></i><br>
+                <div class="sup-empty">
+                    <i class="fas fa-inbox sup-empty-icon"></i>
                     No open requests. Create one above.
                 </div>
                 {% endif %}
             </div>
         </div>
 
-        <!-- Past requests (ended – answered/closed) -->
-        <div class="card">
-            <div class="card-header"><i class="fas fa-archive"></i> Past Requests</div>
-            <div class="card-body" style="padding: 0;">
+        <div class="sup-card sup-past">
+            <div class="sup-card-head"><i class="fas fa-archive"></i> Past Requests</div>
+            <div class="sup-card-body" style="padding: 0;">
                 {% if past_tickets %}
-                <ul class="ticket-list">
+                <ul class="sup-ticket-list">
                     {% for t in past_tickets %}
-                    <li style="opacity: 0.85; cursor: default;">
-                        <div>
-                            <span class="ticket-subject" style="cursor: default; color: inherit; text-decoration: none;">{{ t.subject }}</span>
-                            <div class="ticket-meta">#{{ t.id }} • {{ t.updated_at|date:"M d, Y H:i" }} • Conversation ended (no longer openable)</div>
+                    <li class="sup-ticket-item">
+                        <div style="flex: 1; min-width: 0;">
+                            <div class="sup-ticket-subj">{{ t.subject }}</div>
+                            <div class="sup-ticket-meta">#{{ t.id }} · {{ t.updated_at|date:"M d, Y H:i" }} · Ended</div>
                         </div>
-                        <span class="ticket-status {{ t.status }}">{{ t.get_status_display }}</span>
+                        <span class="sup-ticket-badge {{ t.status }}">{{ t.get_status_display }}</span>
                     </li>
                     {% endfor %}
                 </ul>
                 {% else %}
-                <div class="empty-state" style="padding: 1.5rem;">
-                    <i class="fas fa-folder-open"></i><br>
+                <div class="sup-empty" style="padding: 1.5rem;">
+                    <i class="fas fa-folder-open sup-empty-icon"></i>
                     No past requests.
                 </div>
                 {% endif %}
             </div>
         </div>
+        {% endif %}
 
         {% if is_support_staff and open_tickets_for_staff %}
-        <div class="card">
-            <div class="card-header"><i class="fas fa-tasks"></i> Open Tickets (Staff)</div>
-            <div class="card-body" style="padding: 0;">
-                <ul class="ticket-list">
+        <div class="sup-card">
+            <div class="sup-card-head"><i class="fas fa-tasks"></i> Open Tickets (Staff)</div>
+            <div class="sup-card-body" style="padding: 0;">
+                <ul class="sup-ticket-list">
                     {% for t in open_tickets_for_staff %}
-                    <li>
-                        <div>
-                            <a href="{% url 'support_ticket' t.id %}" class="ticket-subject">{{ t.subject }}</a>
-                            <div class="ticket-meta">#{{ t.id }} • {{ t.user.email }} • {{ t.updated_at|date:"M d, H:i" }}{% if t.assigned_to %} • {{ t.assigned_to.email }}{% endif %}</div>
-                        </div>
-                        <span class="ticket-status {{ t.status }}">{{ t.get_status_display }}</span>
+                    <li class="sup-ticket-item">
+                        <a href="{% url 'support_ticket' t.id %}" style="flex: 1; min-width: 0;">
+                            <div class="sup-ticket-subj">{{ t.subject }}</div>
+                            <div class="sup-ticket-meta">#{{ t.id }} · {{ t.user.email }} · {{ t.updated_at|date:"M d, H:i" }}{% if t.assigned_to %} · {{ t.assigned_to.email }}{% endif %}</div>
+                        </a>
+                        <span class="sup-ticket-badge {{ t.status }}">{{ t.get_status_display }}</span>
                     </li>
                     {% endfor %}
                 </ul>
