@@ -2907,27 +2907,15 @@ def user_dashboard(request):
     # Get all available crops from farmers
     crops = FarmerProduct.objects.filter(is_available=True).select_related('farmer', 'farmer__user').order_by('-created_at')
     
-    # Get all agricultural experts
-    experts = ExpertProfile.objects.select_related('user').all()
+    # Experts and appointments are only for farmers; buyers do not see them
+    experts = []
+    expert_availability_json = '{}'
+    appointments = []
+    chat_threads = []
+    # Blogs (expert content) are visible to all users
+    blogs = FarmingTip.objects.filter(is_published=True, approval_status=FarmingTip.APPROVAL_APPROVED).select_related('expert', 'expert__user').order_by('-created_at')[:15]
     
-    # Expert available dates (expert_id -> list of date strings) for highlighting in booking modal
-    today = timezone.now().date()
-    expert_availability = {}
-    for expert in experts:
-        dates = list(
-            ExpertAvailability.objects.filter(expert=expert, date__gte=today)
-            .order_by('date').values_list('date', flat=True)
-        )
-        expert_availability[expert.id] = [d.isoformat() for d in dates]
-    expert_availability_json = json.dumps(expert_availability)
-    
-    # Get farming tips/content from experts
-    tips = FarmingTip.objects.filter(is_published=True, approval_status=FarmingTip.APPROVAL_APPROVED).select_related('expert', 'expert__user').order_by('-created_at')[:10]
-    
-    # Get user's appointments
-    appointments = ExpertAppointment.objects.filter(requester=request.user).select_related('expert', 'expert__user').order_by('-created_at')
-    
-    # Handle update appointment (change date/time) - requester only, pending only
+    # Handle update appointment (change date/time) - requester only, pending only (no-op for buyers; kept for URL compatibility)
     if request.method == 'POST' and 'update_appointment' in request.POST:
         appointment_id = request.POST.get('appointment_id')
         requested_date = (request.POST.get('requested_date') or '').strip()
@@ -2987,9 +2975,6 @@ def user_dashboard(request):
             messages.error(request, 'Please provide date and time.')
         return _redirect_same_page(request, 'user_dashboard')
     
-    # Get user's chat threads with experts
-    chat_threads = ExpertChatThread.objects.filter(created_by=request.user).select_related('expert', 'expert__user').order_by('-created_at')[:5]
-    
     # Get or create user profile
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     
@@ -3017,25 +3002,33 @@ def user_dashboard(request):
         'tools': tools,
         'crops': crops,
         'experts': experts,
-        'expert_availability': expert_availability,
         'expert_availability_json': expert_availability_json,
-        'tips': tips,
+        'blogs': blogs,
         'appointments': appointments,
         'chat_threads': chat_threads,
         'profile': profile,
         'purchase_history': purchase_history[:20],  # Show last 20 orders
         'tools_count': tools.count(),
         'crops_count': crops.count(),
-        'experts_count': experts.count(),
-        'tips_count': tips.count(),
+        'experts_count': len(experts),
+        'blogs_count': len(blogs),
         'total_orders': total_orders,
         'total_spent': float(total_spent),
         'pending_orders': pending_orders,
         'completed_orders': completed_orders,
         'kyc_status': None,  # Buyers don't need KYC
-        'active_section': (request.GET.get('section') or 'crops').strip(),
+        'active_section': _buyer_active_section(request.GET),
     }
     return render(request, 'user_dashboard.html', context)
+
+
+def _buyer_active_section(get_query):
+    """Buyer dashboard: experts/appointments/tips/chat are farmer-only; default to crops."""
+    section = (get_query.get('section') if get_query else None) or 'crops'
+    section = (section or 'crops').strip()
+    if section in ('experts', 'appointments', 'chat'):
+        return 'crops'
+    return section
 
 
 @login_required

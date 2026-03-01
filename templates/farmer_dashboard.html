@@ -1265,9 +1265,9 @@
                 <i class="fas fa-comments"></i>
                 <span data-translate="nav.chat">Chat</span>
             </a>
-            <a href="#education" class="nav-item" onclick="return showSection('education', event);">
-                <i class="fas fa-book"></i>
-                <span data-translate="nav.education">Education</span>
+            <a href="#blogs" class="nav-item" onclick="return showSection('blogs', event);">
+                <i class="fas fa-blog"></i>
+                <span data-translate="nav.blogs">Blogs</span>
             </a>
             <a href="#orders" class="nav-item" onclick="return showSection('orders', event);">
                 <i class="fas fa-shopping-cart"></i>
@@ -1442,11 +1442,11 @@
                     </div>
                     <div class="stat-card" style="border-left-color: #9E9E9E;">
                         <div class="stat-content">
-                            <h4>Educational Content</h4>
+                            <h4>Blogs</h4>
                             <div class="stat-value" style="color: #9E9E9E;">{{ tips|length }}</div>
                         </div>
                         <div class="stat-icon">
-                            <i class="fas fa-book"></i>
+                            <i class="fas fa-blog"></i>
                         </div>
                     </div>
                 </div>
@@ -1732,12 +1732,12 @@
                 </div>
             </div>
 
-            <!-- Education Section -->
-            <div id="education-section" class="dashboard-section" style="display: none;">
-                {% if active_section == 'education' %}{% include 'includes/messages_block.html' %}{% endif %}
+            <!-- Blogs Section -->
+            <div id="blogs-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'blogs' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-book"></i> Educational Content</h2>
+                        <h2><i class="fas fa-blog"></i> Blogs</h2>
                     </div>
                     <div class="section-body">
                         {% if tips %}
@@ -1762,9 +1762,9 @@
                         </div>
                         {% else %}
                         <div class="empty-state">
-                            <i class="fas fa-book"></i>
-                            <h3>No Educational Content Available</h3>
-                            <p>Check back later for farming tips and guidance from experts</p>
+                            <i class="fas fa-blog"></i>
+                            <h3>No blogs yet</h3>
+                            <p>Check back later for articles and tips from our experts</p>
                         </div>
                         {% endif %}
                     </div>
@@ -3050,7 +3050,7 @@
                 'nav.tools': 'Buy Tools',
                 'nav.experts': 'Experts',
                 'nav.chat': 'Chat',
-                'nav.education': 'Education',
+                'nav.blogs': 'Blogs',
                 'nav.orders': 'Orders',
                 'nav.profile': 'Profile',
                 'nav.settings': 'Settings',
@@ -3132,7 +3132,7 @@
                 'nav.tools': 'उपकरण खरिद गर्नुहोस्',
                 'nav.experts': 'विशेषज्ञहरू',
                 'nav.chat': 'च्याट',
-                'nav.education': 'शिक्षा',
+                'nav.blogs': 'ब्लग',
                 'nav.orders': 'अर्डरहरू',
                 'nav.profile': 'प्रोफाइल',
                 'nav.settings': 'सेटिङहरू',

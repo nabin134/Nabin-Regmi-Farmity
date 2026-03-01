@@ -1744,17 +1744,8 @@
                 <a href="#tools" onclick="switchTab('tools', event); return false;" class="nav-link-item" data-tab="tools">
                     <i class="fas fa-tools"></i> Tools
                 </a>
-                <a href="#experts" onclick="switchTab('experts', event); return false;" class="nav-link-item" data-tab="experts">
-                    <i class="fas fa-user-graduate"></i> Experts
-                </a>
-                <a href="#tips" onclick="switchTab('tips', event); return false;" class="nav-link-item" data-tab="tips">
-                    <i class="fas fa-lightbulb"></i> Expert Content
-                </a>
-                <a href="#appointments" onclick="switchTab('appointments', event); return false;" class="nav-link-item" data-tab="appointments">
-                    <i class="fas fa-calendar-check"></i> Appointments
-                </a>
-                <a href="#chat" onclick="switchTab('chat', event); return false;" class="nav-link-item" data-tab="chat">
-                    <i class="fas fa-comments"></i> Chat
+                <a href="#blogs" onclick="switchTab('blogs', event); return false;" class="nav-link-item" data-tab="blogs">
+                    <i class="fas fa-blog"></i> Blogs
                 </a>
                 <a href="#orders" onclick="switchTab('orders', event); return false;" class="nav-link-item" data-tab="orders" style="position: relative;">
                     <i class="fas fa-shopping-bag"></i> Orders
@@ -1798,7 +1789,7 @@
     <div class="dashboard-wrapper">
         <div class="dashboard-hero">
             <h1>Buyer dashboard</h1>
-            <p>Shop fresh produce, tools, and book expert advice in one place</p>
+            <p>Shop fresh produce and tools in one place</p>
         </div>
 
         <div class="dashboard-container">
@@ -1809,7 +1800,6 @@
                 <p class="welcome-text">Welcome back, <span>{{ profile.name|default:request.user.email }}</span></p>
                 <div class="buyer-quick-stats">
                     <span class="quick-stat-pill"><i class="fas fa-seedling"></i> Crops <strong>{{ crops_count }}</strong></span>
-                    <span class="quick-stat-pill"><i class="fas fa-calendar-check"></i> Appointments <strong>{{ appointments|length }}</strong></span>
                     <span class="quick-stat-pill"><i class="fas fa-shopping-bag"></i> Orders <strong>{{ total_orders }}</strong></span>
                 </div>
             </div>
@@ -1905,77 +1895,40 @@
                 </div>
             </div>
 
-            <!-- ========== EXPERTS SECTION ========== -->
-            <div id="experts" class="content-section" style="display: none;">
-                {% if active_section == 'experts' %}{% include 'includes/messages_block.html' %}{% endif %}
-                <h2 class="section-title"><i class="fas fa-user-graduate"></i> Agricultural experts</h2>
-                <div class="experts-grid">
-                        {% for expert in experts %}
-                        <div class="expert-card">
-                            {% if expert.photo %}
-                            <img src="{{ expert.photo.url }}" alt="{{ expert.name }}" class="expert-avatar">
-                            {% else %}
-                            <div class="expert-avatar">
-                                <i class="fas fa-user-graduate"></i>
-                            </div>
-                            {% endif %}
-                            <div class="expert-info">
-                                <h4>{{ expert.name|default:expert.user.email }}</h4>
-                                <p><i class="fas fa-graduation-cap"></i> {{ expert.specialization|default:"General Expert" }}</p>
-                                <p style="font-size: 0.95rem; color: #666; margin-top: 0.5rem;">
-                                    <i class="fas fa-clock"></i> {{ expert.experience|default:"5+ years" }} experience
-                                </p>
-                            </div>
-                            <div class="expert-actions">
-                                <button type="button" class="btn-chat" onclick="openChatWithExpert({{ expert.id }}, '{{ expert.name|default:expert.user.email|escapejs }}', '{{ expert.qualification|default:""|escapejs }}', '{{ expert.specialization|default:""|escapejs }}', '{{ expert.experience|default:""|escapejs }}')">
-                                    <i class="fas fa-comments"></i> Chat
-                                </button>
-                                <button class="btn-appoint" onclick="openAppointmentModal({{ expert.id }}, '{{ expert.name|default:expert.user.email }}')">
-                                    <i class="fas fa-calendar"></i> Appoint
-                                </button>
-                            </div>
-                        </div>
-                        {% empty %}
-                        <div class="empty-state" style="grid-column: 1/-1;">
-                            <i class="fas fa-user-graduate"></i>
-                            <h3>No experts available</h3>
-                            <p>Check back later for agricultural experts</p>
-                        </div>
-                        {% endfor %}
-                </div>
-            </div>
+            <!-- Experts section: visible only to farmers (see farmer dashboard) -->
 
-            <!-- ========== EXPERT CONTENT SECTION ========== -->
-            <div id="tips" class="content-section" style="display: none;">
-                {% if active_section == 'tips' %}{% include 'includes/messages_block.html' %}{% endif %}
-                <h2 class="section-title"><i class="fas fa-lightbulb"></i> Expert content</h2>
+            <!-- ========== BLOGS SECTION (visible to all users) ========== -->
+            <div id="blogs" class="content-section" style="display: none;">
+                {% if active_section == 'blogs' %}{% include 'includes/messages_block.html' %}{% endif %}
+                <h2 class="section-title"><i class="fas fa-blog"></i> Blogs</h2>
                 <div class="tips-grid">
-                        {% for tip in tips %}
-                        <div class="tip-card">
-                            {% if tip.image %}
-                            <div class="tip-image-wrapper">
-                                <img src="{{ tip.image.url }}" alt="{{ tip.title }}" class="tip-image">
-                            </div>
-                            {% endif %}
-                            <div class="tip-body">
-                                <h4>{{ tip.title }}</h4>
-                                <p>{{ tip.content|truncatewords:50 }}</p>
-                                <p class="tip-author">
-                                    <i class="fas fa-user"></i> — {{ tip.expert.name|default:"Expert" }} • {{ tip.expert.specialization|default:"Agriculturalist" }}
-                                </p>
-                            </div>
+                    {% for blog in blogs %}
+                    <div class="tip-card">
+                        {% if blog.image %}
+                        <div class="tip-image-wrapper">
+                            <img src="{{ blog.image.url }}" alt="{{ blog.title }}" class="tip-image">
                         </div>
-                        {% empty %}
-                        <div class="empty-state" style="grid-column: 1/-1;">
-                            <i class="fas fa-lightbulb"></i>
-                            <h3>No expert content available</h3>
-                            <p>Check back later for tips and content from our experts</p>
+                        {% endif %}
+                        <div class="tip-body">
+                            <h4>{{ blog.title }}</h4>
+                            <p>{{ blog.content|truncatewords:50 }}</p>
+                            <p class="tip-author">
+                                <i class="fas fa-user"></i> — {{ blog.expert.name|default:"Expert" }} · {{ blog.expert.specialization|default:"Agricultural" }}
+                            </p>
                         </div>
-                        {% endfor %}
+                    </div>
+                    {% empty %}
+                    <div class="empty-state" style="grid-column: 1/-1;">
+                        <i class="fas fa-blog"></i>
+                        <h3>No blogs yet</h3>
+                        <p>Check back later for articles and tips from our experts</p>
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
 
-            <!-- ========== APPOINTMENTS SECTION ========== -->
+            <!-- ========== APPOINTMENTS & CHAT: only for farmers (not shown on buyer dashboard) ========== -->
+            {% if request.user.role == 'farmer' %}
             <div id="appointments" class="content-section" style="display: none;">
                 {% if active_section == 'appointments' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <h2 class="section-title"><i class="fas fa-calendar-check"></i> My appointments</h2>
@@ -2066,6 +2019,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
             <!-- ========== ORDERS SECTION ========== -->
             <div id="orders" class="content-section" style="display: none;">
