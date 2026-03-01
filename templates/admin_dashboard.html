@@ -433,6 +433,10 @@
                 <i class="fas fa-store"></i>
                 <span>Marketplace</span>
             </a>
+            <a href="{% url 'admin_collections_payouts' %}" class="menu-item">
+                <i class="fas fa-money-bill-wave"></i>
+                <span>Collections & Payouts</span>
+            </a>
             <a href="{% url 'admin_appointment_management' %}" class="menu-item">
                 <i class="fas fa-calendar-check"></i>
                 <span>Appointments</span>
@@ -484,6 +488,7 @@
 
         <!-- Dashboard Content -->
         <div class="dashboard-content">
+            {% include 'includes/admin_collections_summary_bar.html' %}
             {% include 'includes/admin_messages_block.html' %}
             <!-- Analytics Cards -->
             <div class="analytics-grid">

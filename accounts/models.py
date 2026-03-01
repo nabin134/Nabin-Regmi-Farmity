@@ -368,12 +368,40 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Payout to farmer/vendor: all amounts collected by admin; paid out (e.g. weekly) with notification
+    PAYOUT_PENDING = 'pending_payout'
+    PAYOUT_PAID = 'paid'
+    PAYOUT_STATUS_CHOICES = (
+        (PAYOUT_PENDING, 'Pending payout'),
+        (PAYOUT_PAID, 'Paid to seller'),
+    )
+    payout_status = models.CharField(
+        max_length=20, choices=PAYOUT_STATUS_CHOICES, default=PAYOUT_PENDING, blank=True, null=True
+    )
+    payout_at = models.DateTimeField(blank=True, null=True, help_text='When admin paid this order’s amount to farmer/vendor')
+
     class Meta:
         ordering = ('-created_at',)
 
     def __str__(self):
         item = self.tool.name if self.tool else (self.crop.name if self.crop else 'Unknown')
         return f"Order #{self.id} - {item} - {self.buyer.email}"
+
+    def get_seller_user(self):
+        """Return the User (farmer or vendor) who should receive payout for this order."""
+        if self.crop and self.crop.farmer:
+            return getattr(self.crop.farmer, 'user', None)
+        if self.tool and self.tool.vendor:
+            return getattr(self.tool.vendor, 'user', None)
+        return None
+
+    def get_seller_display_name(self):
+        """Display name for farmer or vendor."""
+        if self.crop and self.crop.farmer:
+            return self.crop.farmer.name or self.crop.farmer.user.email
+        if self.tool and self.tool.vendor:
+            return self.tool.vendor.company_name or self.tool.vendor.user.email
+        return 'Unknown'
 
 
 class CropSale(models.Model):

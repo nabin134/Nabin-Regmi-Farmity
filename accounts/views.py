@@ -3140,6 +3140,136 @@ def admin_dashboard(request):
 
 
 @login_required
+def admin_collections_payouts(request):
+    """Admin: view all amounts collected (paid orders) and pay out to farmers/vendors (e.g. weekly)."""
+    if request.user.role != 'admin':
+        return _redirect_to_role_home_response(request.user)
+
+    # Orders where payment is collected by admin (eSewa completed or COD delivered)
+    collected_orders = Order.objects.filter(
+        payment_status=Order.PAYMENT_STATUS_COMPLETED
+    ).select_related('crop', 'crop__farmer', 'crop__farmer__user', 'tool', 'tool__vendor', 'tool__vendor__user')
+
+    total_collected = collected_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    # Pending payout: collected but not yet paid to seller
+    pending_q = Q(payout_status__isnull=True) | Q(payout_status=Order.PAYOUT_PENDING)
+    pending_orders = collected_orders.filter(pending_q)
+    total_pending_payout = pending_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+
+    # Group ALL collected by farmer (crop orders) — total amount collected from each farmer
+    farmer_collected = {}
+    for o in collected_orders.filter(crop__isnull=False).exclude(crop__farmer__isnull=True):
+        fid = o.crop.farmer.id
+        if fid not in farmer_collected:
+            farmer_collected[fid] = {
+                'profile': o.crop.farmer,
+                'display_name': o.crop.farmer.name or o.crop.farmer.user.email,
+                'amount': Decimal('0'),
+            }
+        farmer_collected[fid]['amount'] += o.total_amount
+    # Group ALL collected by vendor (tool orders) — total amount collected from each vendor
+    vendor_collected = {}
+    for o in collected_orders.filter(tool__isnull=False).exclude(tool__vendor__isnull=True):
+        vid = o.tool.vendor.id
+        if vid not in vendor_collected:
+            vendor_collected[vid] = {
+                'profile': o.tool.vendor,
+                'display_name': o.tool.vendor.company_name or o.tool.vendor.user.email,
+                'amount': Decimal('0'),
+            }
+        vendor_collected[vid]['amount'] += o.total_amount
+
+    # Group pending by farmer (crop orders)
+    farmer_pending = {}
+    for o in pending_orders.filter(crop__isnull=False).exclude(crop__farmer__isnull=True):
+        fid = o.crop.farmer.id
+        if fid not in farmer_pending:
+            farmer_pending[fid] = {
+                'profile': o.crop.farmer,
+                'display_name': o.crop.farmer.name or o.crop.farmer.user.email,
+                'amount': Decimal('0'),
+                'orders': [],
+            }
+        farmer_pending[fid]['amount'] += o.total_amount
+        farmer_pending[fid]['orders'].append(o)
+
+    # Group pending by vendor (tool orders)
+    vendor_pending = {}
+    for o in pending_orders.filter(tool__isnull=False).exclude(tool__vendor__isnull=True):
+        vid = o.tool.vendor.id
+        if vid not in vendor_pending:
+            vendor_pending[vid] = {
+                'profile': o.tool.vendor,
+                'display_name': o.tool.vendor.company_name or o.tool.vendor.user.email,
+                'amount': Decimal('0'),
+                'orders': [],
+            }
+        vendor_pending[vid]['amount'] += o.total_amount
+        vendor_pending[vid]['orders'].append(o)
+
+    # Handle POST: mark payout paid for a seller
+    if request.method == 'POST' and request.POST.get('action') == 'mark_payout_paid':
+        seller_type = request.POST.get('seller_type')  # 'farmer' | 'vendor'
+        seller_id = request.POST.get('seller_id')
+        if seller_type == 'farmer' and seller_id:
+            try:
+                farmer = FarmerProfile.objects.get(id=seller_id)
+                orders_to_pay = pending_orders.filter(crop__farmer=farmer)
+                total_paid = orders_to_pay.aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
+                now = timezone.now()
+                orders_to_pay.update(payout_status=Order.PAYOUT_PAID, payout_at=now)
+                seller_user = getattr(farmer, 'user', None)
+                if seller_user:
+                    create_notification(
+                        seller_user,
+                        'Payout received',
+                        f'Rs. {total_paid:.2f} has been transferred to you for your orders (weekly payout from Farmity admin).',
+                        reverse('farmer_dashboard') + '?section=orders',
+                        UserNotification.TYPE_ORDER
+                    )
+                messages.success(request, f'Payout of Rs. {total_paid:.2f} marked as paid to farmer {farmer.name or farmer.user.email}. They have been notified.')
+            except FarmerProfile.DoesNotExist:
+                messages.error(request, 'Farmer not found.')
+        elif seller_type == 'vendor' and seller_id:
+            try:
+                vendor = VendorProfile.objects.get(id=seller_id)
+                orders_to_pay = pending_orders.filter(tool__vendor=vendor)
+                total_paid = orders_to_pay.aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
+                now = timezone.now()
+                orders_to_pay.update(payout_status=Order.PAYOUT_PAID, payout_at=now)
+                seller_user = getattr(vendor, 'user', None)
+                if seller_user:
+                    create_notification(
+                        seller_user,
+                        'Payout received',
+                        f'Rs. {total_paid:.2f} has been transferred to you for your orders (weekly payout from Farmity admin).',
+                        reverse('vendor_dashboard'),
+                        UserNotification.TYPE_ORDER
+                    )
+                messages.success(request, f'Payout of Rs. {total_paid:.2f} marked as paid to vendor {vendor.company_name or vendor.user.email}. They have been notified.')
+            except VendorProfile.DoesNotExist:
+                messages.error(request, 'Vendor not found.')
+        else:
+            messages.error(request, 'Invalid payout request.')
+        return redirect(reverse('admin_collections_payouts'))
+
+    total_paid_out = total_collected - total_pending_payout
+    context = {
+        'total_collected': float(total_collected),
+        'total_pending_payout': float(total_pending_payout),
+        'total_paid_out': float(total_paid_out),
+        'farmer_collected_list': list(farmer_collected.values()),
+        'vendor_collected_list': list(vendor_collected.values()),
+        'farmer_pending_list': list(farmer_pending.values()),
+        'vendor_pending_list': list(vendor_pending.values()),
+        'open_support_count': SupportTicket.objects.filter(
+            status__in=[SupportTicket.STATUS_OPEN, SupportTicket.STATUS_IN_PROGRESS]
+        ).count(),
+    }
+    return render(request, 'admin_collections_payouts.html', context)
+
+
+@login_required
 def admin_kyc_view_json(request, kyc_id):
     """Return KYC details as JSON for modal view"""
     if request.user.role != 'admin':
@@ -3800,6 +3930,12 @@ def admin_marketplace_oversight(request):
                     order.order_email = request.POST.get('order_email', '') or None
                 order.notes = request.POST.get('notes', order.notes)
                 order.save()
+                # COD: when order is marked delivered, treat payment as collected by admin
+                if (order.status == Order.STATUS_DELIVERED and
+                        (order.payment_method or '').lower() == Order.PAYMENT_COD and
+                        order.payment_status != Order.PAYMENT_STATUS_COMPLETED):
+                    order.payment_status = Order.PAYMENT_STATUS_COMPLETED
+                    order.save(update_fields=['payment_status'])
                 # Notify buyer when status changes to Shipped/Delivered
                 if order.buyer and order.status != old_status and order.status in (Order.STATUS_SHIPPED, Order.STATUS_DELIVERED):
                     status_label = order.get_status_display()
