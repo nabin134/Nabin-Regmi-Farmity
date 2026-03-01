@@ -488,7 +488,6 @@
 
         <!-- Dashboard Content -->
         <div class="dashboard-content">
-            {% include 'includes/admin_collections_summary_bar.html' %}
             {% include 'includes/admin_messages_block.html' %}
             <!-- Analytics Cards -->
             <div class="analytics-grid">
@@ -579,18 +578,18 @@
                     </div>
                 </div>
 
-                <!-- Total Revenue -->
+                <!-- Total Revenue (Collected only) -->
                 <div class="analytics-card">
                     <div class="card-header">
-                        <span class="card-title">Total Revenue</span>
+                        <span class="card-title">Total Revenue (Collected)</span>
                         <div class="card-icon transactions">
                             <i class="fas fa-dollar-sign"></i>
                         </div>
                     </div>
-                    <div class="card-value">Rs. {{ total_revenue|floatformat:0 }}</div>
+                    <div class="card-value">Rs. {{ admin_total_collected|floatformat:0 }}</div>
                     <div class="card-change" style="color: var(--success);">
                         <i class="fas fa-arrow-up"></i>
-                        <span>Platform revenue</span>
+                        <span>Amount collected from orders</span>
                     </div>
                 </div>
 
