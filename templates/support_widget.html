@@ -12,7 +12,9 @@
             <button type="button" class="farmity-tab active" data-tab="faq">FAQ</button>
             <button type="button" class="farmity-tab" data-tab="mytickets">My tickets</button>
             <button type="button" class="farmity-tab" data-tab="new">New request</button>
+            {% if not hide_admin_tab %}
             <button type="button" class="farmity-tab farmity-tab-staff" data-tab="open" id="farmityTabOpen" style="display:none;">Open (Admin)</button>
+            {% endif %}
         </div>
         <div class="farmity-support-body">
             <div class="farmity-tab-content active" id="farmityContentFaq">
@@ -35,9 +37,11 @@
                     <button type="submit" class="farmity-btn-primary"><i class="fas fa-paper-plane"></i> Submit</button>
                 </form>
             </div>
+            {% if not hide_admin_tab %}
             <div class="farmity-tab-content" id="farmityContentOpen">
                 <div class="farmity-ticket-list" id="farmityOpenTicketsList">Loading…</div>
             </div>
+            {% endif %}
         </div>
         <div class="farmity-support-detail" id="farmityTicketDetail" style="display:none;">
             <div class="farmity-detail-header">
@@ -176,7 +180,7 @@
     var currentTicketId = null;
 
     function loadConfig() {
-        api('/api/support/config/').then(function(d) { isStaff = d.is_staff || false; document.getElementById('farmityTabOpen').style.display = isStaff ? '' : 'none'; });
+        api('/api/support/config/').then(function(d) { isStaff = d.is_staff || false; var el = document.getElementById('farmityTabOpen'); if (el) el.style.display = isStaff ? '' : 'none'; });
     }
     function loadFaq() {
         api('/api/support/faqs/').then(function(d) {
@@ -214,8 +218,9 @@
     }
     function loadOpenTickets() {
         if (!isStaff) return;
+        var list = document.getElementById('farmityOpenTicketsList');
+        if (!list) return;
         api('/api/support/open-tickets/').then(function(d) {
-            var list = document.getElementById('farmityOpenTicketsList');
             if (!d.tickets || d.tickets.length === 0) { list.innerHTML = '<div class="farmity-empty">No open tickets.</div>'; return; }
             list.innerHTML = d.tickets.map(function(t) {
                 return '<div class="farmity-ticket-item" data-id="' + t.id + '"><div class="subj">' + escapeHtml(t.subject) + '</div><div class="meta">' + escapeHtml(t.user_email) + ' · ' + escapeHtml(t.updated_at) + '</div><span class="stag ' + t.status + '">' + escapeHtml(t.status_display) + '</span></div>';
@@ -230,8 +235,8 @@
         loadMyTickets();
         api('/api/support/config/').then(function(d) {
             isStaff = d.is_staff || false;
-            document.getElementById('farmityTabOpen').style.display = isStaff ? '' : 'none';
-            if (isStaff) loadOpenTickets();
+            var tabOpen = document.getElementById('farmityTabOpen');
+            if (tabOpen) { tabOpen.style.display = isStaff ? '' : 'none'; if (isStaff) loadOpenTickets(); }
         });
     }
 
@@ -275,7 +280,7 @@
         document.getElementById('farmityTicketDetail').style.display = 'none';
         document.querySelector('.farmity-support-body').style.display = 'block';
         loadMyTickets();
-        if (isStaff) loadOpenTickets();
+        if (isStaff && document.getElementById('farmityTabOpen')) loadOpenTickets();
     }
     document.getElementById('farmityDetailBack').addEventListener('click', backToList);
 
@@ -305,7 +310,8 @@
 
     api('/api/support/config/').then(function(d) {
         isStaff = d.is_staff || false;
-        document.getElementById('farmityTabOpen').style.display = isStaff ? '' : 'none';
+        var el = document.getElementById('farmityTabOpen');
+        if (el) el.style.display = isStaff ? '' : 'none';
     });
 })();
 </script>
