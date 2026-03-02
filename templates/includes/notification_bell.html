@@ -195,6 +195,13 @@
     border-bottom: none;
 }
 
+.notif-item-clickable {
+    cursor: pointer;
+}
+.notif-item-clickable:hover {
+    background: var(--notif-surface-hover);
+}
+
 .notif-item:hover {
     background: var(--notif-surface-hover);
 }
@@ -501,10 +508,13 @@
                     var unreadClass = n.is_read ? '' : ' unread';
                     var msgHtml = n.message ? '<div class="notif-item-message">' + escapeHtml(n.message) + '</div>' : '';
                     var hasLink = href && href !== '#';
+                    var isChat = type === 'chat';
+                    var viewLabel = isChat ? 'Open chat' : 'View page';
                     var markReadBtn = n.is_read ? '' : '<button type="button" class="notif-btn-mark-read notif-mark-one" data-id="' + n.id + '" title="Mark as read"><i class="fas fa-check"></i> Mark read</button>';
-                    var viewBtn = hasLink ? '<a class="notif-btn-view notif-goto-page" href="' + escapeHtml(href) + '" data-id="' + n.id + '"><i class="fas fa-external-link-alt"></i> View page</a>' : '';
+                    var viewBtn = hasLink ? '<a class="notif-btn-view notif-goto-page" href="' + escapeHtml(href) + '" data-id="' + n.id + '"><i class="fas ' + (isChat ? 'fa-comments' : 'fa-external-link-alt') + '"></i> ' + viewLabel + '</a>' : '';
                     var actionsHtml = (viewBtn || markReadBtn) ? '<div class="notif-item-actions">' + viewBtn + markReadBtn + '</div>' : '';
-                    return '<div class="notif-item' + unreadClass + '" data-id="' + n.id + '" data-href="' + escapeHtml(href) + '">' +
+                    var clickableClass = hasLink ? ' notif-item-clickable' : '';
+                    return '<div class="notif-item' + unreadClass + clickableClass + '" data-id="' + n.id + '" data-href="' + escapeHtml(href) + '">' +
                         '<div class="notif-item-icon type-' + escapeHtml(type) + '"><i class="fas ' + iconClass + '"></i></div>' +
                         '<div class="notif-item-body">' +
                         '<div class="notif-item-title">' + escapeHtml(n.title) + '</div>' +
@@ -555,6 +565,15 @@
     });
     if (dropdownEl) dropdownEl.addEventListener('click', function(e) { e.stopPropagation(); });
 
+    function goToNotificationLink(notifItem) {
+        var href = notifItem && notifItem.getAttribute('data-href');
+        if (href && href !== '#') {
+            var id = notifItem.getAttribute('data-id');
+            if (id) markRead(id);
+            window.location.href = href;
+        }
+    }
+
     if (listEl) {
         listEl.addEventListener('click', function(e) {
             var markBtn = e.target.closest('.notif-mark-one');
@@ -574,6 +593,12 @@
                     window.location.href = href;
                 }
                 return;
+            }
+            var notifItem = e.target.closest('.notif-item-clickable');
+            if (notifItem && !e.target.closest('.notif-item-actions')) {
+                e.preventDefault();
+                e.stopPropagation();
+                goToNotificationLink(notifItem);
             }
         });
     }

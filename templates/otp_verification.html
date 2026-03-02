@@ -105,19 +105,6 @@
             margin-bottom: 1.75rem;
             line-height: 1.5;
         }
-        #devOtpBanner {
-            display: none;
-            background: #fef3c7;
-            border: 1px solid #f59e0b;
-            color: #92400e;
-            padding: 0.9rem 1rem;
-            border-radius: var(--otp-radius-sm);
-            margin-bottom: 1.5rem;
-            font-size: 0.875rem;
-            line-height: 1.5;
-        }
-        #devOtpBanner.show { display: block; }
-        #devOtpBanner strong { display: block; margin-bottom: 0.25rem; }
         #devOtpBanner .dev-otp-code {
             font-family: ui-monospace, monospace;
             font-size: 1.25rem;
@@ -242,12 +229,6 @@
             <h2>Enter verification code</h2>
             <p class="subtitle">Check your inbox for the code. It expires in 10 minutes.</p>
 
-            <div id="devOtpBanner" class="dev-banner">
-                <strong>Email not received?</strong>
-                Use this code to continue (development mode):
-                <div class="dev-otp-code" id="devOtpCode"></div>
-            </div>
-
             <div id="message" class="message"></div>
 
             <form id="otpForm">
@@ -291,17 +272,6 @@
             }
             function hideMessage() {
                 if (messageDiv) { messageDiv.textContent = ''; messageDiv.className = 'message'; }
-            }
-
-            // Show dev OTP from URL if present (when email failed in DEBUG)
-            const devOtp = getParam('dev_otp');
-            if (devOtp && devOtp.length === 6) {
-                const banner = document.getElementById('devOtpBanner');
-                const codeEl = document.getElementById('devOtpCode');
-                if (banner && codeEl) {
-                    codeEl.textContent = devOtp;
-                    banner.classList.add('show');
-                }
             }
 
             // Set email/token from URL if not in form
@@ -401,11 +371,6 @@
                     if (res.ok) {
                         setMessage('New code sent. Check your email.', 'success');
                         if (data.token && tokenInput) tokenInput.value = data.token;
-                        if (data.dev_otp) {
-                            var banner = document.getElementById('devOtpBanner');
-                            var codeEl = document.getElementById('devOtpCode');
-                            if (banner && codeEl) { codeEl.textContent = data.dev_otp; banner.classList.add('show'); }
-                        }
                         otpInputs.forEach(function(i) { i.value = ''; });
                         if (otpInputs[0]) otpInputs[0].focus();
                     } else {

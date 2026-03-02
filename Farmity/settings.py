@@ -21,9 +21,9 @@ if not os.environ.get('EMAIL_HOST_PASSWORD') and (_project_root / '.env').exists
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
                     key, _, val = line.partition('=')
-                    key, val = key.strip(), val.strip().strip('"').strip("'")
+                    key, val = key.strip(), val.strip().strip('"').strip("'").replace(' ', '')
                     if key == 'EMAIL_HOST_PASSWORD' and val:
-                        os.environ['EMAIL_HOST_PASSWORD'] = val.strip()
+                        os.environ['EMAIL_HOST_PASSWORD'] = val
                         break
     except Exception:
         pass
@@ -178,18 +178,22 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # 1. Go to https://myaccount.google.com/security
 # 2. Turn on 2-Step Verification if needed
 # 3. App passwords → Generate for "Mail" → copy the 16-character password
-# 4. Put it in .env as EMAIL_HOST_PASSWORD=xxxx xxxx xxxx xxxx (no spaces in .env)
+# 4. Put it in .env as EMAIL_HOST_PASSWORD=xxxxxxxxxxxxxxxx (16 chars, NO SPACES – Gmail shows "xxxx xxxx xxxx xxxx" but paste as one word)
+# If you get 535 "Username and Password not accepted", see EMAIL_SETUP.md in the project root.
 DEFAULT_FROM_EMAIL = os.environ.get('DEFAULT_FROM_EMAIL', 'farmityforyou@gmail.com')
 
 EMAIL_HOST = os.environ.get('EMAIL_HOST', 'smtp.gmail.com')
 EMAIL_PORT = int(os.environ.get('EMAIL_PORT', '587'))
 EMAIL_USE_TLS = os.environ.get('EMAIL_USE_TLS', 'true').lower() in ('true', '1', 'yes')
 EMAIL_HOST_USER = os.environ.get('EMAIL_HOST_USER', 'farmityforyou@gmail.com')
-# Strip so trailing newline/space in .env doesn't break Gmail login
-EMAIL_HOST_PASSWORD = (os.environ.get('EMAIL_HOST_PASSWORD', '') or '').strip()
+# Strip whitespace so trailing newline or accidental spaces in .env don't break Gmail login
+EMAIL_HOST_PASSWORD = (os.environ.get('EMAIL_HOST_PASSWORD', '') or '').strip().replace(' ', '')
 
 if EMAIL_HOST and EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+    import sys
+    if 'runserver' in sys.argv:
+        print("[Email] Using SMTP: sending from", EMAIL_HOST_USER)
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     import sys

@@ -280,6 +280,46 @@
             align-items: center;
             justify-content: space-between;
         }
+        .profile-info-label {
+            font-size: 0.75rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .profile-info-value {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .profile-info-value i {
+            color: var(--sea-green);
+            font-size: 1rem;
+            flex-shrink: 0;
+        }
+        .btn-edit-profile {
+            background: linear-gradient(135deg, var(--sea-green) 0%, var(--sushi) 100%);
+            color: white;
+            border: none;
+            padding: 0.6rem 1.25rem;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            box-shadow: 0 2px 8px rgba(53, 141, 88, 0.25);
+        }
+        .btn-edit-profile:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(53, 141, 88, 0.35);
+        }
         @media (max-width: 768px) {
             .profile-header {
                 flex-direction: column;
@@ -347,8 +387,8 @@
         <div class="profile-card">
             <div class="section-title">
                 <span><i class="fas fa-user-circle" style="color: var(--sea-green); margin-right: 0.5rem;"></i>My Profile</span>
-                <button type="submit" form="profileForm" class="btn-save-profile">
-                    <i class="fas fa-save"></i> Save
+                <button type="button" id="profileEditBtn" class="btn-edit-profile" onclick="toggleProfileEdit()">
+                    <i class="fas fa-edit"></i> Edit Profile
                 </button>
             </div>
 
@@ -403,7 +443,66 @@
                 </div>
             </div>
 
-            <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="profile-form-section" id="profileForm">
+            <!-- View mode: card grid (farmer & expert match reference layout) -->
+            <div id="profileViewMode" class="profile-form-section" style="{% if request.user.role != 'farmer' and request.user.role != 'agricultural_expert' %}display: none;{% endif %}">
+                {% if request.user.role == 'farmer' %}
+                <div class="profile-info-grid">
+                    <div class="info-card">
+                        <span class="profile-info-label">Email Address</span>
+                        <div class="profile-info-value"><i class="fas fa-envelope"></i> {{ request.user.email|default:"Not set" }}</div>
+                    </div>
+                    <div class="info-card">
+                        <span class="profile-info-label">Name</span>
+                        <div class="profile-info-value"><i class="fas fa-user"></i> {{ profile.name|default:"Not set" }}</div>
+                    </div>
+                    <div class="info-card">
+                        <span class="profile-info-label">Contact</span>
+                        <div class="profile-info-value"><i class="fas fa-phone"></i> {{ profile.contact|default:"Not set" }}</div>
+                    </div>
+                    <div class="info-card">
+                        <span class="profile-info-label">Location</span>
+                        <div class="profile-info-value"><i class="fas fa-map-marker-alt"></i> {{ profile.location|default:"Not set" }}</div>
+                    </div>
+                    <div class="info-card">
+                        <span class="profile-info-label">Farm Size</span>
+                        <div class="profile-info-value"><i class="fas fa-tractor"></i> {{ profile.farm_size|default:"Not set" }}</div>
+                    </div>
+                    <div class="info-card">
+                        <span class="profile-info-label">Member Since</span>
+                        <div class="profile-info-value"><i class="fas fa-calendar"></i> {{ request.user.date_joined|date:"M d, Y" }}</div>
+                    </div>
+                </div>
+                {% elif request.user.role == 'agricultural_expert' %}
+                <div class="profile-info-grid">
+                    <div class="info-card">
+                        <span class="profile-info-label">Email Address</span>
+                        <div class="profile-info-value"><i class="fas fa-envelope"></i> {{ request.user.email|default:"Not set" }}</div>
+                    </div>
+                    <div class="info-card">
+                        <span class="profile-info-label">Name</span>
+                        <div class="profile-info-value"><i class="fas fa-user"></i> {{ profile.name|default:"Not set" }}</div>
+                    </div>
+                    <div class="info-card">
+                        <span class="profile-info-label">Specialization</span>
+                        <div class="profile-info-value"><i class="fas fa-graduation-cap"></i> {{ profile.specialization|default:"Not set" }}</div>
+                    </div>
+                    <div class="info-card">
+                        <span class="profile-info-label">Experience</span>
+                        <div class="profile-info-value"><i class="fas fa-briefcase"></i> {{ profile.experience|default:"Not set" }}</div>
+                    </div>
+                    <div class="info-card">
+                        <span class="profile-info-label">Qualification</span>
+                        <div class="profile-info-value"><i class="fas fa-graduation-cap"></i> {{ profile.qualification|default:"Not set" }}</div>
+                    </div>
+                    <div class="info-card">
+                        <span class="profile-info-label">Member Since</span>
+                        <div class="profile-info-value"><i class="fas fa-calendar"></i> {{ request.user.date_joined|date:"M d, Y" }}</div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="profile-form-section" id="profileForm" style="{% if request.user.role == 'farmer' or request.user.role == 'agricultural_expert' %}display: none;{% endif %}">
                 {% csrf_token %}
                 <input type="hidden" name="update_profile" value="true">
 
@@ -533,6 +632,9 @@
                 </div>
                 <p style="margin-top:1rem; font-size:0.9rem; color:#666;">Keep your profile up to date so others can reach you. All fields are optional except your account email.</p>
                 <div class="form-actions" style="margin-top: 1.5rem;">
+                    {% if request.user.role == 'farmer' or request.user.role == 'agricultural_expert' %}
+                    <button type="button" class="btn-cancel" onclick="toggleProfileEdit()" style="margin-right: 0.5rem;"><i class="fas fa-times"></i> Cancel</button>
+                    {% endif %}
                     <button type="submit" class="btn-save-profile">
                         <i class="fas fa-save"></i> Save Changes
                     </button>
@@ -584,6 +686,23 @@
     </footer>
 
     <script src="/static/js/main.js"></script>
+    <script>
+    function toggleProfileEdit() {
+        var viewMode = document.getElementById('profileViewMode');
+        var form = document.getElementById('profileForm');
+        var btn = document.getElementById('profileEditBtn');
+        if (!viewMode || !form) return;
+        if (form.style.display === 'none') {
+            form.style.display = 'block';
+            viewMode.style.display = 'none';
+            if (btn) { btn.innerHTML = '<i class="fas fa-eye"></i> View Profile'; }
+        } else {
+            form.style.display = 'none';
+            viewMode.style.display = 'block';
+            if (btn) { btn.innerHTML = '<i class="fas fa-edit"></i> Edit Profile'; }
+        }
+    }
+    </script>
     {% include 'includes/user_dashboard_scroll.html' %}
 </body>
 </html>

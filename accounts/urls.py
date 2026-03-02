@@ -11,7 +11,7 @@ from .views import (
     appointment_request_page,
     chat_threads_page, chat_thread_detail, chat_start,
     api_chat_messages, api_chat_send, api_chat_start,
-    forgot_password_page, reset_password_page, otp_verification_page,
+    favicon_view, forgot_password_page, reset_password_page, otp_verification_page,
     logout_view, google_signup_start_view,
     esewa_initiate, esewa_success, esewa_failure,
     support_hub, admin_support_desk, support_ticket_detail,
@@ -23,6 +23,7 @@ from .views import (
 urlpatterns = [
     # Frontend pages
     path('', landing_page, name='landing'),
+    path('favicon.ico', favicon_view),
     path('home/', home_page, name='home'),
     path('role-selection/', role_selection, name='role-selection'),
     path('register/', register_page, name='register'),

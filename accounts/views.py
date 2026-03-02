@@ -5,7 +5,7 @@ from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib import messages
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -46,6 +46,14 @@ from .models import (
 from .serializers import SignupSerializer, LoginSerializer, UserSerializer, OTPVerificationSerializer
 from .decorators import kyc_required, kyc_optional
 from .notifications import create_notification
+
+
+def _chat_notification_link(recipient, thread_id):
+    """For experts: link to dashboard chat section with thread. Others: link to standalone chat thread."""
+    if getattr(recipient, 'role', None) == 'agricultural_expert':
+        return reverse('dashboard') + '?section=chat&thread_id=' + str(thread_id)
+    return reverse('chat_thread', kwargs={'thread_id': thread_id})
+
 
 # Password reset tokens storage (in production, use Redis or database)
 password_reset_tokens = {}
@@ -599,7 +607,8 @@ class ForgotPasswordView(APIView):
 
     def post(self, request):
         try:
-            email = request.data.get('email', '').strip().lower()
+            # Support both JSON and form-encoded body
+            email = (request.data.get('email') or request.POST.get('email') or '').strip().lower()
             
             if not email:
                 return Response(
@@ -623,8 +632,8 @@ class ForgotPasswordView(APIView):
             # Generate secure token for password reset
             token = secrets.token_urlsafe(32)
             
-            # Store OTP and token
-            otp_storage[email.lower()] = {
+            # Store OTP and token (use normalized email for lookup)
+            otp_storage[email] = {
                 'otp': otp,
                 'token': token,
                 'user_id': user.id,
@@ -634,18 +643,19 @@ class ForgotPasswordView(APIView):
             # Store token for password reset
             password_reset_tokens[token] = {
                 'user_id': user.id,
-                'email': user.email,
+                'email': email,
                 'created_at': timezone.now()
             }
             
-            # Send forgot-password OTP to the user's email (uses SMTP when EMAIL_HOST_PASSWORD is set)
+            # Send OTP to the same email address used for the reset request
+            recipient_email = email
             email_failed = False
             try:
-                send_mail(
+                sent = send_mail(
                     subject='Your Farmity Password Reset OTP',
-                    message=f'''Hello {user.email},
+                    message=f'''Hello,
 
-You requested to reset your password for your Farmity account.
+You requested to reset your password for your Farmity account (email: {recipient_email}).
 
 Your One-Time Password (OTP) is: {otp}
 
@@ -656,26 +666,31 @@ If you didn't request this, please ignore this email.
 Best regards,
 Farmity Team''',
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    recipient_list=[user.email],
+                    recipient_list=[recipient_email],
                     fail_silently=False,
                 )
-                print(f"Forgot-password OTP sent to: {user.email}")
+                if sent:
+                    print(f"[Email] OTP sent successfully to: {recipient_email} (check inbox and spam folder)")
+                else:
+                    email_failed = True
+                    print(f"[Email] send_mail returned 0 for {recipient_email}")
             except Exception as e:
                 email_failed = True
-                print(f"Forgot-password email send error: {e}")
-                import traceback
-                traceback.print_exc()
+                import smtplib
+                if isinstance(e, smtplib.SMTPAuthenticationError):
+                    print("[Email] Gmail login failed (535). Use a Gmail App Password in .env, not your normal password.")
+                    print("[Email] See EMAIL_SETUP.md or https://support.google.com/accounts/answer/185833")
+                else:
+                    print(f"[Email] Forgot-password send failed: {type(e).__name__}: {e}")
                 if getattr(settings, 'DEBUG', False):
-                    print("[DEBUG] Forgot-password OTP (use this to test when SMTP fails):", otp)
-                    print("[DEBUG] Gmail: use App Password in .env. See: https://support.google.com/accounts/answer/185833")
+                    import traceback
+                    traceback.print_exc()
+                    print("[DEBUG] OTP (email not sent):", otp)
             
             response_data = {
-                "message": "If an account with that email exists, an OTP has been sent.",
+                "message": "If an account with that email exists, an OTP has been sent. Check your inbox and spam folder.",
                 "token": token,
             }
-            # When email fails in DEBUG, include OTP so user can complete reset (e.g. Gmail not configured)
-            if getattr(settings, 'DEBUG', False) and email_failed:
-                response_data["dev_otp"] = otp
             return Response(response_data, status=status.HTTP_200_OK)
         except Exception as e:
             import traceback
@@ -1280,6 +1295,11 @@ def esewa_failure(request):
         'success': False,
         'redirect_url': reverse(redirect_after),
     })
+
+
+def favicon_view(request):
+    """Avoid 404 for /favicon.ico; return no content so the browser stops requesting."""
+    return HttpResponse(status=204)
 
 
 def forgot_password_page(request):
@@ -2978,15 +2998,24 @@ def user_dashboard(request):
     # Get or create user profile
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     
-    # Handle Profile Update
+    # Handle Profile Update (with validation and per-field handling)
     if request.method == 'POST' and 'update_profile' in request.POST:
-        profile.name = request.POST.get('name', profile.name)
-        profile.phone = request.POST.get('contact', profile.phone)
-        profile.address = request.POST.get('location', profile.address)
+        name = (request.POST.get('name') or '').strip()
+        contact = (request.POST.get('contact') or '').strip()
+        location = (request.POST.get('location') or '').strip()
+        if name is not None:
+            profile.name = name or profile.name
+        if contact is not None:
+            profile.phone = contact or profile.phone
+        if location is not None:
+            profile.address = location or profile.address
         if request.FILES.get('photo'):
             profile.photo = request.FILES.get('photo')
-        profile.save()
-        messages.success(request, 'Profile updated successfully!')
+        try:
+            profile.save()
+            messages.success(request, 'Profile updated successfully.')
+        except Exception as e:
+            messages.error(request, f'Could not save profile: {str(e)}')
         return _redirect_same_page(request, 'user_dashboard')
     
     # Get purchase history with statistics
@@ -4360,7 +4389,7 @@ def chat_start(request, expert_id):
             expert.user,
             'New chat started',
             f'{request.user.email} started a chat with you.',
-            reverse('chat_thread', kwargs={'thread_id': thread.id}),
+            _chat_notification_link(expert.user, thread.id),
             UserNotification.TYPE_CHAT
         )
     return redirect('chat_thread', thread_id=thread.id)
@@ -4370,6 +4399,10 @@ def chat_start(request, expert_id):
 def chat_thread_detail(request, thread_id):
     if request.user.role not in {'buyer', 'farmer', 'agricultural_expert'}:
         return _redirect_to_role_home_response(request.user)
+    
+    # Experts always use the dashboard chat UI – redirect to it (no standalone chat page for experts)
+    if request.user.role == 'agricultural_expert':
+        return redirect(reverse('expert_dashboard') + '?section=chat&thread_id=' + str(thread_id))
     
     # Check KYC for farmers (buyers don't need KYC)
     if request.user.role == 'farmer':
@@ -4385,13 +4418,8 @@ def chat_thread_detail(request, thread_id):
         messages.error(request, 'Chat thread not found.')
         return redirect('chat_threads')
     
-    # Check access: farmer/buyer must be created_by; expert must be the thread's expert
-    if request.user.role == 'agricultural_expert':
-        profile = ExpertProfile.objects.get(user=request.user)
-        if thread.expert_id != profile.id:
-            messages.error(request, 'You do not have access to this chat.')
-            return redirect('chat_threads')
-    else:
+    # Check access: farmer/buyer must be created_by
+    if request.user.role != 'agricultural_expert':
         if thread.created_by_id != request.user.id:
             messages.error(request, 'You do not have access to this chat.')
             return redirect('chat_threads')
@@ -4414,7 +4442,7 @@ def chat_thread_detail(request, thread_id):
                     recipient,
                     'New chat message',
                     f'{request.user.email}: {preview}',
-                    reverse('chat_thread', kwargs={'thread_id': thread_id}),
+                    _chat_notification_link(recipient, thread_id),
                     UserNotification.TYPE_CHAT
                 )
             return redirect('chat_thread', thread_id=thread_id)
@@ -4490,7 +4518,7 @@ def api_chat_send(request, thread_id):
             recipient,
             'New chat message',
             f'{request.user.email}: {preview}',
-            reverse('chat_thread', kwargs={'thread_id': thread_id}),
+            _chat_notification_link(recipient, thread_id),
             UserNotification.TYPE_CHAT
         )
     return JsonResponse({
@@ -4525,7 +4553,7 @@ def api_chat_start(request, expert_id):
             expert.user,
             'New chat started',
             f'{request.user.email} started a chat with you.',
-            reverse('chat_thread', kwargs={'thread_id': thread.id}),
+            _chat_notification_link(expert.user, thread.id),
             UserNotification.TYPE_CHAT
         )
     return JsonResponse({
@@ -4695,13 +4723,15 @@ def support_ticket_detail(request, ticket_id):
 
 
 # ---------- Support widget APIs (JSON for floating widget) ----------
-@login_required
 def api_support_config(request):
-    return JsonResponse({'is_staff': _is_support_staff(request.user)})
+    """Allow anonymous: landing page widget needs config without login. Returns is_staff: false when not logged in."""
+    if request.user.is_authenticated:
+        return JsonResponse({'is_staff': _is_support_staff(request.user)})
+    return JsonResponse({'is_staff': False})
 
 
-@login_required
 def api_support_faqs(request):
+    """Allow anonymous: widget can show FAQs on landing page without login."""
     faqs = FAQ.objects.filter(is_active=True).order_by('order', 'created_at')
     data = [{'id': f.id, 'question': f.question, 'answer': f.answer, 'category': f.category or ''} for f in faqs]
     return JsonResponse({'faqs': data})

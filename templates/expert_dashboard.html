@@ -959,10 +959,6 @@
             </div>
             <div class="header-right">
                 {% include 'includes/notification_bell.html' %}
-                <select id="languageSelect" class="language-selector" onchange="changeLanguage(this.value)">
-                    <option value="en">English</option>
-                    <option value="np">नेपाली (Nepali)</option>
-                </select>
                 <div class="user-profile">
                     <div class="user-avatar">
                         {% if profile.photo %}
@@ -1353,7 +1349,7 @@
                             <div class="chat-sidebar" style="width: 280px; background: #f8f9fa; border-right: 2px solid #e9ecef; overflow-y: auto;">
                                 <ul class="chat-list" style="list-style: none; padding: 0; margin: 0;">
                                     {% for thread in chat_threads %}
-                                    <li class="chat-item" onclick="loadExpertChatThread({{ thread.id }}, '{% if thread.created_by.role == "farmer" %}{{ thread.created_by.farmer_profile.name|default:thread.created_by.email|escapejs }}{% else %}{{ thread.created_by.user_profile.name|default:thread.created_by.email|escapejs }}{% endif %}')" style="padding: 1rem; border-bottom: 1px solid #e9ecef; cursor: pointer;">
+                                    <li class="chat-item" data-thread-id="{{ thread.id }}" data-user-name="{% if thread.created_by.role == 'farmer' %}{{ thread.created_by.farmer_profile.name|default:thread.created_by.email }}{% else %}{{ thread.created_by.user_profile.name|default:thread.created_by.email }}{% endif %}" onclick="loadExpertChatThread({{ thread.id }}, '{% if thread.created_by.role == "farmer" %}{{ thread.created_by.farmer_profile.name|default:thread.created_by.email|escapejs }}{% else %}{{ thread.created_by.user_profile.name|default:thread.created_by.email|escapejs }}{% endif %}')" style="padding: 1rem; border-bottom: 1px solid #e9ecef; cursor: pointer;">
                                         <div style="font-weight: 600;">{% if thread.created_by.role == 'farmer' %}{{ thread.created_by.farmer_profile.name|default:thread.created_by.email }}{% else %}{{ thread.created_by.user_profile.name|default:thread.created_by.email }}{% endif %}</div>
                                         <div style="font-size: 0.85rem; color: #666;">{% if thread.created_by.role == 'farmer' %}Farmer{% else %}Buyer{% endif %}</div>
                                     </li>
@@ -1528,23 +1524,6 @@
                                     <i class="fas fa-key"></i> Update Password
                                 </button>
                             </form>
-                        </div>
-
-                        <!-- Language Section -->
-                        <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
-                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
-                                <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-globe" style="font-size: 1.75rem; color: var(--primary);"></i>
-                                </div>
-                                <h3 style="margin: 0; font-size: 1.5rem;">Language & Region</h3>
-                            </div>
-                            <div class="form-group">
-                                <label>Preferred Language</label>
-                                <select id="settingsLanguageSelect" class="form-control" onchange="changeLanguage(this.value)">
-                                    <option value="en">English</option>
-                                    <option value="np">नेपाली (Nepali)</option>
-                                </select>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -1967,9 +1946,16 @@
         })();
         
         document.addEventListener('DOMContentLoaded', function() {
-            var sectionFromUrl = new URLSearchParams(window.location.search).get('section');
+            var params = new URLSearchParams(window.location.search);
+            var sectionFromUrl = params.get('section');
+            var threadIdFromUrl = params.get('thread_id');
             if (sectionFromUrl && document.getElementById(sectionFromUrl + '-section')) {
                 showSection(sectionFromUrl, null);
+                if (sectionFromUrl === 'chat' && threadIdFromUrl) {
+                    var chatItem = document.querySelector('.chat-item[data-thread-id="' + threadIdFromUrl + '"]');
+                    var userName = chatItem ? (chatItem.getAttribute('data-user-name') || 'User') : 'User';
+                    setTimeout(function() { loadExpertChatThread(parseInt(threadIdFromUrl, 10), userName); }, 150);
+                }
             } else {
             // Ensure dashboard is visible first with all content
             const dashboardSection = document.getElementById('dashboard-section');
@@ -2022,16 +2008,6 @@
             if (availMonth) {
                 const now = new Date();
                 availMonth.setAttribute('min', now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'));
-            }
-
-            const savedLang = localStorage.getItem('language') || 'en';
-            const select = document.getElementById('languageSelect');
-            if (select) {
-                select.value = savedLang;
-            }
-            const settingsSelect = document.getElementById('settingsLanguageSelect');
-            if (settingsSelect) {
-                settingsSelect.value = savedLang;
             }
 
             // Charts
