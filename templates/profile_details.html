@@ -87,8 +87,11 @@
         }
         .profile-info-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: 1fr 1fr;
             gap: 1.5rem;
+        }
+        @media (max-width: 640px) {
+            .profile-info-grid { grid-template-columns: 1fr; }
         }
         .info-card {
             background: #f8f9fa;
@@ -197,12 +200,52 @@
         }
         .profile-form-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-            gap: 1.25rem;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        @media (max-width: 640px) {
+            .profile-form-grid { grid-template-columns: 1fr; }
         }
         .profile-form-grid .form-group {
             margin-bottom: 0;
         }
+        .edit-card {
+            background: #f8f9fa;
+            border: 2px solid #e9ecef;
+            border-radius: 12px;
+            padding: 1.5rem;
+            transition: border-color 0.3s;
+        }
+        .edit-card:focus-within {
+            border-color: var(--sea-green);
+            box-shadow: 0 4px 12px rgba(53, 141, 88, 0.1);
+        }
+        .edit-card .profile-info-label {
+            font-size: 0.75rem;
+            color: #6c757d;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            font-weight: 600;
+            margin-bottom: 0.5rem;
+            display: block;
+        }
+        .edit-card .form-control {
+            width: 100%;
+            margin-top: 0.25rem;
+            box-sizing: border-box;
+        }
+        .edit-card .read-only-field {
+            margin-top: 0.25rem;
+        }
+        .profile-value-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+        .profile-value-row span { display: flex; align-items: center; gap: 0.5rem; }
+        .btn-inline-edit { background: none; border: none; color: var(--sea-green); cursor: pointer; padding: 0.25rem 0.5rem; font-size: 0.85rem; }
+        .btn-inline-edit:hover { color: var(--sushi); }
+        .inline-edit-form { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+        .inline-edit-form .form-control { flex: 1; min-width: 120px; margin-top: 0; }
+        .btn-save-inline, .btn-cancel-inline { padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; }
+        .btn-save-inline { background: var(--sea-green); color: white; }
+        .btn-cancel-inline { background: #e9ecef; color: #495057; }
         .form-group-full {
             grid-column: 1 / -1;
         }
@@ -451,21 +494,61 @@
                         <span class="profile-info-label">Email Address</span>
                         <div class="profile-info-value"><i class="fas fa-envelope"></i> {{ request.user.email|default:"Not set" }}</div>
                     </div>
-                    <div class="info-card">
+                    <div class="info-card info-card-editable">
                         <span class="profile-info-label">Name</span>
-                        <div class="profile-info-value"><i class="fas fa-user"></i> {{ profile.name|default:"Not set" }}</div>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-user"></i> <span class="profile-value-text">{{ profile.name|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Name">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
                     </div>
-                    <div class="info-card">
+                    <div class="info-card info-card-editable">
                         <span class="profile-info-label">Contact</span>
-                        <div class="profile-info-value"><i class="fas fa-phone"></i> {{ profile.contact|default:"Not set" }}</div>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-phone"></i> <span class="profile-value-text">{{ profile.contact|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Contact">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
                     </div>
-                    <div class="info-card">
+                    <div class="info-card info-card-editable">
                         <span class="profile-info-label">Location</span>
-                        <div class="profile-info-value"><i class="fas fa-map-marker-alt"></i> {{ profile.location|default:"Not set" }}</div>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-map-marker-alt"></i> <span class="profile-value-text">{{ profile.location|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="text" name="location" class="form-control" value="{{ profile.location|default:'' }}" placeholder="Location">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
                     </div>
-                    <div class="info-card">
+                    <div class="info-card info-card-editable">
                         <span class="profile-info-label">Farm Size</span>
-                        <div class="profile-info-value"><i class="fas fa-tractor"></i> {{ profile.farm_size|default:"Not set" }}</div>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-tractor"></i> <span class="profile-value-text">{{ profile.farm_size|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="text" name="farm_size" class="form-control" value="{{ profile.farm_size|default:'' }}" placeholder="Farm size">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
                     </div>
                     <div class="info-card">
                         <span class="profile-info-label">Member Since</span>
@@ -478,21 +561,114 @@
                         <span class="profile-info-label">Email Address</span>
                         <div class="profile-info-value"><i class="fas fa-envelope"></i> {{ request.user.email|default:"Not set" }}</div>
                     </div>
-                    <div class="info-card">
+                    <div class="info-card info-card-editable">
                         <span class="profile-info-label">Name</span>
-                        <div class="profile-info-value"><i class="fas fa-user"></i> {{ profile.name|default:"Not set" }}</div>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-user"></i> <span class="profile-value-text">{{ profile.name|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Name">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
                     </div>
-                    <div class="info-card">
+                    <div class="info-card info-card-editable">
                         <span class="profile-info-label">Specialization</span>
-                        <div class="profile-info-value"><i class="fas fa-graduation-cap"></i> {{ profile.specialization|default:"Not set" }}</div>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-graduation-cap"></i> <span class="profile-value-text">{{ profile.specialization|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="text" name="specialization" class="form-control" value="{{ profile.specialization|default:'' }}" placeholder="Specialization">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
                     </div>
-                    <div class="info-card">
+                    <div class="info-card info-card-editable">
                         <span class="profile-info-label">Experience</span>
-                        <div class="profile-info-value"><i class="fas fa-briefcase"></i> {{ profile.experience|default:"Not set" }}</div>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-briefcase"></i> <span class="profile-value-text">{{ profile.experience|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="text" name="experience" class="form-control" value="{{ profile.experience|default:'' }}" placeholder="Experience">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
+                    </div>
+                    <div class="info-card info-card-editable">
+                        <span class="profile-info-label">Qualification</span>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-graduation-cap"></i> <span class="profile-value-text">{{ profile.qualification|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="text" name="qualifications" class="form-control" value="{{ profile.qualification|default:'' }}" placeholder="Qualification">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
                     </div>
                     <div class="info-card">
-                        <span class="profile-info-label">Qualification</span>
-                        <div class="profile-info-value"><i class="fas fa-graduation-cap"></i> {{ profile.qualification|default:"Not set" }}</div>
+                        <span class="profile-info-label">Member Since</span>
+                        <div class="profile-info-value"><i class="fas fa-calendar"></i> {{ request.user.date_joined|date:"M d, Y" }}</div>
+                    </div>
+                </div>
+                {% elif request.user.role == 'buyer' %}
+                <div class="profile-info-grid">
+                    <div class="info-card">
+                        <span class="profile-info-label">Email Address</span>
+                        <div class="profile-info-value"><i class="fas fa-envelope"></i> {{ request.user.email|default:"Not set" }}</div>
+                    </div>
+                    <div class="info-card info-card-editable">
+                        <span class="profile-info-label">Name</span>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-user"></i> <span class="profile-value-text">{{ profile.name|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Name">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
+                    </div>
+                    <div class="info-card info-card-editable">
+                        <span class="profile-info-label">Contact</span>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-phone"></i> <span class="profile-value-text">{{ profile.phone|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="text" name="contact" class="form-control" value="{{ profile.phone|default:'' }}" placeholder="Contact">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
+                    </div>
+                    <div class="info-card info-card-editable">
+                        <span class="profile-info-label">Address</span>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-map-marker-alt"></i> <span class="profile-value-text">{{ profile.address|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="text" name="location" class="form-control" value="{{ profile.address|default:'' }}" placeholder="Address">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
                     </div>
                     <div class="info-card">
                         <span class="profile-info-label">Member Since</span>
@@ -507,39 +683,37 @@
                 <input type="hidden" name="update_profile" value="true">
 
                 <div class="profile-form-grid">
-                    <!-- Account email: one per account, read-only -->
-                    <div class="form-group">
-                        <label>Email Address</label>
-                        <div class="read-only-field">
-                            <i class="fas fa-envelope"></i>
-                            {{ request.user.email }}
-                        </div>
-                        <small class="form-text text-muted" style="display:block; margin-top:0.35rem; color:#6c757d; font-size:0.85rem;">One email per account. This cannot be changed here.</small>
-                    </div>
-
                     {% if request.user.role == 'farmer' %}
-                    <div class="form-group">
-                        <label>Name</label>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Email Address</span>
+                        <div class="read-only-field"><i class="fas fa-envelope" style="color: var(--sea-green);"></i> {{ request.user.email }}</div>
+                    </div>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Name</span>
                         <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Full name">
                     </div>
-                    <div class="form-group">
-                        <label>Contact Number</label>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Contact</span>
                         <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Phone number">
                     </div>
-                    <div class="form-group">
-                        <label>Location</label>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Location</span>
                         <input type="text" name="location" class="form-control" value="{{ profile.location|default:'' }}" placeholder="Farm location">
                     </div>
-                    <div class="form-group">
-                        <label>Farm Size</label>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Farm Size</span>
                         <input type="text" name="farm_size" class="form-control" value="{{ profile.farm_size|default:'' }}" placeholder="e.g., 5 acres">
                     </div>
-                    <div class="form-group">
-                        <label>Main Crops (comma separated)</label>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Member Since</span>
+                        <div class="read-only-field"><i class="fas fa-calendar" style="color: var(--sea-green);"></i> {{ request.user.date_joined|date:"M d, Y" }}</div>
+                    </div>
+                    <div class="edit-card form-group form-group-full">
+                        <span class="profile-info-label">Main Crops (comma separated)</span>
                         <input type="text" name="crop_types" class="form-control" value="{{ profile.crop_types|default:'' }}" placeholder="e.g., Wheat, Rice, Corn">
                     </div>
-                    <div class="form-group">
-                        <label>Livestock Details</label>
+                    <div class="edit-card form-group form-group-full">
+                        <span class="profile-info-label">Livestock Details</span>
                         <input type="text" name="livestock_details" class="form-control" value="{{ profile.livestock_details|default:'' }}" placeholder="e.g., 10 cows, 20 chickens">
                     </div>
                     {% elif request.user.role == 'vendor' %}
@@ -577,58 +751,73 @@
                     </div>
                     {% endif %}
                     {% elif request.user.role == 'agricultural_expert' %}
-                    <div class="form-group">
-                        <label>Name</label>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Email Address</span>
+                        <div class="read-only-field"><i class="fas fa-envelope" style="color: var(--sea-green);"></i> {{ request.user.email }}</div>
+                    </div>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Name</span>
                         <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Full name">
                     </div>
-                    <div class="form-group">
-                        <label>Specialization</label>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Specialization</span>
                         <input type="text" name="specialization" class="form-control" value="{{ profile.specialization|default:'' }}" placeholder="e.g., Crop Management">
                     </div>
-                    <div class="form-group">
-                        <label>Qualification</label>
-                        <input type="text" name="qualifications" class="form-control" value="{{ profile.qualification|default:'' }}" placeholder="e.g., B.Sc Agriculture">
-                    </div>
-                    <div class="form-group">
-                        <label>Experience</label>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Experience</span>
                         <input type="text" name="experience" class="form-control" value="{{ profile.experience|default:'' }}" placeholder="e.g., 5+ years">
                     </div>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Qualification</span>
+                        <input type="text" name="qualifications" class="form-control" value="{{ profile.qualification|default:'' }}" placeholder="e.g., B.Sc Agriculture">
+                    </div>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Member Since</span>
+                        <div class="read-only-field"><i class="fas fa-calendar" style="color: var(--sea-green);"></i> {{ request.user.date_joined|date:"M d, Y" }}</div>
+                    </div>
                     {% elif request.user.role == 'buyer' %}
-                    <div class="form-group">
-                        <label>Name</label>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Email Address</span>
+                        <div class="read-only-field"><i class="fas fa-envelope" style="color: var(--sea-green);"></i> {{ request.user.email }}</div>
+                    </div>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Name</span>
                         <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Full name">
                     </div>
-                    <div class="form-group">
-                        <label>Phone</label>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Contact</span>
                         <input type="text" name="contact" class="form-control" value="{{ profile.phone|default:'' }}" placeholder="Phone number">
                     </div>
-                    <div class="form-group form-group-full">
-                        <label>Address</label>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Address</span>
                         <textarea name="location" class="form-control" rows="2" placeholder="Address">{{ profile.address|default:'' }}</textarea>
+                    </div>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Member Since</span>
+                        <div class="read-only-field"><i class="fas fa-calendar" style="color: var(--sea-green);"></i> {{ request.user.date_joined|date:"M d, Y" }}</div>
                     </div>
                     {% else %}
-                    <div class="form-group">
-                        <label>Name</label>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Email Address</span>
+                        <div class="read-only-field"><i class="fas fa-envelope" style="color: var(--sea-green);"></i> {{ request.user.email }}</div>
+                    </div>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Name</span>
                         <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Full name">
                     </div>
-                    <div class="form-group">
-                        <label>Phone</label>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Contact</span>
                         <input type="text" name="contact" class="form-control" value="{{ profile.phone|default:'' }}" placeholder="Phone number">
                     </div>
-                    <div class="form-group form-group-full">
-                        <label>Address</label>
+                    <div class="edit-card form-group form-group-full">
+                        <span class="profile-info-label">Address</span>
                         <textarea name="location" class="form-control" rows="2" placeholder="Address">{{ profile.address|default:'' }}</textarea>
                     </div>
-                    {% endif %}
-
-                    <!-- Member Since (read-only) -->
-                    <div class="form-group">
-                        <label>Member Since</label>
-                        <div class="read-only-field">
-                            <i class="fas fa-calendar"></i>
-                            {{ request.user.date_joined|date:"M d, Y" }}
-                        </div>
+                    <div class="edit-card form-group">
+                        <span class="profile-info-label">Member Since</span>
+                        <div class="read-only-field"><i class="fas fa-calendar" style="color: var(--sea-green);"></i> {{ request.user.date_joined|date:"M d, Y" }}</div>
                     </div>
+                    {% endif %}
                 </div>
                 <p style="margin-top:1rem; font-size:0.9rem; color:#666;">Keep your profile up to date so others can reach you. All fields are optional except your account email.</p>
                 <div class="form-actions" style="margin-top: 1.5rem;">
@@ -700,6 +889,28 @@
             form.style.display = 'none';
             viewMode.style.display = 'block';
             if (btn) { btn.innerHTML = '<i class="fas fa-edit"></i> Edit Profile'; }
+        }
+    }
+    function showProfileInlineEdit(btn) {
+        var card = btn.closest('.info-card');
+        if (!card) return;
+        var row = card.querySelector('.profile-value-row');
+        if (row) row.style.display = 'none';
+        var form = card.querySelector('.inline-edit-form');
+        if (form) {
+            form.style.display = 'flex';
+            var input = form.querySelector('input[type="text"]');
+            if (input) { input.focus(); input.select(); }
+        }
+    }
+    function hideProfileInlineEdit(btn) {
+        var form = btn.closest('.inline-edit-form');
+        if (!form) return;
+        form.style.display = 'none';
+        var card = form.closest('.info-card');
+        if (card) {
+            var row = card.querySelector('.profile-value-row');
+            if (row) row.style.display = 'flex';
         }
     }
     </script>

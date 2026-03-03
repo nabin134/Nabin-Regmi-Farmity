@@ -1646,16 +1646,31 @@ def farmer_dashboard(request):
         # Still show dashboard but with KYC alert
         pass
     
-    # Handle Profile Update
+    # Handle Profile Photo (separate from profile details)
+    if request.method == 'POST' and 'update_photo' in request.POST:
+        photo_file = request.FILES.get('photo')
+        if photo_file:
+            profile.photo = photo_file
+            profile.save()
+            messages.success(request, 'Profile picture updated successfully!')
+        else:
+            messages.error(request, 'Please select an image file.')
+        return _redirect_same_page(request, 'farmer_dashboard')
+
+    # Handle Profile Update (details only; photo is changed separately)
     if request.method == 'POST' and 'update_profile' in request.POST:
-        profile.name = request.POST.get('name')
-        profile.location = request.POST.get('location')
-        profile.contact = request.POST.get('contact')
-        profile.farm_size = request.POST.get('farm_size')
-        profile.crop_types = request.POST.get('crop_types')
-        profile.livestock_details = request.POST.get('livestock_details')
-        if request.FILES.get('photo'):
-            profile.photo = request.FILES.get('photo')
+        if 'name' in request.POST:
+            profile.name = request.POST.get('name', profile.name) or profile.name
+        if 'location' in request.POST:
+            profile.location = request.POST.get('location', profile.location) or profile.location
+        if 'contact' in request.POST:
+            profile.contact = request.POST.get('contact', profile.contact) or profile.contact
+        if 'farm_size' in request.POST:
+            profile.farm_size = request.POST.get('farm_size', profile.farm_size) or profile.farm_size
+        if 'crop_types' in request.POST:
+            profile.crop_types = request.POST.get('crop_types', profile.crop_types) or profile.crop_types
+        if 'livestock_details' in request.POST:
+            profile.livestock_details = request.POST.get('livestock_details', profile.livestock_details) or profile.livestock_details
         profile.save()
         messages.success(request, 'Profile updated successfully!')
         return _redirect_same_page(request, 'farmer_dashboard')
@@ -2070,6 +2085,7 @@ def farmer_dashboard(request):
         'available_tools': available_tools,
         'purchase_history': purchase_history,
         'farmer_orders': farmer_orders,
+        'role_display': (request.user.role or '').replace('_', ' ').title(),
     }
     return render(request, 'farmer_dashboard.html', context)
 
@@ -2280,14 +2296,23 @@ def expert_dashboard(request):
     kyc_request = request.user.kyc_requests.first()
     kyc_status = kyc_request.status if kyc_request else None
     
-    # Handle Profile Update
+    # Handle Profile Photo (separate from profile details)
+    if request.method == 'POST' and 'update_photo' in request.POST:
+        photo_file = request.FILES.get('photo')
+        if photo_file:
+            profile.photo = photo_file
+            profile.save()
+            messages.success(request, 'Profile picture updated successfully!')
+        else:
+            messages.error(request, 'Please select an image file.')
+        return _redirect_same_page(request, 'expert_dashboard')
+
+    # Handle Profile Update (details only; photo is changed separately)
     if request.method == 'POST' and 'update_profile' in request.POST:
         profile.name = request.POST.get('name', profile.name)
         profile.qualification = request.POST.get('qualification', profile.qualification)
         profile.specialization = request.POST.get('specialization', profile.specialization)
         profile.experience = request.POST.get('experience', profile.experience)
-        if request.FILES.get('photo'):
-            profile.photo = request.FILES.get('photo')
         profile.save()
         messages.success(request, 'Profile updated successfully!')
         return _redirect_same_page(request, 'expert_dashboard')
@@ -2630,6 +2655,7 @@ def expert_dashboard(request):
         'appointments_data': appointments_data_json,
         'content_data': content_data_json,
         'active_section': (request.GET.get('section') or 'dashboard').strip(),
+        'role_display': (request.user.role or '').replace('_', ' ').title(),
     }
     return render(request, 'expert_dashboard.html', context)
 
@@ -3027,7 +3053,18 @@ def user_dashboard(request):
     # Get or create user profile
     profile, _ = UserProfile.objects.get_or_create(user=request.user)
     
-    # Handle Profile Update (with validation and per-field handling)
+    # Handle Profile Photo (separate from profile details)
+    if request.method == 'POST' and 'update_photo' in request.POST:
+        photo_file = request.FILES.get('photo')
+        if photo_file:
+            profile.photo = photo_file
+            profile.save()
+            messages.success(request, 'Profile picture updated successfully!')
+        else:
+            messages.error(request, 'Please select an image file.')
+        return _redirect_same_page(request, 'user_dashboard')
+
+    # Handle Profile Update (details only; photo is changed separately)
     if request.method == 'POST' and 'update_profile' in request.POST:
         name = (request.POST.get('name') or '').strip()
         contact = (request.POST.get('contact') or '').strip()
@@ -3038,8 +3075,6 @@ def user_dashboard(request):
             profile.phone = contact or profile.phone
         if location is not None:
             profile.address = location or profile.address
-        if request.FILES.get('photo'):
-            profile.photo = request.FILES.get('photo')
         try:
             profile.save()
             messages.success(request, 'Profile updated successfully.')
@@ -3076,6 +3111,7 @@ def user_dashboard(request):
         'completed_orders': completed_orders,
         'kyc_status': None,  # Buyers don't need KYC
         'active_section': _buyer_active_section(request.GET),
+        'role_display': (request.user.role or '').replace('_', ' ').title(),
     }
     return render(request, 'user_dashboard.html', context)
 

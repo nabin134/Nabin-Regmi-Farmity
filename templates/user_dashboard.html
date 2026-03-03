@@ -689,6 +689,33 @@
             gap: 1.5rem;
         }
 
+        .profile-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media (max-width: 640px) { .profile-info-grid { grid-template-columns: 1fr; } }
+        .profile-info-grid .info-card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 1.5rem; }
+        .profile-info-grid .info-card:hover { border-color: var(--primary); }
+        .profile-info-label { font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 0.5rem; display: block; }
+        .profile-info-value { font-size: 1rem; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem; }
+        .profile-info-value i { color: var(--primary); font-size: 1rem; }
+        .btn-edit-profile { background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
+        .btn-edit-profile:hover { transform: translateY(-1px); }
+        .btn-change-photo-sm { background: #e9ecef; color: #495057; border: 1px solid #dee2e6; padding: 0.35rem 0.65rem; border-radius: 6px; font-size: 0.8rem; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; }
+        .btn-change-photo-sm:hover { background: #dee2e6; color: #1a1a1a; }
+        .btn-form-sm { padding: 0.4rem 0.9rem; font-size: 0.875rem; border-radius: 8px; }
+        .profile-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media (max-width: 640px) { .profile-edit-grid { grid-template-columns: 1fr; } }
+        .edit-card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 1.5rem; }
+        .edit-card:focus-within { border-color: var(--primary); }
+        .edit-card .profile-info-label { font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 0.5rem; display: block; }
+        .edit-card .form-control { width: 100%; margin-top: 0.25rem; box-sizing: border-box; }
+        .profile-value-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; flex-wrap: wrap; }
+        .profile-value-row span { display: flex; align-items: center; gap: 0.5rem; }
+        .btn-inline-edit { background: none; border: none; color: var(--primary); cursor: pointer; padding: 0.25rem 0.5rem; font-size: 0.85rem; }
+        .inline-edit-form { margin-top: 0.5rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+        .inline-edit-form .form-control { flex: 1; min-width: 120px; margin-top: 0; }
+        .btn-save-inline, .btn-cancel-inline { padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.85rem; font-weight: 600; cursor: pointer; border: none; }
+        .btn-save-inline { background: var(--primary); color: white; }
+        .btn-cancel-inline { background: #e9ecef; color: #495057; }
+
         .form-group {
             margin-bottom: 1.5rem;
         }
@@ -2147,98 +2174,141 @@
                 </div>
             </div>
 
-            <!-- ========== PROFILE SECTION ========== -->
+            <!-- ========== PROFILE SECTION (same UI as profile page: card view + edit form) ========== -->
             <div id="profile" class="content-section" style="display: none !important;">
+                {% if active_section == 'profile' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="profile-section-card" style="background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid #eee;">
                     <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                         <h2 style="margin: 0; color: #1a1a1a; font-size: 1.75rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem;">
                             <i class="fas fa-user-circle" style="color: var(--primary);"></i> My Profile
                         </h2>
-                        <button type="button" id="editProfileBtn" class="btn-primary" onclick="toggleEditMode()" style="padding: 0.75rem 1.5rem; display: inline-flex; align-items: center; gap: 0.5rem; border-radius: 10px; font-weight: 600;">
+                        <button type="button" id="editProfileBtn" class="btn-edit-profile" onclick="toggleEditMode()">
                             <i class="fas fa-edit"></i> <span id="editBtnText">Edit Profile</span>
                         </button>
                     </div>
-                    <div style="width: 100%; clear: both;">
-                        <!-- Stats -->
-                        <div style="margin-bottom: 2.5rem;">
-                            <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1.5rem;">
-                                <div class="stat-card" style="border-left: 4px solid var(--accent);">
-                                    <div class="stat-content">
-                                        <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; font-weight: 600;">Total Orders</h4>
-                                        <span style="color: var(--accent); font-size: 2rem; font-weight: bold;">{{ total_orders }}</span>
-                                    </div>
-                                    <i class="fas fa-shopping-cart stat-icon" style="color: var(--accent); opacity: 0.2;"></i>
+                    <!-- Stats -->
+                    <div style="margin-bottom: 2.5rem;">
+                        <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1.5rem;">
+                            <div class="stat-card" style="border-left: 4px solid var(--accent);">
+                                <div class="stat-content">
+                                    <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; font-weight: 600;">Total Orders</h4>
+                                    <span style="color: var(--accent); font-size: 2rem; font-weight: bold;">{{ total_orders }}</span>
                                 </div>
-                                <div class="stat-card" style="border-left: 4px solid #2196F3;">
-                                    <div class="stat-content">
-                                        <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; font-weight: 600;">Total Spent</h4>
-                                        <span style="color: #2196F3; font-size: 1.5rem; font-weight: bold;">Rs. {{ total_spent|floatformat:2 }}</span>
-                                    </div>
-                                    <i class="fas fa-rupee-sign stat-icon" style="color: #2196F3; opacity: 0.2;"></i>
+                                <i class="fas fa-shopping-cart stat-icon" style="color: var(--accent); opacity: 0.2;"></i>
+                            </div>
+                            <div class="stat-card" style="border-left: 4px solid #2196F3;">
+                                <div class="stat-content">
+                                    <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; font-weight: 600;">Total Spent</h4>
+                                    <span style="color: #2196F3; font-size: 1.5rem; font-weight: bold;">Rs. {{ total_spent|floatformat:2 }}</span>
                                 </div>
-                                <div class="stat-card" style="border-left: 4px solid var(--warning);">
-                                    <div class="stat-content">
-                                        <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; font-weight: 600;">Pending</h4>
-                                        <span style="color: var(--warning); font-size: 2rem; font-weight: bold;">{{ pending_orders }}</span>
-                                    </div>
-                                    <i class="fas fa-clock stat-icon" style="color: var(--warning); opacity: 0.2;"></i>
+                                <i class="fas fa-rupee-sign stat-icon" style="color: #2196F3; opacity: 0.2;"></i>
+                            </div>
+                            <div class="stat-card" style="border-left: 4px solid var(--warning);">
+                                <div class="stat-content">
+                                    <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; font-weight: 600;">Pending</h4>
+                                    <span style="color: var(--warning); font-size: 2rem; font-weight: bold;">{{ pending_orders }}</span>
+                                </div>
+                                <i class="fas fa-clock stat-icon" style="color: var(--warning); opacity: 0.2;"></i>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- View mode: card grid (default) -->
+                    <div id="buyerProfileViewMode" style="display: block;">
+                        <div style="display: flex; align-items: center; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                            <div style="flex: 0 0 140px;">
+                                {% if profile.photo %}
+                                <img src="{{ profile.photo.url }}" alt="Profile" id="buyerViewPhoto" style="width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 4px solid var(--primary);">
+                                {% else %}
+                                <div id="buyerViewPhoto" style="width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;"><i class="fas fa-user"></i></div>
+                                {% endif %}
+                                <form method="POST" action="{% url 'user_dashboard' %}" enctype="multipart/form-data" style="margin-top: 0.75rem; text-align: center;">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="update_photo" value="1">
+                                    <input type="hidden" name="return_section" value="profile">
+                                    <label for="buyerPhotoChangeInput" class="btn-change-photo-sm" style="cursor: pointer; display: inline-block;"><i class="fas fa-camera"></i> Change photo</label>
+                                    <input type="file" name="photo" id="buyerPhotoChangeInput" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                                </form>
+                            </div>
+                            <div style="flex: 1; min-width: 200px;">
+                                <h3 style="margin: 0 0 0.75rem 0; font-size: 1.75rem; font-weight: 700; color: #1a1a1a;">{{ profile.name|default:request.user.email }}</h3>
+                                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                                    <span style="padding: 0.5rem 1rem; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border-radius: 20px; font-weight: 600;">{{ role_display|default:"Buyer" }}</span>
+                                    {% if request.user.is_verified %}
+                                    <span style="padding: 0.5rem 1rem; background: #D4EDDA; color: #155724; border-radius: 20px; font-weight: 600;"><i class="fas fa-check-circle"></i> Verified</span>
+                                    {% else %}
+                                    <span style="padding: 0.5rem 1rem; background: #FFF3CD; color: #856404; border-radius: 20px; font-weight: 600;"><i class="fas fa-exclamation-circle"></i> Unverified</span>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
-
-                        <!-- User information & form -->
-                        <form method="POST" action="{% url 'user_dashboard' %}" enctype="multipart/form-data" id="profileForm">
+                        <div class="profile-info-grid">
+                            <div class="info-card">
+                                <span class="profile-info-label">Email Address</span>
+                                <div class="profile-info-value"><i class="fas fa-envelope"></i> {{ request.user.email|default:"Not set" }}</div>
+                            </div>
+                            <div class="info-card">
+                                <span class="profile-info-label">Name</span>
+                                <div class="profile-info-value"><i class="fas fa-user"></i> {{ profile.name|default:"Not set" }}</div>
+                            </div>
+                            <div class="info-card">
+                                <span class="profile-info-label">Contact</span>
+                                <div class="profile-info-value"><i class="fas fa-phone"></i> {{ profile.phone|default:"Not set" }}</div>
+                            </div>
+                            <div class="info-card">
+                                <span class="profile-info-label">Address</span>
+                                <div class="profile-info-value"><i class="fas fa-map-marker-alt"></i> {{ profile.address|default:"Not set" }}</div>
+                            </div>
+                            <div class="info-card">
+                                <span class="profile-info-label">Member Since</span>
+                                <div class="profile-info-value"><i class="fas fa-calendar"></i> {{ request.user.date_joined|date:"M d, Y" }}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Edit form (hidden by default) – details only; photo shown for context -->
+                    <div id="buyerProfileFormWrap" style="display: none;">
+                        <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                            <div style="flex: 0 0 80px;">
+                                {% if profile.photo %}
+                                <img src="{{ profile.photo.url }}" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary);">
+                                {% else %}
+                                <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;"><i class="fas fa-user"></i></div>
+                                {% endif %}
+                            </div>
+                            <div>
+                                <h3 style="margin: 0 0 0.35rem 0; font-size: 1.25rem; font-weight: 700; color: #1a1a1a;">{{ profile.name|default:request.user.email }}</h3>
+                                <span style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border-radius: 16px; font-weight: 600; font-size: 0.8rem;">{{ role_display|default:"Buyer" }}</span>
+                            </div>
+                        </div>
+                        <form method="POST" action="{% url 'user_dashboard' %}" id="profileForm">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="1">
                             <input type="hidden" name="return_section" value="profile">
-                            <div style="display: flex; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap; align-items: flex-start;">
-                                <div style="flex-shrink: 0;">
-                                    <div style="width: 140px; height: 140px; border-radius: 50%; overflow: hidden; border: 4px solid var(--primary); margin: 0 auto; box-shadow: 0 4px 16px rgba(0,0,0,0.1);">
-                                        {% if profile.photo %}
-                                        <img src="{{ profile.photo.url }}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover;" id="profileImagePreview">
-                                        {% else %}
-                                        <div style="width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3.5rem;" id="profileImagePreview"><i class="fas fa-user"></i></div>
-                                        {% endif %}
-                                    </div>
-                                    <div style="margin-top: 1rem; text-align: center;">
-                                        <label for="photo" class="btn-primary" style="cursor: pointer; display: inline-block; padding: 0.6rem 1.25rem; border-radius: 10px; font-size: 0.9rem;"><i class="fas fa-camera"></i> Change Photo</label>
-                                        <input type="file" name="photo" id="photo" accept="image/*" style="display: none;" onchange="previewImage(this)">
-                                    </div>
-                                </div>
-                                <div style="flex: 1; min-width: 280px;">
-                                    <h3 style="margin: 0 0 0.75rem 0; font-size: 1.5rem; font-weight: 700; color: #1a1a1a;">{{ profile.name|default:request.user.email }}</h3>
-                                    <p style="margin: 0 0 1rem 0; font-size: 0.95rem; color: #666;">{{ request.user.email }}</p>
-                                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                                        <span style="padding: 0.4rem 0.9rem; background: var(--primary); color: white; border-radius: 20px; font-size: 0.85rem; font-weight: 600;">Buyer</span>
-                                        {% if request.user.is_verified %}
-                                        <span style="padding: 0.4rem 0.9rem; background: #D4EDDA; color: #155724; border-radius: 20px; font-size: 0.85rem; font-weight: 600;"><i class="fas fa-check-circle"></i> Verified</span>
-                                        {% else %}
-                                        <span style="padding: 0.4rem 0.9rem; background: #FFF3CD; color: #856404; border-radius: 20px; font-size: 0.85rem; font-weight: 600;"><i class="fas fa-info-circle"></i> Unverified</span>
-                                        {% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem;" id="profileFields">
-                                <div class="form-group">
-                                    <label style="font-weight: 600; color: #333; margin-bottom: 0.5rem; display: block;">Full Name</label>
-                                    <input type="text" name="name" id="profileName" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Your full name" readonly style="border-radius: 10px; padding: 0.75rem 1rem;">
-                                </div>
-                                <div class="form-group">
-                                    <label style="font-weight: 600; color: #333; margin-bottom: 0.5rem; display: block;">Email Address</label>
-                                    <input type="email" class="form-control" value="{{ request.user.email }}" readonly style="background: #f8f9fa; border-radius: 10px; padding: 0.75rem 1rem; color: #555;">
+                            <div class="profile-edit-grid" id="profileFields">
+                                <div class="edit-card form-group">
+                                    <span class="profile-info-label">Email Address</span>
+                                    <div style="font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-envelope" style="color: var(--primary);"></i> {{ request.user.email }}</div>
                                     <small style="color: #888; font-size: 0.8rem; margin-top: 0.25rem; display: block;">Email cannot be changed here</small>
                                 </div>
-                                <div class="form-group">
-                                    <label style="font-weight: 600; color: #333; margin-bottom: 0.5rem; display: block;">Contact Number</label>
-                                    <input type="text" name="contact" id="profileContact" class="form-control" value="{{ profile.phone|default:'' }}" placeholder="Phone number" readonly style="border-radius: 10px; padding: 0.75rem 1rem;">
+                                <div class="edit-card form-group">
+                                    <span class="profile-info-label">Name</span>
+                                    <input type="text" name="name" id="profileName" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Full name" style="border-radius: 10px; padding: 0.75rem 1rem;">
                                 </div>
-                                <div class="form-group">
-                                    <label style="font-weight: 600; color: #333; margin-bottom: 0.5rem; display: block;">Address / Location</label>
-                                    <input type="text" name="location" id="profileLocation" class="form-control" value="{{ profile.address|default:'' }}" placeholder="Your address or location" readonly style="border-radius: 10px; padding: 0.75rem 1rem;">
+                                <div class="edit-card form-group">
+                                    <span class="profile-info-label">Contact</span>
+                                    <input type="text" name="contact" id="profileContact" class="form-control" value="{{ profile.phone|default:'' }}" placeholder="Phone number" style="border-radius: 10px; padding: 0.75rem 1rem;">
+                                </div>
+                                <div class="edit-card form-group">
+                                    <span class="profile-info-label">Address</span>
+                                    <input type="text" name="location" id="profileLocation" class="form-control" value="{{ profile.address|default:'' }}" placeholder="Address" style="border-radius: 10px; padding: 0.75rem 1rem;">
+                                </div>
+                                <div class="edit-card form-group">
+                                    <span class="profile-info-label">Member Since</span>
+                                    <div style="font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-calendar" style="color: var(--primary);"></i> {{ request.user.date_joined|date:"M d, Y" }}</div>
                                 </div>
                             </div>
-                            <div id="saveProfileBtn" style="display: none; margin-top: 1.5rem;">
-                                <button type="submit" class="btn-primary" style="padding: 0.85rem 2rem; border-radius: 10px; font-weight: 600;"><i class="fas fa-save"></i> Save changes</button>
+                            <div style="margin-top: 1.25rem; display: flex; gap: 0.5rem;">
+                                <button type="button" class="btn-primary btn-form-sm" style="background: #6c757d;" onclick="toggleEditMode()"><i class="fas fa-times"></i> Cancel</button>
+                                <button type="submit" class="btn-edit-profile btn-form-sm"><i class="fas fa-save"></i> Save</button>
                             </div>
                         </form>
                     </div>
@@ -3415,7 +3485,7 @@
             if (input.files && input.files[0]) {
                 const reader = new FileReader();
                 reader.onload = function(e) {
-                    const preview = document.getElementById('profileImagePreview');
+                    const preview = document.getElementById('buyerFormPhoto') || document.getElementById('profileImagePreview');
                     if (preview) {
                         if (preview.tagName === 'IMG') {
                             preview.src = e.target.result;
@@ -3443,34 +3513,41 @@
         }
 
         function toggleEditMode() {
-            const isEditing = document.getElementById('profileName').readOnly === false;
-            const fields = ['profileName', 'profileContact', 'profileLocation'];
-            const saveBtn = document.getElementById('saveProfileBtn');
-            const editBtn = document.getElementById('editProfileBtn');
+            const viewMode = document.getElementById('buyerProfileViewMode');
+            const formWrap = document.getElementById('buyerProfileFormWrap');
             const editBtnText = document.getElementById('editBtnText');
-            
-            if (isEditing) {
-                // Switch to view mode
-                fields.forEach(fieldId => {
-                    const field = document.getElementById(fieldId);
-                    if (field) {
-                        field.readOnly = true;
-                        field.style.background = '#f5f5f5';
-                    }
-                });
-                saveBtn.style.display = 'none';
-                editBtnText.textContent = 'Edit Profile';
+            if (!viewMode || !formWrap) return;
+            const showingForm = formWrap.style.display === 'block';
+            if (showingForm) {
+                viewMode.style.display = 'block';
+                formWrap.style.display = 'none';
+                if (editBtnText) editBtnText.textContent = 'Edit Profile';
             } else {
-                // Switch to edit mode
-                fields.forEach(fieldId => {
-                    const field = document.getElementById(fieldId);
-                    if (field) {
-                        field.readOnly = false;
-                        field.style.background = 'white';
-                    }
-                });
-                saveBtn.style.display = 'block';
-                editBtnText.textContent = 'Cancel';
+                viewMode.style.display = 'none';
+                formWrap.style.display = 'block';
+                if (editBtnText) editBtnText.textContent = 'Cancel';
+            }
+        }
+        function buyerShowInlineEdit(btn) {
+            const card = btn.closest('.info-card');
+            if (!card) return;
+            const row = card.querySelector('.profile-value-row');
+            if (row) row.style.display = 'none';
+            const form = card.querySelector('.inline-edit-form');
+            if (form) {
+                form.style.display = 'flex';
+                const input = form.querySelector('input[type="text"]');
+                if (input) { input.focus(); input.select(); }
+            }
+        }
+        function buyerHideInlineEdit(btn) {
+            const form = btn.closest('.inline-edit-form');
+            if (!form) return;
+            form.style.display = 'none';
+            const card = form.closest('.info-card');
+            if (card) {
+                const row = card.querySelector('.profile-value-row');
+                if (row) row.style.display = 'flex';
             }
         }
         
