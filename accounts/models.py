@@ -281,18 +281,21 @@ class ExpertAppointment(models.Model):
 
 
 class ExpertAvailability(models.Model):
-    """Dates when the expert (doctor) is available for appointments. Experts can set available dates for months."""
+    """Dates (and optional time slots) when the expert is available for appointments."""
     expert = models.ForeignKey(ExpertProfile, on_delete=models.CASCADE, related_name='availability')
     date = models.DateField()
+    start_time = models.TimeField(blank=True, null=True, help_text='Optional: slot start. Empty means whole day.')
+    end_time = models.TimeField(blank=True, null=True, help_text='Optional: slot end. Empty means whole day.')
     notes = models.CharField(max_length=255, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
-        ordering = ('date',)
-        unique_together = [['expert', 'date']]
+        ordering = ('date', 'start_time')
         verbose_name_plural = 'Expert availabilities'
 
     def __str__(self):
+        if self.start_time and self.end_time:
+            return f"{self.expert.user.email} - {self.date} {self.start_time}-{self.end_time}"
         return f"{self.expert.user.email} - {self.date}"
 
 

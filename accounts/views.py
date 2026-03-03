@@ -21,6 +21,18 @@ from datetime import timedelta, datetime, date
 from decimal import Decimal
 import calendar
 
+
+def _parse_time_str(s):
+    """Parse 'HH:MM' or 'HH:MM:SS' to time object. Returns None if empty or invalid."""
+    if not s or not (s := (s or '').strip()):
+        return None
+    try:
+        if len(s) <= 5:
+            return datetime.strptime(s, '%H:%M').time()
+        return datetime.strptime(s, '%H:%M:%S').time()
+    except ValueError:
+        return None
+
 from .models import (
     KYCRequest,
     FarmerProfile,
@@ -1571,6 +1583,7 @@ def profile_page(request):
                 return redirect('profile')
         context['profile'] = profile
 
+    context['role_display'] = (user.role or '').replace('_', ' ').title()
     return render(request, 'profile_details.html', context)
 
 
@@ -2343,43 +2356,59 @@ def expert_dashboard(request):
             messages.error(request, 'Content not found!')
         return _redirect_same_page(request, 'expert_dashboard')
     
-    # Handle Add Availability (single date or whole month)
+    # Handle Add Availability (single date with optional time, or one week)
     if request.method == 'POST' and 'add_availability' in request.POST:
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to set availability. Please complete your KYC verification first.')
             return _redirect_same_page(request, 'expert_dashboard')
         add_type = (request.POST.get('availability_type') or 'date').strip()
         notes = (request.POST.get('availability_notes') or '').strip() or None
-        if add_type == 'month':
-            year_month = (request.POST.get('availability_month') or '').strip()
-            if year_month:
-                try:
-                    year, month = map(int, year_month.split('-'))
-                    import calendar
-                    last_day = calendar.monthrange(year, month)[1]
-                    added = 0
-                    for day in range(1, last_day + 1):
-                        d = date(year, month, day)
-                        if d >= timezone.now().date():
-                            _, created = ExpertAvailability.objects.get_or_create(expert=profile, date=d, defaults={'notes': notes})
-                            if created:
-                                added += 1
-                    messages.success(request, f'Added {added} available date(s) for {year_month}.')
-                except (ValueError, TypeError):
-                    messages.error(request, 'Invalid month. Use YYYY-MM format.')
-            else:
-                messages.error(request, 'Please select a month.')
+        start_t = _parse_time_str(request.POST.get('availability_start_time') or '')
+        end_t = _parse_time_str(request.POST.get('availability_end_time') or '')
+        # Whole day: both None. If only one set, treat as invalid and ignore times.
+        if (start_t and not end_t) or (end_t and not start_t):
+            start_t, end_t = None, None
+        if start_t and end_t and start_t >= end_t:
+            messages.error(request, 'End time must be after start time.')
+            return _redirect_same_page(request, 'expert_dashboard')
+
+        def _add_one_day_whole_or_slot(d, st, et, note):
+            if st and et:
+                ExpertAvailability.objects.create(expert=profile, date=d, start_time=st, end_time=et, notes=note)
+                return True
+            if ExpertAvailability.objects.filter(expert=profile, date=d, start_time__isnull=True, end_time__isnull=True).exists():
+                return False
+            ExpertAvailability.objects.create(expert=profile, date=d, notes=note)
+            return True
+
+        if add_type == 'week':
+            week_start_str = (request.POST.get('availability_week_start') or '').strip()
+            if not week_start_str:
+                messages.error(request, 'Please select the start date of the week.')
+                return _redirect_same_page(request, 'expert_dashboard')
+            try:
+                start_d = date.fromisoformat(week_start_str)
+                if start_d < timezone.now().date():
+                    messages.error(request, 'Week start date cannot be in the past.')
+                    return _redirect_same_page(request, 'expert_dashboard')
+                added = 0
+                for i in range(7):
+                    d = start_d + timedelta(days=i)
+                    if _add_one_day_whole_or_slot(d, start_t, end_t, notes):
+                        added += 1
+                messages.success(request, f'Added {added} day(s) for the week starting {week_start_str}.')
+            except (ValueError, TypeError):
+                messages.error(request, 'Invalid date. Use YYYY-MM-DD.')
         else:
             date_str = (request.POST.get('availability_date') or '').strip()
             if date_str:
                 try:
                     d = date.fromisoformat(date_str)
                     if d >= timezone.now().date():
-                        _, created = ExpertAvailability.objects.get_or_create(expert=profile, date=d, defaults={'notes': notes})
-                        if created:
-                            messages.success(request, f'Date {date_str} added to your availability.')
+                        if _add_one_day_whole_or_slot(d, start_t, end_t, notes):
+                            messages.success(request, f'Date {date_str}' + (f' {start_t.strftime("%H:%M")}-{end_t.strftime("%H:%M")}' if start_t and end_t else '') + ' added to your availability.')
                         else:
-                            messages.info(request, f'Date {date_str} was already in your availability.')
+                            messages.info(request, f'Date {date_str} was already in your availability (whole day).')
                     else:
                         messages.error(request, 'Cannot add past dates.')
                 except (ValueError, TypeError):

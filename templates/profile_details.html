@@ -429,7 +429,7 @@
                         {% endif %}
                     </h2>
                     <div class="profile-badges">
-                        <span class="role-badge">{{ request.user.role|title }}</span>
+                        <span class="role-badge">{{ role_display|default:request.user.role|title }}</span>
                         {% if request.user.is_verified %}
                             <span class="verified-badge">
                                 <i class="fas fa-check-circle"></i> Verified
@@ -443,8 +443,8 @@
                 </div>
             </div>
 
-            <!-- View mode: card grid (farmer & expert match reference layout) -->
-            <div id="profileViewMode" class="profile-form-section" style="{% if request.user.role != 'farmer' and request.user.role != 'agricultural_expert' %}display: none;{% endif %}">
+            <!-- View mode: card grid (farmer, expert, buyer – same layout as reference) -->
+            <div id="profileViewMode" class="profile-form-section" style="{% if request.user.role != 'farmer' and request.user.role != 'agricultural_expert' and request.user.role != 'buyer' %}display: none;{% endif %}">
                 {% if request.user.role == 'farmer' %}
                 <div class="profile-info-grid">
                     <div class="info-card">
@@ -502,7 +502,7 @@
                 {% endif %}
             </div>
 
-            <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="profile-form-section" id="profileForm" style="{% if request.user.role == 'farmer' or request.user.role == 'agricultural_expert' %}display: none;{% endif %}">
+            <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="profile-form-section" id="profileForm" style="{% if request.user.role == 'farmer' or request.user.role == 'agricultural_expert' or request.user.role == 'buyer' %}display: none;{% endif %}">
                 {% csrf_token %}
                 <input type="hidden" name="update_profile" value="true">
 
@@ -632,7 +632,7 @@
                 </div>
                 <p style="margin-top:1rem; font-size:0.9rem; color:#666;">Keep your profile up to date so others can reach you. All fields are optional except your account email.</p>
                 <div class="form-actions" style="margin-top: 1.5rem;">
-                    {% if request.user.role == 'farmer' or request.user.role == 'agricultural_expert' %}
+                    {% if request.user.role == 'farmer' or request.user.role == 'agricultural_expert' or request.user.role == 'buyer' %}
                     <button type="button" class="btn-cancel" onclick="toggleProfileEdit()" style="margin-right: 0.5rem;"><i class="fas fa-times"></i> Cancel</button>
                     {% endif %}
                     <button type="submit" class="btn-save-profile">

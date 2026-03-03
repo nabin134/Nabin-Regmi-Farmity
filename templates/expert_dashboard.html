@@ -1286,25 +1286,36 @@
                             <input type="hidden" name="return_section" value="availability">
                             <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
                                 <div class="form-group" style="margin-bottom: 0;">
-                                    <label>Add single date</label>
+                                    <label>One day – Date</label>
                                     <input type="date" name="availability_date" id="availability_date" class="form-control" style="min-width: 160px;">
                                 </div>
                                 <div class="form-group" style="margin-bottom: 0;">
-                                    <label>Or add whole month</label>
-                                    <input type="month" name="availability_month" id="availability_month" class="form-control" style="min-width: 160px;">
+                                    <label>Time (optional)</label>
+                                    <div style="display: flex; gap: 0.25rem; align-items: center;">
+                                        <input type="time" name="availability_start_time" id="availability_start_time" class="form-control" style="min-width: 90px;" title="Start time">
+                                        <span>–</span>
+                                        <input type="time" name="availability_end_time" id="availability_end_time" class="form-control" style="min-width: 90px;" title="End time">
+                                    </div>
                                 </div>
                                 <div class="form-group" style="margin-bottom: 0;">
                                     <label>Notes (optional)</label>
                                     <input type="text" name="availability_notes" class="form-control" placeholder="e.g. Morning only" style="min-width: 140px;">
                                 </div>
                                 <button type="submit" class="btn-primary" name="availability_type" value="date">
-                                    <i class="fas fa-plus"></i> Add date
-                                </button>
-                                <button type="submit" class="btn-primary" name="availability_type" value="month" style="background: var(--secondary);">
-                                    <i class="fas fa-calendar-plus"></i> Add month
+                                    <i class="fas fa-plus"></i> Add day
                                 </button>
                             </div>
-                            <small style="color: #666; display: block; margin-top: 0.5rem;">Use "Add date" for one day, or "Add month" to add all days of a month. Past dates are skipped.</small>
+                            <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
+                                <div class="form-group" style="margin-bottom: 0;">
+                                    <label>One week – Start date</label>
+                                    <input type="date" name="availability_week_start" id="availability_week_start" class="form-control" style="min-width: 160px;">
+                                </div>
+                                <button type="submit" class="btn-primary" name="availability_type" value="week" style="background: var(--secondary);">
+                                    <i class="fas fa-calendar-week"></i> Add week
+                                </button>
+                            </div>
+                            <small style="color: #888; font-size: 0.85rem;">Time above applies to both “Add day” and “Add week” when set.</small>
+                            <small style="color: #666; display: block; margin-top: 0.5rem;">Add one day (with optional time) or a full week from a start date. Leave time empty for whole day.</small>
                         </form>
                         {% if availability %}
                         <div class="appointments-list">
@@ -1314,7 +1325,8 @@
                                 <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: white; border: 1px solid #e0e0e0; border-radius: 8px;">
                                     <div>
                                         <strong>{{ avail.date|date:"M d, Y" }}</strong>
-                                        {% if avail.date < today %}<span style="font-size: 0.75rem; color: #999;">(past)</span>{% endif %}
+                                        {% if avail.start_time and avail.end_time %}<span style="font-size: 0.9rem; color: #333;"> {{ avail.start_time|time:"H:i" }}–{{ avail.end_time|time:"H:i" }}</span>{% endif %}
+                                        {% if avail.date < today %}<span style="font-size: 0.75rem; color: #999;"> (past)</span>{% endif %}
                                         {% if avail.notes %}<br><span style="font-size: 0.85rem; color: #666;">{{ avail.notes }}</span>{% endif %}
                                     </div>
                                     <form method="POST" style="margin: 0;" onsubmit="return confirm('Remove this date from your availability?');">
@@ -1332,7 +1344,7 @@
                         <div class="empty-state">
                             <i class="fas fa-calendar-alt"></i>
                             <h3>No availability set</h3>
-                            <p>Add dates or a whole month above so farmers and buyers know when you're available for appointments.</p>
+                            <p>Add one day (with optional time) or a week above so farmers and buyers know when you're available for appointments.</p>
                         </div>
                         {% endif %}
                     </div>
@@ -1999,16 +2011,11 @@
             }
             
             // Set min date/month for availability form
+            const todayStr = new Date().toISOString().split('T')[0];
             const availDate = document.getElementById('availability_date');
-            const availMonth = document.getElementById('availability_month');
-            if (availDate) {
-                const today = new Date().toISOString().split('T')[0];
-                availDate.setAttribute('min', today);
-            }
-            if (availMonth) {
-                const now = new Date();
-                availMonth.setAttribute('min', now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0'));
-            }
+            const availWeekStart = document.getElementById('availability_week_start');
+            if (availDate) availDate.setAttribute('min', todayStr);
+            if (availWeekStart) availWeekStart.setAttribute('min', todayStr);
 
             // Charts
             const appointmentsData = {{ appointments_data|safe }};
