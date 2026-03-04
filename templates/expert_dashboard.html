@@ -552,73 +552,152 @@
             color: #721c24;
         }
 
-        /* Appointments List */
+        /* Appointments – card layout */
         .appointments-list {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-            overflow: hidden;
-        }
-
-        .appointment-item {
-            padding: 1.5rem;
-            border-bottom: 1px solid #eee;
             display: flex;
-            justify-content: space-between;
-            align-items: start;
-            flex-wrap: wrap;
+            flex-direction: column;
             gap: 1rem;
         }
 
-        .appointment-item:last-child {
-            border-bottom: none;
+        .appointment-item {
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #e9ecef;
+            overflow: hidden;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+            transition: box-shadow 0.2s, border-color 0.2s;
         }
+
+        .appointment-item:hover {
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            border-color: #dee2e6;
+        }
+
+        .appointment-item.status-pending-card { border-left: 4px solid #F59E0B; }
+        .appointment-item.status-accepted-card { border-left: 4px solid #10B981; }
+        .appointment-item.status-rejected-card { border-left: 4px solid #EF4444; }
+        .appointment-item.status-closed-card { border-left: 4px solid #6b7280; opacity: 0.92; }
+        .status-closed { background: #e5e7eb; color: #374151; }
 
         .appointment-info {
             flex: 1;
-            min-width: 250px;
+            min-width: 260px;
+            padding: 1.25rem 1.5rem;
         }
 
         .appointment-info h4 {
-            margin: 0 0 0.5rem 0;
-            color: #333;
+            margin: 0 0 0.75rem 0;
+            font-size: 1.05rem;
+            font-weight: 600;
+            color: #1a1a1a;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
         }
 
-        .appointment-info p {
-            margin: 0.25rem 0;
-            color: #666;
+        .appointment-info h4 i { color: var(--primary); font-size: 0.95rem; }
+        .appointment-meta { display: flex; flex-wrap: wrap; gap: 1rem 1.5rem; margin-bottom: 0.5rem; }
+        .appointment-meta span { font-size: 0.9rem; color: #555; display: flex; align-items: center; gap: 0.4rem; }
+        .appointment-meta span i { color: #6c757d; width: 1rem; }
+        .appointment-message-box {
+            margin-top: 0.75rem;
+            padding: 0.75rem 1rem;
+            background: #f8f9fa;
+            border-radius: 8px;
             font-size: 0.9rem;
+            color: #444;
+            border-left: 3px solid var(--primary);
         }
-
-        .appointment-status {
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            display: inline-block;
-        }
-
-        .status-pending {
-            background: #FFF3CD;
-            color: #856404;
-        }
-
-        .status-accepted {
-            background: #D4EDDA;
+        .appointment-response-box {
+            margin-top: 0.75rem;
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            font-size: 0.9rem;
+            border-left: 3px solid #28a745;
+            background: #e8f5e9;
             color: #155724;
         }
-
-        .status-rejected {
-            background: #F8D7DA;
-            color: #721C24;
-        }
-
-        .appointment-actions {
+        .appointment-response-box.rejected { background: #fff3cd; border-left-color: #dc3545; color: #721c24; }
+        .appointment-requested-at { font-size: 0.8rem; color: #999; margin-top: 0.5rem; }
+        .appointment-right {
+            padding: 1.25rem 1.5rem;
+            min-width: 160px;
             display: flex;
-            gap: 0.5rem;
-            flex-wrap: wrap;
-            margin-top: 1rem;
+            flex-direction: column;
+            align-items: flex-end;
+            justify-content: flex-start;
+            gap: 0.75rem;
+            background: #fafbfc;
+            border-left: 1px solid #eee;
         }
+        .appointment-status {
+            padding: 0.4rem 0.9rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+        .status-pending { background: #FEF3C7; color: #B45309; }
+        .status-accepted { background: #D1FAE5; color: #047857; }
+        .status-rejected { background: #FEE2E2; color: #B91C1C; }
+        .appointment-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
+        .appointment-actions .btn-primary { font-size: 0.875rem; padding: 0.45rem 0.9rem; border-radius: 8px; }
+        .visit-status-form { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        .visit-status-form label { font-size: 0.8rem; font-weight: 600; color: #555; }
+        .visit-status-form select { font-size: 0.85rem; padding: 0.4rem 0.6rem; border-radius: 6px; border: 1px solid #dee2e6; min-width: 130px; }
+
+        /* Availability – add form & date cards */
+        .availability-add-card {
+            background: linear-gradient(135deg, #f8faf9 0%, #f1f5f4 100%);
+            border: 2px solid #e2e8e6;
+            border-radius: 14px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+        .availability-add-card .availability-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; font-weight: 600; margin-bottom: 0.35rem; display: block; }
+        .availability-add-card .form-control { border-radius: 8px; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; font-size: 0.9rem; }
+        .availability-add-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
+        .availability-add-row .field { display: flex; flex-direction: column; }
+        .availability-add-row .btn-primary { padding: 0.5rem 1rem; font-size: 0.9rem; border-radius: 8px; }
+        .availability-divider { margin: 1rem 0; padding-top: 1rem; border-top: 1px dashed #d1d5db; }
+        .availability-list-title { font-size: 1rem; font-weight: 600; color: #374151; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .availability-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; }
+        .availability-date-card {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+            padding: 0.9rem 1rem;
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .availability-date-card:hover { border-color: var(--primary); box-shadow: 0 2px 8px rgba(53, 141, 88, 0.12); }
+        .availability-date-card.past { opacity: 0.7; background: #f9fafb; }
+        .availability-date-card .date-main { flex: 1; min-width: 0; }
+        .availability-date-card .date-main strong { font-size: 0.95rem; color: #1f2937; }
+        .availability-date-card .date-time { font-size: 0.85rem; color: #6b7280; margin-top: 0.2rem; }
+        .availability-date-card .date-notes { font-size: 0.8rem; color: #9ca3af; margin-top: 0.25rem; }
+        .availability-date-card .btn-remove-avail {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border: none;
+            background: #fef2f2;
+            color: #dc2626;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background 0.2s, color 0.2s;
+        }
+        .availability-date-card .btn-remove-avail:hover { background: #dc2626; color: #fff; }
 
         /* Chat Threads */
         .chat-item {
@@ -1226,49 +1305,44 @@
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-calendar-check"></i> Appointment Requests</h2>
+                        <span style="color: #6b7280; font-size: 0.9rem; font-weight: 400;">Review and respond to appointment requests</span>
                     </div>
                     <div class="section-body">
                         {% if appointments %}
                         <div class="appointments-list">
                             {% for appointment in appointments %}
-                            <div class="appointment-item">
+                            <div class="appointment-item status-{% if appointment.status == 'accepted' and appointment.visit_status == 'visited' %}closed{% else %}{{ appointment.status }}{% endif %}-card">
                                 <div class="appointment-info">
-                                    <h4>
-                                        <i class="fas fa-user"></i> {{ appointment.requester.email }}
-                                    </h4>
-                                    <p>
-                                        <i class="fas fa-calendar"></i> <strong>Date:</strong> {{ appointment.requested_date|date:"M d, Y" }}
-                                    </p>
-                                    <p>
-                                        <i class="fas fa-clock"></i> <strong>Time:</strong> {{ appointment.requested_time|time:"g:i A" }}
-                                    </p>
+                                    <h4><i class="fas fa-user"></i> {{ appointment.requester.email }}</h4>
+                                    <div class="appointment-meta">
+                                        <span><i class="fas fa-calendar-day"></i> {{ appointment.requested_date|date:"M d, Y" }}</span>
+                                        <span><i class="fas fa-clock"></i> {{ appointment.requested_time|time:"g:i A" }}</span>
+                                    </div>
                                     {% if appointment.message %}
-                                    <p style="margin-top: 0.5rem; padding: 0.75rem; background: var(--light); border-radius: 8px;">
-                                        <strong>Message:</strong> {{ appointment.message }}
-                                    </p>
+                                    <div class="appointment-message-box"><strong>Message:</strong> {{ appointment.message }}</div>
                                     {% endif %}
                                     {% if appointment.response_message %}
-                                    <p style="margin-top: 0.5rem; padding: 0.75rem; background: {% if appointment.status == 'rejected' %}#fff3cd; border-left: 4px solid #dc3545;{% else %}#e8f5e9; border-left: 4px solid #28a745;{% endif %} border-radius: 8px;">
-                                        <strong>{% if appointment.status == 'rejected' %}Reason for rejection:{% else %}Your response:{% endif %}</strong> {{ appointment.response_message }}
-                                    </p>
+                                    <div class="appointment-response-box {% if appointment.status == 'rejected' %}rejected{% endif %}">
+                                        <strong>{% if appointment.status == 'rejected' %}Reason:{% else %}Your response:{% endif %}</strong> {{ appointment.response_message }}
+                                    </div>
                                     {% endif %}
-                                    <p style="font-size: 0.85rem; color: #999; margin-top: 0.5rem;">
-                                        <i class="far fa-calendar"></i> Requested on {{ appointment.created_at|date:"M d, Y" }}
-                                    </p>
+                                    <p class="appointment-requested-at"><i class="far fa-calendar"></i> Requested on {{ appointment.created_at|date:"M d, Y" }}</p>
                                 </div>
-                                <div style="display: flex; flex-direction: column; gap: 1rem; align-items: flex-end;">
-                                    <span class="appointment-status status-{{ appointment.status }}">
-                                        {{ appointment.get_status_display }}
-                                    </span>
-                                    {% if appointment.status == 'accepted' and kyc_status == 'approved' %}
-                                    <form method="POST" style="margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                                <div class="appointment-right">
+                                    {% if appointment.status == 'accepted' and appointment.visit_status == 'visited' %}
+                                    <span class="appointment-status status-closed">Closed</span>
+                                    {% else %}
+                                    <span class="appointment-status status-{{ appointment.status }}">{{ appointment.get_status_display }}</span>
+                                    {% endif %}
+                                    {% if appointment.status == 'accepted' and kyc_status == 'approved' and appointment.visit_status != 'visited' %}
+                                    <form method="POST" class="visit-status-form">
                                         {% csrf_token %}
                                         <input type="hidden" name="return_section" value="appointments">
                                         <input type="hidden" name="update_visit_status" value="1">
                                         <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
-                                        <label style="font-size: 0.9rem; font-weight: 500;">Visit:</label>
-                                        <select name="visit_status" class="form-control" style="width: auto; min-width: 140px; padding: 0.5rem;" onchange="this.form.submit()">
-                                            <option value="">-- Set status --</option>
+                                        <label>Visit:</label>
+                                        <select name="visit_status" class="form-control" onchange="this.form.submit()">
+                                            <option value="">— Set —</option>
                                             <option value="visited" {% if appointment.visit_status == 'visited' %}selected{% endif %}>Visited</option>
                                             <option value="will_visit" {% if appointment.visit_status == 'will_visit' %}selected{% endif %}>Will visit</option>
                                             <option value="waiting" {% if appointment.visit_status == 'waiting' %}selected{% endif %}>They have to wait</option>
@@ -1277,12 +1351,8 @@
                                     {% endif %}
                                     {% if appointment.status == 'pending' and kyc_status == 'approved' %}
                                     <div class="appointment-actions">
-                                        <button type="button" class="btn-primary" style="background: #28a745;" onclick="openAppointmentResponseModal({{ appointment.id }}, 'accept')">
-                                            <i class="fas fa-check"></i> Accept
-                                        </button>
-                                        <button type="button" class="btn-primary" style="background: #dc3545;" onclick="openAppointmentResponseModal({{ appointment.id }}, 'reject')">
-                                            <i class="fas fa-times"></i> Reject
-                                        </button>
+                                        <button type="button" class="btn-primary" style="background: #10B981;" onclick="openAppointmentResponseModal({{ appointment.id }}, 'accept')"><i class="fas fa-check"></i> Accept</button>
+                                        <button type="button" class="btn-primary" style="background: #EF4444;" onclick="openAppointmentResponseModal({{ appointment.id }}, 'reject')"><i class="fas fa-times"></i> Reject</button>
                                     </div>
                                     {% endif %}
                                 </div>
@@ -1291,7 +1361,7 @@
                         </div>
                         {% else %}
                         <div class="empty-state">
-                            <i class="fas fa-calendar-check"></i>
+                            <i class="fas fa-calendar-check" style="color: #d1d5db;"></i>
                             <h3>No Appointment Requests</h3>
                             <p>Appointment requests from farmers and buyers will appear here</p>
                         </div>
@@ -1306,74 +1376,74 @@
                 <div class="content-section">
                     <div class="section-header">
                         <h2><i class="fas fa-calendar-alt"></i> My Availability</h2>
-                        <span style="color: #666; font-size: 0.95rem;">Set dates when you are available for appointments</span>
+                        <span style="color: #6b7280; font-size: 0.9rem; font-weight: 400;">Set dates when you're available for appointments</span>
                     </div>
                     <div class="section-body">
-                        <form method="POST" style="margin-bottom: 2rem; padding: 1.5rem; background: var(--light); border-radius: 12px;">
-                            {% csrf_token %}
-                            <input type="hidden" name="add_availability" value="1">
-                            <input type="hidden" name="return_section" value="availability">
-                            <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end;">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label>One day – Date</label>
-                                    <input type="date" name="availability_date" id="availability_date" class="form-control" style="min-width: 160px;">
-                                </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label>Time (optional)</label>
-                                    <div style="display: flex; gap: 0.25rem; align-items: center;">
-                                        <input type="time" name="availability_start_time" id="availability_start_time" class="form-control" style="min-width: 90px;" title="Start time">
-                                        <span>–</span>
-                                        <input type="time" name="availability_end_time" id="availability_end_time" class="form-control" style="min-width: 90px;" title="End time">
+                        <div class="availability-add-card">
+                            <form method="POST">
+                                {% csrf_token %}
+                                <input type="hidden" name="add_availability" value="1">
+                                <input type="hidden" name="return_section" value="availability">
+                                <div class="availability-add-row">
+                                    <div class="field">
+                                        <span class="availability-label">Add a single day</span>
+                                        <input type="date" name="availability_date" id="availability_date" class="form-control" style="min-width: 160px;">
                                     </div>
+                                    <div class="field">
+                                        <span class="availability-label">Start time (optional)</span>
+                                        <input type="time" name="availability_start_time" id="availability_start_time" class="form-control" style="min-width: 100px;" title="Start time">
+                                    </div>
+                                    <div class="field">
+                                        <span class="availability-label">End time (optional)</span>
+                                        <input type="time" name="availability_end_time" id="availability_end_time" class="form-control" style="min-width: 100px;" title="End time">
+                                    </div>
+                                    <div class="field">
+                                        <span class="availability-label">Notes (optional)</span>
+                                        <input type="text" name="availability_notes" class="form-control" placeholder="e.g. Morning only" style="min-width: 140px;">
+                                    </div>
+                                    <button type="submit" class="btn-primary" name="availability_type" value="date">
+                                        <i class="fas fa-plus"></i> Add day
+                                    </button>
                                 </div>
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label>Notes (optional)</label>
-                                    <input type="text" name="availability_notes" class="form-control" placeholder="e.g. Morning only" style="min-width: 140px;">
+                                <div class="availability-divider"></div>
+                                <div class="availability-add-row">
+                                    <div class="field">
+                                        <span class="availability-label">Add a full week from start date</span>
+                                        <input type="date" name="availability_week_start" id="availability_week_start" class="form-control" style="min-width: 160px;">
+                                    </div>
+                                    <button type="submit" class="btn-primary" name="availability_type" value="week" style="background: var(--secondary);">
+                                        <i class="fas fa-calendar-week"></i> Add week
+                                    </button>
                                 </div>
-                                <button type="submit" class="btn-primary" name="availability_type" value="date">
-                                    <i class="fas fa-plus"></i> Add day
-                                </button>
-                            </div>
-                            <div style="display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #e0e0e0;">
-                                <div class="form-group" style="margin-bottom: 0;">
-                                    <label>One week – Start date</label>
-                                    <input type="date" name="availability_week_start" id="availability_week_start" class="form-control" style="min-width: 160px;">
-                                </div>
-                                <button type="submit" class="btn-primary" name="availability_type" value="week" style="background: var(--secondary);">
-                                    <i class="fas fa-calendar-week"></i> Add week
-                                </button>
-                            </div>
-                            <small style="color: #888; font-size: 0.85rem;">Time above applies to both “Add day” and “Add week” when set.</small>
-                            <small style="color: #666; display: block; margin-top: 0.5rem;">Add one day (with optional time) or a full week from a start date. Leave time empty for whole day.</small>
-                        </form>
+                                <p style="margin: 0.75rem 0 0 0; font-size: 0.8rem; color: #6b7280;">Time range applies to both options when set. Leave empty for whole day.</p>
+                            </form>
+                        </div>
                         {% if availability %}
-                        <div class="appointments-list">
-                            <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem;">Your available dates ({{ availability|length }})</h3>
-                            <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0.75rem;">
-                                {% for avail in availability %}
-                                <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: white; border: 1px solid #e0e0e0; border-radius: 8px;">
-                                    <div>
-                                        <strong>{{ avail.date|date:"M d, Y" }}</strong>
-                                        {% if avail.start_time and avail.end_time %}<span style="font-size: 0.9rem; color: #333;"> {{ avail.start_time|time:"H:i" }}–{{ avail.end_time|time:"H:i" }}</span>{% endif %}
-                                        {% if avail.date < today %}<span style="font-size: 0.75rem; color: #999;"> (past)</span>{% endif %}
-                                        {% if avail.notes %}<br><span style="font-size: 0.85rem; color: #666;">{{ avail.notes }}</span>{% endif %}
-                                    </div>
-                                    <form method="POST" style="margin: 0;" onsubmit="return confirm('Remove this date from your availability?');">
-                                        {% csrf_token %}
-                                        <input type="hidden" name="return_section" value="availability">
-                                        <input type="hidden" name="remove_availability" value="1">
-                                        <input type="hidden" name="availability_id" value="{{ avail.id }}">
-                                        <button type="submit" class="btn-action btn-delete" title="Remove"><i class="fas fa-trash"></i></button>
-                                    </form>
+                        <h3 class="availability-list-title"><i class="fas fa-list"></i> Your available dates ({{ availability|length }})</h3>
+                        <div class="availability-grid">
+                            {% for avail in availability %}
+                            <div class="availability-date-card {% if avail.date < today %}past{% endif %}">
+                                <div class="date-main">
+                                    <strong>{{ avail.date|date:"M d, Y" }}</strong>
+                                    {% if avail.start_time and avail.end_time %}<div class="date-time">{{ avail.start_time|time:"H:i" }} – {{ avail.end_time|time:"H:i" }}</div>{% endif %}
+                                    {% if avail.notes %}<div class="date-notes">{{ avail.notes }}</div>{% endif %}
+                                    {% if avail.date < today %}<span class="date-notes">(past)</span>{% endif %}
                                 </div>
-                                {% endfor %}
+                                <form method="POST" style="margin: 0;" onsubmit="return confirm('Remove this date from your availability?');">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="return_section" value="availability">
+                                    <input type="hidden" name="remove_availability" value="1">
+                                    <input type="hidden" name="availability_id" value="{{ avail.id }}">
+                                    <button type="submit" class="btn-remove-avail" title="Remove"><i class="fas fa-trash-alt"></i></button>
+                                </form>
                             </div>
+                            {% endfor %}
                         </div>
                         {% else %}
                         <div class="empty-state">
-                            <i class="fas fa-calendar-alt"></i>
+                            <i class="fas fa-calendar-alt" style="color: #d1d5db;"></i>
                             <h3>No availability set</h3>
-                            <p>Add one day (with optional time) or a week above so farmers and buyers know when you're available for appointments.</p>
+                            <p>Add a day or a week above so farmers and buyers know when you're available.</p>
                         </div>
                         {% endif %}
                     </div>
