@@ -406,7 +406,7 @@
         /* Charts */
         .charts-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(380px, 1fr));
             gap: 2rem;
             margin-bottom: 2rem;
         }
@@ -415,6 +415,16 @@
             position: relative;
             height: 300px;
         }
+
+        .dashboard-analytics-block .analytics-charts { gap: 1.5rem; margin-bottom: 0; }
+        .analytics-chart-card {
+            background: #fff;
+            border: 1px solid #e5e7eb;
+            border-radius: 14px;
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.06);
+        }
+        .analytics-chart-card .chart-container { height: 280px; }
 
         /* Content Grid */
         .content-grid {
@@ -1036,10 +1046,6 @@
                 <i class="fas fa-comments"></i>
                 <span>Chat</span>
             </a>
-            <a href="#analytics" class="nav-item" onclick="return showSection('analytics', event);">
-                <i class="fas fa-chart-bar"></i>
-                <span>Analytics</span>
-            </a>
             <a href="#profile" class="nav-item" onclick="return showSection('profile', event);">
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
@@ -1217,23 +1223,20 @@
                 </div>
                 {% endif %}
 
-                <!-- Charts -->
-                <div class="charts-grid">
-                    <div class="content-section">
-                        <div class="section-header">
-                            <h2><i class="fas fa-chart-line"></i> Appointments Trend</h2>
-                        </div>
-                        <div class="section-body">
+                <!-- Analytics (on dashboard only) -->
+                <div class="dashboard-analytics-block" style="margin-top: 2rem;">
+                    <h2 class="analytics-section-title" style="margin: 0 0 1.25rem 0; font-size: 1.35rem; font-weight: 700; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-chart-bar" style="color: var(--primary);"></i> Analytics
+                    </h2>
+                    <div class="charts-grid analytics-charts">
+                        <div class="analytics-chart-card">
+                            <h3 style="margin: 0 0 1rem 0; font-size: 1.05rem; font-weight: 600; color: #374151;"><i class="fas fa-chart-line" style="color: var(--primary); margin-right: 0.4rem;"></i> Appointments by Month</h3>
                             <div class="chart-container">
                                 <canvas id="appointmentsChart"></canvas>
                             </div>
                         </div>
-                    </div>
-                    <div class="content-section">
-                        <div class="section-header">
-                            <h2><i class="fas fa-chart-bar"></i> Content Published</h2>
-                        </div>
-                        <div class="section-body">
+                        <div class="analytics-chart-card">
+                            <h3 style="margin: 0 0 1rem 0; font-size: 1.05rem; font-weight: 600; color: #374151;"><i class="fas fa-chart-bar" style="color: var(--primary); margin-right: 0.4rem;"></i> Content Published by Month</h3>
                             <div class="chart-container">
                                 <canvas id="contentChart"></canvas>
                             </div>
@@ -1603,40 +1606,6 @@
                                     <button type="submit" class="btn-edit-profile btn-form-sm"><i class="fas fa-save"></i> Save</button>
                                 </div>
                             </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Analytics Section -->
-            <div id="analytics-section" class="dashboard-section" style="display: none;">
-                {% if active_section == 'analytics' %}{% include 'includes/messages_block.html' %}{% endif %}
-                <div class="content-section">
-                    <div class="section-header">
-                        <h2><i class="fas fa-chart-bar"></i> Analytics</h2>
-                    </div>
-                    <div class="section-body">
-                        <div class="charts-grid">
-                            <div class="content-section">
-                                <div class="section-header">
-                                    <h3><i class="fas fa-chart-line"></i> Appointments by Month</h3>
-                                </div>
-                                <div class="section-body">
-                                    <div class="chart-container">
-                                        <canvas id="analyticsAppointmentsChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="content-section">
-                                <div class="section-header">
-                                    <h3><i class="fas fa-chart-bar"></i> Content Published by Month</h3>
-                                </div>
-                                <div class="section-body">
-                                    <div class="chart-container">
-                                        <canvas id="analyticsContentChart"></canvas>
-                                    </div>
-                                </div>
-                            </div>
                         </div>
                     </div>
                 </div>
@@ -2128,7 +2097,7 @@
             }
             
             // Verify all sections exist
-            const sections = ['dashboard', 'content', 'appointments', 'availability', 'chat', 'analytics', 'profile', 'settings'];
+            const sections = ['dashboard', 'content', 'appointments', 'availability', 'chat', 'profile', 'settings'];
             sections.forEach(sectionId => {
                 const section = document.getElementById(sectionId + '-section');
                 if (!section) {
@@ -2202,83 +2171,6 @@
             const contentCtx = document.getElementById('contentChart');
             if (contentCtx) {
                 new Chart(contentCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: contentData.map(d => d.month || 'N/A'),
-                        datasets: [{
-                            label: 'Total Content',
-                            data: contentData.map(d => d.total_content || 0),
-                            backgroundColor: 'rgba(53, 141, 88, 0.8)',
-                            borderColor: 'rgb(53, 141, 88)',
-                            borderWidth: 1
-                        }, {
-                            label: 'Published Content',
-                            data: contentData.map(d => d.published_count || 0),
-                            backgroundColor: 'rgba(40, 167, 69, 0.8)',
-                            borderColor: 'rgb(40, 167, 69)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-            }
-
-            // Analytics Charts
-            const analyticsAppointmentsCtx = document.getElementById('analyticsAppointmentsChart');
-            if (analyticsAppointmentsCtx) {
-                new Chart(analyticsAppointmentsCtx, {
-                    type: 'line',
-                    data: {
-                        labels: appointmentsData.map(d => d.month || 'N/A'),
-                        datasets: [{
-                            label: 'Total Appointments',
-                            data: appointmentsData.map(d => d.total_appointments || 0),
-                            borderColor: 'rgb(53, 141, 88)',
-                            backgroundColor: 'rgba(53, 141, 88, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        }, {
-                            label: 'Accepted Appointments',
-                            data: appointmentsData.map(d => d.accepted_count || 0),
-                            borderColor: 'rgb(40, 167, 69)',
-                            backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-            }
-
-            const analyticsContentCtx = document.getElementById('analyticsContentChart');
-            if (analyticsContentCtx) {
-                new Chart(analyticsContentCtx, {
                     type: 'bar',
                     data: {
                         labels: contentData.map(d => d.month || 'N/A'),
