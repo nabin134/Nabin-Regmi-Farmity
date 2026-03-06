@@ -12,7 +12,7 @@ from django.utils.crypto import get_random_string
 from django.core.mail import send_mail
 from django.conf import settings
 from django.db.models import Sum, Count, Q
-from django.db.models.functions import TruncMonth
+from django.db.models.functions import TruncMonth, TruncDate
 from django.urls import reverse
 import secrets
 import hashlib
@@ -2350,6 +2350,21 @@ def vendor_dashboard(request):
     # Get orders for vendor's tools
     orders = Order.objects.filter(tool__vendor=profile).select_related('buyer', 'tool').order_by('-created_at')
     
+    # Orders where payment is collected (completed) — used for payout stats
+    collected_orders = orders.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED)
+    amount_collected = collected_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    pending_payout_q = Q(payout_status__isnull=True) | Q(payout_status=Order.PAYOUT_PENDING)
+    pending_release_amount = collected_orders.filter(pending_payout_q).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    # Released payouts: when admin marked as paid (group by payout_at for each release batch)
+    paid_orders = collected_orders.filter(payout_status=Order.PAYOUT_PAID).order_by('-payout_at')
+    released_payouts = list(
+        paid_orders.annotate(payout_date=TruncDate('payout_at'))
+        .values('payout_date')
+        .annotate(amount=Sum('total_amount'), order_count=Count('id'))
+        .order_by('-payout_date')
+    )
+    total_released_amount = sum((p['amount'] or Decimal('0')) for p in released_payouts)
+    
     # Calculate statistics
     total_revenue = orders.aggregate(total=Sum('total_amount'))['total'] or 0
     total_orders = orders.count()
@@ -2404,6 +2419,11 @@ def vendor_dashboard(request):
         'delivered_orders': delivered_orders,
         'revenue_data': revenue_data_json,
         'active_section': (request.GET.get('section') or 'dashboard').strip(),
+        # Payout / amount collected (payment-completed orders only)
+        'amount_collected': amount_collected,
+        'pending_release_amount': pending_release_amount,
+        'total_released_amount': total_released_amount,
+        'released_payouts': released_payouts,
     }
     return render(request, 'vendor_dashboard.html', context)
 

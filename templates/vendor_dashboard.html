@@ -836,9 +836,9 @@
                 <i class="fas fa-shopping-cart"></i>
                 <span>Orders</span>
             </a>
-            <a href="#analytics" class="nav-item" onclick="showSection('analytics', event); return false;">
-                <i class="fas fa-chart-bar"></i>
-                <span>Analytics</span>
+            <a href="#earnings" class="nav-item" onclick="showSection('earnings', event); return false;">
+                <i class="fas fa-wallet"></i>
+                <span>Earnings</span>
             </a>
             <a href="#profile" class="nav-item" onclick="showSection('profile', event); return false;">
                 <i class="fas fa-user"></i>
@@ -1149,34 +1149,70 @@
                 </div>
             </div>
 
-            <!-- Analytics Section -->
-            <div id="analytics-section" class="dashboard-section" style="display: none;">
-                {% if active_section == 'analytics' %}{% include 'includes/messages_block.html' %}{% endif %}
+            <!-- Earnings / Amount collected Section -->
+            <div id="earnings-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'earnings' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-chart-bar"></i> Analytics</h2>
+                        <h2><i class="fas fa-wallet"></i> Earnings & Payouts</h2>
                     </div>
                     <div class="section-body">
-                        <div class="charts-grid">
-                            <div class="content-section">
-                                <div class="section-header">
-                                    <h3><i class="fas fa-chart-line"></i> Revenue by Month</h3>
+                        <p style="color: #6c757d; margin-bottom: 1.5rem;">Amount collected from your tool orders. When admin releases the amount, it appears under &quot;Released to you&quot;.</p>
+                        <div class="stats-grid" style="margin-bottom: 2rem;">
+                            <div class="stat-card earnings">
+                                <div class="stat-content">
+                                    <h4>Amount collected</h4>
+                                    <div class="stat-value">Rs. {{ amount_collected|floatformat:2 }}</div>
+                                    <small style="color: #6c757d;">Total from paid orders</small>
                                 </div>
-                                <div class="section-body">
-                                    <div class="chart-container">
-                                        <canvas id="analyticsRevenueChart"></canvas>
-                                    </div>
-                                </div>
+                                <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
                             </div>
-                            <div class="content-section">
-                                <div class="section-header">
-                                    <h3><i class="fas fa-chart-bar"></i> Orders by Month</h3>
+                            <div class="stat-card" style="border-left: 4px solid var(--warning);">
+                                <div class="stat-content">
+                                    <h4>Pending release</h4>
+                                    <div class="stat-value" style="color: var(--warning);">Rs. {{ pending_release_amount|floatformat:2 }}</div>
+                                    <small style="color: #6c757d;">Awaiting admin release</small>
                                 </div>
-                                <div class="section-body">
-                                    <div class="chart-container">
-                                        <canvas id="analyticsOrdersChart"></canvas>
-                                    </div>
+                                <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+                            </div>
+                            <div class="stat-card" style="border-left: 4px solid var(--success);">
+                                <div class="stat-content">
+                                    <h4>Released to you</h4>
+                                    <div class="stat-value" style="color: var(--success);">Rs. {{ total_released_amount|floatformat:2 }}</div>
+                                    <small style="color: #6c757d;">Total paid out by admin</small>
                                 </div>
+                                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                            </div>
+                        </div>
+                        <div class="content-section">
+                            <div class="section-header">
+                                <h3><i class="fas fa-history"></i> Release history</h3>
+                            </div>
+                            <div class="section-body">
+                                {% if released_payouts %}
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Date released</th>
+                                                <th>Amount</th>
+                                                <th>Orders</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for p in released_payouts %}
+                                            <tr>
+                                                <td>{{ p.payout_date|date:"M d, Y" }}</td>
+                                                <td>Rs. {{ p.amount|floatformat:2 }}</td>
+                                                <td>{{ p.order_count }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <p style="color: #6c757d;">No payouts released yet. When admin releases your pending amount, it will appear here.</p>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -1625,69 +1661,6 @@
                 });
             }
 
-            // Analytics Charts
-            const analyticsRevenueCtx = document.getElementById('analyticsRevenueChart');
-            if (analyticsRevenueCtx) {
-                new Chart(analyticsRevenueCtx, {
-                    type: 'line',
-                    data: {
-                        labels: revenueData.map(d => d.month || 'N/A'),
-                        datasets: [{
-                            label: 'Revenue (Rs.)',
-                            data: revenueData.map(d => d.total_revenue || 0),
-                            borderColor: 'rgb(53, 141, 88)',
-                            backgroundColor: 'rgba(53, 141, 88, 0.1)',
-                            tension: 0.4,
-                            fill: true
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-            }
-
-            const analyticsOrdersCtx = document.getElementById('analyticsOrdersChart');
-            if (analyticsOrdersCtx) {
-                new Chart(analyticsOrdersCtx, {
-                    type: 'bar',
-                    data: {
-                        labels: revenueData.map(d => d.month || 'N/A'),
-                        datasets: [{
-                            label: 'Orders',
-                            data: revenueData.map(d => d.order_count || 0),
-                            backgroundColor: 'rgba(40, 167, 69, 0.8)',
-                            borderColor: 'rgb(40, 167, 69)',
-                            borderWidth: 1
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                display: true
-                            }
-                        },
-                        scales: {
-                            y: {
-                                beginAtZero: true
-                            }
-                        }
-                    }
-                });
-            }
         });
     </script>
     {% include 'support_widget.html' %}
