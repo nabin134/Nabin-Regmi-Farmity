@@ -50,6 +50,7 @@ from .models import (
     CropSale,
     OTP,
     FAQ,
+    LandingFeature,
     SupportStaffProfile,
     SupportTicket,
     SupportMessage,
@@ -1033,6 +1034,7 @@ def landing_page(request):
     vendors_count = VendorProfile.objects.count()
     experts_count = ExpertProfile.objects.count()
     vendors = VendorProfile.objects.annotate(tool_count=Count('tools')).filter(tool_count__gt=0).select_related('user').order_by('-tool_count')[:6]
+    landing_features = LandingFeature.objects.filter(is_active=True).order_by('display_order', 'created_at')
     from django.db.models import Min
     crop_prices = list(FarmerProduct.objects.filter(is_available=True, quantity__gt=0).values('name').annotate(min_price=Min('price_per_unit')).order_by('name')[:6])
     kalimati_prices = _fetch_kalimati_prices()
@@ -1055,6 +1057,7 @@ def landing_page(request):
         'experts': experts,
         'farming_tips': farming_tips,
         'vendors': vendors,
+        'landing_features': landing_features,
         'farmers_count': farmers_count,
         'vendors_count': vendors_count,
         'experts_count': experts_count,

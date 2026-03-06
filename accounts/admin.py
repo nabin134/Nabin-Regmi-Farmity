@@ -17,6 +17,7 @@ from .models import (
     Order,
     CropSale,
     FAQ,
+    LandingFeature,
     SupportStaffProfile,
     SupportTicket,
     SupportMessage,
@@ -106,6 +107,20 @@ class FAQAdmin(admin.ModelAdmin):
     list_filter = ('category', 'is_active')
     search_fields = ('question', 'answer')
     ordering = ('order',)
+
+
+@admin.register(LandingFeature)
+class LandingFeatureAdmin(admin.ModelAdmin):
+    list_display = ('title', 'label', 'link_target', 'display_order', 'is_active', 'created_at')
+    list_editable = ('display_order', 'is_active')
+    list_filter = ('is_active',)
+    search_fields = ('title', 'label', 'short_description')
+    ordering = ('display_order',)
+    fieldsets = (
+        (None, {'fields': ('title', 'label', 'short_description', 'link_target', 'cta_text')}),
+        ('Image', {'fields': ('image', 'image_url'), 'description': 'Upload an image or set image_url (URL used if no file).'}),
+        ('Display', {'fields': ('display_order', 'is_active')}),
+    )
 
 
 @admin.register(SupportStaffProfile)

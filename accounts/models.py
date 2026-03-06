@@ -510,6 +510,28 @@ class FAQ(models.Model):
         return self.question[:60] + ('...' if len(self.question) > 60 else '')
 
 
+class LandingFeature(models.Model):
+    """Landing page feature cards (Marketplace, Vendors, Experts, Buyers). Managed like crops/tools."""
+    title = models.CharField(max_length=100)
+    label = models.CharField(max_length=50, blank=True, help_text="Small label above title, e.g. Explore, Suppliers")
+    short_description = models.CharField(max_length=255, blank=True)
+    link_target = models.CharField(max_length=255, default='#', help_text="Anchor or URL, e.g. #marketplace, #vendors")
+    cta_text = models.CharField(max_length=80, blank=True, help_text="Call-to-action, e.g. View marketplace →")
+    image = models.ImageField(upload_to='landing_features/', blank=True, null=True)
+    image_url = models.URLField(blank=True, help_text="Or use an external image URL (used if no image file)")
+    display_order = models.PositiveIntegerField(default=0, help_text="Lower = first")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ('display_order', 'created_at')
+        verbose_name = 'Landing feature card'
+        verbose_name_plural = 'Landing feature cards'
+
+    def __str__(self):
+        return self.title
+
+
 class SupportStaffProfile(models.Model):
     """Users who can handle support tickets (assigned by admin)."""
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='support_staff_profile')

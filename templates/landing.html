@@ -95,27 +95,43 @@
         </div>
     </section>
 
-    <!-- Key Features Section -->
-    <section class="features-section">
-        <div class="features-container">
-            <div class="feature-card">
-                <div class="feature-icon purple">🛒</div>
-                <h3>Marketplace</h3>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon purple">🏢</div>
-                <h3>Vendors</h3>
-                <p>Connect with trusted suppliers, buyers</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon green">💬</div>
-                <h3>Experts</h3>
-                <p>Get timely advice, consultations</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon green">📈</div>
-                <h3>Buyers</h3>
-                <p>Get fresh produce directly from farms</p>
+    <!-- Key Features – Same card layout as marketplace products (LandingFeature in admin) -->
+    <section class="features-section product-cards-style" id="key-features">
+        <div class="section-container">
+            <h2 class="section-title">Platform at a glance</h2>
+            <p class="section-subtitle">Marketplace, vendors, experts, and buyers — all in one place</p>
+            <div class="products-grid features-platform-grid">
+                {% for feature in landing_features %}
+                <div class="product-card feature-platform-card">
+                    <a href="{{ feature.link_target|default:'#' }}" class="feature-card-image-link">
+                        <div class="product-image">
+                            {% if feature.image %}
+                            <img src="{{ feature.image.url }}" alt="{{ feature.title }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+                            {% elif feature.image_url %}
+                            {% if "http" in feature.image_url %}
+                            <img src="{{ feature.image_url }}" alt="{{ feature.title }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+                            {% else %}
+                            <img src="{% static feature.image_url %}" alt="{{ feature.title }}" loading="lazy" style="width:100%;height:100%;object-fit:cover;border-radius:inherit;">
+                            {% endif %}
+                            {% else %}
+                            <span style="font-size:3rem;">🌾</span>
+                            {% endif %}
+                        </div>
+                    </a>
+                    <div class="feature-platform-body">
+                        {% if feature.label %}
+                        <span class="feature-platform-label">{{ feature.label }}</span>
+                        {% endif %}
+                        <h4 class="feature-platform-title">{{ feature.title }}</h4>
+                        {% if feature.short_description %}
+                        <p class="feature-platform-desc">{{ feature.short_description }}</p>
+                        {% endif %}
+                        <a href="{{ feature.link_target|default:'#' }}" class="btn-view-store feature-platform-cta" style="text-decoration: none; margin-top: 1.25rem; display: block; text-align: center; white-space: nowrap;">{{ feature.cta_text|default:"View & Buy" }}</a>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="section-subtitle">No feature cards configured. Add them in Admin → Landing feature cards.</p>
+                {% endfor %}
             </div>
         </div>
     </section>
