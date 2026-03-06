@@ -223,37 +223,14 @@ class SignupView(APIView):
                 print("Signup validation successful")
                 user = serializer.save()
                 print(f"User created: {user.email} (ID: {user.id})")
-                # Email verification: send OTP and keep account inactive until verified
-                otp = OTP.generate_otp(user, expiry_minutes=30, purpose=OTP.PURPOSE_EMAIL_VERIFY)
-                try:
-                    send_mail(
-                        subject='Verify your email - Farmity',
-                        message=(
-                            f'Your Farmity verification code is: {otp.otp_code}\n\n'
-                            f'This code will expire in 30 minutes.\n\n'
-                            f'If you did not create this account, please ignore this email.'
-                        ),
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        recipient_list=[user.email],
-                        fail_silently=False,
-                    )
-                except Exception as e:
-                    # If email sending fails, keep account inactive and surface message.
-                    print(f"Error sending email verification OTP: {str(e)}")
-                    return Response(
-                        {
-                            "error": "Failed to send verification email. Please try again.",
-                            "details": {"email": ["Could not send verification code. Please try again."]}
-                        },
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
-                    )
-
+                # Auto-activate: log user in and redirect to KYC (for farmer/vendor/expert) or dashboard (buyer)
+                login(request, user)
+                redirect_url = _redirect_to_role_home(user)  # KYC page or role dashboard
                 return Response(
                     {
-                        "message": "Account created. Please verify your email to activate your account.",
+                        "message": "Account created successfully. Redirecting...",
                         "email": user.email,
-                        "requires_email_verification": True,
-                        "redirect_url": f"/verify-email/?email={user.email}",
+                        "redirect_url": redirect_url,
                     },
                     status=status.HTTP_201_CREATED
                 )
@@ -1577,7 +1554,8 @@ def kyc_page(request):
             
             request.user.is_verified = False
             request.user.save(update_fields=['is_verified'])
-            existing = request.user.kyc_requests.first()
+            # Redirect to dashboard after KYC submit (pending approval); dashboard shows KYC status
+            return _redirect_to_role_home_response(request.user)
         else:
             # If there are validation errors, pass them to the template
             for field, error_msg in errors.items():

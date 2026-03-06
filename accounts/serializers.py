@@ -131,8 +131,8 @@ class SignupSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             role=role,
             phone=phone,
-            is_active=False,
-            email_verified=False,
+            is_active=True,
+            email_verified=True,
         )
 
         # Create per-role profile data
