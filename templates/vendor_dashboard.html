@@ -743,21 +743,24 @@
             border-left: 4px solid #17A2B8;
         }
 
-        /* Language Selector */
-        .language-selector {
-            padding: 0.5rem 1rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            background: white;
-            cursor: pointer;
-            font-size: 0.9rem;
-            transition: border-color 0.3s;
-        }
-
-        .language-selector:focus {
-            outline: none;
-            border-color: var(--primary);
-        }
+        /* Profile section – same UI as farmer (card view + edit form) */
+        .profile-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media (max-width: 640px) { .profile-info-grid { grid-template-columns: 1fr; } }
+        .profile-info-grid .info-card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 1.5rem; }
+        .profile-info-grid .info-card:hover { border-color: var(--primary); }
+        .profile-info-label { font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 0.5rem; display: block; }
+        .profile-info-value { font-size: 1rem; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem; }
+        .profile-info-value i { color: var(--primary); font-size: 1rem; }
+        .btn-edit-profile { background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
+        .btn-edit-profile:hover { transform: translateY(-1px); }
+        .btn-change-photo-sm { font-size: 0.85rem; padding: 0.4rem 0.75rem; border-radius: 8px; background: var(--light); color: var(--primary); border: 2px solid var(--primary); cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; }
+        .btn-form-sm { padding: 0.5rem 1rem; font-size: 0.9rem; border-radius: 8px; }
+        .profile-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+        @media (max-width: 640px) { .profile-edit-grid { grid-template-columns: 1fr; } }
+        .edit-card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 1.5rem; }
+        .edit-card:focus-within { border-color: var(--primary); }
+        .edit-card .profile-info-label { font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 0.5rem; display: block; }
+        .edit-card .form-control { width: 100%; margin-top: 0.25rem; box-sizing: border-box; }
 
         /* Responsive */
         @media (max-width: 768px) {
@@ -837,7 +840,7 @@
                 <i class="fas fa-chart-bar"></i>
                 <span>Analytics</span>
             </a>
-            <a href="{% url 'profile' %}" class="nav-item">
+            <a href="#profile" class="nav-item" onclick="showSection('profile', event); return false;">
                 <i class="fas fa-user"></i>
                 <span>Profile</span>
             </a>
@@ -864,10 +867,6 @@
             </div>
             <div class="header-right">
                 {% include 'includes/notification_bell.html' %}
-                <select id="languageSelect" class="language-selector" onchange="changeLanguage(this.value)">
-                    <option value="en">English</option>
-                    <option value="np">नेपाली (Nepali)</option>
-                </select>
                 <div class="user-profile">
                     <div class="user-avatar">
                         {% if profile.logo %}
@@ -1184,78 +1183,132 @@
                 </div>
             </div>
 
-            <!-- Profile Section -->
+            <!-- Profile Section (same UI as farmer: card view + edit form) -->
             <div id="profile-section" class="dashboard-section" style="display: none;">
                 {% if active_section == 'profile' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
-                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center;">
+                    <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                         <h2><i class="fas fa-user"></i> My Profile</h2>
-                        <button type="button" onclick="toggleVendorEditMode()" class="btn-primary" style="padding: 0.75rem 1.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <button type="button" id="vendorProfileEditBtn" onclick="toggleVendorEditMode()" class="btn-edit-profile">
                             <i class="fas fa-edit"></i> <span id="vendorEditBtnText">Edit Profile</span>
                         </button>
                     </div>
                     <div class="section-body">
-                        <form method="POST" enctype="multipart/form-data" id="vendorProfileForm">
-                            {% csrf_token %}
-                            <input type="hidden" name="update_profile" value="1">
-                            <input type="hidden" name="return_section" value="profile">
-                            
-                            <div style="display: flex; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
-                                <div style="flex: 0 0 200px;">
-                                    <div style="width: 200px; height: 200px; border-radius: 50%; overflow: hidden; border: 4px solid var(--primary); margin: 0 auto;">
-                                        {% if profile.logo %}
-                                        <img src="{{ profile.logo.url }}" alt="Logo" style="width: 100%; height: 100%; object-fit: cover;">
-                                        {% else %}
-                                        <div style="width: 100%; height: 100%; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 4rem;">
-                                            <i class="fas fa-building"></i>
-                                        </div>
-                                        {% endif %}
-                                    </div>
-                                    <div style="margin-top: 1rem; text-align: center;">
-                                        <label for="logo" class="btn-primary" style="cursor: pointer; display: inline-block; opacity: 0.5; pointer-events: none;">
-                                            <i class="fas fa-camera"></i> Change Logo
-                                        </label>
-                                        <input type="file" name="photo" id="logo" accept="image/*" style="display: none;" onchange="previewImage(this)" disabled>
-                                    </div>
+                        <!-- View mode: card grid (default) -->
+                        <div id="vendorProfileViewMode" style="display: block;">
+                            <div style="display: flex; align-items: center; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
+                                <div style="flex: 0 0 140px;">
+                                    {% if profile.logo %}
+                                    <img src="{{ profile.logo.url }}" alt="Logo" id="vendorViewPhoto" style="width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 4px solid var(--primary);">
+                                    {% else %}
+                                    <div id="vendorViewPhoto" style="width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;"><i class="fas fa-building"></i></div>
+                                    {% endif %}
+                                    <form method="POST" action="" enctype="multipart/form-data" style="margin-top: 0.75rem; text-align: center;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="update_photo" value="1">
+                                        <input type="hidden" name="return_section" value="profile">
+                                        <label for="vendorPhotoChangeInput" class="btn-change-photo-sm" style="cursor: pointer; display: inline-block;"><i class="fas fa-camera"></i> Change Logo</label>
+                                        <input type="file" name="photo" id="vendorPhotoChangeInput" accept="image/*" style="display: none;" onchange="this.form.submit()">
+                                    </form>
                                 </div>
-                                <div style="flex: 1; min-width: 300px;">
-                                    <h3 style="margin: 0 0 1rem 0; font-size: 1.5rem; color: #333;">{{ profile.company_name|default:user.email }}</h3>
-                                    <div style="display: flex; gap: 1rem; margin-bottom: 1.5rem;">
-                                        <span class="role-badge" style="padding: 0.5rem 1rem; background: var(--primary); color: white; border-radius: 20px; font-weight: 600;">Vendor</span>
+                                <div style="flex: 1; min-width: 200px;">
+                                    <h3 style="margin: 0 0 0.75rem 0; font-size: 1.75rem; font-weight: 700; color: #1a1a1a;">{{ profile.company_name|default:user.email }}</h3>
+                                    <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+                                        <span style="padding: 0.5rem 1rem; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border-radius: 20px; font-weight: 600;">Vendor</span>
                                         {% if kyc_status == 'approved' %}
-                                        <span style="padding: 0.5rem 1rem; background: #D4EDDA; color: #155724; border-radius: 20px; font-weight: 600;">
-                                            <i class="fas fa-check-circle"></i> Verified
-                                        </span>
+                                        <span style="padding: 0.5rem 1rem; background: #D4EDDA; color: #155724; border-radius: 20px; font-weight: 600;"><i class="fas fa-check-circle"></i> Verified</span>
                                         {% else %}
-                                        <span style="padding: 0.5rem 1rem; background: #FFF3CD; color: #856404; border-radius: 20px; font-weight: 600;">
-                                            <i class="fas fa-exclamation-circle"></i> Unverified
-                                        </span>
+                                        <span style="padding: 0.5rem 1rem; background: #FFF3CD; color: #856404; border-radius: 20px; font-weight: 600;"><i class="fas fa-exclamation-circle"></i> Unverified</span>
                                         {% endif %}
                                     </div>
                                 </div>
                             </div>
-
-                            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;" id="vendorProfileFields">
-                                <div class="form-group">
-                                    <label>Company Name</label>
-                                    <input type="text" name="company_name" id="vendorCompanyName" class="form-control" value="{{ profile.company_name|default:'' }}" placeholder="Enter company name" readonly>
+                            <div class="profile-info-grid">
+                                <div class="info-card">
+                                    <span class="profile-info-label">Email Address</span>
+                                    <div class="profile-info-value"><i class="fas fa-envelope"></i> {{ user.email|default:"Not set" }}</div>
                                 </div>
-                                <div class="form-group">
-                                    <label>Contact</label>
-                                    <input type="text" name="contact" id="vendorContact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Enter contact number" readonly>
+                                <div class="info-card">
+                                    <span class="profile-info-label">Company Name</span>
+                                    <div class="profile-info-value"><i class="fas fa-building"></i> {{ profile.company_name|default:"Not set" }}</div>
                                 </div>
-                                <div class="form-group" style="grid-column: 1/-1;">
-                                    <label>Address</label>
-                                    <textarea name="address" id="vendorAddress" class="form-control" rows="3" placeholder="Enter company address" readonly>{{ profile.address|default:'' }}</textarea>
+                                <div class="info-card">
+                                    <span class="profile-info-label">Contact</span>
+                                    <div class="profile-info-value"><i class="fas fa-phone"></i> {{ profile.contact|default:"Not set" }}</div>
+                                </div>
+                                <div class="info-card">
+                                    <span class="profile-info-label">Address</span>
+                                    <div class="profile-info-value"><i class="fas fa-map-marker-alt"></i> {{ profile.address|default:"Not set" }}</div>
+                                </div>
+                                <div class="info-card">
+                                    <span class="profile-info-label">Website</span>
+                                    <div class="profile-info-value"><i class="fas fa-globe"></i> {{ profile.website|default:"Not set" }}</div>
+                                </div>
+                                <div class="info-card">
+                                    <span class="profile-info-label">Business Type</span>
+                                    <div class="profile-info-value"><i class="fas fa-briefcase"></i> {{ profile.business_type|default:"Not set" }}</div>
+                                </div>
+                                <div class="info-card">
+                                    <span class="profile-info-label">Member Since</span>
+                                    <div class="profile-info-value"><i class="fas fa-calendar"></i> {{ user.date_joined|date:"M d, Y" }}</div>
                                 </div>
                             </div>
-
-                            <div id="vendorSaveBtn" style="display: none; margin-top: 2rem;">
-                                <button type="submit" class="btn-primary">
-                                    <i class="fas fa-save"></i> Update Profile
-                                </button>
+                        </div>
+                        <!-- Edit form (hidden by default) -->
+                        <div id="vendorProfileFormWrap" style="display: none;">
+                            <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                                <div style="flex: 0 0 80px;">
+                                    {% if profile.logo %}
+                                    <img src="{{ profile.logo.url }}" alt="Logo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary);">
+                                    {% else %}
+                                    <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;"><i class="fas fa-building"></i></div>
+                                    {% endif %}
+                                </div>
+                                <div>
+                                    <h3 style="margin: 0 0 0.35rem 0; font-size: 1.25rem; font-weight: 700; color: #1a1a1a;">{{ profile.company_name|default:user.email }}</h3>
+                                    <span style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border-radius: 16px; font-weight: 600; font-size: 0.8rem;">Vendor</span>
+                                </div>
                             </div>
-                        </form>
+                            <form method="POST" id="vendorProfileForm" enctype="multipart/form-data">
+                                {% csrf_token %}
+                                <input type="hidden" name="update_profile" value="1">
+                                <input type="hidden" name="return_section" value="profile">
+                                <div class="profile-edit-grid" id="vendorProfileFields">
+                                    <div class="edit-card form-group">
+                                        <span class="profile-info-label">Email Address</span>
+                                        <div style="font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-envelope" style="color: var(--primary);"></i> {{ user.email }}</div>
+                                    </div>
+                                    <div class="edit-card form-group">
+                                        <span class="profile-info-label">Company Name</span>
+                                        <input type="text" name="company_name" id="vendorCompanyName" class="form-control" value="{{ profile.company_name|default:'' }}" placeholder="Company name">
+                                    </div>
+                                    <div class="edit-card form-group">
+                                        <span class="profile-info-label">Contact</span>
+                                        <input type="text" name="contact" id="vendorContact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Phone number">
+                                    </div>
+                                    <div class="edit-card form-group">
+                                        <span class="profile-info-label">Website</span>
+                                        <input type="text" name="website" class="form-control" value="{{ profile.website|default:'' }}" placeholder="https://...">
+                                    </div>
+                                    <div class="edit-card form-group">
+                                        <span class="profile-info-label">Business Type</span>
+                                        <input type="text" name="business_type" class="form-control" value="{{ profile.business_type|default:'' }}" placeholder="e.g. Equipment supplier">
+                                    </div>
+                                    <div class="edit-card form-group" style="grid-column: 1 / -1;">
+                                        <span class="profile-info-label">Address</span>
+                                        <textarea name="address" id="vendorAddress" class="form-control" rows="3" placeholder="Company address">{{ profile.address|default:'' }}</textarea>
+                                    </div>
+                                    <div class="edit-card form-group">
+                                        <span class="profile-info-label">Member Since</span>
+                                        <div style="font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-calendar" style="color: var(--primary);"></i> {{ user.date_joined|date:"M d, Y" }}</div>
+                                    </div>
+                                </div>
+                                <div style="margin-top: 1.25rem; display: flex; gap: 0.5rem;">
+                                    <button type="button" class="btn-primary btn-form-sm" style="background: #6c757d;" onclick="toggleVendorEditMode()"><i class="fas fa-times"></i> Cancel</button>
+                                    <button type="submit" class="btn-edit-profile btn-form-sm"><i class="fas fa-save"></i> Save</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1297,22 +1350,6 @@
                             </form>
                         </div>
 
-                        <!-- Language Section -->
-                        <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
-                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
-                                <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-globe" style="font-size: 1.75rem; color: var(--primary);"></i>
-                                </div>
-                                <h3 style="margin: 0; font-size: 1.5rem;">Language & Region</h3>
-                            </div>
-                            <div class="form-group">
-                                <label>Preferred Language</label>
-                                <select id="settingsLanguageSelect" class="form-control" onchange="changeLanguage(this.value)">
-                                    <option value="en">English</option>
-                                    <option value="np">नेपाली (Nepali)</option>
-                                </select>
-                            </div>
-                        </div>
                     </div>
                 </div>
             </div>
@@ -1419,6 +1456,21 @@
             document.getElementById('sidebar').classList.toggle('active');
         }
 
+        function toggleVendorEditMode() {
+            var viewMode = document.getElementById('vendorProfileViewMode');
+            var formWrap = document.getElementById('vendorProfileFormWrap');
+            var btnText = document.getElementById('vendorEditBtnText');
+            if (viewMode.style.display === 'none') {
+                viewMode.style.display = 'block';
+                formWrap.style.display = 'none';
+                if (btnText) btnText.textContent = 'Edit Profile';
+            } else {
+                viewMode.style.display = 'none';
+                formWrap.style.display = 'block';
+                if (btnText) btnText.textContent = 'Cancel';
+            }
+        }
+
         // Modal Functions
         function openAddToolModal() {
             document.getElementById('toolModal').classList.add('active');
@@ -1499,24 +1551,10 @@
         }
 
         // Language Functions
-        function changeLanguage(lang) {
-            localStorage.setItem('language', lang);
-        }
-
-        // Initialize language selector
         document.addEventListener('DOMContentLoaded', function() {
             var sectionFromUrl = new URLSearchParams(window.location.search).get('section');
             if (sectionFromUrl && document.getElementById(sectionFromUrl + '-section')) {
                 showSection(sectionFromUrl, null);
-            }
-            const savedLang = localStorage.getItem('language') || 'en';
-            const select = document.getElementById('languageSelect');
-            if (select) {
-                select.value = savedLang;
-            }
-            const settingsSelect = document.getElementById('settingsLanguageSelect');
-            if (settingsSelect) {
-                settingsSelect.value = savedLang;
             }
 
             // Charts

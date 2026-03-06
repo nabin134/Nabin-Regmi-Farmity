@@ -2216,11 +2216,25 @@ def vendor_dashboard(request):
     kyc_request = request.user.kyc_requests.first()
     kyc_status = kyc_request.status if kyc_request else None
     
+    # Handle photo-only update (Change Logo in view mode)
+    if request.method == 'POST' and 'update_photo' in request.POST:
+        photo_file = request.FILES.get('photo')
+        if photo_file:
+            profile.logo = photo_file
+            profile.save()
+            messages.success(request, 'Logo updated successfully!')
+        return _redirect_same_page(request, 'vendor_dashboard')
+    
     # Handle Profile Update
     if request.method == 'POST' and 'update_profile' in request.POST:
-        profile.company_name = request.POST.get('company_name', profile.company_name)
-        profile.address = request.POST.get('address', profile.address)
-        profile.contact = request.POST.get('contact', profile.contact)
+        profile.company_name = (request.POST.get('company_name') or '').strip() or profile.company_name
+        profile.address = (request.POST.get('address') or '').strip() or profile.address
+        profile.contact = (request.POST.get('contact') or '').strip() or profile.contact
+        website = (request.POST.get('website') or '').strip() or None
+        if website and not (website.startswith('http://') or website.startswith('https://')):
+            website = 'https://' + website
+        profile.website = website
+        profile.business_type = (request.POST.get('business_type') or '').strip() or profile.business_type
         if request.FILES.get('photo'):
             profile.logo = request.FILES.get('photo')
         profile.save()
