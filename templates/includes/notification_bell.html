@@ -468,11 +468,13 @@
 
     function buildHref(n) {
         if (!n.link) return '#';
-        var link = n.link;
+        var link = (n.link || '').trim();
+        if (!link) return '#';
         if (link.startsWith('http')) return link;
         if (link.startsWith('#')) return window.location.pathname + window.location.search + link;
         if (link.startsWith('?')) return window.location.pathname + link;
-        return link.indexOf('/') !== -1 ? link : (window.location.pathname + (link.startsWith('?') ? link : '?' + link));
+        if (link.startsWith('/')) return window.location.origin + link;
+        return window.location.origin + window.location.pathname + (link.startsWith('?') ? link : '?' + link);
     }
 
     function escapeHtml(s) {

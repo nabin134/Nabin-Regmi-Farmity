@@ -140,10 +140,11 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
             elif not hasattr(user, 'role') or not user.role:
                 user.role = 'buyer'
 
-            # Auto-verify and activate social logins (both signup and login)
-            user.is_verified = True
+            # Auto-verify EMAIL and activate social logins (both signup and login)
+            # Note: `is_verified` is used for KYC approval in this project, so we avoid setting it here.
+            user.email_verified = True
             user.is_active = True
-            user.save()
+            user.save(update_fields=['role', 'email_verified', 'is_active'])
             
             from .models import UserProfile, FarmerProfile, VendorProfile, ExpertProfile
             import requests

@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verify Email - Farmity</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --v-bg: #f0fdf4;
+            --v-card: #ffffff;
+            --v-primary: #15803d;
+            --v-primary-dark: #166534;
+            --v-text: #1c1917;
+            --v-muted: #57534e;
+            --v-border: #e7e5e4;
+            --v-radius: 16px;
+            --v-shadow: 0 25px 50px -12px rgba(0,0,0,0.12);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--v-bg);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .card {
+            width: 100%;
+            max-width: 460px;
+            background: var(--v-card);
+            border-radius: var(--v-radius);
+            box-shadow: var(--v-shadow);
+            overflow: hidden;
+            border: 1px solid var(--v-border);
+        }
+        .header {
+            background: linear-gradient(135deg, var(--v-primary) 0%, var(--v-primary-dark) 100%);
+            padding: 2rem;
+            text-align: center;
+            color: #fff;
+        }
+        .header .icon {
+            width: 64px;
+            height: 64px;
+            margin: 0 auto 1rem;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .header h1 { font-size: 1.35rem; font-weight: 700; margin-bottom: 0.35rem; }
+        .header p { font-size: 0.9rem; opacity: 0.92; line-height: 1.45; }
+        .body { padding: 2rem 2rem 2.25rem; }
+        .subtitle { color: var(--v-muted); font-size: 0.9rem; line-height: 1.5; margin-bottom: 1.25rem; }
+        .otp-input {
+            width: 100%;
+            text-align: center;
+            font-size: 1.2rem;
+            letter-spacing: 0.35em;
+            padding: 0.9rem 1rem;
+            border: 1px solid var(--v-border);
+            border-radius: 12px;
+            outline: none;
+        }
+        .otp-input:focus { border-color: var(--v-primary); box-shadow: 0 0 0 4px rgba(21,128,61,0.15); }
+        .btn {
+            width: 100%;
+            margin-top: 1rem;
+            background: var(--v-primary);
+            color: #fff;
+            border: none;
+            border-radius: 12px;
+            padding: 0.9rem 1rem;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .btn:disabled { opacity: 0.75; cursor: not-allowed; }
+        .message {
+            margin-top: 1rem;
+            padding: 0.75rem 0.9rem;
+            border-radius: 12px;
+            border: 1px solid var(--v-border);
+            color: var(--v-text);
+            display: none;
+        }
+        .message.show { display: block; }
+        .message.success { border-color: rgba(34,197,94,0.35); background: rgba(34,197,94,0.08); }
+        .message.error { border-color: rgba(220,38,38,0.35); background: rgba(220,38,38,0.08); }
+        .row {
+            margin-top: 1rem;
+            display: flex;
+            justify-content: space-between;
+            gap: 1rem;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+        .link {
+            color: var(--v-primary-dark);
+            text-decoration: none;
+            font-weight: 700;
+            cursor: pointer;
+        }
+        .muted { color: var(--v-muted); font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="header">
+            <div class="icon"><i class="fas fa-envelope-open-text"></i></div>
+            <h1>Verify your email</h1>
+            <p>We sent a 6-digit verification code to your email.</p>
+        </div>
+        <div class="body">
+            <p class="subtitle">
+                Enter the code to activate your account. If you didn’t receive it, you can resend a new code.
+            </p>
+
+            <form id="verifyEmailForm">
+                {% csrf_token %}
+                <input type="hidden" id="email" value="{{ email|default:'' }}">
+                <input class="otp-input" id="otp" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="••••••" />
+                <button class="btn" id="verifyBtn" type="submit">Verify Email</button>
+                <div id="message" class="message"></div>
+            </form>
+
+            <div class="row">
+                <span class="muted">Didn’t get a code?</span>
+                <a class="link" href="#" id="resendLink">Resend code</a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            var form = document.getElementById('verifyEmailForm');
+            var otpInput = document.getElementById('otp');
+            var emailInput = document.getElementById('email');
+            var messageDiv = document.getElementById('message');
+            var verifyBtn = document.getElementById('verifyBtn');
+            var resendLink = document.getElementById('resendLink');
+            var hideTimer = null;
+
+            function getParam(name) {
+                return new URLSearchParams(window.location.search).get(name) || '';
+            }
+
+            function showMessage(text, type, ms) {
+                if (!messageDiv) return;
+                messageDiv.textContent = text;
+                messageDiv.className = 'message show ' + (type || '');
+                if (hideTimer) clearTimeout(hideTimer);
+                hideTimer = setTimeout(function() {
+                    messageDiv.textContent = '';
+                    messageDiv.className = 'message';
+                }, ms || 3000);
+            }
+
+            if (emailInput && !emailInput.value) emailInput.value = getParam('email');
+
+            if (otpInput) {
+                otpInput.addEventListener('input', function() {
+                    this.value = (this.value || '').replace(/\D/g, '').slice(0, 6);
+                });
+            }
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                var otp = (otpInput && otpInput.value || '').trim();
+                var email = (emailInput && emailInput.value || '').trim().toLowerCase();
+                if (otp.length !== 6) return showMessage('Please enter the 6-digit code.', 'error', 3000);
+                if (!email) return showMessage('Email is missing. Please go back and sign up again.', 'error', 3000);
+
+                if (verifyBtn) { verifyBtn.disabled = true; verifyBtn.textContent = 'Verifying…'; }
+                try {
+                    var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+                    var res = await fetch('/api/auth/verify-email/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (csrf && csrf.value) || '' },
+                        body: JSON.stringify({ email: email, otp: otp })
+                    });
+                    var data = await res.json().catch(function(){ return {}; });
+                    if (res.ok) {
+                        showMessage('Email verified! Redirecting to login…', 'success', 3000);
+                        setTimeout(function() {
+                            window.location.href = '/login/?email_verified=true';
+                        }, 900);
+                    } else {
+                        showMessage((data && (data.error || (data.details && JSON.stringify(data.details)))) || 'Verification failed.', 'error', 3000);
+                        if (otpInput) otpInput.value = '';
+                    }
+                } catch (err) {
+                    showMessage('Network error. Please try again.', 'error', 3000);
+                }
+                if (verifyBtn) { verifyBtn.disabled = false; verifyBtn.textContent = 'Verify Email'; }
+            });
+
+            resendLink.addEventListener('click', async function(e) {
+                e.preventDefault();
+                var email = (emailInput && emailInput.value || '').trim().toLowerCase();
+                if (!email) return showMessage('Email is missing. Please go back and sign up again.', 'error', 3000);
+                try {
+                    var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
+                    var res = await fetch('/api/auth/resend-email-verification/', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (csrf && csrf.value) || '' },
+                        body: JSON.stringify({ email: email })
+                    });
+                    var data = await res.json().catch(function(){ return {}; });
+                    if (res.ok) showMessage('New code sent. Check your email.', 'success', 3000);
+                    else showMessage((data && (data.error || 'Failed to resend.')) || 'Failed to resend.', 'error', 3000);
+                } catch (err) {
+                    showMessage('Network error. Please try again.', 'error', 3000);
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
+

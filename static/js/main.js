@@ -85,6 +85,21 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+function showTempMessage(messageDiv, text, type, ms = 3000) {
+    if (!messageDiv) return;
+    messageDiv.textContent = text || '';
+    messageDiv.className = 'message ' + (type || '');
+    if (text) {
+        messageDiv.className = 'message ' + (type || '');
+        // Ensure it behaves like a popoff/toast (auto-hide)
+        clearTimeout(messageDiv._hideTimer);
+        messageDiv._hideTimer = setTimeout(() => {
+            messageDiv.textContent = '';
+            messageDiv.className = 'message';
+        }, ms);
+    }
+}
+
 // Logout Function
 function logout() {
     localStorage.removeItem('user');
@@ -175,8 +190,7 @@ async function handleLogin(e) {
     const messageDiv = document.getElementById('message');
     
     if (messageDiv) {
-        messageDiv.textContent = '';
-        messageDiv.className = 'message';
+        showTempMessage(messageDiv, '', '');
     }
 
     try {
@@ -210,8 +224,7 @@ async function handleLogin(e) {
                 localStorage.setItem('isLoggedIn', 'true');
                 
                 if (messageDiv) {
-                    messageDiv.textContent = 'Login successful! Redirecting...';
-                    messageDiv.className = 'message success';
+                    showTempMessage(messageDiv, 'Login successful! Redirecting...', 'success', 3000);
                 }
                 
                 // Redirect immediately to prevent any issues
@@ -234,8 +247,7 @@ async function handleLogin(e) {
         } else {
             const errorMsg = data.error || data.message || 'Login failed.';
             if (messageDiv) {
-                messageDiv.textContent = errorMsg;
-                messageDiv.className = 'message error';
+                showTempMessage(messageDiv, errorMsg, 'error', 3000);
             } else {
                 alert(errorMsg);
             }
@@ -243,8 +255,7 @@ async function handleLogin(e) {
     } catch (error) {
         console.error('Login error:', error);
         if (messageDiv) {
-            messageDiv.textContent = 'Network error. Please check your connection.';
-            messageDiv.className = 'message error';
+            showTempMessage(messageDiv, 'Network error. Please check your connection.', 'error', 3000);
         }
     }
 }
@@ -273,14 +284,12 @@ async function handleRegister(e) {
     
     const messageDiv = document.getElementById('message');
     if (messageDiv) {
-        messageDiv.textContent = '';
-        messageDiv.className = 'message';
+        showTempMessage(messageDiv, '', '');
     }
 
     if (password !== confirmPassword) {
         if (messageDiv) {
-            messageDiv.textContent = 'Passwords do not match!';
-            messageDiv.className = 'message error';
+            showTempMessage(messageDiv, 'Passwords do not match!', 'error', 3000);
         }
         return;
     }
@@ -329,13 +338,12 @@ async function handleRegister(e) {
             localStorage.removeItem('isLoggedIn');
 
             if (messageDiv) {
-                messageDiv.textContent = 'Account created successfully! Redirecting to login...';
-                messageDiv.className = 'message success';
+                showTempMessage(messageDiv, data.message || 'Account created successfully! Redirecting...', 'success', 3000);
             }
             
-            // Redirect to login page after signup
+            // Redirect (backend decides next step: email verification page)
             setTimeout(() => {
-                window.location.href = '/login/?registered=true';
+                window.location.href = (data && data.redirect_url) ? data.redirect_url : '/login/?registered=true';
             }, 1500);
         } else {
             let errorMsg = data.error || 'Registration failed.';
@@ -346,6 +354,16 @@ async function handleRegister(e) {
                     errorMsg = data.details.email;
                 } else if (data.details.email) {
                     errorMsg = data.details.email;
+                } else if (data.details.phone && Array.isArray(data.details.phone)) {
+                    errorMsg = data.details.phone[0];
+                } else if (data.details.fullName && Array.isArray(data.details.fullName)) {
+                    errorMsg = data.details.fullName[0];
+                } else if (data.details.location && Array.isArray(data.details.location)) {
+                    errorMsg = data.details.location[0];
+                } else if (data.details.password && Array.isArray(data.details.password)) {
+                    errorMsg = data.details.password[0];
+                } else if (data.details.confirmPassword && Array.isArray(data.details.confirmPassword)) {
+                    errorMsg = data.details.confirmPassword[0];
                 } else {
                     const firstKey = Object.keys(data.details)[0];
                     const firstVal = firstKey ? data.details[firstKey] : null;
@@ -355,15 +373,13 @@ async function handleRegister(e) {
                 }
             }
             if (messageDiv) {
-                messageDiv.textContent = errorMsg;
-                messageDiv.className = 'message error';
+                showTempMessage(messageDiv, errorMsg, 'error', 3000);
             }
         }
     } catch (error) {
         console.error('Registration error:', error);
         if (messageDiv) {
-            messageDiv.textContent = 'Network error. Please check your connection.';
-            messageDiv.className = 'message error';
+            showTempMessage(messageDiv, 'Network error. Please check your connection.', 'error', 3000);
         }
     }
 }

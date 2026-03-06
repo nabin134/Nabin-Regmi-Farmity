@@ -1,7 +1,7 @@
 from django.urls import path
 from .views import (
     SignupView, LoginView, ForgotPasswordView, ResetPasswordView, VerifyOTPView,
-    OTPVerificationView, ResendOTPView,
+    OTPVerificationView, ResendOTPView, VerifyEmailView, ResendEmailVerificationView,
     landing_page, role_selection, register_page, login_page, home_page, dashboard,
     farmer_dashboard, vendor_dashboard, expert_dashboard, user_dashboard,     admin_dashboard,
     admin_kyc_management, admin_kyc_view_json, admin_user_management, admin_user_view_json, admin_content_management,
@@ -11,7 +11,7 @@ from .views import (
     appointment_request_page,
     chat_threads_page, chat_thread_detail, chat_start,
     api_chat_messages, api_chat_send, api_chat_start,
-    favicon_view, forgot_password_page, reset_password_page, otp_verification_page,
+    favicon_view, forgot_password_page, reset_password_page, otp_verification_page, verify_email_page,
     logout_view, google_signup_start_view,
     esewa_initiate, esewa_success, esewa_failure,
     support_hub, admin_support_desk, support_ticket_detail,
@@ -31,6 +31,7 @@ urlpatterns = [
     path('login/', login_page, name='login'),
     path('forgot-password/', forgot_password_page, name='forgot_password'),
     path('otp-verification/', otp_verification_page, name='otp_verification'),
+    path('verify-email/', verify_email_page, name='verify_email'),
     path('reset-password/', reset_password_page, name='reset_password'),
     path('dashboard/', dashboard, name='dashboard'),
     path('profile/', profile_page, name='profile'),
@@ -83,6 +84,8 @@ urlpatterns = [
 api_urlpatterns = [
     path('signup/', SignupView.as_view(), name='api-signup'),
     path('login/', LoginView.as_view(), name='api-login'),
+    path('verify-email/', VerifyEmailView.as_view(), name='api-verify-email'),
+    path('resend-email-verification/', ResendEmailVerificationView.as_view(), name='api-resend-email-verification'),
     path('verify-otp/', OTPVerificationView.as_view(), name='api-verify-otp'),
     path('verify-reset-otp/', VerifyOTPView.as_view(), name='api-verify-reset-otp'),
     path('resend-otp/', ResendOTPView.as_view(), name='api-resend-otp'),

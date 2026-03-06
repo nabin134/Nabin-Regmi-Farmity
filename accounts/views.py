@@ -61,9 +61,9 @@ from .notifications import create_notification
 
 
 def _chat_notification_link(recipient, thread_id):
-    """For experts: link to dashboard chat section with thread. Others: link to standalone chat thread."""
+    """For experts: link to expert dashboard chat section with thread. Others: link to standalone chat thread."""
     if getattr(recipient, 'role', None) == 'agricultural_expert':
-        return reverse('dashboard') + '?section=chat&thread_id=' + str(thread_id)
+        return reverse('expert_dashboard') + '?section=chat&thread_id=' + str(thread_id)
     return reverse('chat_thread', kwargs={'thread_id': thread_id})
 
 
@@ -223,40 +223,37 @@ class SignupView(APIView):
                 print("Signup validation successful")
                 user = serializer.save()
                 print(f"User created: {user.email} (ID: {user.id})")
-
-                user.is_verified = user.role in {'buyer', 'admin'}
-                user.save()
-                print(f"User verified status: {user.is_verified}")
-                
-                # Get additional fields (frontend doesn't send them in JSON yet, need to fix frontend too)
-                full_name = request.data.get('fullName')
-                location = request.data.get('location')
-                phone = request.data.get('phone')
-                
-                print(f"Profile data - Name: {full_name}, Phone: {phone}, Location: {location}")
-
-                # Create profile with details
-                if user.role == 'farmer':
-                    FarmerProfile.objects.get_or_create(user=user, defaults={'name': full_name, 'location': location, 'contact': phone})
-                    print("Farmer profile created/found")
-                elif user.role == 'vendor':
-                    VendorProfile.objects.get_or_create(user=user, defaults={'company_name': full_name, 'address': location, 'contact': phone})
-                    print("Vendor profile created/found")
-                elif user.role == 'agricultural_expert':
-                    ExpertProfile.objects.get_or_create(user=user, defaults={'name': full_name})
-                    print("Expert profile created/found")
-                elif user.role == 'buyer':
-                    UserProfile.objects.get_or_create(user=user, defaults={'name': full_name, 'address': location, 'phone': phone})
-                    print("Buyer profile created/found")
-
-                # Don't auto-login after signup - redirect to login page
-                print("User created successfully, redirecting to login")
+                # Email verification: send OTP and keep account inactive until verified
+                otp = OTP.generate_otp(user, expiry_minutes=30, purpose=OTP.PURPOSE_EMAIL_VERIFY)
+                try:
+                    send_mail(
+                        subject='Verify your email - Farmity',
+                        message=(
+                            f'Your Farmity verification code is: {otp.otp_code}\n\n'
+                            f'This code will expire in 30 minutes.\n\n'
+                            f'If you did not create this account, please ignore this email.'
+                        ),
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[user.email],
+                        fail_silently=False,
+                    )
+                except Exception as e:
+                    # If email sending fails, keep account inactive and surface message.
+                    print(f"Error sending email verification OTP: {str(e)}")
+                    return Response(
+                        {
+                            "error": "Failed to send verification email. Please try again.",
+                            "details": {"email": ["Could not send verification code. Please try again."]}
+                        },
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                    )
 
                 return Response(
                     {
-                        "message": "Account created successfully! Please login to continue.",
-                        "user": UserSerializer(user).data,
-                        "redirect_url": "/login/"
+                        "message": "Account created. Please verify your email to activate your account.",
+                        "email": user.email,
+                        "requires_email_verification": True,
+                        "redirect_url": f"/verify-email/?email={user.email}",
                     },
                     status=status.HTTP_201_CREATED
                 )
@@ -280,6 +277,128 @@ class SignupView(APIView):
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
 
+
+class VerifyEmailView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            serializer = OTPVerificationSerializer(data=request.data)
+            if not serializer.is_valid():
+                return Response(
+                    {"error": "Validation failed", "details": serializer.errors},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            email = serializer.validated_data['email']
+            otp_code = serializer.validated_data['otp']
+
+            User = get_user_model()
+            try:
+                user = User.objects.get(email__iexact=email)
+            except User.DoesNotExist:
+                return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            # Find a valid email-verification OTP
+            try:
+                otp = OTP.objects.filter(
+                    user=user,
+                    purpose=OTP.PURPOSE_EMAIL_VERIFY,
+                    otp_code=otp_code,
+                    is_used=False,
+                    is_verified=False,
+                ).latest('created_at')
+            except OTP.DoesNotExist:
+                return Response(
+                    {"error": "Invalid or expired verification code. Please request a new one."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            if otp.is_expired():
+                return Response(
+                    {"error": "Verification code has expired. Please request a new one."},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            otp.is_verified = True
+            otp.is_used = True
+            otp.save(update_fields=['is_verified', 'is_used'])
+
+            # Activate account
+            user.email_verified = True
+            user.is_active = True
+            user.save(update_fields=['email_verified', 'is_active'])
+
+            return Response(
+                {"message": "Email verified successfully. You can now log in.", "email": user.email},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {"error": "An unexpected error occurred during email verification.", "details": {"exception": str(e)}},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
+
+
+class ResendEmailVerificationView(APIView):
+    authentication_classes = []
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        try:
+            email = (request.data.get('email') or '').strip().lower()
+            if not email:
+                return Response(
+                    {"error": "Validation failed", "details": {"email": ["Email is required."]}},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+            User = get_user_model()
+            try:
+                user = User.objects.get(email__iexact=email)
+            except User.DoesNotExist:
+                return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
+
+            if getattr(user, 'email_verified', False):
+                return Response(
+                    {"message": "Email is already verified.", "email": user.email},
+                    status=status.HTTP_200_OK,
+                )
+
+            otp = OTP.generate_otp(user, expiry_minutes=30, purpose=OTP.PURPOSE_EMAIL_VERIFY)
+            try:
+                send_mail(
+                    subject='Verify your email - Farmity',
+                    message=(
+                        f'Your Farmity verification code is: {otp.otp_code}\n\n'
+                        f'This code will expire in 30 minutes.\n\n'
+                        f'If you did not create this account, please ignore this email.'
+                    ),
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    recipient_list=[user.email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                print(f"Error resending email verification OTP: {str(e)}")
+                return Response(
+                    {"error": "Failed to send verification email. Please try again."},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                )
+
+            return Response(
+                {"message": "Verification code resent. Please check your email.", "email": user.email},
+                status=status.HTTP_200_OK,
+            )
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            return Response(
+                {"error": "An unexpected error occurred.", "details": {"exception": str(e)}},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 # ======================
@@ -336,10 +455,12 @@ class LoginView(APIView):
                     status=status.HTTP_401_UNAUTHORIZED
                 )
 
-            if not user.is_active:
-                # Activate inactive user on login attempt
-                user.is_active = True
-                user.save()
+            # Block login until email is verified (and account is active)
+            if not getattr(user, 'email_verified', False) or not user.is_active:
+                return Response(
+                    {"error": "Please verify your email to activate your account."},
+                    status=status.HTTP_403_FORBIDDEN
+                )
 
             # Check if OTP is required (can be disabled in development)
             require_otp = getattr(settings, 'REQUIRE_OTP_FOR_LOGIN', True)
@@ -377,7 +498,7 @@ class LoginView(APIView):
                 )
             
             # OTP is required - generate and send OTP
-            otp = OTP.generate_otp(user, expiry_minutes=10)
+            otp = OTP.generate_otp(user, expiry_minutes=10, purpose=OTP.PURPOSE_LOGIN)
             
             # Send OTP via email
             try:
@@ -471,6 +592,7 @@ class OTPVerificationView(APIView):
             try:
                 otp = OTP.objects.filter(
                     user=user,
+                    purpose=OTP.PURPOSE_LOGIN,
                     otp_code=otp_code,
                     is_used=False,
                     is_verified=False
@@ -571,7 +693,7 @@ class ResendOTPView(APIView):
                 )
             
             # Generate new OTP
-            otp = OTP.generate_otp(user, expiry_minutes=10)
+            otp = OTP.generate_otp(user, expiry_minutes=10, purpose=OTP.PURPOSE_LOGIN)
             
             # Send OTP via email
             try:
@@ -1325,6 +1447,10 @@ def otp_verification_page(request):
     token = request.GET.get('token', '')
     return render(request, 'otp_verification.html', {'email': email, 'token': token})
 
+def verify_email_page(request):
+    email = request.GET.get('email', '')
+    return render(request, 'email_verification.html', {'email': email})
+
 
 def reset_password_page(request):
     token = request.GET.get('token', '')
@@ -1357,7 +1483,12 @@ def home_page(request):
 
 @login_required
 def dashboard(request):
-    return _redirect_to_role_home_response(request.user)
+    """Redirect to role-specific dashboard, preserving query string (e.g. section=chat&thread_id= for notifications)."""
+    url_path = _redirect_to_role_home(request.user)
+    qs = request.META.get('QUERY_STRING', '').strip()
+    if qs:
+        url_path = url_path + ('&' if '?' in url_path else '?') + qs
+    return redirect(url_path)
 
 
 @login_required
@@ -3594,10 +3725,15 @@ def admin_user_management(request):
                 messages.error(request, 'User with this email already exists.')
             else:
                 try:
-                    user = User.objects.create_user(email=email, password=password, role=role)
-                    user.is_active = is_active
+                    user = User.objects.create_user(
+                        email=email,
+                        password=password,
+                        role=role,
+                        is_active=is_active,
+                        email_verified=is_active,  # admin-created active users should be able to login immediately
+                    )
                     user.is_verified = is_verified
-                    user.save()
+                    user.save(update_fields=['is_verified'])
                     
                     # Create profile based on role
                     if role == 'farmer':
@@ -4394,6 +4530,13 @@ def appointment_request_page(request):
                     message=message,
                     status=ExpertAppointment.STATUS_PENDING
                 )
+                create_notification(
+                    expert.user,
+                    'New appointment request',
+                    f'{request.user.email} requested an appointment on {requested_date} at {requested_time}.',
+                    reverse('expert_dashboard') + '?section=appointments',
+                    UserNotification.TYPE_APPOINTMENT
+                )
                 messages.success(request, 'Appointment booked successfully! The doctor has been notified and will accept or reject your request. Go to My Appointments to see status and change date if needed.')
                 if request.user.role == 'farmer':
                     return redirect('farmer_dashboard')
@@ -4956,22 +5099,49 @@ def api_support_status(request, ticket_id):
     return JsonResponse({'ok': True})
 
 
+def _notification_link_for_user(request, link):
+    """Ensure notification link points to the correct dashboard/section for the current user (page where notification came from)."""
+    if not link or not link.strip():
+        return link or ''
+    link = link.strip()
+    # Rewrite old generic /dashboard/?section=... to role-specific dashboard so redirect lands in the right place
+    if link.startswith('/dashboard/') or (link.startswith('/dashboard') and '?' in link):
+        qs = link.split('?', 1)[-1] if '?' in link else ''
+        if request.user.role == 'agricultural_expert':
+            return reverse('expert_dashboard') + ('?' + qs if qs else '')
+        if request.user.role == 'farmer':
+            return reverse('farmer_dashboard') + ('?' + qs if qs else '')
+        if request.user.role == 'buyer':
+            return reverse('user_dashboard') + ('?' + qs if qs else '')
+        if request.user.role == 'vendor':
+            return reverse('vendor_dashboard') + ('?' + qs if qs else '')
+        if request.user.role == 'admin':
+            return reverse('admin_dashboard') + ('?' + qs if qs else '')
+    # Ensure internal paths start with / so frontend can navigate from any page
+    if link and not link.startswith('/') and not link.startswith('http'):
+        return '/' + link.lstrip('?')
+    return link
+
+
 # ---------- Notifications API (for bell dropdown on all user dashboards) ----------
 @login_required
 def api_notifications_list(request):
-    """GET: list recent notifications for current user (JSON)."""
+    """GET: list recent notifications for current user (JSON). Links point to the page where the notification came from."""
     limit = min(int(request.GET.get('limit', 20)), 50)
     qs = UserNotification.objects.filter(user=request.user).order_by('-created_at')[:limit]
     unread_count = UserNotification.objects.filter(user=request.user, is_read=False).count()
-    items = [{
-        'id': n.id,
-        'title': n.title,
-        'message': n.message,
-        'link': n.link,
-        'type': n.notification_type,
-        'is_read': n.is_read,
-        'created_at': n.created_at.strftime('%b %d, %H:%M'),
-    } for n in qs]
+    items = []
+    for n in qs:
+        link = _notification_link_for_user(request, n.link)
+        items.append({
+            'id': n.id,
+            'title': n.title,
+            'message': n.message,
+            'link': link,
+            'type': n.notification_type,
+            'is_read': n.is_read,
+            'created_at': n.created_at.strftime('%b %d, %H:%M'),
+        })
     return JsonResponse({'notifications': items, 'unread_count': unread_count})
 
 

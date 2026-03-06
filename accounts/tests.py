@@ -11,7 +11,13 @@ class AuthTests(TestCase):
         self.email = "test@example.com"
         self.password = "Password123!"
         # Ensure role is set for redirect logic
-        self.user = User.objects.create_user(email=self.email, password=self.password, role='farmer')
+        self.user = User.objects.create_user(
+            email=self.email,
+            password=self.password,
+            role='farmer',
+            is_active=True,
+            email_verified=True,
+        )
 
     def test_login_success(self):
         """

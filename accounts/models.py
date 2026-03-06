@@ -8,19 +8,24 @@ from datetime import timedelta
 import secrets
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, password=None, role='buyer'):
+    def create_user(self, email, password=None, role='buyer', phone=None, *, is_active=False, email_verified=False):
         if not email:
             raise ValueError("Email is required")
 
         email = self.normalize_email(email)
-        user = self.model(email=email, role=role)
+        user = self.model(
+            email=email,
+            role=role,
+            phone=phone,
+            is_active=is_active,
+            email_verified=email_verified,
+        )
         user.set_password(password)
-        user.is_active = True
         user.save(using=self._db)
         return user
 
     def create_superuser(self, email, password):
-        user = self.create_user(email, password, role='admin')
+        user = self.create_user(email, password, role='admin', is_active=True, email_verified=True)
         user.is_staff = True
         user.is_superuser = True
         user.save(using=self._db)
@@ -37,8 +42,13 @@ class User(AbstractBaseUser, PermissionsMixin):
     )
 
     email = models.EmailField(unique=True)
+    # Required at signup, but kept nullable for existing rows/migrations.
+    # Uniqueness is enforced across accounts (one phone -> one account).
+    phone = models.CharField(max_length=10, unique=True, blank=True, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='buyer')
     is_active = models.BooleanField(default=True)
+    # Email ownership verification. Account activation is blocked until True.
+    email_verified = models.BooleanField(default=False)
     is_verified = models.BooleanField(default=False)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
@@ -425,8 +435,16 @@ class CropSale(models.Model):
 
 
 class OTP(models.Model):
-    """Store OTPs for login verification"""
+    """Store OTPs for login + other one-time verification flows."""
+    PURPOSE_LOGIN = 'login'
+    PURPOSE_EMAIL_VERIFY = 'email_verify'
+    PURPOSE_CHOICES = (
+        (PURPOSE_LOGIN, 'Login'),
+        (PURPOSE_EMAIL_VERIFY, 'Email verification'),
+    )
+
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='otps')
+    purpose = models.CharField(max_length=20, choices=PURPOSE_CHOICES, default=PURPOSE_LOGIN)
     otp_code = models.CharField(max_length=6)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField()
@@ -436,7 +454,7 @@ class OTP(models.Model):
     class Meta:
         ordering = ('-created_at',)
         indexes = [
-            models.Index(fields=['user', 'is_used', 'is_verified']),
+            models.Index(fields=['user', 'purpose', 'is_used', 'is_verified']),
         ]
     
     def __str__(self):
@@ -451,10 +469,10 @@ class OTP(models.Model):
         return not self.is_used and not self.is_expired() and not self.is_verified
     
     @classmethod
-    def generate_otp(cls, user, expiry_minutes=10):
-        """Generate a new OTP for user"""
-        # Delete old unused OTPs for this user
-        cls.objects.filter(user=user, is_used=False, is_verified=False).delete()
+    def generate_otp(cls, user, expiry_minutes=10, purpose=PURPOSE_LOGIN):
+        """Generate a new OTP for user (scoped by purpose)."""
+        # Delete old unused OTPs for this user/purpose
+        cls.objects.filter(user=user, purpose=purpose, is_used=False, is_verified=False).delete()
         
         # Generate 6-digit OTP
         otp_code = ''.join([str(secrets.randbelow(10)) for _ in range(6)])
@@ -462,6 +480,7 @@ class OTP(models.Model):
         # Create OTP
         otp = cls.objects.create(
             user=user,
+            purpose=purpose,
             otp_code=otp_code,
             expires_at=timezone.now() + timedelta(minutes=expiry_minutes)
         )
