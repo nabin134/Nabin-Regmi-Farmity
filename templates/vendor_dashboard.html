@@ -1,3 +1,4 @@
+{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -61,12 +62,26 @@
         .sidebar-logo {
             width: 40px;
             height: 40px;
-            background: white;
             border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 1.5rem;
+            overflow: hidden;
+            flex-shrink: 0;
+        }
+        .sidebar-logo .sidebar-logo-img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+        .sidebar-logo .sidebar-logo-fallback {
+            display: none;
+            width: 100%;
+            height: 100%;
+            align-items: center;
+            justify-content: center;
+            background: white;
         }
 
         .sidebar-title {
@@ -294,6 +309,71 @@
         .stat-icon {
             font-size: 3rem;
             opacity: 0.2;
+        }
+
+        /* Earnings tab – professional card layout */
+        .earnings-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1.5rem;
+            margin-bottom: 2.5rem;
+        }
+        @media (max-width: 992px) {
+            .earnings-cards { grid-template-columns: 1fr; }
+        }
+        .earnings-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.06);
+            padding: 1.75rem;
+            display: flex;
+            flex-direction: column;
+            min-height: 160px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .earnings-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 28px rgba(0,0,0,0.1);
+        }
+        .earnings-card.card-total-collect {
+            border-left: 4px solid var(--primary);
+        }
+        .earnings-card.card-orders-received {
+            border-left: 4px solid var(--success);
+        }
+        .earnings-card.card-pending {
+            border-left: 4px solid var(--warning);
+        }
+        .earnings-card-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #6c757d;
+            margin-bottom: 0.75rem;
+        }
+        .earnings-card-value {
+            font-size: 2rem;
+            font-weight: 700;
+            line-height: 1.2;
+            margin-bottom: 0.35rem;
+        }
+        @media (max-width: 768px) {
+            .earnings-card-value { font-size: 1.5rem; }
+        }
+        .earnings-card.card-total-collect .earnings-card-value { color: var(--primary); }
+        .earnings-card.card-orders-received .earnings-card-value { color: var(--success); }
+        .earnings-card.card-pending .earnings-card-value { color: #b8860b; }
+        .earnings-card-note {
+            font-size: 0.8rem;
+            color: #868e96;
+            margin-top: auto;
+        }
+        .earnings-intro {
+            color: #6c757d;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
         }
 
         /* Content Sections */
@@ -809,6 +889,7 @@
         /* Dashboard Section */
         .dashboard-section {
             display: none;
+            padding: 2rem;
         }
 
         .dashboard-section:first-of-type {
@@ -820,7 +901,10 @@
     <!-- Sidebar Navigation -->
     <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <div class="sidebar-logo">🌾</div>
+            <div class="sidebar-logo">
+                <img src="{% static 'images/Farmity logo.png' %}" alt="Farmity" class="sidebar-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <span class="sidebar-logo-fallback">🌾</span>
+            </div>
             <div class="sidebar-title">Farmity</div>
         </div>
         <nav class="sidebar-nav">
@@ -1157,31 +1241,22 @@
                         <h2><i class="fas fa-wallet"></i> Earnings & Payouts</h2>
                     </div>
                     <div class="section-body">
-                        <p style="color: #6c757d; margin-bottom: 1.5rem;">Amount collected from your tool orders. When admin releases the amount, it appears under &quot;Released to you&quot;.</p>
-                        <div class="stats-grid" style="margin-bottom: 2rem;">
-                            <div class="stat-card earnings">
-                                <div class="stat-content">
-                                    <h4>Amount collected</h4>
-                                    <div class="stat-value">Rs. {{ amount_collected|floatformat:2 }}</div>
-                                    <small style="color: #6c757d;">Total from paid orders</small>
-                                </div>
-                                <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
+                        <p class="earnings-intro">Summary of your earnings. Total amount collect includes Rs. {{ previous_released_amount|floatformat:0 }} from previous release by admin.</p>
+                        <div class="earnings-cards">
+                            <div class="earnings-card card-total-collect">
+                                <span class="earnings-card-label">Total amount collect</span>
+                                <div class="earnings-card-value">Rs. {{ total_amount_collect|floatformat:2 }}</div>
+                                <div class="earnings-card-note">Sales + Rs. {{ previous_released_amount|floatformat:0 }} previous release by admin</div>
                             </div>
-                            <div class="stat-card" style="border-left: 4px solid var(--warning);">
-                                <div class="stat-content">
-                                    <h4>Pending release</h4>
-                                    <div class="stat-value" style="color: var(--warning);">Rs. {{ pending_release_amount|floatformat:2 }}</div>
-                                    <small style="color: #6c757d;">Awaiting admin release</small>
-                                </div>
-                                <div class="stat-icon"><i class="fas fa-hourglass-half"></i></div>
+                            <div class="earnings-card card-orders-received">
+                                <span class="earnings-card-label">Total order received</span>
+                                <div class="earnings-card-value">{{ total_orders_received }}</div>
+                                <div class="earnings-card-note">Paid orders (collected)</div>
                             </div>
-                            <div class="stat-card" style="border-left: 4px solid var(--success);">
-                                <div class="stat-content">
-                                    <h4>Released to you</h4>
-                                    <div class="stat-value" style="color: var(--success);">Rs. {{ total_released_amount|floatformat:2 }}</div>
-                                    <small style="color: #6c757d;">Total paid out by admin</small>
-                                </div>
-                                <div class="stat-icon"><i class="fas fa-check-circle"></i></div>
+                            <div class="earnings-card card-pending">
+                                <span class="earnings-card-label">Pending amount to be received</span>
+                                <div class="earnings-card-value">Rs. {{ pending_release_amount|floatformat:2 }}</div>
+                                <div class="earnings-card-note">Awaiting admin release</div>
                             </div>
                         </div>
                         <div class="content-section">

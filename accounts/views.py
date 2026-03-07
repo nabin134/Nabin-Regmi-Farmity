@@ -2364,6 +2364,11 @@ def vendor_dashboard(request):
         .order_by('-payout_date')
     )
     total_released_amount = sum((p['amount'] or Decimal('0')) for p in released_payouts)
+    previous_released = getattr(profile, 'previous_released_amount', None) or Decimal('0')
+    total_received = total_released_amount + previous_released
+    # Total amount collect (sales + previous release by admin, for Earnings card)
+    total_amount_collect = amount_collected + previous_released
+    total_orders_received = collected_orders.count()
     
     # Calculate statistics
     total_revenue = orders.aggregate(total=Sum('total_amount'))['total'] or 0
@@ -2423,6 +2428,10 @@ def vendor_dashboard(request):
         'amount_collected': amount_collected,
         'pending_release_amount': pending_release_amount,
         'total_released_amount': total_released_amount,
+        'total_received': total_received,
+        'previous_released_amount': previous_released,
+        'total_amount_collect': total_amount_collect,
+        'total_orders_received': total_orders_received,
         'released_payouts': released_payouts,
     }
     return render(request, 'vendor_dashboard.html', context)

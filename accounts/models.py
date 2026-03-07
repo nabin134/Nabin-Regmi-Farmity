@@ -125,6 +125,11 @@ class VendorProfile(models.Model):
     website = models.URLField(max_length=255, blank=True, null=True)
     business_type = models.CharField(max_length=100, blank=True, null=True, help_text="e.g., Equipment supplier, Seeds & fertilizers")
     description = models.TextField(blank=True, null=True, help_text="Business description")
+    # Amount already released by admin before tracking (e.g. manual payouts); shown as part of "total received"
+    previous_released_amount = models.DecimalField(
+        max_digits=12, decimal_places=2, default=300, blank=True,
+        help_text="Earnings already released by admin before system tracking (e.g. 300)"
+    )
 
     def __str__(self):
         return self.company_name or self.user.email
