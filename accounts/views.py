@@ -2169,6 +2169,26 @@ def farmer_dashboard(request):
     # Farmer's own tool purchases (for "My purchases" if needed)
     purchase_history = Order.objects.filter(buyer=request.user).select_related('tool', 'crop').order_by('-created_at')[:10]
 
+    # Farmer earnings / payout stats (crop orders where payment collected)
+    farmer_crop_orders = Order.objects.filter(crop__farmer=profile)
+    farmer_collected = farmer_crop_orders.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED)
+    farmer_amount_collected = farmer_collected.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    farmer_pending_q = Q(payout_status__isnull=True) | Q(payout_status=Order.PAYOUT_PENDING)
+    farmer_pending_release = farmer_collected.filter(farmer_pending_q).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    farmer_paid = farmer_collected.filter(payout_status=Order.PAYOUT_PAID).order_by('-payout_at')
+    farmer_released_payouts = list(
+        farmer_paid.annotate(payout_date=TruncDate('payout_at'))
+        .values('payout_date')
+        .annotate(amount=Sum('total_amount'), order_count=Count('id'))
+        .order_by('-payout_date')
+    )
+    farmer_total_released = sum((p['amount'] or Decimal('0')) for p in farmer_released_payouts)
+    # Farmer spend (tool orders where they are buyer, payment completed)
+    farmer_spend_orders = Order.objects.filter(buyer=request.user, tool__isnull=False)
+    farmer_total_spend = farmer_spend_orders.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED).aggregate(
+        total=Sum('total_amount')
+    )['total'] or Decimal('0')
+
     # Determine if features should be restricted
     features_restricted = (kyc_status != 'approved')
     
@@ -2198,6 +2218,12 @@ def farmer_dashboard(request):
         'purchase_history': purchase_history,
         'farmer_orders': farmer_orders,
         'role_display': (request.user.role or '').replace('_', ' ').title(),
+        # Earnings tab
+        'farmer_amount_collected': farmer_amount_collected,
+        'farmer_pending_release': farmer_pending_release,
+        'farmer_total_released': farmer_total_released,
+        'farmer_total_spend': farmer_total_spend,
+        'farmer_released_payouts': farmer_released_payouts,
     }
     return render(request, 'farmer_dashboard.html', context)
 

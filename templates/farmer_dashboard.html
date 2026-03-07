@@ -339,6 +339,66 @@
             opacity: 0.2;
         }
 
+        /* Dashboard cards – consistent professional style */
+        .dashboard-cards {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        .dashboard-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.06);
+            padding: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 100px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            border-left: 4px solid var(--primary);
+        }
+        .dashboard-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 28px rgba(0,0,0,0.1);
+        }
+        .dashboard-card .card-label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: #6c757d; margin-bottom: 0.5rem; }
+        .dashboard-card .card-value { font-size: 1.6rem; font-weight: 700; color: var(--primary); }
+
+        /* Earnings tab – professional card layout */
+        .earnings-cards {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1.25rem;
+            margin-bottom: 2rem;
+        }
+        @media (max-width: 1100px) { .earnings-cards { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 600px) { .earnings-cards { grid-template-columns: 1fr; } }
+        .earnings-card {
+            background: #fff;
+            border-radius: 16px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+            border: 1px solid rgba(0,0,0,0.06);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            min-height: 140px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .earnings-card:hover { transform: translateY(-4px); box-shadow: 0 8px 28px rgba(0,0,0,0.1); }
+        .earnings-card.card-total-earning { border-left: 4px solid var(--primary); }
+        .earnings-card.card-spend { border-left: 4px solid var(--info); }
+        .earnings-card.card-released { border-left: 4px solid var(--success); }
+        .earnings-card.card-pending { border-left: 4px solid var(--warning); }
+        .earnings-card-label { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; color: #6c757d; margin-bottom: 0.5rem; }
+        .earnings-card-value { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.25rem; }
+        .earnings-card.card-total-earning .earnings-card-value { color: var(--primary); }
+        .earnings-card.card-spend .earnings-card-value { color: var(--info); }
+        .earnings-card.card-released .earnings-card-value { color: var(--success); }
+        .earnings-card.card-pending .earnings-card-value { color: #b8860b; }
+        .earnings-card-note { font-size: 0.78rem; color: #868e96; margin-top: auto; }
+
         /* Content Sections */
         .content-section {
             background: white;
@@ -1116,7 +1176,8 @@
                 display: block;
             }
 
-            .stats-grid {
+            .stats-grid,
+            .dashboard-cards {
                 grid-template-columns: 1fr;
             }
 
@@ -1162,7 +1223,7 @@
         opacity: 1 !important;
     }
     
-    #dashboard-section .stats-grid {
+    #dashboard-section .dashboard-cards {
         display: grid !important;
         visibility: visible !important;
         opacity: 1 !important;
@@ -1300,6 +1361,10 @@
                 <i class="fas fa-shopping-cart"></i>
                 <span data-translate="nav.orders">Orders</span>
             </a>
+            <a href="#earnings" class="nav-item" onclick="return showSection('earnings', event);">
+                <i class="fas fa-wallet"></i>
+                <span>Earnings</span>
+            </a>
             <a href="#profile" class="nav-item" onclick="return showSection('profile', event);">
                 <i class="fas fa-user"></i>
                 <span data-translate="nav.profile">Profile</span>
@@ -1384,97 +1449,77 @@
             <!-- Dashboard Section -->
             <div id="dashboard-section" class="dashboard-section" style="display: block;">
                 {% if active_section == 'dashboard' %}{% include 'includes/messages_block.html' %}{% endif %}
-                <!-- Summary Cards -->
-                <div class="stats-grid" style="display: grid !important; visibility: visible !important;">
-                    <div class="stat-card">
+                <!-- Summary Cards - professional layout -->
+                <div class="dashboard-cards">
+                    <div class="dashboard-card" style="border-left-color: var(--primary);">
                         <div class="stat-content">
-                            <h4 data-translate="dashboard.totalCrops">Total Crops Added</h4>
-                            <div class="stat-value">{{ total_crops_added }}</div>
+                            <div class="card-label" data-translate="dashboard.totalCrops">Total Crops Added</div>
+                            <div class="card-value" style="color: var(--primary);">{{ total_crops_added }}</div>
                         </div>
-                        <div class="stat-icon">
-                            <i class="fas fa-seedling"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-seedling"></i></div>
                     </div>
-                    <div class="stat-card sold">
+                    <div class="dashboard-card" style="border-left-color: var(--info);">
                         <div class="stat-content">
-                            <h4 data-translate="dashboard.totalSold">Total Crops Sold</h4>
-                            <div class="stat-value">{{ total_crops_sold|floatformat:2 }}</div>
+                            <div class="card-label" data-translate="dashboard.totalSold">Total Crops Sold</div>
+                            <div class="card-value" style="color: var(--info);">{{ total_crops_sold|floatformat:2 }}</div>
                         </div>
-                        <div class="stat-icon">
-                            <i class="fas fa-shopping-bag"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-shopping-bag"></i></div>
                     </div>
-                    <div class="stat-card earnings">
+                    <div class="dashboard-card" style="border-left-color: var(--success);">
                         <div class="stat-content">
-                            <h4 data-translate="dashboard.totalEarnings">Total Earnings</h4>
-                            <div class="stat-value">Rs. {{ total_earnings|floatformat:2 }}</div>
+                            <div class="card-label" data-translate="dashboard.totalEarnings">Total Earnings</div>
+                            <div class="card-value" style="color: var(--success);">Rs. {{ total_earnings|floatformat:2 }}</div>
                         </div>
-                        <div class="stat-icon">
-                            <i class="fas fa-rupee-sign"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
                     </div>
-                    <div class="stat-card listings">
+                    <div class="dashboard-card" style="border-left-color: var(--secondary);">
                         <div class="stat-content">
-                            <h4 data-translate="dashboard.activeListings">Active Listings</h4>
-                            <div class="stat-value">{{ active_listings }}</div>
+                            <div class="card-label" data-translate="dashboard.activeListings">Active Listings</div>
+                            <div class="card-value" style="color: var(--secondary);">{{ active_listings }}</div>
                         </div>
-                        <div class="stat-icon">
-                            <i class="fas fa-list"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-list"></i></div>
                     </div>
-                    <div class="stat-card" style="border-left-color: #9C27B0;">
+                    <div class="dashboard-card" style="border-left-color: #9C27B0;">
                         <div class="stat-content">
-                            <h4>Total Products</h4>
-                            <div class="stat-value" style="color: #9C27B0;">{{ products_count }}</div>
+                            <div class="card-label">Total Products</div>
+                            <div class="card-value" style="color: #9C27B0;">{{ products_count }}</div>
                         </div>
-                        <div class="stat-icon">
-                            <i class="fas fa-box"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-box"></i></div>
                     </div>
-                    <div class="stat-card" style="border-left-color: #2196F3;">
+                    <div class="dashboard-card" style="border-left-color: #2196F3;">
                         <div class="stat-content">
-                            <h4>Appointments</h4>
-                            <div class="stat-value" style="color: #2196F3;">{{ appointments|length }}</div>
+                            <div class="card-label">Appointments</div>
+                            <div class="card-value" style="color: #2196F3;">{{ appointments|length }}</div>
                         </div>
-                        <div class="stat-icon">
-                            <i class="fas fa-calendar-check"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-calendar-check"></i></div>
                     </div>
-                    <div class="stat-card" style="border-left-color: #FF9800;">
+                    <div class="dashboard-card" style="border-left-color: #FF9800;">
                         <div class="stat-content">
-                            <h4>Active Chats</h4>
-                            <div class="stat-value" style="color: #FF9800;">{{ chat_threads|length }}</div>
+                            <div class="card-label">Active Chats</div>
+                            <div class="card-value" style="color: #FF9800;">{{ chat_threads|length }}</div>
                         </div>
-                        <div class="stat-icon">
-                            <i class="fas fa-comments"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-comments"></i></div>
                     </div>
-                    <div class="stat-card" style="border-left-color: #E91E63;">
+                    <div class="dashboard-card" style="border-left-color: #E91E63;">
                         <div class="stat-content">
-                            <h4>Purchase History</h4>
-                            <div class="stat-value" style="color: #E91E63;">{{ purchase_history|length }}</div>
+                            <div class="card-label">Purchase History</div>
+                            <div class="card-value" style="color: #E91E63;">{{ purchase_history|length }}</div>
                         </div>
-                        <div class="stat-icon">
-                            <i class="fas fa-history"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-history"></i></div>
                     </div>
-                    <div class="stat-card" style="border-left-color: #00BCD4;">
+                    <div class="dashboard-card" style="border-left-color: #00BCD4;">
                         <div class="stat-content">
-                            <h4>Available Experts</h4>
-                            <div class="stat-value" style="color: #00BCD4;">{{ experts|length }}</div>
+                            <div class="card-label">Available Experts</div>
+                            <div class="card-value" style="color: #00BCD4;">{{ experts|length }}</div>
                         </div>
-                        <div class="stat-icon">
-                            <i class="fas fa-user-graduate"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-user-graduate"></i></div>
                     </div>
-                    <div class="stat-card" style="border-left-color: #9E9E9E;">
+                    <div class="dashboard-card" style="border-left-color: #9E9E9E;">
                         <div class="stat-content">
-                            <h4>Blogs</h4>
-                            <div class="stat-value" style="color: #9E9E9E;">{{ tips|length }}</div>
+                            <div class="card-label">Blogs</div>
+                            <div class="card-value" style="color: #9E9E9E;">{{ tips|length }}</div>
                         </div>
-                        <div class="stat-icon">
-                            <i class="fas fa-blog"></i>
-                        </div>
+                        <div class="stat-icon"><i class="fas fa-blog"></i></div>
                     </div>
                 </div>
                 
@@ -1904,6 +1949,68 @@
                             <p>When buyers place orders for your crops, they will appear here. Shipping is handled by admin.</p>
                         </div>
                         {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Earnings Section -->
+            <div id="earnings-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'earnings' %}{% include 'includes/messages_block.html' %}{% endif %}
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-wallet"></i> Earnings</h2>
+                    </div>
+                    <div class="section-body">
+                        <p style="color: #6c757d; margin-bottom: 1.5rem; font-size: 0.95rem;">Summary of your crop sales and payouts from admin.</p>
+                        <div class="earnings-cards">
+                            <div class="earnings-card card-total-earning">
+                                <span class="earnings-card-label">Total earning</span>
+                                <div class="earnings-card-value">Rs. {{ farmer_amount_collected|floatformat:2 }}</div>
+                                <div class="earnings-card-note">From paid crop orders</div>
+                            </div>
+                            <div class="earnings-card card-spend">
+                                <span class="earnings-card-label">Total spend</span>
+                                <div class="earnings-card-value">Rs. {{ farmer_total_spend|floatformat:2 }}</div>
+                                <div class="earnings-card-note">On tools (paid orders)</div>
+                            </div>
+                            <div class="earnings-card card-released">
+                                <span class="earnings-card-label">Total amount released by admin</span>
+                                <div class="earnings-card-value">Rs. {{ farmer_total_released|floatformat:2 }}</div>
+                                <div class="earnings-card-note">Payouts received</div>
+                            </div>
+                            <div class="earnings-card card-pending">
+                                <span class="earnings-card-label">Pending amount</span>
+                                <div class="earnings-card-value">Rs. {{ farmer_pending_release|floatformat:2 }}</div>
+                                <div class="earnings-card-note">Awaiting admin release</div>
+                            </div>
+                        </div>
+                        <div class="content-section" style="margin-top: 2rem;">
+                            <div class="section-header">
+                                <h3><i class="fas fa-history"></i> Release history</h3>
+                            </div>
+                            <div class="section-body">
+                                {% if farmer_released_payouts %}
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr><th>Date released</th><th>Amount</th><th>Orders</th></tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for p in farmer_released_payouts %}
+                                            <tr>
+                                                <td>{{ p.payout_date|date:"M d, Y" }}</td>
+                                                <td>Rs. {{ p.amount|floatformat:2 }}</td>
+                                                <td>{{ p.order_count }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <p style="color: #6c757d;">No payouts released yet. When admin releases your pending amount, it will appear here.</p>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -2538,11 +2645,11 @@
             if (targetSection) {
                 targetSection.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
                 
-                // Special handling for dashboard section to ensure stats-grid is visible
+                // Ensure dashboard cards are visible when showing dashboard
                 if (sectionId === 'dashboard') {
-                    const statsGrid = targetSection.querySelector('.stats-grid');
-                    if (statsGrid) {
-                        statsGrid.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important;';
+                    const cardsGrid = targetSection.querySelector('.dashboard-cards');
+                    if (cardsGrid) {
+                        cardsGrid.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important;';
                     }
                 }
             } else {
@@ -2661,14 +2768,12 @@
                     dashboardSection.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important;';
                     
                     // Ensure stats-grid is visible
-                    const statsGrid = dashboardSection.querySelector('.stats-grid');
-                    if (statsGrid) {
-                        statsGrid.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important;';
+                    const cardsGrid = dashboardSection.querySelector('.dashboard-cards');
+                    if (cardsGrid) {
+                        cardsGrid.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important;';
                     }
-                    
-                    // Ensure all stat-cards are visible
-                    const statCards = dashboardSection.querySelectorAll('.stat-card');
-                    statCards.forEach(card => {
+                    const dashboardCards = dashboardSection.querySelectorAll('.dashboard-card');
+                    dashboardCards.forEach(card => {
                         card.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important;';
                     });
                 }
