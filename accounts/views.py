@@ -1861,7 +1861,6 @@ def farmer_dashboard(request):
             messages.error(request, 'KYC verification is required to purchase tools. Please complete your KYC verification first.')
             return _redirect_same_page(request, 'farmer_dashboard')
         
-        from .models import Order, VendorTool
         payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
         tool_id = request.POST.get('tool_id')
         quantity = int(request.POST.get('quantity', 1))
@@ -1933,7 +1932,6 @@ def farmer_dashboard(request):
         if kyc_status != 'approved':
             messages.error(request, 'KYC verification is required to purchase tools. Please complete your KYC verification first.')
             return _redirect_same_page(request, 'farmer_dashboard')
-        from .models import Order, VendorTool
         cart_json = request.POST.get('cart_items', '[]')
         try:
             cart_items = json.loads(cart_json)
@@ -2029,12 +2027,52 @@ def farmer_dashboard(request):
         params = {'checkout_success': '1', 'section': (request.POST.get('return_section') or 'tools').strip()}
         return redirect(reverse('farmer_dashboard') + '?' + urlencode(params))
 
+    # Handle farmer order status update (crop orders only)
+    if request.method == 'POST' and request.POST.get('update_order_status'):
+        order_id = request.POST.get('order_id')
+        new_status = (request.POST.get('status') or '').strip()
+        allowed = (
+            Order.STATUS_CONFIRMED,
+            Order.STATUS_READY_TO_SHIP,
+            Order.STATUS_SHIPPED,
+            Order.STATUS_ON_THE_WAY,
+            Order.STATUS_DELIVERED,
+        )
+        try:
+            order_id = int(order_id) if order_id else None
+        except (TypeError, ValueError):
+            order_id = None
+        if order_id and new_status in allowed:
+            try:
+                order = Order.objects.select_related('crop', 'crop__farmer', 'buyer').get(
+                    id=order_id, crop__farmer=profile
+                )
+                order.status = new_status
+                order.save(update_fields=['status'])
+                if order.buyer and new_status in (Order.STATUS_SHIPPED, Order.STATUS_DELIVERED):
+                    try:
+                        status_label = order.get_status_display()
+                        item_name = (order.crop.name if order.crop else 'item') or 'item'
+                        create_notification(
+                            order.buyer,
+                            'Order %s %s' % (order.id, status_label.lower()),
+                            'Your order for %s is now %s.' % (item_name, status_label.lower()),
+                            reverse('user_dashboard') + '?section=orders',
+                            UserNotification.TYPE_ORDER
+                        )
+                    except Exception:
+                        pass  # don't fail the update if notification fails
+                messages.success(request, 'Order #%s status updated to %s.' % (order_id, order.get_status_display()))
+            except Order.DoesNotExist:
+                messages.error(request, 'Order not found.')
+        else:
+            messages.error(request, 'Invalid status update. Please select a status and try again.')
+        return _redirect_same_page(request, 'farmer_dashboard')
+
     # Get products
     products = FarmerProduct.objects.filter(farmer=profile).order_by('-created_at')
     
-    # Calculate statistics
-    from .models import CropSale, Order
-    
+    # Calculate statistics (Order, CropSale from top-level imports)
     total_crops_added = products.count()
     total_crops_sold = CropSale.objects.filter(crop__farmer=profile).aggregate(
         total=Sum('quantity_sold')
@@ -2161,7 +2199,6 @@ def farmer_dashboard(request):
     chat_threads = ExpertChatThread.objects.filter(created_by=request.user).select_related('expert', 'expert__user').order_by('-created_at')[:5]
     
     # Get available tools from vendors
-    from .models import VendorTool
     available_tools = VendorTool.objects.filter(is_available=True, stock_quantity__gt=0).select_related('vendor', 'vendor__user').order_by('-created_at')[:12]
     
     # Orders placed by buyers for THIS farmer's crops (shipping handled by admin)

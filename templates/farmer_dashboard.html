@@ -943,14 +943,29 @@
             color: #0C5460;
         }
 
+        .status-ready_to_ship {
+            background: #E2D5F1;
+            color: #5a3d7a;
+        }
+
         .status-shipped {
             background: #D4EDDA;
             color: #155724;
         }
 
+        .status-on_the_way {
+            background: #CCE5FF;
+            color: #004085;
+        }
+
         .status-delivered {
             background: #D4EDDA;
             color: #155724;
+        }
+
+        .status-cancelled {
+            background: #F8D7DA;
+            color: #721C24;
         }
 
         /* Buttons */
@@ -1465,27 +1480,6 @@
                         </div>
                         <div class="stat-icon"><i class="fas fa-shopping-bag"></i></div>
                     </div>
-                    <div class="dashboard-card" style="border-left-color: var(--success);">
-                        <div class="stat-content">
-                            <div class="card-label" data-translate="dashboard.totalEarnings">Total Earnings</div>
-                            <div class="card-value" style="color: var(--success);">Rs. {{ total_earnings|floatformat:2 }}</div>
-                        </div>
-                        <div class="stat-icon"><i class="fas fa-rupee-sign"></i></div>
-                    </div>
-                    <div class="dashboard-card" style="border-left-color: var(--secondary);">
-                        <div class="stat-content">
-                            <div class="card-label" data-translate="dashboard.activeListings">Active Listings</div>
-                            <div class="card-value" style="color: var(--secondary);">{{ active_listings }}</div>
-                        </div>
-                        <div class="stat-icon"><i class="fas fa-list"></i></div>
-                    </div>
-                    <div class="dashboard-card" style="border-left-color: #9C27B0;">
-                        <div class="stat-content">
-                            <div class="card-label">Total Products</div>
-                            <div class="card-value" style="color: #9C27B0;">{{ products_count }}</div>
-                        </div>
-                        <div class="stat-icon"><i class="fas fa-box"></i></div>
-                    </div>
                     <div class="dashboard-card" style="border-left-color: #2196F3;">
                         <div class="stat-content">
                             <div class="card-label">Appointments</div>
@@ -1903,8 +1897,9 @@
                         <h2><i class="fas fa-shopping-cart"></i> <span data-translate="orders.title">Placed orders (for my crops)</span></h2>
                     </div>
                     <div class="section-body">
-                        <p style="margin: -0.5rem 0 1rem 0; font-size: 0.9rem; color: #666;"><i class="fas fa-truck"></i> Shipping is handled by admin. You earn from sales when orders are completed.</p>
+                        <p style="margin: -0.5rem 0 1rem 0; font-size: 0.9rem; color: #666;"><i class="fas fa-truck"></i> Update status when you prepare, ship, or deliver the product. Delivered orders are closed.</p>
                         {% if farmer_orders %}
+                        <div class="table-responsive">
                         <table class="orders-table">
                             <thead>
                                 <tr>
@@ -1914,6 +1909,7 @@
                                     <th>Qty</th>
                                     <th>Amount</th>
                                     <th>Status</th>
+                                    <th>Update status</th>
                                     <th>Payment</th>
                                     <th>Date</th>
                                 </tr>
@@ -1927,7 +1923,33 @@
                                     <td>{{ order.quantity }} {% if order.crop %}{{ order.crop.unit }}{% endif %}</td>
                                     <td>Rs. {{ order.total_amount }}</td>
                                     <td>
+                                        {% if order.status == 'delivered' %}
+                                        <span class="order-status status-delivered">Delivered</span>
+                                        {% elif order.status == 'cancelled' %}
+                                        <span class="order-status status-cancelled">{{ order.get_status_display }}</span>
+                                        {% else %}
                                         <span class="order-status status-{{ order.status }}">{{ order.get_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if order.status != 'delivered' and order.status != 'cancelled' %}
+                                        <form method="POST" action="{% url 'farmer_dashboard' %}" style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0;">
+                                            {% csrf_token %}
+                                            <input type="hidden" name="update_order_status" value="1">
+                                            <input type="hidden" name="order_id" value="{{ order.id }}">
+                                            <input type="hidden" name="return_section" value="orders">
+                                            <select name="status" required style="padding: 0.45rem 0.5rem; border-radius: 8px; border: 1px solid #ddd; font-size: 0.85rem; min-width: 130px;">
+                                                <option value="confirmed" {% if order.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+                                                <option value="ready_to_ship" {% if order.status == 'ready_to_ship' %}selected{% endif %}>Ready to ship</option>
+                                                <option value="shipped" {% if order.status == 'shipped' %}selected{% endif %}>Shipped</option>
+                                                <option value="on_the_way" {% if order.status == 'on_the_way' %}selected{% endif %}>On the way</option>
+                                                <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>Delivered</option>
+                                            </select>
+                                            <button type="submit" class="btn-primary" style="padding: 0.45rem 0.75rem; font-size: 0.85rem;">Update</button>
+                                        </form>
+                                        {% else %}
+                                        —
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {% if order.payment_method == 'esewa' %}
@@ -1942,6 +1964,7 @@
                                 {% endfor %}
                             </tbody>
                         </table>
+                        </div>
                         {% else %}
                         <div class="empty-state">
                             <i class="fas fa-shopping-cart"></i>

@@ -343,13 +343,17 @@ class ExpertChatMessage(models.Model):
 class Order(models.Model):
     STATUS_PENDING = 'pending'
     STATUS_CONFIRMED = 'confirmed'
+    STATUS_READY_TO_SHIP = 'ready_to_ship'
     STATUS_SHIPPED = 'shipped'
+    STATUS_ON_THE_WAY = 'on_the_way'
     STATUS_DELIVERED = 'delivered'
     STATUS_CANCELLED = 'cancelled'
     STATUS_CHOICES = (
         (STATUS_PENDING, 'Pending'),
         (STATUS_CONFIRMED, 'Confirmed'),
+        (STATUS_READY_TO_SHIP, 'Ready to ship'),
         (STATUS_SHIPPED, 'Shipped'),
+        (STATUS_ON_THE_WAY, 'On the way'),
         (STATUS_DELIVERED, 'Delivered'),
         (STATUS_CANCELLED, 'Cancelled'),
     )
