@@ -2549,7 +2549,9 @@
                 <div class="form-group" style="padding: 1.25rem; background: var(--light-bg); border-radius: 12px;">
                     <label style="font-weight: 600;">Order summary</label>
                     <div style="font-size: 0.95rem; color: #374151;">
-                        <div style="font-weight: 700; color: var(--primary);" id="purchaseCropGrandTotal">Calculated amount: Rs. 0.00</div>
+                        <div id="purchaseCropProductTotal">Product amount: Rs. 0.00</div>
+                        <div id="purchaseCropShipping">Shipping: Rs. 100.00</div>
+                        <div style="margin-top: 0.35rem; font-weight: 700; color: var(--primary);" id="purchaseCropGrandTotal">Total: Rs. 0.00</div>
                     </div>
                 </div>
 
@@ -2643,7 +2645,9 @@
                 <div class="form-group" style="padding: 1.25rem; background: var(--light-bg); border-radius: 12px;">
                     <label style="font-weight: 600;">Order summary</label>
                     <div style="font-size: 0.95rem; color: #374151;">
-                        <div style="font-weight: 700; color: var(--primary);" id="purchaseToolGrandTotal">Calculated amount: Rs. 0.00</div>
+                        <div id="purchaseToolProductTotal">Product amount: Rs. 0.00</div>
+                        <div id="purchaseToolShipping">Shipping: Rs. 100.00</div>
+                        <div style="margin-top: 0.35rem; font-weight: 700; color: var(--primary);" id="purchaseToolGrandTotal">Total: Rs. 0.00</div>
                     </div>
                 </div>
 
@@ -3330,13 +3334,17 @@
                 imgWrap.style.display = 'flex';
                 imgWrap.innerHTML = imageUrl ? '<img src="' + imageUrl.replace(/"/g, '&quot;') + '" alt="" class="modal-product-image">' : '<i class="fas fa-seedling"></i>';
             }
-            // Set order summary: only calculated amount (product + shipping included)
+            // Set order summary: product amount, shipping, then total
             var qtyVal = parseFloat(qtyInput.value) || 0;
             var productTotal = price * qtyVal;
             var shipping = productTotal > 0 ? 100 : 0;
             var grandTotal = productTotal + shipping;
+            var prodEl = document.getElementById('purchaseCropProductTotal');
+            var shipEl = document.getElementById('purchaseCropShipping');
             var grandEl = document.getElementById('purchaseCropGrandTotal');
-            if (grandEl) grandEl.textContent = 'Calculated amount: Rs. ' + grandTotal.toFixed(2);
+            if (prodEl) prodEl.textContent = 'Product amount: Rs. ' + productTotal.toFixed(2);
+            if (shipEl) shipEl.textContent = 'Shipping: Rs. ' + shipping.toFixed(2);
+            if (grandEl) grandEl.textContent = 'Total: Rs. ' + grandTotal.toFixed(2);
             document.getElementById('purchaseCropModal').classList.add('active');
         }
 
@@ -3352,13 +3360,17 @@
             var qtyInput = document.getElementById('purchaseToolQuantity');
             qtyInput.setAttribute('max', Math.max(1, stockNum));
             qtyInput.value = '1';
-            // Set order summary: only calculated amount (product + shipping included)
+            // Set order summary: product amount, shipping, then total
             var qtyVal = parseInt(qtyInput.value, 10) || 0;
             var productTotal = price * qtyVal;
             var shipping = productTotal > 0 ? 100 : 0;
             var grandTotal = productTotal + shipping;
+            var prodEl = document.getElementById('purchaseToolProductTotal');
+            var shipEl = document.getElementById('purchaseToolShipping');
             var grandEl = document.getElementById('purchaseToolGrandTotal');
-            if (grandEl) grandEl.textContent = 'Calculated amount: Rs. ' + grandTotal.toFixed(2);
+            if (prodEl) prodEl.textContent = 'Product amount: Rs. ' + productTotal.toFixed(2);
+            if (shipEl) shipEl.textContent = 'Shipping: Rs. ' + shipping.toFixed(2);
+            if (grandEl) grandEl.textContent = 'Total: Rs. ' + grandTotal.toFixed(2);
             var imgWrap = document.getElementById('purchaseToolImageWrap');
             if (imgWrap) {
                 imgWrap.style.display = 'flex';
@@ -3376,8 +3388,12 @@
             const productTotal = price * quantity;
             const shipping = productTotal > 0 ? 100 : 0;
             const grandTotal = productTotal + shipping;
+            const prodEl = document.getElementById('purchaseCropProductTotal');
+            const shipEl = document.getElementById('purchaseCropShipping');
             const grandEl = document.getElementById('purchaseCropGrandTotal');
-            if (grandEl) grandEl.textContent = 'Calculated amount: Rs. ' + grandTotal.toFixed(2);
+            if (prodEl) prodEl.textContent = 'Product amount: Rs. ' + productTotal.toFixed(2);
+            if (shipEl) shipEl.textContent = 'Shipping: Rs. ' + shipping.toFixed(2);
+            if (grandEl) grandEl.textContent = 'Total: Rs. ' + grandTotal.toFixed(2);
         }
 
         function calculateToolTotal() {
@@ -3389,8 +3405,12 @@
             const productTotal = price * quantity;
             const shipping = productTotal > 0 ? 100 : 0;
             const grandTotal = productTotal + shipping;
+            const prodEl = document.getElementById('purchaseToolProductTotal');
+            const shipEl = document.getElementById('purchaseToolShipping');
             const grandEl = document.getElementById('purchaseToolGrandTotal');
-            if (grandEl) grandEl.textContent = 'Calculated amount: Rs. ' + grandTotal.toFixed(2);
+            if (prodEl) prodEl.textContent = 'Product amount: Rs. ' + productTotal.toFixed(2);
+            if (shipEl) shipEl.textContent = 'Shipping: Rs. ' + shipping.toFixed(2);
+            if (grandEl) grandEl.textContent = 'Total: Rs. ' + grandTotal.toFixed(2);
         }
 
         function updatePaymentMethod(radio) {
