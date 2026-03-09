@@ -1907,7 +1907,8 @@
                                     <th>Buyer</th>
                                     <th>Item</th>
                                     <th>Qty</th>
-                                    <th>Amount</th>
+                                    <th>Amount (incl. shipping)</th>
+                                    <th>Shipping address</th>
                                     <th>Status</th>
                                     <th>Update status</th>
                                     <th>Payment</th>
@@ -1917,11 +1918,12 @@
                             <tbody>
                                 {% for order in farmer_orders %}
                                 <tr>
-                                    <td>#{{ order.id }}</td>
+                                    <td><a href="{% url 'order_detail' order.id %}" style="color: var(--primary); font-weight: 600; text-decoration: none;">#{{ order.id }}</a> <a href="{% url 'order_detail' order.id %}" class="btn-primary" style="margin-left: 0.5rem; padding: 0.35rem 0.6rem; font-size: 0.8rem; text-decoration: none;">View</a></td>
                                     <td>{{ order.buyer.email }}</td>
                                     <td>{% if order.crop %}{{ order.crop.name }}{% else %}—{% endif %}</td>
                                     <td>{{ order.quantity }} {% if order.crop %}{{ order.crop.unit }}{% endif %}</td>
                                     <td>Rs. {{ order.total_amount }}</td>
+                                    <td>{{ order.shipping_address|default:"—" }}</td>
                                     <td>
                                         {% if order.status == 'delivered' %}
                                         <span class="order-status status-delivered">Delivered</span>

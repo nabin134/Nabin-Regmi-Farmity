@@ -2097,7 +2097,7 @@
                                                 Unknown Item
                                             {% endif %}
                                         </h4>
-                                        <span class="order-card-amount">Rs. {{ order.total_amount }}</span>
+                                        <span class="order-card-amount">Rs. {{ order.total_amount }} <small style="display:block;font-size:0.75rem;color:#64748b;">(incl. Rs. {{ order.shipping_cost|default:0 }} shipping)</small></span>
                                     </div>
                                     <p class="order-card-meta"><i class="fas fa-hashtag"></i> Order #{{ order.id }} &middot; {{ order.quantity }} {% if order.crop %}{{ order.crop.unit }}{% else %}units{% endif %}</p>
                                     {% if order.crop %}
@@ -2121,6 +2121,9 @@
                                         <span class="order-status-pill {{ order.status }}">{{ order.get_status_display }}</span>
                                         <span class="order-payment-pill {% if order.payment_method == 'esewa' %}esewa{% endif %}">{% if order.payment_method == 'esewa' %}eSewa{% else %}Cash on delivery{% endif %}</span>
                                     </div>
+                                    <a href="{% url 'order_detail' order.id %}" class="order-card-view-link" style="display:inline-flex;align-items:center;gap:0.35rem;margin-top:0.75rem;color:var(--primary);font-weight:600;font-size:0.9rem;text-decoration:none;">
+                                        <i class="fas fa-external-link-alt"></i> View order details
+                                    </a>
                                 </div>
                             </div>
                             {% empty %}
@@ -2158,7 +2161,7 @@
                                     <div id="cartSummary" class="cart-summary-card" style="display: none;">
                                         <h4>Order summary</h4>
                                         <div class="cart-summary-row"><span>Subtotal</span><span id="cartSubtotal">Rs. 0.00</span></div>
-                                        <div class="cart-summary-row"><span>Delivery</span><span>Rs. 0.00</span></div>
+                                        <div class="cart-summary-row"><span>Delivery (flat)</span><span id="cartShipping">Rs. 0.00</span></div>
                                         <div class="cart-summary-total">
                                             <span>Total to pay</span>
                                             <span id="cartGrandTotal">Rs. 0.00</span>
@@ -2711,8 +2714,8 @@
                     <span id="checkoutSubtotal">Rs. 0.00</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #555;">
-                    <span>Delivery</span>
-                    <span>Rs. 0.00</span>
+                    <span>Delivery (flat)</span>
+                    <span id="checkoutShipping">Rs. 0.00</span>
                 </div>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 0.75rem 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
@@ -3170,8 +3173,11 @@
             cart.forEach(item => { subtotal += item.price * (item.quantity || 1); });
             const subtotalEl = document.getElementById('cartSubtotal');
             const grandTotalEl = document.getElementById('cartGrandTotal');
+            const shippingEl = document.getElementById('cartShipping');
+            const shippingFlat = cart.length > 0 ? 100.0 : 0.0;
             if (subtotalEl) subtotalEl.textContent = 'Rs. ' + subtotal.toFixed(2);
-            if (grandTotalEl) grandTotalEl.textContent = 'Rs. ' + subtotal.toFixed(2);
+            if (shippingEl) shippingEl.textContent = 'Rs. ' + shippingFlat.toFixed(2);
+            if (grandTotalEl) grandTotalEl.textContent = 'Rs. ' + (subtotal + shippingFlat).toFixed(2);
             
             cartItemsList.innerHTML = cart.map((item, index) => {
                 const qty = item.quantity || 1;
@@ -3287,7 +3293,10 @@
             }).join('');
             document.getElementById('checkoutOrderSummary').innerHTML = lines;
             document.getElementById('checkoutSubtotal').textContent = 'Rs. ' + subtotal.toFixed(2);
-            document.getElementById('checkoutGrandTotal').textContent = 'Rs. ' + subtotal.toFixed(2);
+            const shippingFlat = cart.length > 0 ? 100.0 : 0.0;
+            const checkoutShippingEl = document.getElementById('checkoutShipping');
+            if (checkoutShippingEl) checkoutShippingEl.textContent = 'Rs. ' + shippingFlat.toFixed(2);
+            document.getElementById('checkoutGrandTotal').textContent = 'Rs. ' + (subtotal + shippingFlat).toFixed(2);
             const payload = cart.map(item => ({ type: item.type, id: item.id, quantity: item.quantity || 1, name: item.name }));
             document.getElementById('checkoutCartItemsInput').value = JSON.stringify(payload);
             document.getElementById('checkoutCartModal').classList.add('active');

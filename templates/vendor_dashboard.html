@@ -1169,7 +1169,8 @@
                                     <th>Tool</th>
                                     <th>Buyer</th>
                                     <th>Quantity</th>
-                                    <th>Amount</th>
+                                    <th>Amount (incl. shipping)</th>
+                                    <th>Shipping address</th>
                                     <th>Status</th>
                                     <th>Date</th>
                                     <th>Actions</th>
@@ -1183,6 +1184,7 @@
                                     <td>{{ order.buyer.email }}</td>
                                     <td>{{ order.quantity }}</td>
                                     <td>Rs. {{ order.total_amount }}</td>
+                                    <td>{{ order.shipping_address|default:"—" }}</td>
                                     <td>
                                         <span class="order-status status-{{ order.status }}">
                                             {{ order.get_status_display }}
@@ -1190,6 +1192,7 @@
                                     </td>
                                     <td>{{ order.created_at|date:"M d, Y" }}</td>
                                     <td>
+                                        <a href="{% url 'order_detail' order.id %}" class="btn-primary" style="display: inline-block; margin-right: 0.5rem; padding: 0.4rem 0.75rem; font-size: 0.85rem; text-decoration: none;"><i class="fas fa-eye"></i> View</a>
                                         {% if kyc_status == 'approved' and order.status != 'delivered' and order.status != 'cancelled' %}
                                         <form method="POST" style="display: inline;">
                                             {% csrf_token %}

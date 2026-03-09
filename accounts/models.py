@@ -378,7 +378,10 @@ class Order(models.Model):
     tool = models.ForeignKey(VendorTool, on_delete=models.CASCADE, related_name='orders', null=True, blank=True)
     crop = models.ForeignKey(FarmerProduct, on_delete=models.CASCADE, related_name='orders', null=True, blank=True)
     quantity = models.PositiveIntegerField(default=1)
+    # Product amount (subtotal + shipping) stored in total_amount.
     total_amount = models.DecimalField(max_digits=12, decimal_places=2)
+    # Flat shipping cost (per order). Included in total_amount.
+    shipping_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default=PAYMENT_COD, blank=True, null=True)
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default=PAYMENT_STATUS_PENDING, blank=True, null=True)

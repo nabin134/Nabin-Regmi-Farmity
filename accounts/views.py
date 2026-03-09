@@ -5,7 +5,7 @@ from rest_framework.permissions import AllowAny
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, Http404
 from django.contrib import messages
 from django.utils import timezone
 from django.utils.crypto import get_random_string
@@ -1454,6 +1454,52 @@ def reset_password_page(request):
     return render(request, 'reset_password.html', {'token': token})
 
 
+@login_required
+def order_detail_page(request, order_id):
+    """Order detail view: visible to the buyer or the seller (farmer/vendor) of this order."""
+    try:
+        order = Order.objects.select_related(
+            'buyer',
+            'crop', 'crop__farmer', 'crop__farmer__user',
+            'tool', 'tool__vendor', 'tool__vendor__user',
+        ).get(pk=order_id)
+    except Order.DoesNotExist:
+        raise Http404("Order not found.")
+
+    # Permission: buyer, or seller (farmer for crop orders, vendor for tool orders), or admin
+    is_buyer = order.buyer_id == request.user.id
+    seller_user = order.get_seller_user()
+    is_seller = seller_user and seller_user.id == request.user.id
+    is_admin = getattr(request.user, 'role', None) == 'admin'
+    if not (is_buyer or is_seller or is_admin):
+        raise Http404("You do not have access to this order.")
+
+    # Back link: to orders section of the appropriate dashboard
+    if is_buyer:
+        back_url = reverse('user_dashboard') + '?section=orders'
+        back_label = 'Back to My Orders'
+    elif request.user.role == 'farmer':
+        back_url = reverse('farmer_dashboard') + '?section=orders'
+        back_label = 'Back to Received Orders'
+    elif request.user.role == 'vendor':
+        back_url = reverse('vendor_dashboard') + '?section=orders'
+        back_label = 'Back to Customer Orders'
+    else:
+        back_url = reverse('dashboard')
+        back_label = 'Back to Dashboard'
+
+    order_product_subtotal = order.total_amount - (order.shipping_cost or Decimal('0'))
+    context = {
+        'order': order,
+        'order_product_subtotal': order_product_subtotal,
+        'back_url': back_url,
+        'back_label': back_label,
+        'is_buyer': is_buyer,
+        'is_seller': is_seller,
+    }
+    return render(request, 'order_detail.html', context)
+
+
 def home_page(request):
     """Redirect /home/ to role dashboard or landing."""
     if request.user.is_authenticated:
@@ -1876,9 +1922,11 @@ def farmer_dashboard(request):
             tool = VendorTool.objects.get(id=tool_id, is_available=True)
             if tool.stock_quantity >= quantity:
                 if not total_amount:
-                    total_amount = tool.price * quantity
+                    base_amount = tool.price * quantity
                 else:
-                    total_amount = float(total_amount)
+                    base_amount = float(total_amount)
+                shipping_cost = Decimal('100.00')
+                total_amount = base_amount + shipping_cost
                 
                 # Create order with payment method
                 order = Order.objects.create(
@@ -1886,6 +1934,7 @@ def farmer_dashboard(request):
                     tool=tool,
                     quantity=quantity,
                     total_amount=total_amount,
+                    shipping_cost=shipping_cost,
                     status=Order.STATUS_CONFIRMED,
                     payment_method=payment_method,
                     payment_status='pending',
@@ -1905,14 +1954,14 @@ def farmer_dashboard(request):
                     create_notification(
                         vendor_user,
                         'New tool order',
-                        f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f}',
+                        f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f} (incl. shipping)',
                         reverse('vendor_dashboard'),
                         UserNotification.TYPE_ORDER
                     )
                 create_notification(
                     request.user,
                     'Order placed',
-                    f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f}',
+                    f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f} (incl. shipping)',
                     reverse('farmer_dashboard') + '?section=tools',
                     UserNotification.TYPE_ORDER
                 )
@@ -1970,12 +2019,15 @@ def farmer_dashboard(request):
                 if tool.stock_quantity < qty:
                     errors.append(f"{tool.name}: only {tool.stock_quantity} units available")
                     continue
-                total_amount = float(tool.price) * qty
+                base_amount = float(tool.price) * qty
+                shipping_cost = Decimal('100.00')
+                total_amount = base_amount + shipping_cost
                 order = Order.objects.create(
                     buyer=request.user,
                     tool=tool,
                     quantity=qty,
                     total_amount=total_amount,
+                    shipping_cost=shipping_cost,
                     status=Order.STATUS_CONFIRMED,
                     payment_method=payment_method,
                     payment_status='pending',
@@ -1993,14 +2045,14 @@ def farmer_dashboard(request):
                     create_notification(
                         vendor_user,
                         'New tool order',
-                        f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f}',
+                        f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f} (incl. shipping)',
                         reverse('vendor_dashboard'),
                         UserNotification.TYPE_ORDER
                     )
                 create_notification(
                     request.user,
                     'Order placed',
-                    f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f}',
+                    f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f} (incl. shipping)',
                     reverse('farmer_dashboard') + '?section=tools',
                     UserNotification.TYPE_ORDER
                 )
@@ -2909,7 +2961,9 @@ def user_dashboard(request):
         try:
             crop = FarmerProduct.objects.get(id=crop_id, is_available=True)
             if crop.quantity >= quantity:
-                total_amount = crop.price_per_unit * quantity
+                base_amount = crop.price_per_unit * quantity
+                shipping_cost = Decimal('100.00')
+                total_amount = base_amount + shipping_cost
                 
                 # Create order (quantity must be integer for Order model, but we store decimal in CropSale)
                 order = Order.objects.create(
@@ -2917,6 +2971,7 @@ def user_dashboard(request):
                     crop=crop,
                     quantity=int(round(quantity)),  # Round and convert to int for Order model
                     total_amount=total_amount,
+                    shipping_cost=shipping_cost,
                     status=Order.STATUS_CONFIRMED,
                     payment_method=payment_method,
                     payment_status='pending',
@@ -2938,7 +2993,7 @@ def user_dashboard(request):
                     order=order,
                     quantity_sold=quantity,
                     price_per_unit=crop.price_per_unit,
-                    total_amount=total_amount,
+                    total_amount=base_amount,
                     sold_to=request.user,
                     sold_at=timezone.now()
                 )
@@ -2947,20 +3002,20 @@ def user_dashboard(request):
                     create_notification(
                         farmer_user,
                         'New order for your crop',
-                        f'Order #{order.id}: {crop.name} x{int(round(quantity))} — Rs. {total_amount:.2f}',
+                        f'Order #{order.id}: {crop.name} x{int(round(quantity))} — Rs. {total_amount:.2f} (incl. shipping)',
                         reverse('farmer_dashboard') + '?section=orders',
                         UserNotification.TYPE_ORDER
                     )
                 create_notification(
                     request.user,
                     'Order placed',
-                    f'Order #{order.id}: {crop.name} x{int(round(quantity))} — Rs. {total_amount:.2f}',
+                    f'Order #{order.id}: {crop.name} x{int(round(quantity))} — Rs. {total_amount:.2f} (incl. shipping)',
                     reverse('user_dashboard') + '?section=orders',
                     UserNotification.TYPE_ORDER
                 )
                 if payment_method == Order.PAYMENT_ESEWA:
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
-                messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
+                messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery (incl. Rs. 100 shipping).')
             else:
                 messages.error(request, f'Insufficient quantity. Available: {crop.quantity} {crop.unit}')
         except FarmerProduct.DoesNotExist:
@@ -2992,7 +3047,9 @@ def user_dashboard(request):
         try:
             tool = VendorTool.objects.get(id=tool_id, is_available=True, stock_quantity__gt=0)
             if tool.stock_quantity >= quantity:
-                total_amount = tool.price * quantity
+                base_amount = tool.price * quantity
+                shipping_cost = Decimal('100.00')
+                total_amount = base_amount + shipping_cost
                 
                 # Create order
                 order = Order.objects.create(
@@ -3000,6 +3057,7 @@ def user_dashboard(request):
                     tool=tool,
                     quantity=quantity,
                     total_amount=total_amount,
+                    shipping_cost=shipping_cost,
                     status=Order.STATUS_CONFIRMED,
                     payment_method=payment_method,
                     payment_status='pending',
@@ -3019,20 +3077,20 @@ def user_dashboard(request):
                     create_notification(
                         vendor_user,
                         'New tool order',
-                        f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f}',
+                        f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f} (incl. shipping)',
                         reverse('vendor_dashboard'),
                         UserNotification.TYPE_ORDER
                     )
                 create_notification(
                     request.user,
                     'Order placed',
-                    f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f}',
+                    f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f} (incl. shipping)',
                     reverse('user_dashboard') + '?section=orders',
                     UserNotification.TYPE_ORDER
                 )
                 if payment_method == Order.PAYMENT_ESEWA:
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
-                messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
+                messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery (incl. Rs. 100 shipping).')
             else:
                 messages.error(request, f'Insufficient stock. Available: {tool.stock_quantity} units')
         except VendorTool.DoesNotExist:
@@ -3081,12 +3139,15 @@ def user_dashboard(request):
                     if crop.quantity < qty:
                         errors.append(f"{crop.name}: only {crop.quantity} {crop.unit} available")
                         continue
-                    total_amount = float(crop.price_per_unit) * qty
+                    base_amount = float(crop.price_per_unit) * qty
+                    shipping_cost = Decimal('100.00')
+                    total_amount = base_amount + shipping_cost
                     order = Order.objects.create(
                         buyer=request.user,
                         crop=crop,
                         quantity=int(round(qty)),
                         total_amount=total_amount,
+                        shipping_cost=shipping_cost,
                         status=Order.STATUS_CONFIRMED,
                         payment_method=payment_method,
                         payment_status='pending',
@@ -3104,7 +3165,7 @@ def user_dashboard(request):
                         order=order,
                         quantity_sold=qty,
                         price_per_unit=crop.price_per_unit,
-                        total_amount=total_amount,
+                        total_amount=base_amount,
                         sold_to=request.user,
                         sold_at=timezone.now()
                     )
@@ -3113,14 +3174,14 @@ def user_dashboard(request):
                         create_notification(
                             farmer_user,
                             'New order for your crop',
-                            f'Order #{order.id}: {crop.name} x{int(round(qty))} — Rs. {total_amount:.2f}',
+                            f'Order #{order.id}: {crop.name} x{int(round(qty))} — Rs. {total_amount:.2f} (incl. shipping)',
                             reverse('farmer_dashboard') + '?section=orders',
                             UserNotification.TYPE_ORDER
                         )
                     create_notification(
                         request.user,
                         'Order placed',
-                        f'Order #{order.id}: {crop.name} x{int(round(qty))} — Rs. {total_amount:.2f}',
+                        f'Order #{order.id}: {crop.name} x{int(round(qty))} — Rs. {total_amount:.2f} (incl. shipping)',
                         reverse('user_dashboard') + '?section=orders',
                         UserNotification.TYPE_ORDER
                     )
@@ -3133,12 +3194,15 @@ def user_dashboard(request):
                     if tool.stock_quantity < qty:
                         errors.append(f"{tool.name}: only {tool.stock_quantity} units available")
                         continue
-                    total_amount = float(tool.price) * qty
+                    base_amount = float(tool.price) * qty
+                    shipping_cost = Decimal('100.00')
+                    total_amount = base_amount + shipping_cost
                     order = Order.objects.create(
                         buyer=request.user,
                         tool=tool,
                         quantity=int(qty),
                         total_amount=total_amount,
+                        shipping_cost=shipping_cost,
                         status=Order.STATUS_CONFIRMED,
                         payment_method=payment_method,
                         payment_status='pending',
@@ -3156,14 +3220,14 @@ def user_dashboard(request):
                         create_notification(
                             vendor_user,
                             'New tool order',
-                            f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f}',
+                            f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f} (incl. shipping)',
                             reverse('vendor_dashboard'),
                             UserNotification.TYPE_ORDER
                         )
                     create_notification(
                         request.user,
                         'Order placed',
-                        f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f}',
+                        f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f} (incl. shipping)',
                         reverse('user_dashboard') + '?section=orders',
                         UserNotification.TYPE_ORDER
                     )
