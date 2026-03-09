@@ -169,14 +169,16 @@
                         <span class="od-value">Rs. {{ order.shipping_cost|floatformat:2 }}</span>
                     </div>
                     {% endif %}
+                    {% if is_seller or is_admin %}
                     <div class="od-row">
-                        <span class="od-label">Admin commission (20%)</span>
+                        <span class="od-label">Admin commission</span>
                         <span class="od-value">Rs. {{ display_admin_commission|floatformat:2 }}</span>
                     </div>
                     <div class="od-row">
-                        <span class="od-label">Amount to farmer/vendor (80% + shipping)</span>
+                        <span class="od-label">Amount to farmer/vendor</span>
                         <span class="od-value">Rs. {{ display_seller_amount|floatformat:2 }}</span>
                     </div>
+                    {% endif %}
                     <div class="od-row od-total-row">
                         <span>Total amount (Product + Shipping)</span>
                         <span>Rs. {{ order.total_amount|default:0|floatformat:2 }}</span>

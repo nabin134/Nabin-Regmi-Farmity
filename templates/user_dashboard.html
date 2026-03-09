@@ -2547,11 +2547,12 @@
                 </div>
                 
                 <div class="form-group" style="padding: 1.25rem; background: var(--light-bg); border-radius: 12px;">
-                    <label style="font-weight: 600;">Product total (without shipping)</label>
-                    <div style="font-size: 1.75rem; font-weight: bold; color: var(--primary);" id="purchaseCropTotal">Rs. 0.00</div>
-                    <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: #555;">
-                        Shipping cost <strong>(flat Rs. 100)</strong> will be added on top of this amount when placing the order.
-                    </p>
+                    <label style="font-weight: 600;">Order summary</label>
+                    <div style="font-size: 0.95rem; color: #374151;">
+                        <div id="purchaseCropProductTotal">Product total: Rs. 0.00</div>
+                        <div id="purchaseCropShipping">Shipping cost: Rs. 0.00</div>
+                        <div style="margin-top: 0.35rem; font-weight: 700; color: var(--primary);" id="purchaseCropGrandTotal">Calculated amount (Product + Shipping): Rs. 0.00</div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -2642,11 +2643,12 @@
                 </div>
                 
                 <div class="form-group" style="padding: 1.25rem; background: var(--light-bg); border-radius: 12px;">
-                    <label style="font-weight: 600;">Product total (without shipping)</label>
-                    <div style="font-size: 1.75rem; font-weight: bold; color: var(--primary);" id="purchaseToolTotal">Rs. 0.00</div>
-                    <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: #555;">
-                        Shipping cost <strong>(flat Rs. 100)</strong> will be added on top of this amount when placing the order.
-                    </p>
+                    <label style="font-weight: 600;">Order summary</label>
+                    <div style="font-size: 0.95rem; color: #374151;">
+                        <div id="purchaseToolProductTotal">Product total: Rs. 0.00</div>
+                        <div id="purchaseToolShipping">Shipping cost: Rs. 0.00</div>
+                        <div style="margin-top: 0.35rem; font-weight: 700; color: var(--primary);" id="purchaseToolGrandTotal">Calculated amount (Product + Shipping): Rs. 0.00</div>
+                    </div>
                 </div>
 
                 <div class="form-group">
@@ -3323,16 +3325,26 @@
             document.getElementById('purchaseCropAvailable').value = availNum + ' ' + unit;
             var qtyInput = document.getElementById('purchaseCropQuantity');
             qtyInput.setAttribute('max', availNum > 0 ? availNum : 0);
-            var defaultQty = (availNum >= 1) ? 1 : (availNum > 0 ? availNum : '');
+            // Always default to 1 unit if there is any stock, so summary never shows 0 or NaN
+            var defaultQty = availNum > 0 ? 1 : '';
             qtyInput.value = defaultQty === '' ? '' : String(defaultQty);
             document.getElementById('purchaseCropQuantityUnit').textContent = '(' + unit + ')';
-            var total = (availNum >= 1) ? (price * 1) : (availNum > 0 ? price * availNum : 0);
-            document.getElementById('purchaseCropTotal').textContent = 'Rs. ' + total.toFixed(2);
             var imgWrap = document.getElementById('purchaseCropImageWrap');
             if (imgWrap) {
                 imgWrap.style.display = 'flex';
                 imgWrap.innerHTML = imageUrl ? '<img src="' + imageUrl.replace(/"/g, '&quot;') + '" alt="" class="modal-product-image">' : '<i class="fas fa-seedling"></i>';
             }
+            // Set order summary directly from numeric args so buyer always sees real numbers immediately
+            var qtyVal = parseFloat(qtyInput.value) || 0;
+            var productTotal = price * qtyVal;
+            var shipping = productTotal > 0 ? 100 : 0;
+            var grandTotal = productTotal + shipping;
+            var prodEl = document.getElementById('purchaseCropProductTotal');
+            var shipEl = document.getElementById('purchaseCropShipping');
+            var grandEl = document.getElementById('purchaseCropGrandTotal');
+            if (prodEl) prodEl.textContent = 'Product total: Rs. ' + productTotal.toFixed(2);
+            if (shipEl) shipEl.textContent = 'Shipping cost: Rs. ' + shipping.toFixed(2);
+            if (grandEl) grandEl.textContent = 'Calculated amount (Product + Shipping): Rs. ' + grandTotal.toFixed(2);
             document.getElementById('purchaseCropModal').classList.add('active');
         }
 
@@ -3348,7 +3360,17 @@
             var qtyInput = document.getElementById('purchaseToolQuantity');
             qtyInput.setAttribute('max', Math.max(1, stockNum));
             qtyInput.value = '1';
-            calculateToolTotal();
+            // Set order summary directly from numeric args so buyer always sees real numbers immediately
+            var qtyVal = parseInt(qtyInput.value, 10) || 0;
+            var productTotal = price * qtyVal;
+            var shipping = productTotal > 0 ? 100 : 0;
+            var grandTotal = productTotal + shipping;
+            var prodEl = document.getElementById('purchaseToolProductTotal');
+            var shipEl = document.getElementById('purchaseToolShipping');
+            var grandEl = document.getElementById('purchaseToolGrandTotal');
+            if (prodEl) prodEl.textContent = 'Product total: Rs. ' + productTotal.toFixed(2);
+            if (shipEl) shipEl.textContent = 'Shipping cost: Rs. ' + shipping.toFixed(2);
+            if (grandEl) grandEl.textContent = 'Calculated amount (Product + Shipping): Rs. ' + grandTotal.toFixed(2);
             var imgWrap = document.getElementById('purchaseToolImageWrap');
             if (imgWrap) {
                 imgWrap.style.display = 'flex';
@@ -3358,19 +3380,37 @@
         }
 
         function calculateCropTotal() {
-            const priceText = document.getElementById('purchaseCropPrice').value;
-            const price = parseFloat(priceText.match(/[\d.]+/)[0]);
-            const quantity = parseFloat(document.getElementById('purchaseCropQuantity').value) || 0;
-            const total = price * quantity;
-            document.getElementById('purchaseCropTotal').textContent = 'Rs. ' + total.toFixed(2);
+            const priceText = document.getElementById('purchaseCropPrice') && document.getElementById('purchaseCropPrice').value;
+            const match = priceText && priceText.match(/[\d.]+/);
+            const price = match ? parseFloat(match[0]) : 0;
+            const qtyEl = document.getElementById('purchaseCropQuantity');
+            const quantity = parseFloat(qtyEl && qtyEl.value) || 0;
+            const productTotal = price * quantity;
+            const shipping = productTotal > 0 ? 100 : 0;
+            const grandTotal = productTotal + shipping;
+            const prodEl = document.getElementById('purchaseCropProductTotal');
+            const shipEl = document.getElementById('purchaseCropShipping');
+            const grandEl = document.getElementById('purchaseCropGrandTotal');
+            if (prodEl) prodEl.textContent = 'Product total: Rs. ' + productTotal.toFixed(2);
+            if (shipEl) shipEl.textContent = 'Shipping cost: Rs. ' + shipping.toFixed(2);
+            if (grandEl) grandEl.textContent = 'Calculated amount (Product + Shipping): Rs. ' + grandTotal.toFixed(2);
         }
 
         function calculateToolTotal() {
-            const priceText = document.getElementById('purchaseToolPrice').value;
-            const price = parseFloat(priceText.match(/[\d.]+/)[0]);
-            const quantity = parseInt(document.getElementById('purchaseToolQuantity').value) || 0;
-            const total = price * quantity;
-            document.getElementById('purchaseToolTotal').textContent = 'Rs. ' + total.toFixed(2);
+            const priceText = document.getElementById('purchaseToolPrice') && document.getElementById('purchaseToolPrice').value;
+            const match = priceText && priceText.match(/[\d.]+/);
+            const price = match ? parseFloat(match[0]) : 0;
+            const qtyEl = document.getElementById('purchaseToolQuantity');
+            const quantity = parseInt(qtyEl && qtyEl.value) || 0;
+            const productTotal = price * quantity;
+            const shipping = productTotal > 0 ? 100 : 0;
+            const grandTotal = productTotal + shipping;
+            const prodEl = document.getElementById('purchaseToolProductTotal');
+            const shipEl = document.getElementById('purchaseToolShipping');
+            const grandEl = document.getElementById('purchaseToolGrandTotal');
+            if (prodEl) prodEl.textContent = 'Product total: Rs. ' + productTotal.toFixed(2);
+            if (shipEl) shipEl.textContent = 'Shipping cost: Rs. ' + shipping.toFixed(2);
+            if (grandEl) grandEl.textContent = 'Calculated amount (Product + Shipping): Rs. ' + grandTotal.toFixed(2);
         }
 
         function updatePaymentMethod(radio) {

@@ -1508,6 +1508,7 @@ def order_detail_page(request, order_id):
         'order_product_subtotal': order_product_subtotal,
         'display_admin_commission': display_admin_commission,
         'display_seller_amount': display_seller_amount,
+        'is_admin': is_admin,
         'back_url': back_url,
         'back_label': back_label,
         'is_buyer': is_buyer,
