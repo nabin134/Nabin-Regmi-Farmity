@@ -1372,9 +1372,13 @@
                 <i class="fas fa-blog"></i>
                 <span data-translate="nav.blogs">Blogs</span>
             </a>
+            <a href="#my_orders" class="nav-item" onclick="return showSection('my_orders', event);">
+                <i class="fas fa-shopping-bag"></i>
+                <span>My Orders</span>
+            </a>
             <a href="#orders" class="nav-item" onclick="return showSection('orders', event);">
                 <i class="fas fa-shopping-cart"></i>
-                <span data-translate="nav.orders">Orders</span>
+                <span data-translate="nav.orders">Received Orders</span>
             </a>
             <a href="#earnings" class="nav-item" onclick="return showSection('earnings', event);">
                 <i class="fas fa-wallet"></i>
@@ -1889,12 +1893,65 @@
                 </div>
             </div>
 
+            <!-- My Orders Section: Orders the farmer placed (tools/crops they bought) -->
+            <div id="my_orders-section" class="dashboard-section" style="display: none;">
+                {% if active_section == 'my_orders' %}{% include 'includes/messages_block.html' %}{% endif %}
+                <div class="content-section">
+                    <div class="section-header">
+                        <h2><i class="fas fa-shopping-bag"></i> My Orders</h2>
+                    </div>
+                    <div class="section-body">
+                        <p style="margin: -0.5rem 0 1rem 0; font-size: 0.9rem; color: #666;">Orders you placed for tools or produce. Click <strong>View</strong> to see full details and shipping address.</p>
+                        {% if farmer_my_orders %}
+                        <div class="table-responsive">
+                        <table class="orders-table">
+                            <thead>
+                                <tr>
+                                    <th>Order ID</th>
+                                    <th>Item</th>
+                                    <th>Type</th>
+                                    <th>From</th>
+                                    <th>Qty</th>
+                                    <th>Total</th>
+                                    <th>Status</th>
+                                    <th>Date</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for order in farmer_my_orders %}
+                                <tr>
+                                    <td><a href="{% url 'order_detail' order.id %}" style="color: var(--primary); font-weight: 600; text-decoration: none;">#{{ order.id }}</a></td>
+                                    <td>{% if order.crop %}{{ order.crop.name }}{% elif order.tool %}{{ order.tool.name }}{% else %}—{% endif %}</td>
+                                    <td>{% if order.crop %}<i class="fas fa-seedling"></i> Crop{% elif order.tool %}<i class="fas fa-tools"></i> Tool{% else %}—{% endif %}</td>
+                                    <td>{% if order.crop %}{{ order.crop.farmer.name|default:order.crop.farmer.user.email }}{% elif order.tool %}{{ order.tool.vendor.company_name|default:order.tool.vendor.user.email }}{% else %}—{% endif %}</td>
+                                    <td>{{ order.quantity }}{% if order.crop %} {{ order.crop.unit }}{% endif %}</td>
+                                    <td>Rs. {{ order.total_amount }}</td>
+                                    <td><span class="order-status status-{{ order.status }}">{{ order.get_status_display }}</span></td>
+                                    <td>{{ order.created_at|date:"M d, Y" }}</td>
+                                    <td><a href="{% url 'order_detail' order.id %}" class="btn-primary" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; text-decoration: none;"><i class="fas fa-eye"></i> View</a></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        </div>
+                        {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-shopping-bag"></i>
+                            <h3>No orders yet</h3>
+                            <p>When you buy tools or produce, your orders will appear here.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
             <!-- Orders Section: Placed orders for farmer's crops (shipping by admin) -->
             <div id="orders-section" class="dashboard-section" style="display: none;">
                 {% if active_section == 'orders' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-shopping-cart"></i> <span data-translate="orders.title">Placed orders (for my crops)</span></h2>
+                        <h2><i class="fas fa-shopping-cart"></i> <span data-translate="orders.title">Received orders (for my crops)</span></h2>
                     </div>
                     <div class="section-body">
                         <p style="margin: -0.5rem 0 1rem 0; font-size: 0.9rem; color: #666;"><i class="fas fa-truck"></i> Update status when you prepare, ship, or deliver the product. Delivered orders are closed.</p>

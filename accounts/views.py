@@ -1476,8 +1476,12 @@ def order_detail_page(request, order_id):
 
     # Back link: to orders section of the appropriate dashboard
     if is_buyer:
-        back_url = reverse('user_dashboard') + '?section=orders'
-        back_label = 'Back to My Orders'
+        if request.user.role == 'farmer':
+            back_url = reverse('farmer_dashboard') + '?section=my_orders'
+            back_label = 'Back to My Orders'
+        else:
+            back_url = reverse('user_dashboard') + '?section=orders'
+            back_label = 'Back to My Orders'
     elif request.user.role == 'farmer':
         back_url = reverse('farmer_dashboard') + '?section=orders'
         back_label = 'Back to Received Orders'
@@ -2255,8 +2259,11 @@ def farmer_dashboard(request):
     
     # Orders placed by buyers for THIS farmer's crops (shipping handled by admin)
     farmer_orders = Order.objects.filter(crop__farmer=profile).select_related('buyer', 'crop').order_by('-created_at')[:30]
-    # Farmer's own tool purchases (for "My purchases" if needed)
-    purchase_history = Order.objects.filter(buyer=request.user).select_related('tool', 'crop').order_by('-created_at')[:10]
+    # Farmer's own orders (as buyer): tools from vendors or crops from other farmers
+    farmer_my_orders = Order.objects.filter(buyer=request.user).select_related(
+        'tool', 'tool__vendor', 'tool__vendor__user', 'crop', 'crop__farmer', 'crop__farmer__user'
+    ).order_by('-created_at')[:50]
+    purchase_history = farmer_my_orders[:10]  # kept for any existing use
 
     # Farmer earnings / payout stats (crop orders where payment collected)
     farmer_crop_orders = Order.objects.filter(crop__farmer=profile)
@@ -2306,6 +2313,7 @@ def farmer_dashboard(request):
         'available_tools': available_tools,
         'purchase_history': purchase_history,
         'farmer_orders': farmer_orders,
+        'farmer_my_orders': farmer_my_orders,
         'role_display': (request.user.role or '').replace('_', ' ').title(),
         # Earnings tab
         'farmer_amount_collected': farmer_amount_collected,
