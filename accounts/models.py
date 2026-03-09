@@ -438,18 +438,53 @@ class Order(models.Model):
         return 'Unknown'
 
     @staticmethod
-    def compute_commission(total_amount, shipping_cost=0):
+    def compute_commission(total_amount, shipping_cost=0, product_type=None):
         """
-        Compute 20% admin commission and seller amount (80% of product + full shipping).
-        Returns (admin_commission, seller_amount). Product amount = total_amount - shipping_cost.
+        Compute admin commission and seller amount based on product type.
+
+        - For tools: commission ≈ 25% of product price (within 20–30% range)
+        - For crops: commission ≈ 18% of product price (within 15–20% range)
+        - Fallback: 20% if product_type is unknown
+
+        Seller amount = (product price - commission) + full shipping.
         """
         from decimal import Decimal
         ship = Decimal(str(shipping_cost or 0))
         total = Decimal(str(total_amount))
         product_subtotal = total - ship
-        commission = (product_subtotal * Decimal('0.20')).quantize(Decimal('0.01'))
-        seller_amt = (product_subtotal * Decimal('0.80') + ship).quantize(Decimal('0.01'))
+
+        if product_type == 'tool':
+            rate = Decimal('0.25')
+        elif product_type == 'crop':
+            rate = Decimal('0.18')
+        else:
+            rate = Decimal('0.20')
+
+        commission = (product_subtotal * rate).quantize(Decimal('0.01'))
+        seller_amt = (product_subtotal - commission + ship).quantize(Decimal('0.01'))
         return commission, seller_amt
+
+    @property
+    def product_subtotal(self):
+        """Product amount only (excluding shipping)."""
+        from decimal import Decimal
+        total = Decimal(str(self.total_amount or 0))
+        ship = Decimal(str(self.shipping_cost or 0))
+        return total - ship
+
+    @property
+    def commission_percent(self):
+        """Commission percentage applied on the product amount, as a Decimal (e.g. 25.00 for 25%)."""
+        from decimal import Decimal
+        if not self.admin_commission:
+            return None
+        base = self.product_subtotal
+        if not base:
+            return None
+        try:
+            return (Decimal(str(self.admin_commission)) / base * Decimal('100')).quantize(Decimal('0.01'))
+        except Exception:
+            return None
 
 
 class CropSale(models.Model):

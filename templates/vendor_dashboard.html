@@ -1170,6 +1170,7 @@
                                     <th>Buyer</th>
                                     <th>Quantity</th>
                                     <th>Amount (incl. shipping)</th>
+                                    <th>Commission & payout</th>
                                     <th>Shipping address</th>
                                     <th>Status</th>
                                     <th>Date</th>
@@ -1183,7 +1184,18 @@
                                     <td>{{ order.tool.name|default:"N/A" }}</td>
                                     <td>{{ order.buyer.email }}</td>
                                     <td>{{ order.quantity }}</td>
-                                    <td>Rs. {{ order.total_amount }}</td>
+                                    <td>Rs. {{ order.total_amount|floatformat:2 }}</td>
+                                    <td>
+                                        {% with product_sub=order.product_subtotal commission=order.admin_commission payout=order.seller_amount %}
+                                        <div style="font-size: 0.85rem; color: #444;">
+                                            Product: Rs. {{ product_sub|floatformat:2 }}<br>
+                                            Shipping: Rs. {{ order.shipping_cost|default:0|floatformat:2 }}<br>
+                                            {% if commission %}Commission: {% if order.commission_percent %}{{ order.commission_percent }}%{% else %}Rs.{% endif %} Rs. {{ commission|floatformat:2 }}<br>{% endif %}
+                                            Payout: <strong>Rs. {{ payout|default:order.total_amount|floatformat:2 }}</strong><br>
+                                            Payout status: {{ order.get_payout_status_display|default:'Pending' }}
+                                        </div>
+                                        {% endwith %}
+                                    </td>
                                     <td>{{ order.shipping_address|default:"—" }}</td>
                                     <td>
                                         <span class="order-status status-{{ order.status }}">

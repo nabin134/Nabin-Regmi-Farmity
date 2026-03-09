@@ -1499,7 +1499,9 @@ def order_detail_page(request, order_id):
         display_seller_amount = order.seller_amount
     else:
         display_admin_commission, display_seller_amount = Order.compute_commission(
-            order.total_amount or 0, order.shipping_cost or 0
+            order.total_amount or 0,
+            order.shipping_cost or 0,
+            product_type='tool' if order.tool_id else ('crop' if order.crop_id else None),
         )
     context = {
         'order': order,
@@ -1943,7 +1945,7 @@ def farmer_dashboard(request):
                     base_amount = float(total_amount)
                 shipping_cost = Decimal('100.00')
                 total_amount = base_amount + shipping_cost
-                admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost)
+                admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
                 # Create order with payment method
                 order = Order.objects.create(
                     buyer=request.user,
@@ -2040,7 +2042,7 @@ def farmer_dashboard(request):
                 base_amount = float(tool.price) * qty
                 shipping_cost = Decimal('100.00')
                 total_amount = base_amount + shipping_cost
-                admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost)
+                admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
                 order = Order.objects.create(
                     buyer=request.user,
                     tool=tool,
@@ -2996,7 +2998,7 @@ def user_dashboard(request):
                 base_amount = crop.price_per_unit * quantity
                 shipping_cost = Decimal('100.00')
                 total_amount = base_amount + shipping_cost
-                admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost)
+                admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='crop')
                 # Create order (quantity must be integer for Order model, but we store decimal in CropSale)
                 order = Order.objects.create(
                     buyer=request.user,
@@ -3084,7 +3086,7 @@ def user_dashboard(request):
                 base_amount = tool.price * quantity
                 shipping_cost = Decimal('100.00')
                 total_amount = base_amount + shipping_cost
-                admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost)
+                admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
                 # Create order
                 order = Order.objects.create(
                     buyer=request.user,
@@ -3178,7 +3180,7 @@ def user_dashboard(request):
                     base_amount = float(crop.price_per_unit) * qty
                     shipping_cost = Decimal('100.00')
                     total_amount = base_amount + shipping_cost
-                    admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost)
+                    admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='crop')
                     order = Order.objects.create(
                         buyer=request.user,
                         crop=crop,
@@ -3236,7 +3238,7 @@ def user_dashboard(request):
                     base_amount = float(tool.price) * qty
                     shipping_cost = Decimal('100.00')
                     total_amount = base_amount + shipping_cost
-                    admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost)
+                    admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
                     order = Order.objects.create(
                         buyer=request.user,
                         tool=tool,
@@ -3575,7 +3577,7 @@ def admin_collections_payouts(request):
     pending_orders = collected_orders.filter(pending_q)
     total_pending_payout = pending_orders.aggregate(total=Sum('seller_amount'))['total'] or Decimal('0')
 
-    # Amount per seller uses seller_amount (80% product + shipping). Fallback to total_amount for old orders.
+    # Amount per seller uses seller_amount ((product - commission) + shipping). Fallback to total_amount for old orders.
     def _order_seller_amount(o):
         return (o.seller_amount if o.seller_amount and o.seller_amount > 0 else o.total_amount)
 
@@ -3680,12 +3682,40 @@ def admin_collections_payouts(request):
             messages.error(request, 'Invalid payout request.')
         return redirect(reverse('admin_collections_payouts'))
 
+    # Total paid out = total collected - still pending
     total_paid_out = total_collected - total_pending_payout
+
+    # Build per-order rows for Collections tab (admin can see each order-level collection)
+    collected_order_rows = []
+    for o in collected_orders:
+        if o.crop_id:
+            product_name = o.crop.name
+            product_type = 'Crop'
+            seller_name = o.crop.farmer.name or o.crop.farmer.user.email if o.crop and o.crop.farmer else 'Unknown'
+        elif o.tool_id:
+            product_name = o.tool.name
+            product_type = 'Tool'
+            seller_name = o.tool.vendor.company_name or o.tool.vendor.user.email if o.tool and o.tool.vendor else 'Unknown'
+        else:
+            product_name = '—'
+            product_type = '—'
+            seller_name = '—'
+        collected_order_rows.append({
+            'order': o,
+            'product_name': product_name,
+            'product_type': product_type,
+            'seller_name': seller_name,
+            'total_collected': o.total_amount or Decimal('0'),
+            'shipping_cost': o.shipping_cost or Decimal('0'),
+            'admin_commission': o.admin_commission or Decimal('0'),
+            'payout_amount': _order_seller_amount(o),
+        })
     context = {
         'total_collected': float(total_collected),
         'total_admin_commission': float(total_admin_commission),
         'total_pending_payout': float(total_pending_payout),
         'total_paid_out': float(total_paid_out),
+        'collected_order_rows': collected_order_rows,
         'farmer_collected_list': list(farmer_collected.values()),
         'vendor_collected_list': list(vendor_collected.values()),
         'farmer_pending_list': list(farmer_pending.values()),

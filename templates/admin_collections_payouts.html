@@ -197,28 +197,35 @@
             <div id="panelCollections" class="tab-panel active">
                 <h2 class="panel-title"><i class="fas fa-coins"></i> Amount collected — from which farmer or vendor</h2>
                 <p class="panel-desc">All paid order amounts collected by admin. Below is the breakdown of where each amount came from.</p>
-                {% if farmer_collected_list or vendor_collected_list %}
+                {% if collected_order_rows %}
                 <table class="data-table">
                     <thead>
                         <tr>
+                            <th>Order</th>
+                            <th>Product</th>
                             <th>Type</th>
-                            <th>Farmer / Vendor</th>
-                            <th>Amount collected (Rs.)</th>
+                            <th>Seller</th>
+                            <th>Total collected (Rs.)</th>
+                            <th>Shipping cost (Rs.)</th>
+                            <th>Admin commission (Rs.)</th>
+                            <th>Payout amount (Rs.)</th>
                         </tr>
                     </thead>
                     <tbody>
-                        {% for item in farmer_collected_list %}
+                        {% for row in collected_order_rows %}
                         <tr>
-                            <td><span class="badge badge-farmer">Farmer</span></td>
-                            <td><strong>{{ item.display_name }}</strong></td>
-                            <td class="amount-cell">Rs. {{ item.amount|floatformat:2 }}</td>
-                        </tr>
-                        {% endfor %}
-                        {% for item in vendor_collected_list %}
-                        <tr>
-                            <td><span class="badge badge-vendor">Vendor</span></td>
-                            <td><strong>{{ item.display_name }}</strong></td>
-                            <td class="amount-cell">Rs. {{ item.amount|floatformat:2 }}</td>
+                            <td>#{{ row.order.id }}</td>
+                            <td>{{ row.product_name }}</td>
+                            <td>
+                                {% if row.product_type == 'Crop' %}<span class="badge badge-farmer">Crop</span>
+                                {% elif row.product_type == 'Tool' %}<span class="badge badge-vendor">Tool</span>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td><strong>{{ row.seller_name }}</strong></td>
+                            <td class="amount-cell">Rs. {{ row.total_collected|floatformat:2 }}</td>
+                            <td>Rs. {{ row.shipping_cost|floatformat:2 }}</td>
+                            <td>Rs. {{ row.admin_commission|floatformat:2 }}</td>
+                            <td>Rs. {{ row.payout_amount|floatformat:2 }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
