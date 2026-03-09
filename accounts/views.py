@@ -5360,10 +5360,17 @@ def _notification_link_for_user(request, link):
 # ---------- Notifications API (for bell dropdown on all user dashboards) ----------
 @login_required
 def api_notifications_list(request):
-    """GET: list recent notifications for current user (JSON). Links point to the page where the notification came from."""
+    """GET: list recent notifications for current user (JSON). Links point to the page where the notification came from.
+    Buyers do not see chat notifications."""
     limit = min(int(request.GET.get('limit', 20)), 50)
-    qs = UserNotification.objects.filter(user=request.user).order_by('-created_at')[:limit]
-    unread_count = UserNotification.objects.filter(user=request.user, is_read=False).count()
+    qs = UserNotification.objects.filter(user=request.user).order_by('-created_at')
+    if getattr(request.user, 'role', None) == 'buyer':
+        qs = qs.exclude(notification_type=UserNotification.TYPE_CHAT)
+    qs = qs[:limit]
+    unread_qs = UserNotification.objects.filter(user=request.user, is_read=False)
+    if getattr(request.user, 'role', None) == 'buyer':
+        unread_qs = unread_qs.exclude(notification_type=UserNotification.TYPE_CHAT)
+    unread_count = unread_qs.count()
     items = []
     for n in qs:
         link = _notification_link_for_user(request, n.link)
