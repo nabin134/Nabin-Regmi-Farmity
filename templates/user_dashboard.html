@@ -1340,6 +1340,8 @@
             color: var(--text-secondary);
         }
         .order-payment-pill.esewa { background: #e0e7ff; color: #4f46e5; }
+        .order-card-view-link { transition: color 0.15s, opacity 0.15s; }
+        .order-card-view-link:hover { color: var(--primary-dark, #1e5631); opacity: 0.9; text-decoration: underline; }
         .empty-orders-state {
             text-align: center;
             padding: 2.25rem 1.5rem;
@@ -2097,7 +2099,7 @@
                                                 Unknown Item
                                             {% endif %}
                                         </h4>
-                                        <span class="order-card-amount">Rs. {{ order.total_amount }} <small style="display:block;font-size:0.75rem;color:#64748b;">(incl. Rs. {{ order.shipping_cost|default:0 }} shipping)</small></span>
+                                        <span class="order-card-amount">Rs. {{ order.total_amount|default:0|floatformat:2 }} <small style="display:block;font-size:0.75rem;color:#64748b;">Product + Rs. {{ order.shipping_cost|default:0 }} shipping</small></span>
                                     </div>
                                     <p class="order-card-meta"><i class="fas fa-hashtag"></i> Order #{{ order.id }} &middot; {{ order.quantity }} {% if order.crop %}{{ order.crop.unit }}{% else %}units{% endif %}</p>
                                     {% if order.crop %}
@@ -2121,9 +2123,9 @@
                                         <span class="order-status-pill {{ order.status }}">{{ order.get_status_display }}</span>
                                         <span class="order-payment-pill {% if order.payment_method == 'esewa' %}esewa{% endif %}">{% if order.payment_method == 'esewa' %}eSewa{% else %}Cash on delivery{% endif %}</span>
                                     </div>
-                                    <a href="{% url 'order_detail' order.id %}" class="order-card-view-link" style="display:inline-flex;align-items:center;gap:0.35rem;margin-top:0.75rem;color:var(--primary);font-weight:600;font-size:0.9rem;text-decoration:none;">
-                                        <i class="fas fa-external-link-alt"></i> View order details
-                                    </a>
+                                    <button type="button" onclick="openOrderDetailModal({{ order.id }})" class="order-card-view-link" style="display:inline-flex;align-items:center;gap:0.35rem;margin-top:0.75rem;color:var(--primary);font-weight:600;font-size:0.9rem;background:none;border:none;cursor:pointer;padding:0;">
+                                        <i class="fas fa-eye"></i> View order details
+                                    </button>
                                 </div>
                             </div>
                             {% empty %}
@@ -2160,10 +2162,10 @@
                                     </div>
                                     <div id="cartSummary" class="cart-summary-card" style="display: none;">
                                         <h4>Order summary</h4>
-                                        <div class="cart-summary-row"><span>Subtotal</span><span id="cartSubtotal">Rs. 0.00</span></div>
-                                        <div class="cart-summary-row"><span>Delivery (flat)</span><span id="cartShipping">Rs. 0.00</span></div>
+                                        <div class="cart-summary-row"><span>Product total</span><span id="cartSubtotal">Rs. 0.00</span></div>
+                                        <div class="cart-summary-row"><span>Shipping cost</span><span id="cartShipping">Rs. 0.00</span></div>
                                         <div class="cart-summary-total">
-                                            <span>Total to pay</span>
+                                            <span>Total (Product + Shipping)</span>
                                             <span id="cartGrandTotal">Rs. 0.00</span>
                                         </div>
                                         <button type="button" id="proceedToCheckoutBtn" onclick="openCheckoutModal()" class="cart-checkout-btn">
@@ -2545,8 +2547,11 @@
                 </div>
                 
                 <div class="form-group" style="padding: 1.25rem; background: var(--light-bg); border-radius: 12px;">
-                    <label style="font-weight: 600;">Total Amount</label>
+                    <label style="font-weight: 600;">Product total (without shipping)</label>
                     <div style="font-size: 1.75rem; font-weight: bold; color: var(--primary);" id="purchaseCropTotal">Rs. 0.00</div>
+                    <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: #555;">
+                        Shipping cost <strong>(flat Rs. 100)</strong> will be added on top of this amount when placing the order.
+                    </p>
                 </div>
 
                 <div class="form-group">
@@ -2637,8 +2642,11 @@
                 </div>
                 
                 <div class="form-group" style="padding: 1.25rem; background: var(--light-bg); border-radius: 12px;">
-                    <label style="font-weight: 600;">Total Amount</label>
+                    <label style="font-weight: 600;">Product total (without shipping)</label>
                     <div style="font-size: 1.75rem; font-weight: bold; color: var(--primary);" id="purchaseToolTotal">Rs. 0.00</div>
+                    <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: #555;">
+                        Shipping cost <strong>(flat Rs. 100)</strong> will be added on top of this amount when placing the order.
+                    </p>
                 </div>
 
                 <div class="form-group">
@@ -2710,16 +2718,16 @@
                     <!-- Filled by JS -->
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem; color: #555;">
-                    <span>Subtotal</span>
+                    <span>Product total</span>
                     <span id="checkoutSubtotal">Rs. 0.00</span>
                 </div>
                 <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #555;">
-                    <span>Delivery (flat)</span>
+                    <span>Shipping cost</span>
                     <span id="checkoutShipping">Rs. 0.00</span>
                 </div>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 0.75rem 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
-                    <span style="font-weight: 700; color: #333;">Total to pay</span>
+                    <span style="font-weight: 700; color: #333;">Total (Product + Shipping)</span>
                     <span id="checkoutGrandTotal" style="font-size: 1.35rem; font-weight: bold; color: var(--primary);">Rs. 0.00</span>
                 </div>
                 <div class="form-group">
@@ -3561,6 +3569,7 @@
         }
         
     </script>
+    {% include 'includes/order_detail_modal.html' %}
     {% include 'support_widget.html' %}
     {% include 'includes/user_dashboard_scroll.html' %}
 </body>

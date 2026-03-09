@@ -1,0 +1,96 @@
+{# Order detail modal: include in dashboards. Opens order in popup via ?embed=1. #}
+<div id="orderDetailModal" class="order-detail-modal" aria-hidden="true">
+    <div class="order-detail-modal-overlay" onclick="closeOrderDetailModal()"></div>
+    <div class="order-detail-modal-content">
+        <button type="button" class="order-detail-modal-close" onclick="closeOrderDetailModal()" aria-label="Close">&times;</button>
+        <div class="order-detail-modal-body">
+            <div class="order-detail-modal-loading"><i class="fas fa-spinner fa-spin"></i> Loading order details...</div>
+            <div class="order-detail-modal-inner" style="display: none;"></div>
+        </div>
+    </div>
+</div>
+<style>
+.order-detail-modal { position: fixed; inset: 0; z-index: 10000; display: none; align-items: center; justify-content: center; padding: 1rem; }
+.order-detail-modal.active { display: flex; }
+.order-detail-modal-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.5); }
+.order-detail-modal-content {
+    position: relative; background: #fff; border-radius: 16px; box-shadow: 0 20px 60px rgba(0,0,0,0.2);
+    max-width: 520px; width: 100%; max-height: 90vh; overflow: hidden; display: flex; flex-direction: column;
+}
+.order-detail-modal-close {
+    position: absolute; top: 12px; right: 12px; z-index: 2; width: 36px; height: 36px; border: none;
+    background: rgba(0,0,0,0.08); border-radius: 50%; font-size: 1.5rem; line-height: 1; cursor: pointer;
+    color: #333; display: flex; align-items: center; justify-content: center; padding: 0;
+}
+.order-detail-modal-close:hover { background: rgba(0,0,0,0.15); }
+.order-detail-modal-body { padding: 0; overflow-y: auto; flex: 1; min-height: 200px; }
+.order-detail-modal-loading { padding: 2.5rem; text-align: center; color: #666; font-size: 0.95rem; }
+.order-detail-modal-inner { padding: 0; }
+.order-detail-modal .od-card-body { padding: 1.25rem 1.5rem 1.5rem; }
+
+/* Order detail fragment styles (scoped to modal) */
+.order-detail-modal .od-modal-wrap { padding: 0; }
+.order-detail-modal .od-card { margin: 0; border: none; border-radius: 0; box-shadow: none; }
+.order-detail-modal .od-card-header {
+    background: linear-gradient(160deg, #2d7a47 0%, #1e5631 100%); color: white;
+    padding: 1.25rem 1.5rem; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;
+}
+.order-detail-modal .od-modal-title { font-size: 1.25rem; font-weight: 700; margin: 0; }
+.order-detail-modal .od-status { background: rgba(255,255,255,0.25); padding: 0.35rem 0.75rem; border-radius: 8px; font-weight: 600; font-size: 0.85rem; }
+.order-detail-modal .od-status-pill.status-pending { background: #fef3c7; color: #92400e; }
+.order-detail-modal .od-status-pill.status-confirmed { background: #dbeafe; color: #1e40af; }
+.order-detail-modal .od-status-pill.status-ready_to_ship { background: #e0e7ff; color: #4338ca; }
+.order-detail-modal .od-status-pill.status-shipped { background: #e0e7ff; color: #3730a3; }
+.order-detail-modal .od-status-pill.status-on_the_way { background: #cffafe; color: #0e7490; }
+.order-detail-modal .od-status-pill.status-delivered { background: #d1fae5; color: #065f46; }
+.order-detail-modal .od-status-pill.status-cancelled { background: #fee2e2; color: #991b1b; }
+.order-detail-modal .od-card-header .od-status-pill { background: rgba(255,255,255,0.25); color: #fff; }
+.order-detail-modal .od-section { margin-bottom: 1.25rem; }
+.order-detail-modal .od-section:last-child { margin-bottom: 0; }
+.order-detail-modal .od-section-title {
+    font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #5c6370; margin-bottom: 0.5rem;
+}
+.order-detail-modal .od-row {
+    display: flex; justify-content: space-between; align-items: flex-start; padding: 0.45rem 0;
+    border-bottom: 1px solid #e8eaed; font-size: 0.9rem;
+}
+.order-detail-modal .od-row:last-child { border-bottom: none; }
+.order-detail-modal .od-label { color: #5c6370; }
+.order-detail-modal .od-value { font-weight: 600; text-align: right; word-break: break-word; max-width: 58%; }
+.order-detail-modal .od-address { background: #f8f9fa; padding: 0.75rem; border-radius: 8px; white-space: pre-wrap; font-size: 0.9rem; margin-top: 0.25rem; }
+.order-detail-modal .od-total-row { font-size: 1.05rem; font-weight: 700; color: #2d7a47; padding-top: 0.5rem; margin-top: 0.35rem; border-top: 2px solid #e8eaed; }
+.order-detail-modal .od-badge { display: inline-block; padding: 0.2rem 0.5rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; margin-left: 0.35rem; }
+.order-detail-modal .od-badge.cod { background: #e8f5e9; color: #2e7d32; }
+.order-detail-modal .od-badge.esewa { background: #e8eaf6; color: #3949ab; }
+.order-detail-modal .od-badge.paid { background: #e8f5e9; color: #0d7d4d; }
+</style>
+<script>
+(function() {
+    var orderDetailModal = document.getElementById('orderDetailModal');
+    var orderDetailUrlPattern = "{% url 'order_detail' 1 %}".replace(/\/1\/?$/, '');
+    window.openOrderDetailModal = function(orderId) {
+        if (!orderId) return;
+        var modal = document.getElementById('orderDetailModal');
+        var loading = modal && modal.querySelector('.order-detail-modal-loading');
+        var inner = modal && modal.querySelector('.order-detail-modal-inner');
+        if (modal) modal.classList.add('active');
+        if (loading) loading.style.display = 'block';
+        if (inner) { inner.style.display = 'none'; inner.innerHTML = ''; }
+        var url = orderDetailUrlPattern.replace(/\/$/, '') + '/' + orderId + '/?embed=1';
+        fetch(url, { credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function(r) { return r.text(); })
+            .then(function(html) {
+                if (inner) { inner.innerHTML = html; inner.style.display = 'block'; }
+                if (loading) loading.style.display = 'none';
+            })
+            .catch(function() {
+                if (inner) { inner.innerHTML = '<p style="padding:1.5rem;color:#dc3545;">Could not load order details. <a href="' + url.replace('?embed=1','') + '">Open in new page</a>.</p>'; inner.style.display = 'block'; }
+                if (loading) loading.style.display = 'none';
+            });
+    };
+    window.closeOrderDetailModal = function() {
+        var modal = document.getElementById('orderDetailModal');
+        if (modal) modal.classList.remove('active');
+    };
+})();
+</script>

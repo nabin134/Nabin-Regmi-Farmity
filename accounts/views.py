@@ -18,7 +18,7 @@ import secrets
 import hashlib
 import json
 from datetime import timedelta, datetime, date
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import calendar
 
 
@@ -1493,14 +1493,26 @@ def order_detail_page(request, order_id):
         back_label = 'Back to Dashboard'
 
     order_product_subtotal = order.total_amount - (order.shipping_cost or Decimal('0'))
+    # Commission breakdown: use stored values if set, else compute for display (e.g. legacy orders)
+    if order.admin_commission and order.admin_commission > 0 and order.seller_amount and order.seller_amount > 0:
+        display_admin_commission = order.admin_commission
+        display_seller_amount = order.seller_amount
+    else:
+        display_admin_commission, display_seller_amount = Order.compute_commission(
+            order.total_amount or 0, order.shipping_cost or 0
+        )
     context = {
         'order': order,
         'order_product_subtotal': order_product_subtotal,
+        'display_admin_commission': display_admin_commission,
+        'display_seller_amount': display_seller_amount,
         'back_url': back_url,
         'back_label': back_label,
         'is_buyer': is_buyer,
         'is_seller': is_seller,
     }
+    if request.GET.get('embed'):
+        return render(request, 'order_detail_fragment.html', context)
     return render(request, 'order_detail.html', context)
 
 
@@ -1931,7 +1943,7 @@ def farmer_dashboard(request):
                     base_amount = float(total_amount)
                 shipping_cost = Decimal('100.00')
                 total_amount = base_amount + shipping_cost
-                
+                admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost)
                 # Create order with payment method
                 order = Order.objects.create(
                     buyer=request.user,
@@ -1939,6 +1951,8 @@ def farmer_dashboard(request):
                     quantity=quantity,
                     total_amount=total_amount,
                     shipping_cost=shipping_cost,
+                    admin_commission=admin_commission,
+                    seller_amount=seller_amount,
                     status=Order.STATUS_CONFIRMED,
                     payment_method=payment_method,
                     payment_status='pending',
@@ -2026,12 +2040,15 @@ def farmer_dashboard(request):
                 base_amount = float(tool.price) * qty
                 shipping_cost = Decimal('100.00')
                 total_amount = base_amount + shipping_cost
+                admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost)
                 order = Order.objects.create(
                     buyer=request.user,
                     tool=tool,
                     quantity=qty,
                     total_amount=total_amount,
                     shipping_cost=shipping_cost,
+                    admin_commission=admin_commission,
+                    seller_amount=seller_amount,
                     status=Order.STATUS_CONFIRMED,
                     payment_method=payment_method,
                     payment_status='pending',
@@ -2268,14 +2285,14 @@ def farmer_dashboard(request):
     # Farmer earnings / payout stats (crop orders where payment collected)
     farmer_crop_orders = Order.objects.filter(crop__farmer=profile)
     farmer_collected = farmer_crop_orders.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED)
-    farmer_amount_collected = farmer_collected.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    farmer_amount_collected = farmer_collected.aggregate(total=Sum('seller_amount'))['total'] or farmer_collected.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     farmer_pending_q = Q(payout_status__isnull=True) | Q(payout_status=Order.PAYOUT_PENDING)
-    farmer_pending_release = farmer_collected.filter(farmer_pending_q).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    farmer_pending_release = farmer_collected.filter(farmer_pending_q).aggregate(total=Sum('seller_amount'))['total'] or farmer_collected.filter(farmer_pending_q).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     farmer_paid = farmer_collected.filter(payout_status=Order.PAYOUT_PAID).order_by('-payout_at')
     farmer_released_payouts = list(
         farmer_paid.annotate(payout_date=TruncDate('payout_at'))
         .values('payout_date')
-        .annotate(amount=Sum('total_amount'), order_count=Count('id'))
+        .annotate(amount=Sum('seller_amount'), order_count=Count('id'))
         .order_by('-payout_date')
     )
     farmer_total_released = sum((p['amount'] or Decimal('0')) for p in farmer_released_payouts)
@@ -2475,15 +2492,15 @@ def vendor_dashboard(request):
     
     # Orders where payment is collected (completed) — used for payout stats
     collected_orders = orders.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED)
-    amount_collected = collected_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    amount_collected = collected_orders.aggregate(total=Sum('seller_amount'))['total'] or collected_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     pending_payout_q = Q(payout_status__isnull=True) | Q(payout_status=Order.PAYOUT_PENDING)
-    pending_release_amount = collected_orders.filter(pending_payout_q).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    pending_release_amount = collected_orders.filter(pending_payout_q).aggregate(total=Sum('seller_amount'))['total'] or collected_orders.filter(pending_payout_q).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     # Released payouts: when admin marked as paid (group by payout_at for each release batch)
     paid_orders = collected_orders.filter(payout_status=Order.PAYOUT_PAID).order_by('-payout_at')
     released_payouts = list(
         paid_orders.annotate(payout_date=TruncDate('payout_at'))
         .values('payout_date')
-        .annotate(amount=Sum('total_amount'), order_count=Count('id'))
+        .annotate(amount=Sum('seller_amount'), order_count=Count('id'))
         .order_by('-payout_date')
     )
     total_released_amount = sum((p['amount'] or Decimal('0')) for p in released_payouts)
@@ -2591,6 +2608,13 @@ def expert_dashboard(request):
         profile.qualification = request.POST.get('qualification', profile.qualification)
         profile.specialization = request.POST.get('specialization', profile.specialization)
         profile.experience = request.POST.get('experience', profile.experience)
+        try:
+            fee_val = request.POST.get('consultation_fee', '')
+            profile.consultation_fee = Decimal(fee_val) if fee_val != '' and fee_val is not None else Decimal('0')
+            if profile.consultation_fee < 0:
+                profile.consultation_fee = Decimal('0')
+        except (ValueError, TypeError, InvalidOperation):
+            profile.consultation_fee = Decimal('0')
         profile.save()
         messages.success(request, 'Profile updated successfully!')
         return _redirect_same_page(request, 'expert_dashboard')
@@ -2972,7 +2996,7 @@ def user_dashboard(request):
                 base_amount = crop.price_per_unit * quantity
                 shipping_cost = Decimal('100.00')
                 total_amount = base_amount + shipping_cost
-                
+                admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost)
                 # Create order (quantity must be integer for Order model, but we store decimal in CropSale)
                 order = Order.objects.create(
                     buyer=request.user,
@@ -2980,6 +3004,8 @@ def user_dashboard(request):
                     quantity=int(round(quantity)),  # Round and convert to int for Order model
                     total_amount=total_amount,
                     shipping_cost=shipping_cost,
+                    admin_commission=admin_commission,
+                    seller_amount=seller_amount,
                     status=Order.STATUS_CONFIRMED,
                     payment_method=payment_method,
                     payment_status='pending',
@@ -3058,7 +3084,7 @@ def user_dashboard(request):
                 base_amount = tool.price * quantity
                 shipping_cost = Decimal('100.00')
                 total_amount = base_amount + shipping_cost
-                
+                admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost)
                 # Create order
                 order = Order.objects.create(
                     buyer=request.user,
@@ -3066,6 +3092,8 @@ def user_dashboard(request):
                     quantity=quantity,
                     total_amount=total_amount,
                     shipping_cost=shipping_cost,
+                    admin_commission=admin_commission,
+                    seller_amount=seller_amount,
                     status=Order.STATUS_CONFIRMED,
                     payment_method=payment_method,
                     payment_status='pending',
@@ -3150,12 +3178,15 @@ def user_dashboard(request):
                     base_amount = float(crop.price_per_unit) * qty
                     shipping_cost = Decimal('100.00')
                     total_amount = base_amount + shipping_cost
+                    admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost)
                     order = Order.objects.create(
                         buyer=request.user,
                         crop=crop,
                         quantity=int(round(qty)),
                         total_amount=total_amount,
                         shipping_cost=shipping_cost,
+                        admin_commission=admin_commission,
+                        seller_amount=seller_amount,
                         status=Order.STATUS_CONFIRMED,
                         payment_method=payment_method,
                         payment_status='pending',
@@ -3205,12 +3236,15 @@ def user_dashboard(request):
                     base_amount = float(tool.price) * qty
                     shipping_cost = Decimal('100.00')
                     total_amount = base_amount + shipping_cost
+                    admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost)
                     order = Order.objects.create(
                         buyer=request.user,
                         tool=tool,
                         quantity=int(qty),
                         total_amount=total_amount,
                         shipping_cost=shipping_cost,
+                        admin_commission=admin_commission,
+                        seller_amount=seller_amount,
                         status=Order.STATUS_CONFIRMED,
                         payment_method=payment_method,
                         payment_status='pending',
@@ -3535,12 +3569,17 @@ def admin_collections_payouts(request):
     ).select_related('crop', 'crop__farmer', 'crop__farmer__user', 'tool', 'tool__vendor', 'tool__vendor__user')
 
     total_collected = collected_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
-    # Pending payout: collected but not yet paid to seller
+    total_admin_commission = collected_orders.aggregate(t=Sum('admin_commission'))['t'] or Decimal('0')
+    # Pending payout: collected but not yet paid to seller (use seller_amount: 80% of product + shipping)
     pending_q = Q(payout_status__isnull=True) | Q(payout_status=Order.PAYOUT_PENDING)
     pending_orders = collected_orders.filter(pending_q)
-    total_pending_payout = pending_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
+    total_pending_payout = pending_orders.aggregate(total=Sum('seller_amount'))['total'] or Decimal('0')
 
-    # Group ALL collected by farmer (crop orders) — total amount collected from each farmer
+    # Amount per seller uses seller_amount (80% product + shipping). Fallback to total_amount for old orders.
+    def _order_seller_amount(o):
+        return (o.seller_amount if o.seller_amount and o.seller_amount > 0 else o.total_amount)
+
+    # Group ALL collected by farmer (crop orders) — amount to pay = seller_amount
     farmer_collected = {}
     for o in collected_orders.filter(crop__isnull=False).exclude(crop__farmer__isnull=True):
         fid = o.crop.farmer.id
@@ -3550,8 +3589,8 @@ def admin_collections_payouts(request):
                 'display_name': o.crop.farmer.name or o.crop.farmer.user.email,
                 'amount': Decimal('0'),
             }
-        farmer_collected[fid]['amount'] += o.total_amount
-    # Group ALL collected by vendor (tool orders) — total amount collected from each vendor
+        farmer_collected[fid]['amount'] += _order_seller_amount(o)
+    # Group ALL collected by vendor (tool orders)
     vendor_collected = {}
     for o in collected_orders.filter(tool__isnull=False).exclude(tool__vendor__isnull=True):
         vid = o.tool.vendor.id
@@ -3561,7 +3600,7 @@ def admin_collections_payouts(request):
                 'display_name': o.tool.vendor.company_name or o.tool.vendor.user.email,
                 'amount': Decimal('0'),
             }
-        vendor_collected[vid]['amount'] += o.total_amount
+        vendor_collected[vid]['amount'] += _order_seller_amount(o)
 
     # Group pending by farmer (crop orders)
     farmer_pending = {}
@@ -3574,7 +3613,7 @@ def admin_collections_payouts(request):
                 'amount': Decimal('0'),
                 'orders': [],
             }
-        farmer_pending[fid]['amount'] += o.total_amount
+        farmer_pending[fid]['amount'] += _order_seller_amount(o)
         farmer_pending[fid]['orders'].append(o)
 
     # Group pending by vendor (tool orders)
@@ -3588,7 +3627,7 @@ def admin_collections_payouts(request):
                 'amount': Decimal('0'),
                 'orders': [],
             }
-        vendor_pending[vid]['amount'] += o.total_amount
+        vendor_pending[vid]['amount'] += _order_seller_amount(o)
         vendor_pending[vid]['orders'].append(o)
 
     # Handle POST: mark payout paid for a seller
@@ -3599,7 +3638,9 @@ def admin_collections_payouts(request):
             try:
                 farmer = FarmerProfile.objects.get(id=seller_id)
                 orders_to_pay = pending_orders.filter(crop__farmer=farmer)
-                total_paid = orders_to_pay.aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
+                total_paid = orders_to_pay.aggregate(t=Sum('seller_amount'))['t'] or Decimal('0')
+                if total_paid == 0:
+                    total_paid = orders_to_pay.aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
                 now = timezone.now()
                 orders_to_pay.update(payout_status=Order.PAYOUT_PAID, payout_at=now)
                 seller_user = getattr(farmer, 'user', None)
@@ -3618,7 +3659,9 @@ def admin_collections_payouts(request):
             try:
                 vendor = VendorProfile.objects.get(id=seller_id)
                 orders_to_pay = pending_orders.filter(tool__vendor=vendor)
-                total_paid = orders_to_pay.aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
+                total_paid = orders_to_pay.aggregate(t=Sum('seller_amount'))['t'] or Decimal('0')
+                if total_paid == 0:
+                    total_paid = orders_to_pay.aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
                 now = timezone.now()
                 orders_to_pay.update(payout_status=Order.PAYOUT_PAID, payout_at=now)
                 seller_user = getattr(vendor, 'user', None)
@@ -3640,6 +3683,7 @@ def admin_collections_payouts(request):
     total_paid_out = total_collected - total_pending_payout
     context = {
         'total_collected': float(total_collected),
+        'total_admin_commission': float(total_admin_commission),
         'total_pending_payout': float(total_pending_payout),
         'total_paid_out': float(total_paid_out),
         'farmer_collected_list': list(farmer_collected.values()),

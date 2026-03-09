@@ -875,6 +875,36 @@
             color: #999;
         }
 
+        /* Farmer My Orders – card grid */
+        .farmer-orders-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 1.25rem;
+        }
+        .farmer-order-card {
+            background: #fff;
+            border-radius: 14px;
+            padding: 1.25rem;
+            border: 1px solid #e9ecef;
+            border-left: 4px solid var(--primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+            transition: box-shadow 0.2s;
+        }
+        .farmer-order-card:hover { box-shadow: 0 4px 14px rgba(0,0,0,0.08); }
+        .farmer-order-card.status-pending { border-left-color: var(--warning); }
+        .farmer-order-card.status-delivered { border-left-color: var(--success); }
+        .farmer-order-card.status-cancelled { border-left-color: var(--danger); }
+        .farmer-order-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem; }
+        .farmer-order-id { font-weight: 700; color: var(--primary); font-size: 0.95rem; }
+        .farmer-order-product { margin: 0 0 0.5rem 0; font-size: 1.05rem; color: #333; }
+        .farmer-order-product i { color: var(--primary); margin-right: 0.35rem; }
+        .farmer-order-meta { margin: 0.25rem 0; font-size: 0.875rem; color: #666; }
+        .farmer-order-meta i { width: 1.1em; margin-right: 0.4rem; color: #999; }
+        .farmer-order-card-footer { margin-top: 1rem; padding-top: 1rem; border-top: 1px solid #eee; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; }
+        .farmer-order-total { font-weight: 700; color: var(--primary); font-size: 1rem; }
+        .farmer-order-total small { font-weight: 500; color: #666; font-size: 0.8rem; }
+        .farmer-order-view-btn { padding: 0.45rem 0.9rem; font-size: 0.85rem; }
+
         /* Orders Table */
         .orders-table {
             width: 100%;
@@ -1744,8 +1774,8 @@
                                         <i class="fas fa-comments"></i> Chat
                                     </button>
                                     {% endif %}
-                                    <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openAppointmentModal({{ expert.id }}, '{{ expert.name|escapejs }}'){% else %}alert('KYC verification required to book appointments'){% endif %}" style="background: var(--secondary);" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; background: var(--secondary);"{% endif %}>
-                                        <i class="fas fa-calendar"></i> Appointment
+                                    <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openAppointmentModal({{ expert.id }}, '{{ expert.name|escapejs }}', {{ expert.consultation_fee|default:0 }}){% else %}alert('KYC verification required to book appointments'){% endif %}" style="background: var(--secondary);" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; background: var(--secondary);"{% endif %}>
+                                        <i class="fas fa-calendar"></i> Appointment {% if expert.consultation_fee and expert.consultation_fee > 0 %}(Rs. {{ expert.consultation_fee }}){% else %}(Free){% endif %}
                                     </button>
                                 </div>
                             </div>
@@ -1901,39 +1931,25 @@
                         <h2><i class="fas fa-shopping-bag"></i> My Orders</h2>
                     </div>
                     <div class="section-body">
-                        <p style="margin: -0.5rem 0 1rem 0; font-size: 0.9rem; color: #666;">Orders you placed for tools or produce. Click <strong>View</strong> to see full details and shipping address.</p>
+                        <p style="margin: -0.5rem 0 1rem 0; font-size: 0.9rem; color: #666;">Orders you placed for tools or produce. Click <strong>View details</strong> to see full order info and shipping address.</p>
                         {% if farmer_my_orders %}
-                        <div class="table-responsive">
-                        <table class="orders-table">
-                            <thead>
-                                <tr>
-                                    <th>Order ID</th>
-                                    <th>Item</th>
-                                    <th>Type</th>
-                                    <th>From</th>
-                                    <th>Qty</th>
-                                    <th>Total</th>
-                                    <th>Status</th>
-                                    <th>Date</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for order in farmer_my_orders %}
-                                <tr>
-                                    <td><a href="{% url 'order_detail' order.id %}" style="color: var(--primary); font-weight: 600; text-decoration: none;">#{{ order.id }}</a></td>
-                                    <td>{% if order.crop %}{{ order.crop.name }}{% elif order.tool %}{{ order.tool.name }}{% else %}—{% endif %}</td>
-                                    <td>{% if order.crop %}<i class="fas fa-seedling"></i> Crop{% elif order.tool %}<i class="fas fa-tools"></i> Tool{% else %}—{% endif %}</td>
-                                    <td>{% if order.crop %}{{ order.crop.farmer.name|default:order.crop.farmer.user.email }}{% elif order.tool %}{{ order.tool.vendor.company_name|default:order.tool.vendor.user.email }}{% else %}—{% endif %}</td>
-                                    <td>{{ order.quantity }}{% if order.crop %} {{ order.crop.unit }}{% endif %}</td>
-                                    <td>Rs. {{ order.total_amount }}</td>
-                                    <td><span class="order-status status-{{ order.status }}">{{ order.get_status_display }}</span></td>
-                                    <td>{{ order.created_at|date:"M d, Y" }}</td>
-                                    <td><a href="{% url 'order_detail' order.id %}" class="btn-primary" style="padding: 0.4rem 0.75rem; font-size: 0.85rem; text-decoration: none;"><i class="fas fa-eye"></i> View</a></td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                        <div class="farmer-orders-card-grid">
+                            {% for order in farmer_my_orders %}
+                            <div class="farmer-order-card status-{{ order.status }}">
+                                <div class="farmer-order-card-header">
+                                    <span class="farmer-order-id">#{{ order.id }}</span>
+                                    <span class="order-status status-{{ order.status }}">{{ order.get_status_display }}</span>
+                                </div>
+                                <h4 class="farmer-order-product">{% if order.crop %}<i class="fas fa-seedling"></i> {{ order.crop.name }}{% elif order.tool %}<i class="fas fa-tools"></i> {{ order.tool.name }}{% else %}—{% endif %}</h4>
+                                <p class="farmer-order-meta"><i class="fas fa-tag"></i> {% if order.crop %}Crop{% elif order.tool %}Tool{% else %}—{% endif %} &middot; {{ order.quantity }}{% if order.crop %} {{ order.crop.unit|default:"" }}{% endif %}</p>
+                                <p class="farmer-order-meta"><i class="fas fa-store"></i> From {% if order.crop %}{{ order.crop.farmer.name|default:order.crop.farmer.user.email }}{% elif order.tool %}{{ order.tool.vendor.company_name|default:order.tool.vendor.user.email }}{% else %}—{% endif %}</p>
+                                <p class="farmer-order-meta"><i class="far fa-calendar"></i> {{ order.created_at|date:"M d, Y · h:i A" }}</p>
+                                <div class="farmer-order-card-footer">
+                                    <span class="farmer-order-total">Rs. {{ order.total_amount|default:0|floatformat:2 }} <small>(incl. Rs. {{ order.shipping_cost|default:0 }} shipping)</small></span>
+                                    <button type="button" onclick="openOrderDetailModal({{ order.id }})" class="btn-primary farmer-order-view-btn"><i class="fas fa-eye"></i> View details</button>
+                                </div>
+                            </div>
+                            {% endfor %}
                         </div>
                         {% else %}
                         <div class="empty-state">
@@ -1975,7 +1991,7 @@
                             <tbody>
                                 {% for order in farmer_orders %}
                                 <tr>
-                                    <td><a href="{% url 'order_detail' order.id %}" style="color: var(--primary); font-weight: 600; text-decoration: none;">#{{ order.id }}</a> <a href="{% url 'order_detail' order.id %}" class="btn-primary" style="margin-left: 0.5rem; padding: 0.35rem 0.6rem; font-size: 0.8rem; text-decoration: none;">View</a></td>
+                                    <td><span style="font-weight: 600; color: var(--primary);">#{{ order.id }}</span> <button type="button" onclick="openOrderDetailModal({{ order.id }})" class="btn-primary" style="margin-left: 0.5rem; padding: 0.35rem 0.6rem; font-size: 0.8rem;">View</button></td>
                                     <td>{{ order.buyer.email }}</td>
                                     <td>{% if order.crop %}{{ order.crop.name }}{% else %}—{% endif %}</td>
                                     <td>{{ order.quantity }} {% if order.crop %}{{ order.crop.unit }}{% endif %}</td>
@@ -2348,6 +2364,9 @@
                 <div class="form-group">
                     <label>Price per Unit (Rs.) <span style="color: red;">*</span></label>
                     <input type="number" name="price" class="form-control" placeholder="e.g., 20" step="0.01" min="0" required>
+                    <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 0.35rem;">
+                        Note: When this crop is sold, the system will deduct an admin commission (around 15–20% per kg) from the sale amount before payout.
+                    </small>
                 </div>
 
                 <div class="form-group">
@@ -2401,6 +2420,9 @@
                 <div class="form-group">
                     <label>Price per Unit (Rs.) <span style="color: red;">*</span></label>
                     <input type="number" name="price" id="edit_price" class="form-control" step="0.01" min="0" required>
+                    <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 0.35rem;">
+                        Note: When this crop is sold, the system will deduct an admin commission (around 15–20% per kg) from the sale amount before payout.
+                    </small>
                 </div>
 
                 <div class="form-group">
@@ -2488,9 +2510,12 @@
                 </div>
 
                 <div class="form-group" style="padding: 1rem; background: #f8f9fa; border-radius: 8px; margin: 1rem 0;">
-                    <label style="font-weight: 600; margin-bottom: 0.5rem;">Total Amount</label>
+                    <label style="font-weight: 600; margin-bottom: 0.5rem;">Product total (without shipping)</label>
                     <div style="font-size: 1.5rem; font-weight: bold; color: var(--sea-green);" id="purchase_total_display">Rs. 0.00</div>
                     <input type="hidden" name="total_amount" id="purchase_total">
+                    <p style="margin: 0.5rem 0 0; font-size: 0.85rem; color: #555;">
+                        Shipping cost <strong>(flat Rs. 100)</strong> will be added on top of this amount when placing the order.
+                    </p>
                 </div>
 
                 <div class="form-group">
@@ -2614,6 +2639,7 @@
                 <div class="form-group">
                     <label>Expert Name <span style="color: red;">*</span></label>
                     <input type="text" id="apptExpertName" class="form-control" readonly style="background: #f5f5f5;">
+                    <p id="apptConsultationFee" style="margin: 0.5rem 0 0; font-size: 0.9rem; color: #666;"></p>
                 </div>
                 
                 <div class="form-group">
@@ -3031,9 +3057,12 @@
             initApptFlatpickr('reapplyApptDate', expertId && expertAvailability[expertId] ? expertAvailability[expertId] : []);
             document.getElementById('reapplyAppointmentModal').classList.add('active');
         }
-        function openAppointmentModal(expertId, expertName) {
+        function openAppointmentModal(expertId, expertName, consultationFee) {
+            consultationFee = typeof consultationFee === 'number' ? consultationFee : 0;
             document.getElementById('apptExpertId').value = expertId;
             document.getElementById('apptExpertName').value = expertName || '';
+            var feeEl = document.getElementById('apptConsultationFee');
+            feeEl.textContent = consultationFee > 0 ? 'Consultation fee: Rs. ' + consultationFee + ' (payable when paid appointments are enabled)' : 'Consultation: Free';
             document.getElementById('apptRequestedDate').value = '';
             document.getElementById('apptRequestedTime').value = '';
             initApptFlatpickr('apptRequestedDate', expertId && expertAvailability[expertId] ? expertAvailability[expertId] : []);
@@ -3575,6 +3604,7 @@
             });
         }
     </script>
+    {% include 'includes/order_detail_modal.html' %}
     {% include 'support_widget.html' %}
     {% include 'includes/user_dashboard_scroll.html' %}
 </body>

@@ -87,7 +87,16 @@ class KYCRequestAdmin(admin.ModelAdmin):
 
 admin.site.register(FarmerProfile)
 admin.site.register(VendorProfile)
-admin.site.register(ExpertProfile)
+
+
+@admin.register(ExpertProfile)
+class ExpertProfileAdmin(admin.ModelAdmin):
+    list_display = ('name', 'user', 'specialization', 'consultation_fee', 'qualification')
+    list_editable = ('consultation_fee',)
+    search_fields = ('name', 'user__email', 'specialization')
+    list_filter = ('specialization',)
+
+
 admin.site.register(UserProfile)
 admin.site.register(FarmerProduct)
 admin.site.register(VendorTool)

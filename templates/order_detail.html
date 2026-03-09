@@ -30,6 +30,7 @@
         .od-wrap {
             max-width: 720px;
             margin: 0 auto;
+            padding: 0 0.5rem;
         }
         .od-back {
             display: inline-flex;
@@ -68,8 +69,8 @@
             font-weight: 600;
             font-size: 0.9rem;
         }
-        .od-card-body { padding: 1.5rem; }
-        .od-section { margin-bottom: 1.5rem; }
+        .od-card-body { padding: 1.5rem 1.75rem; }
+        .od-section { margin-bottom: 1.75rem; }
         .od-section:last-child { margin-bottom: 0; }
         .od-section-title {
             font-size: 0.75rem;
@@ -77,14 +78,16 @@
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: var(--od-muted);
-            margin-bottom: 0.5rem;
+            margin-bottom: 0.6rem;
+            padding-bottom: 0.25rem;
         }
         .od-row {
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
-            padding: 0.5rem 0;
+            padding: 0.6rem 0;
             border-bottom: 1px solid var(--od-border);
+            gap: 1rem;
         }
         .od-row:last-child { border-bottom: none; }
         .od-label { color: var(--od-muted); font-size: 0.9rem; }
@@ -162,13 +165,21 @@
                     </div>
                     {% if order.shipping_cost %}
                     <div class="od-row">
-                        <span class="od-label">Shipping</span>
+                        <span class="od-label">Shipping cost</span>
                         <span class="od-value">Rs. {{ order.shipping_cost|floatformat:2 }}</span>
                     </div>
                     {% endif %}
+                    <div class="od-row">
+                        <span class="od-label">Admin commission (20%)</span>
+                        <span class="od-value">Rs. {{ display_admin_commission|floatformat:2 }}</span>
+                    </div>
+                    <div class="od-row">
+                        <span class="od-label">Amount to farmer/vendor (80% + shipping)</span>
+                        <span class="od-value">Rs. {{ display_seller_amount|floatformat:2 }}</span>
+                    </div>
                     <div class="od-row od-total-row">
-                        <span>Total amount</span>
-                        <span>Rs. {{ order.total_amount|floatformat:2 }}</span>
+                        <span>Total amount (Product + Shipping)</span>
+                        <span>Rs. {{ order.total_amount|default:0|floatformat:2 }}</span>
                     </div>
                 </div>
 

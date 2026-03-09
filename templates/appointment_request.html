@@ -52,6 +52,7 @@
                     <div class="expert-info">
                         <h3>{{ expert.name|default:expert.user.email }}</h3>
                         <p>{{ expert.specialization|default:"Agricultural Expert" }} {% if expert.qualification %}• {{ expert.qualification }}{% endif %}</p>
+                        <p style="margin: 0.35rem 0 0; font-size: 0.9rem; color: #358D58;">{% if expert.consultation_fee and expert.consultation_fee > 0 %}Rs. {{ expert.consultation_fee }} per session{% else %}Consultation: Free{% endif %}</p>
                     </div>
                     <a href="{% if request.user.role == 'farmer' %}{% url 'farmer_dashboard' %}{% else %}{% url 'user_dashboard' %}{% endif %}" class="btn-back" style="margin-bottom: 0;">
                         <i class="fas fa-calendar-plus"></i> Go to Dashboard to Book

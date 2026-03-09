@@ -142,6 +142,11 @@ class ExpertProfile(models.Model):
     qualification = models.CharField(max_length=255, blank=True, null=True)
     specialization = models.CharField(max_length=255, blank=True, null=True)
     experience = models.CharField(max_length=50, blank=True, null=True)
+    # Consultation fee for appointments (0 = free). When paid appointments are enabled, this will be charged.
+    consultation_fee = models.DecimalField(
+        max_digits=10, decimal_places=2, default=0, blank=True, null=True,
+        help_text='Fee per appointment (Rs.). 0 = free. Can be set for future paid appointments.'
+    )
 
     def __str__(self):
         return self.name or self.user.email
@@ -382,6 +387,10 @@ class Order(models.Model):
     total_amount = models.DecimalField(max_digits=12, decimal_places=2)
     # Flat shipping cost (per order). Included in total_amount.
     shipping_cost = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # Admin commission: 20% of product amount (total_amount - shipping_cost). Stored at order creation.
+    admin_commission = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    # Amount to transfer to farmer/vendor: 80% of product + full shipping. Stored at order creation.
+    seller_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     payment_method = models.CharField(max_length=20, choices=PAYMENT_CHOICES, default=PAYMENT_COD, blank=True, null=True)
     payment_status = models.CharField(max_length=20, choices=PAYMENT_STATUS_CHOICES, default=PAYMENT_STATUS_PENDING, blank=True, null=True)
@@ -427,6 +436,20 @@ class Order(models.Model):
         if self.tool and self.tool.vendor:
             return self.tool.vendor.company_name or self.tool.vendor.user.email
         return 'Unknown'
+
+    @staticmethod
+    def compute_commission(total_amount, shipping_cost=0):
+        """
+        Compute 20% admin commission and seller amount (80% of product + full shipping).
+        Returns (admin_commission, seller_amount). Product amount = total_amount - shipping_cost.
+        """
+        from decimal import Decimal
+        ship = Decimal(str(shipping_cost or 0))
+        total = Decimal(str(total_amount))
+        product_subtotal = total - ship
+        commission = (product_subtotal * Decimal('0.20')).quantize(Decimal('0.01'))
+        seller_amt = (product_subtotal * Decimal('0.80') + ship).quantize(Decimal('0.01'))
+        return commission, seller_amt
 
 
 class CropSale(models.Model):

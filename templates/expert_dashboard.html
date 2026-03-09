@@ -1551,6 +1551,10 @@
                                     <div class="profile-info-value"><i class="fas fa-graduation-cap"></i> {{ profile.qualification|default:"Not set" }}</div>
                                 </div>
                                 <div class="info-card">
+                                    <span class="profile-info-label">Consultation fee</span>
+                                    <div class="profile-info-value"><i class="fas fa-rupee-sign"></i> {% if profile.consultation_fee and profile.consultation_fee > 0 %}Rs. {{ profile.consultation_fee }} per session{% else %}Free{% endif %}</div>
+                                </div>
+                                <div class="info-card">
                                     <span class="profile-info-label">Member Since</span>
                                     <div class="profile-info-value"><i class="fas fa-calendar"></i> {{ user.date_joined|date:"M d, Y" }}</div>
                                 </div>
@@ -1595,6 +1599,11 @@
                                     <div class="edit-card form-group">
                                         <span class="profile-info-label">Qualification</span>
                                         <input type="text" name="qualification" id="expertQualification" class="form-control" value="{{ profile.qualification|default:'' }}" placeholder="e.g., B.Sc Agriculture">
+                                    </div>
+                                    <div class="edit-card form-group">
+                                        <span class="profile-info-label">Consultation fee (Rs.)</span>
+                                        <input type="number" name="consultation_fee" id="expertConsultationFee" class="form-control" value="{{ profile.consultation_fee|default:0 }}" placeholder="0 = Free" min="0" step="0.01" style="max-width: 140px;">
+                                        <small style="color: #666; font-size: 0.85rem; margin-top: 0.35rem; display: block;">Set 0 for free appointments. Fee will apply when paid appointments are enabled.</small>
                                     </div>
                                     <div class="edit-card form-group">
                                         <span class="profile-info-label">Member Since</span>

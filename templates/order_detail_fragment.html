@@ -1,0 +1,76 @@
+{# Order detail content for embedding in modal (no full page wrapper) #}
+<div class="od-modal-wrap" data-order-id="{{ order.id }}">
+    <div class="od-card od-modal-card">
+        <div class="od-card-header">
+            <h2 class="od-modal-title"><i class="fas fa-receipt"></i> Order #{{ order.id }}</h2>
+            <span class="od-status od-status-pill status-{{ order.status }}">{{ order.get_status_display }}</span>
+        </div>
+        <div class="od-card-body">
+            <div class="od-section">
+                <div class="od-section-title">Product</div>
+                <div class="od-row">
+                    <span class="od-label">Item</span>
+                    <span class="od-value">
+                        {% if order.crop %}<i class="fas fa-seedling"></i> {{ order.crop.name }}{% elif order.tool %}<i class="fas fa-tools"></i> {{ order.tool.name }}{% else %}—{% endif %}
+                    </span>
+                </div>
+                <div class="od-row">
+                    <span class="od-label">Quantity</span>
+                    <span class="od-value">{{ order.quantity }} {% if order.crop %}{{ order.crop.unit }}{% else %}units{% endif %}</span>
+                </div>
+                <div class="od-row">
+                    <span class="od-label">Unit price</span>
+                    <span class="od-value">{% if order.crop %}Rs. {{ order.crop.price_per_unit }}{% elif order.tool %}Rs. {{ order.tool.price }}{% else %}—{% endif %}</span>
+                </div>
+                <div class="od-row">
+                    <span class="od-label">Product total</span>
+                    <span class="od-value">Rs. {{ order_product_subtotal|default:0|floatformat:2 }}</span>
+                </div>
+                <div class="od-row">
+                    <span class="od-label">Shipping cost</span>
+                    <span class="od-value">Rs. {{ order.shipping_cost|default:0|floatformat:2 }}</span>
+                </div>
+                <div class="od-row od-total-row">
+                    <span>Total amount (Product + Shipping)</span>
+                    <span>Rs. {{ order.total_amount|default:0|floatformat:2 }}</span>
+                </div>
+                <div class="od-row">
+                    <span class="od-label">Admin commission (20%)</span>
+                    <span class="od-value">Rs. {{ display_admin_commission|floatformat:2 }}</span>
+                </div>
+                <div class="od-row">
+                    <span class="od-label">Amount to farmer/vendor</span>
+                    <span class="od-value">Rs. {{ display_seller_amount|floatformat:2 }}</span>
+                </div>
+            </div>
+
+            <div class="od-section">
+                <div class="od-section-title">Delivery address</div>
+                <div class="od-address">{% if order.shipping_address %}{{ order.shipping_address }}{% else %}—{% endif %}</div>
+                {% if order.contact_number %}<div class="od-row" style="margin-top: 0.5rem;"><span class="od-label">Contact</span><span class="od-value">{{ order.contact_number }}</span></div>{% endif %}
+                {% if order.order_email %}<div class="od-row"><span class="od-label">Email</span><span class="od-value">{{ order.order_email }}</span></div>{% endif %}
+            </div>
+
+            <div class="od-section">
+                <div class="od-section-title">Order & payment</div>
+                <div class="od-row"><span class="od-label">Order date</span><span class="od-value">{{ order.created_at|date:"M d, Y · h:i A" }}</span></div>
+                <div class="od-row">
+                    <span class="od-label">Payment</span>
+                    <span class="od-value">
+                        <span class="od-badge {% if order.payment_method == 'esewa' %}esewa{% else %}cod{% endif %}">{% if order.payment_method == 'esewa' %}eSewa{% else %}Cash on Delivery{% endif %}</span>
+                        <span class="od-badge {% if order.payment_status == 'completed' %}paid{% endif %}">{{ order.get_payment_status_display|default:order.payment_status|title }}</span>
+                    </span>
+                </div>
+                {% if order.tracking_number %}<div class="od-row"><span class="od-label">Tracking</span><span class="od-value">{{ order.tracking_number }}</span></div>{% endif %}
+            </div>
+
+            {% if is_buyer %}
+            <div class="od-section"><div class="od-section-title">Ordered from</div><div class="od-row"><span class="od-label">Seller</span><span class="od-value">{{ order.get_seller_display_name }}</span></div></div>
+            {% endif %}
+            {% if is_seller %}
+            <div class="od-section"><div class="od-section-title">Buyer</div><div class="od-row"><span class="od-label">Customer</span><span class="od-value">{{ order.buyer.get_full_name|default:order.buyer.email }}</span></div></div>
+            {% endif %}
+            {% if order.notes %}<div class="od-section"><div class="od-section-title">Notes</div><div class="od-address">{{ order.notes }}</div></div>{% endif %}
+        </div>
+    </div>
+</div>
