@@ -1869,20 +1869,40 @@
                         {% if experts %}
                         <div style="display: grid; gap: 1.5rem;">
                             {% for expert in experts %}
-                            <div style="background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 1.5rem; display: flex; gap: 1.5rem; align-items: center;">
-                                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; flex-shrink: 0;">
+                            <div style="background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 16px; padding: 1.5rem; display: flex; gap: 1.5rem; align-items: center; box-shadow: 0 4px 18px rgba(15,23,42,0.06);">
+                                <div style="width: 80px; height: 80px; border-radius: 50%; background: var(--primary); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem; flex-shrink: 0; overflow: hidden;">
                                     {% if expert.photo %}
-                                    <img src="{{ expert.photo.url }}" alt="{{ expert.name }}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">
+                                    <img src="{{ expert.photo.url }}" alt="{{ expert.name }}" style="width: 100%; height: 100%; object-fit: cover;">
                                     {% else %}
                                     {{ expert.name|first|upper }}
                                     {% endif %}
                                 </div>
                                 <div style="flex: 1;">
-                                    <h3 style="margin: 0 0 0.5rem 0; font-size: 1.3rem;">{{ expert.name|default:expert.user.email }}</h3>
-                                    <p style="margin: 0 0 0.5rem 0; color: var(--primary); font-weight: 600;">{{ expert.specialization|default:"Agricultural Expert" }}</p>
-                                    <p style="margin: 0; color: #666; font-size: 0.9rem;">{{ expert.qualification|default:"" }} {% if expert.experience %}• {{ expert.experience }} years experience{% endif %}</p>
+                                    <h3 style="margin: 0 0 0.25rem 0; font-size: 1.25rem; color:#111827;">{{ expert.name|default:expert.user.email }}</h3>
+                                    <p style="margin: 0 0 0.35rem 0; color: var(--primary); font-weight: 600; font-size:0.95rem;">
+                                        <i class="fas fa-leaf"></i>
+                                        {{ expert.specialization|default:"Agricultural Expert" }}
+                                    </p>
+                                    <p style="margin: 0 0 0.35rem 0; color: #4b5563; font-size: 0.9rem;">
+                                        {% if expert.qualification %}<strong>{{ expert.qualification }}</strong>{% endif %}
+                                        {% if expert.qualification and expert.experience %} • {% endif %}
+                                        {% if expert.experience %}{{ expert.experience }} experience{% endif %}
+                                    </p>
+                                    <p style="margin: 0; color: #6b7280; font-size: 0.85rem;">
+                                        {% if expert.consultation_fee and expert.consultation_fee > 0 %}
+                                            <i class="fas fa-money-bill-wave"></i> Consultation fee: <strong>Rs. {{ expert.consultation_fee }}</strong>
+                                        {% else %}
+                                            <i class="fas fa-money-bill-wave"></i> Consultation fee: <strong>Free for now</strong>
+                                        {% endif %}
+                                    </p>
                                 </div>
-                                <div style="display: flex; gap: 1rem;">
+                                <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items:flex-end;">
+                                    <button type="button"
+                                            class="btn-primary"
+                                            style="background:white; color:#111827; border:1px solid #e5e7eb; font-size:0.85rem; padding:0.45rem 0.9rem;"
+                                            onclick="openExpertProfileModal('{{ expert.name|default:expert.user.email|escapejs }}', '{{ expert.specialization|default:"Agricultural Expert"|escapejs }}', '{{ expert.qualification|default:""|escapejs }}', '{{ expert.experience|default:""|escapejs }}', '{{ expert.consultation_fee|default:0 }}', '{% if expert.photo %}{{ expert.photo.url|escapejs }}{% endif %}')">
+                                        <i class="fas fa-id-card"></i> View profile
+                                    </button>
                                     {% if kyc_status == 'approved' %}
                                     <button class="btn-primary" onclick="openChatWithExpert({{ expert.id }}, '{{ expert.name|default:expert.user.email|escapejs }}', '{{ expert.qualification|default:""|escapejs }}', '{{ expert.specialization|default:""|escapejs }}', '{{ expert.experience|default:""|escapejs }}')" style="display: inline-flex; align-items: center; gap: 0.5rem;">
                                         <i class="fas fa-comments"></i> Chat
@@ -3066,6 +3086,42 @@
         </div>
     </div>
 
+    <!-- Expert Profile Modal (farmer view) -->
+    <div id="expertProfileModal" class="modal">
+        <div class="modal-content" style="max-width: 640px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-id-card"></i> Expert profile</h3>
+                <button class="close-modal" onclick="closeModal('expertProfileModal')">&times;</button>
+            </div>
+            <div class="section-body" style="padding: 1.5rem;">
+                <div style="display:flex; gap:1.2rem; align-items:flex-start; margin-bottom:1.25rem;">
+                    <div id="expertProfileAvatar" style="width:72px;height:72px;border-radius:999px;background:var(--primary);display:flex;align-items:center;justify-content:center;color:white;font-size:2rem;overflow:hidden;">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div>
+                        <div id="expertProfileName" style="font-size:1.25rem;font-weight:700;color:#111827;margin-bottom:0.15rem;">—</div>
+                        <div id="expertProfileSpec" style="font-size:0.95rem;color:var(--primary);font-weight:600;margin-bottom:0.25rem;">—</div>
+                        <div id="expertProfileQual" style="font-size:0.9rem;color:#4b5563;margin-bottom:0.25rem;">—</div>
+                        <div id="expertProfileExp" style="font-size:0.85rem;color:#6b7280;">—</div>
+                    </div>
+                </div>
+                <div style="padding:0.9rem 1rem;border-radius:10px;background:#f9fafb;border:1px solid #e5e7eb;margin-bottom:1rem;font-size:0.9rem;color:#374151;">
+                    <div id="expertProfileFee">
+                        <i class="fas fa-money-bill-wave" style="color:var(--primary);margin-right:0.4rem;"></i>
+                        Consultation fee: <strong>Free for now</strong>
+                    </div>
+                    <p style="margin:0.4rem 0 0;font-size:0.8rem;color:#6b7280;">
+                        Appointment fee is handled by the system. For now, consultations are free unless specified.
+                    </p>
+                </div>
+                <p style="font-size:0.85rem; color:#6b7280; margin-bottom:0;">
+                    <i class="fas fa-info-circle"></i>
+                    You can chat with this expert or book an appointment from the experts list.
+                </p>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="/static/js/main.js"></script>
     <script>
@@ -3554,6 +3610,42 @@
             if (modal) {
                 modal.classList.add('active');
             }
+        }
+
+        function openExpertProfileModal(name, spec, qual, exp, fee, photoUrl) {
+            var nameEl = document.getElementById('expertProfileName');
+            var specEl = document.getElementById('expertProfileSpec');
+            var qualEl = document.getElementById('expertProfileQual');
+            var expEl = document.getElementById('expertProfileExp');
+            var feeEl = document.getElementById('expertProfileFee');
+            var avatar = document.getElementById('expertProfileAvatar');
+
+            if (nameEl) nameEl.textContent = name || 'Expert';
+            if (specEl) specEl.textContent = spec || 'Agricultural Expert';
+            if (qualEl) qualEl.textContent = qual || 'Qualification not specified';
+            if (expEl) expEl.textContent = exp ? (exp + ' experience') : 'Experience not specified';
+
+            if (feeEl) {
+                var feeNum = parseFloat(fee || 0);
+                if (feeNum > 0) {
+                    feeEl.innerHTML = '<i class="fas fa-money-bill-wave" style="color:var(--primary);margin-right:0.4rem;"></i>' +
+                        'Consultation fee: <strong>Rs. ' + feeNum.toFixed(2) + '</strong>';
+                } else {
+                    feeEl.innerHTML = '<i class="fas fa-money-bill-wave" style="color:var(--primary);margin-right:0.4rem;"></i>' +
+                        'Consultation fee: <strong>Free for now</strong>';
+                }
+            }
+
+            if (avatar) {
+                if (photoUrl) {
+                    avatar.innerHTML = '<img src="' + photoUrl + '" alt="" style="width:100%;height:100%;object-fit:cover;">';
+                } else {
+                    avatar.innerHTML = '<i class="fas fa-user-graduate"></i>';
+                }
+            }
+
+            var modal = document.getElementById('expertProfileModal');
+            if (modal) modal.classList.add('active');
         }
 
         function loadChatMessages() {
