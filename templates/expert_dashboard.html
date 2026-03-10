@@ -1316,13 +1316,18 @@
                             {% for appointment in appointments %}
                             <div class="appointment-item status-{% if appointment.status == 'accepted' and appointment.visit_status == 'visited' %}closed{% else %}{{ appointment.status }}{% endif %}-card">
                                 <div class="appointment-info">
-                                    <h4><i class="fas fa-user"></i> {{ appointment.requester.email }}</h4>
+                                    <h4><i class="fas fa-user"></i> {{ appointment.requester.farmer_profile.name|default:appointment.requester.email }}</h4>
                                     <div class="appointment-meta">
                                         <span><i class="fas fa-calendar-day"></i> {{ appointment.requested_date|date:"M d, Y" }}</span>
                                         <span><i class="fas fa-clock"></i> {{ appointment.requested_time|time:"g:i A" }}</span>
                                     </div>
+                                    <div class="appointment-meta" style="margin-top:0.25rem; font-size:0.85rem;">
+                                        <span><i class="fas fa-map-marker-alt"></i> {{ appointment.requester.farmer_profile.location|default:"Location not provided" }}</span>
+                                        <span><i class="fas fa-phone-alt"></i> {{ appointment.requester.farmer_profile.contact|default:"No contact" }}</span>
+                                        <span><i class="fas fa-envelope"></i> {{ appointment.requester.email }}</span>
+                                    </div>
                                     {% if appointment.message %}
-                                    <div class="appointment-message-box"><strong>Message:</strong> {{ appointment.message }}</div>
+                                    <div class="appointment-message-box"><strong>Farmer query:</strong> {{ appointment.message }}</div>
                                     {% endif %}
                                     {% if appointment.response_message %}
                                     <div class="appointment-response-box {% if appointment.status == 'rejected' %}rejected{% endif %}">

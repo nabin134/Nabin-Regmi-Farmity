@@ -2062,6 +2062,25 @@
                                     </span>
                                     <button type="button"
                                             class="btn-primary"
+                                            style="font-size: 0.85rem; padding: 0.45rem 0.9rem; background: white; color: #111827; border: 1px solid #e5e7eb;"
+                                            onclick="openAppointmentDetails(this)"
+                                            data-appt-id="{{ appointment.id }}"
+                                            data-expert-id="{{ appointment.expert.id }}"
+                                            data-expert-name="{{ appointment.expert.name|default:appointment.expert.user.email }}"
+                                            data-expert-qual="{{ appointment.expert.qualification|default:'' }}"
+                                            data-expert-spec="{{ appointment.expert.specialization|default:'' }}"
+                                            data-expert-exp="{{ appointment.expert.experience|default:'' }}"
+                                            data-date="{{ appointment.requested_date|date:'M d, Y' }}"
+                                            data-time="{{ appointment.requested_time|time:'g:i A' }}"
+                                            data-status="{{ appointment.get_status_display }}"
+                                            data-status-code="{{ appointment.status }}"
+                                            data-visit-status="{{ appointment.get_visit_status_display|default:'' }}"
+                                            data-message="{{ appointment.message|default:'' }}"
+                                            data-response="{{ appointment.response_message|default:'' }}">
+                                        <i class="fas fa-eye"></i> View details
+                                    </button>
+                                    <button type="button"
+                                            class="btn-primary"
                                             style="font-size: 0.85rem; padding: 0.45rem 0.9rem; background: #e5f3eb; color: #166534; border: 1px solid #bbf7d0;"
                                             onclick="openChatWithExpert({{ appointment.expert.id }}, '{{ appointment.expert.name|default:appointment.expert.user.email|escapejs }}', '{{ appointment.expert.qualification|escapejs }}', '{{ appointment.expert.specialization|escapejs }}', '{{ appointment.expert.experience|escapejs }}')">
                                         <i class="fas fa-comments"></i> Join chat
@@ -2837,7 +2856,33 @@
                         </div>
                     </div>
                 </div>
-                
+
+                <div class="form-group" style="margin-top: 0.75rem; padding: 0.9rem 1rem; border-radius: 10px; background: #f9fafb; border: 1px dashed #d1d5db;">
+                    <label style="font-weight: 600; font-size: 0.9rem; display: block; margin-bottom: 0.35rem;">
+                        Visit location & contact (from your profile)
+                    </label>
+                    <p style="font-size: 0.85rem; color: #6b7280; margin-bottom: 0.5rem;">
+                        Experts will use this information to plan the visit. To change it, update your profile first.
+                    </p>
+                    <div style="display:flex; flex-direction:column; gap:0.4rem; font-size:0.88rem; color:#374151;">
+                        <div>
+                            <i class="fas fa-map-marker-alt" style="color:#ef4444; width:1rem;"></i>
+                            <strong>Location:</strong>
+                            <span>{{ profile.location|default:"Not provided" }}</span>
+                        </div>
+                        <div>
+                            <i class="fas fa-phone-alt" style="color:var(--primary); width:1rem;"></i>
+                            <strong>Contact:</strong>
+                            <span>{{ profile.contact|default:"Not provided" }}</span>
+                        </div>
+                        <div>
+                            <i class="fas fa-envelope" style="color:#2563eb; width:1rem;"></i>
+                            <strong>Email:</strong>
+                            <span>{{ request.user.email }}</span>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="form-group">
                     <label>Message (Optional)</label>
                     <textarea name="message" class="form-control" rows="4" placeholder="Describe your agricultural issue or question..."></textarea>
@@ -2911,6 +2956,113 @@
                 </div>
                 <button type="submit" class="btn-primary" style="width: 100%; background: var(--secondary);"><i class="fas fa-paper-plane"></i> Apply again</button>
             </form>
+        </div>
+    </div>
+
+    <!-- Appointment Details Modal -->
+    <div id="appointmentDetailsModal" class="modal">
+        <div class="modal-content" style="max-width: 720px;">
+            <div class="modal-header">
+                <h3><i class="fas fa-file-medical-alt"></i> Appointment details</h3>
+                <button class="close-modal" onclick="closeModal('appointmentDetailsModal')">&times;</button>
+            </div>
+            <div class="section-body" style="padding: 1.5rem;">
+                <div style="display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 1.25rem; margin-bottom: 1.25rem; flex-wrap: wrap;">
+                    <div>
+                        <h4 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 0.5rem;">
+                            Expert
+                        </h4>
+                        <div style="display:flex; gap:0.75rem; align-items:flex-start;">
+                            <div style="width:44px;height:44px;border-radius:999px;background:#e5f3eb;display:flex;align-items:center;justify-content:center;color:var(--primary);">
+                                <i class="fas fa-user-graduate"></i>
+                            </div>
+                            <div>
+                                <div id="apptDetailExpertName" style="font-weight:700; color:#111827; margin-bottom:0.2rem;">—</div>
+                                <div id="apptDetailExpertMeta" style="font-size:0.85rem; color:#6b7280;">—</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div>
+                        <h4 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 0.5rem;">
+                            Your location & contact
+                        </h4>
+                        <p style="font-size:0.9rem; color:#111827; margin:0 0 0.25rem 0;">
+                            <i class="fas fa-user" style="margin-right:0.35rem; color:var(--primary);"></i>
+                            {{ profile.name|default:request.user.email }}
+                        </p>
+                        <p style="font-size:0.9rem; color:#4b5563; margin:0 0 0.25rem 0;">
+                            <i class="fas fa-map-marker-alt" style="margin-right:0.35rem; color:#ef4444;"></i>
+                            {{ profile.location|default:"Not provided" }}
+                        </p>
+                        <p style="font-size:0.9rem; color:#4b5563; margin:0 0 0.25rem 0;">
+                            <i class="fas fa-phone-alt" style="margin-right:0.35rem; color:var(--primary);"></i>
+                            {{ profile.contact|default:"Not provided" }}
+                        </p>
+                        {% if profile.farm_size or profile.crop_types %}
+                        <p style="font-size:0.85rem; color:#6b7280; margin:0.25rem 0 0;">
+                            {% if profile.farm_size %}<strong>Farm size:</strong> {{ profile.farm_size }}{% endif %}
+                            {% if profile.farm_size and profile.crop_types %} · {% endif %}
+                            {% if profile.crop_types %}<strong>Crops:</strong> {{ profile.crop_types }}{% endif %}
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+                <div style="border-top:1px solid #e5e7eb; padding-top:1.1rem; margin-top:0.4rem;">
+                    <h4 style="font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.08em; color: #6b7280; margin-bottom: 0.6rem;">
+                        Appointment info
+                    </h4>
+                    <div style="display:grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap:0.75rem; font-size:0.9rem; margin-bottom:0.9rem;">
+                        <div>
+                            <div style="color:#6b7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.06em;">Date</div>
+                            <div id="apptDetailDate" style="font-weight:600; color:#111827;">—</div>
+                        </div>
+                        <div>
+                            <div style="color:#6b7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.06em;">Time</div>
+                            <div id="apptDetailTime" style="font-weight:600; color:#111827;">—</div>
+                        </div>
+                        <div>
+                            <div style="color:#6b7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.06em;">Status</div>
+                            <div id="apptDetailStatusWrap">
+                                <span id="apptDetailStatus" class="appointment-status status-pending">
+                                    <i class="fas fa-circle" style="font-size:0.5rem;"></i> Pending
+                                </span>
+                            </div>
+                        </div>
+                        <div>
+                            <div style="color:#6b7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.06em;">Visit status</div>
+                            <div id="apptDetailVisit" style="font-weight:500; color:#374151;">—</div>
+                        </div>
+                    </div>
+                    <div style="margin-bottom:0.85rem;">
+                        <div style="color:#6b7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.25rem;">Your query</div>
+                        <div id="apptDetailMessage" style="font-size:0.9rem; color:#374151; background:#f9fafb; border-radius:8px; padding:0.65rem 0.75rem; min-height:2.2rem;">—</div>
+                    </div>
+                    <div>
+                        <div style="color:#6b7280; font-size:0.8rem; text-transform:uppercase; letter-spacing:0.06em; margin-bottom:0.25rem;">Expert reply</div>
+                        <div id="apptDetailResponse" style="font-size:0.9rem; color:#374151; background:#ecfdf3; border-radius:8px; padding:0.65rem 0.75rem; min-height:2.2rem;">—</div>
+                    </div>
+                </div>
+                <div style="margin-top:1.3rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem;">
+                    <div style="font-size:0.8rem; color:#6b7280;">
+                        <i class="fas fa-info-circle"></i>
+                        Expert will use your profile location as the visit location unless you agree otherwise in chat.
+                    </div>
+                    <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                        <button type="button"
+                                class="btn-primary"
+                                style="background:#e5f3eb; color:#166534; border:1px solid #bbf7d0; font-size:0.85rem; padding:0.45rem 0.9rem;"
+                                id="apptDetailChatBtn">
+                            <i class="fas fa-comments"></i> Open chat with expert
+                        </button>
+                        <button type="button"
+                                class="btn-primary"
+                                style="font-size:0.85rem; padding:0.45rem 0.9rem; background:white; color:#111827; border:1px solid #e5e7eb;"
+                                onclick="closeModal('appointmentDetailsModal')">
+                            Close
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -3347,6 +3499,61 @@
             var inputArea = document.getElementById('chatInputArea');
             if (inputArea) inputArea.style.display = 'flex';
             loadChatMessages();
+        }
+
+        function openAppointmentDetails(button) {
+            if (!button || !button.dataset) return;
+            var d = button.dataset;
+            var expertName = d.expertName || 'Expert';
+            var qual = d.expertQual || '';
+            var spec = d.expertSpec || '';
+            var exp = d.expertExp || '';
+
+            // Expert area
+            var expertNameEl = document.getElementById('apptDetailExpertName');
+            var expertMetaEl = document.getElementById('apptDetailExpertMeta');
+            if (expertNameEl) expertNameEl.textContent = expertName;
+            if (expertMetaEl) {
+                var metaParts = [];
+                if (spec) metaParts.push(spec);
+                if (qual) metaParts.push(qual);
+                if (exp) metaParts.push(exp + ' experience');
+                expertMetaEl.textContent = metaParts.join(' • ') || 'Agricultural expert';
+            }
+
+            // Appointment basics
+            var dateEl = document.getElementById('apptDetailDate');
+            var timeEl = document.getElementById('apptDetailTime');
+            var statusEl = document.getElementById('apptDetailStatus');
+            var visitEl = document.getElementById('apptDetailVisit');
+            if (dateEl) dateEl.textContent = d.date || '—';
+            if (timeEl) timeEl.textContent = d.time || '—';
+            if (statusEl) {
+                statusEl.textContent = d.status || 'Pending';
+                var code = d.statusCode || 'pending';
+                statusEl.className = 'appointment-status status-' + code;
+            }
+            if (visitEl) visitEl.textContent = d.visitStatus || 'Not set';
+
+            // Messages
+            var msgEl = document.getElementById('apptDetailMessage');
+            var respEl = document.getElementById('apptDetailResponse');
+            if (msgEl) msgEl.textContent = d.message && d.message.trim() ? d.message : 'No details provided.';
+            if (respEl) respEl.textContent = d.response && d.response.trim() ? d.response : 'No reply from expert yet.';
+
+            // Hook up chat button
+            var chatBtn = document.getElementById('apptDetailChatBtn');
+            if (chatBtn && d.expertId) {
+                chatBtn.onclick = function() {
+                    openChatWithExpert(d.expertId, expertName, qual, spec, exp);
+                    closeModal('appointmentDetailsModal');
+                };
+            }
+
+            var modal = document.getElementById('appointmentDetailsModal');
+            if (modal) {
+                modal.classList.add('active');
+            }
         }
 
         function loadChatMessages() {
