@@ -699,15 +699,31 @@
             display: flex;
             height: 500px;
             border: 2px solid #e9ecef;
-            border-radius: 12px;
+            border-radius: 16px;
             overflow: hidden;
+            background: #f9fafb;
         }
 
         .chat-sidebar {
-            width: 300px;
-            background: var(--light);
-            border-right: 2px solid #e9ecef;
+            width: 290px;
+            background: #f3f4f6;
+            border-right: 2px solid #e5e7eb;
             overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .chat-sidebar-header {
+            padding: 0.9rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: #6b7280;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
         }
 
         .chat-list {
@@ -717,96 +733,191 @@
         }
 
         .chat-item {
-            padding: 1rem;
-            border-bottom: 1px solid #e9ecef;
+            padding: 0.85rem 1rem;
+            border-bottom: 1px solid #e5e7eb;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: background 0.2s, border-left-color 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            border-left: 3px solid transparent;
+        }
+
+        .chat-item-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            background: #e5f3eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 0.8rem;
+            font-weight: 700;
+            flex-shrink: 0;
+        }
+
+        .chat-item-body {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .chat-item-name {
+            font-weight: 600;
+            font-size: 0.9rem;
+            color: #111827;
+            margin-bottom: 0.15rem;
+        }
+
+        .chat-item-meta {
+            font-size: 0.78rem;
+            color: #6b7280;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         .chat-item:hover, .chat-item.active {
-            background: white;
+            background: #e5f3eb;
+            border-left-color: var(--primary);
         }
 
         .chat-main {
             flex: 1;
             display: flex;
             flex-direction: column;
+            background: #ffffff;
         }
 
         .chat-header {
-            padding: 1rem 1.5rem;
-            background: var(--primary);
-            color: white;
+            padding: 1rem 1.25rem;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .chat-header-title {
             font-weight: 600;
+            color: #111827;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .chat-header-subtitle {
+            font-size: 0.8rem;
+            color: #6b7280;
+            margin-top: 0.15rem;
         }
 
         .chat-messages {
             flex: 1;
-            padding: 1.5rem;
+            padding: 1rem 1.25rem 1.25rem;
             overflow-y: auto;
-            background: white;
+            background: #f9fafb;
         }
 
         .message {
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem;
             display: flex;
-            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.5rem;
         }
 
         .message.sent {
-            align-items: flex-end;
+            justify-content: flex-end;
         }
 
         .message.received {
-            align-items: flex-start;
+            justify-content: flex-start;
+        }
+
+        .message-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            background: #e5f3eb;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            font-size: 0.8rem;
+            flex-shrink: 0;
+        }
+
+        .message.sent .message-avatar {
+            background: #d1fae5;
+            color: #047857;
+            order: 2;
+        }
+
+        .message.sent .message-bubble {
+            order: 1;
         }
 
         .message-bubble {
             max-width: 70%;
-            padding: 0.75rem 1rem;
-            border-radius: 12px;
-            font-size: 0.95rem;
+            padding: 0.6rem 0.85rem;
+            border-radius: 14px;
+            font-size: 0.9rem;
+            box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
         }
 
         .message.sent .message-bubble {
             background: var(--primary);
             color: white;
+            border-bottom-right-radius: 4px;
         }
 
         .message.received .message-bubble {
-            background: var(--light);
-            color: #333;
+            background: #ffffff;
+            color: #111827;
+            border-bottom-left-radius: 4px;
+        }
+
+        .message-text {
+            white-space: pre-wrap;
+        }
+
+        .message-time {
+            font-size: 0.7rem;
+            opacity: 0.8;
+            margin-top: 0.25rem;
         }
 
         .chat-input-area {
-            padding: 1rem 1.5rem;
-            background: var(--light);
-            border-top: 2px solid #e9ecef;
+            padding: 0.9rem 1.1rem;
+            background: #f3f4f6;
+            border-top: 1px solid #e5e7eb;
             display: flex;
-            gap: 1rem;
+            gap: 0.75rem;
         }
 
         .chat-input {
             flex: 1;
-            padding: 0.75rem 1rem;
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            font-size: 0.95rem;
+            padding: 0.7rem 0.9rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 999px;
+            font-size: 0.9rem;
+            background: #ffffff;
         }
 
         .btn-send {
             background: var(--primary);
             color: white;
             border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 8px;
+            padding: 0.6rem 1.25rem;
+            border-radius: 999px;
             font-weight: 600;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: background 0.2s, transform 0.1s;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            font-size: 0.9rem;
         }
 
         .btn-send:hover {
             background: var(--primary-dark);
+            transform: translateY(-1px);
         }
 
         /* Educational Content */
@@ -947,25 +1058,32 @@
         }
 
         .appointment-status {
-            padding: 0.5rem 1rem;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: 500;
-            display: inline-block;
+            padding: 0.3rem 0.9rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+
+        .appointments-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1.25rem;
         }
 
         .appointments-list .appointment-item {
-            padding: 1.5rem;
-            border-bottom: 1px solid #eee;
+            padding: 1.25rem 1.4rem;
+            border-radius: 14px;
+            background: #ffffff;
+            border: 1px solid #e5e7eb;
+            box-shadow: 0 2px 10px rgba(15,23,42,0.04);
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
             flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .appointments-list .appointment-item:last-child {
-            border-bottom: none;
+            gap: 0.9rem;
         }
 
         .status-confirmed {
@@ -1802,11 +1920,29 @@
                     <div class="section-body">
                         <div class="chat-container">
                             <div class="chat-sidebar">
+                                <div class="chat-sidebar-header">
+                                    <i class="fas fa-user-graduate"></i>
+                                    <span>Conversations</span>
+                                </div>
                                 <ul class="chat-list">
                                     {% for thread in chat_threads %}
-                                    <li class="chat-item" onclick="loadChatThread({{ thread.id }}, '{{ thread.expert.name|default:thread.expert.user.email|escapejs }}', '{{ thread.expert.qualification|default:""|escapejs }}', '{{ thread.expert.specialization|default:""|escapejs }}', '{{ thread.expert.experience|default:""|escapejs }}')" style="cursor: pointer;">
-                                        <div style="font-weight: 600;">{{ thread.expert.name|default:thread.expert.user.email }}</div>
-                                        <div style="font-size: 0.85rem; color: #666;">{{ thread.expert.specialization|default:"Expert" }}{% if thread.expert.qualification %} • {{ thread.expert.qualification }}{% endif %}{% if thread.expert.experience %} • {{ thread.expert.experience }}{% endif %}</div>
+                                    <li class="chat-item"
+                                        data-thread-id="{{ thread.id }}"
+                                        data-expert-id="{{ thread.expert.id }}"
+                                        data-expert-name="{{ thread.expert.name|default:thread.expert.user.email }}"
+                                        data-expert-spec="{{ thread.expert.specialization|default:'Expert' }}"
+                                        data-expert-qual="{{ thread.expert.qualification|default:'' }}"
+                                        data-expert-exp="{{ thread.expert.experience|default:'' }}"
+                                        onclick="loadChatThread({{ thread.id }}, '{{ thread.expert.name|default:thread.expert.user.email|escapejs }}', '{{ thread.expert.qualification|escapejs }}', '{{ thread.expert.specialization|escapejs }}', '{{ thread.expert.experience|escapejs }}')">
+                                        <div class="chat-item-avatar">
+                                            <i class="fas fa-user-graduate"></i>
+                                        </div>
+                                        <div class="chat-item-body">
+                                            <div class="chat-item-name">{{ thread.expert.name|default:thread.expert.user.email }}</div>
+                                            <div class="chat-item-meta">
+                                                {{ thread.expert.specialization|default:"Expert" }}{% if thread.expert.qualification %} • {{ thread.expert.qualification }}{% endif %}{% if thread.expert.experience %} • {{ thread.expert.experience }}{% endif %}
+                                            </div>
+                                        </div>
                                     </li>
                                     {% empty %}
                                     <li style="padding: 1rem; text-align: center; color: #999;">No chat threads yet. Start chatting with an expert!</li>
@@ -1814,7 +1950,13 @@
                                 </ul>
                             </div>
                             <div class="chat-main">
-                                <div class="chat-header" id="chatHeader">Select an expert to start chatting</div>
+                                <div class="chat-header" id="chatHeader">
+                                    <div class="chat-header-title">
+                                        <i class="fas fa-comments"></i>
+                                        <span>Select an expert to start chatting</span>
+                                    </div>
+                                    <div class="chat-header-subtitle" id="chatHeaderSubtitle"></div>
+                                </div>
                                 <div class="chat-messages" id="chatMessages">
                                     <div style="text-align: center; color: #999; padding: 2rem;">
                                         Select an expert from the sidebar to start a conversation
@@ -1882,32 +2024,58 @@
                         {% if appointments %}
                         <div class="appointments-list">
                             {% for appointment in appointments %}
-                            <div class="appointment-item" style="flex-wrap: wrap;">
+                            <div class="appointment-item">
                                 <div class="appointment-info">
-                                    <h4><i class="fas fa-user-graduate"></i> With {{ appointment.expert.name|default:appointment.expert.user.email }}</h4>
-                                    <p><i class="far fa-calendar"></i> {{ appointment.requested_date|date:"M d, Y" }} at {{ appointment.requested_time|time:"g:i A" }}</p>
-                                    {% if appointment.message %}<p style="margin-top: 0.5rem; color: #666;">{{ appointment.message }}</p>{% endif %}
+                                    <h4 class="appointment-expert-name" style="font-size: 1rem; font-weight: 700; color: #111827; margin-bottom: 0.25rem;">
+                                        <i class="fas fa-user-graduate" style="color: var(--primary); margin-right: 0.35rem;"></i>
+                                        {{ appointment.expert.name|default:appointment.expert.user.email }}
+                                    </h4>
+                                    <p class="appointment-datetime" style="font-size: 0.9rem; color: #4b5563; margin-bottom: 0.35rem;">
+                                        <i class="far fa-calendar-alt" style="margin-right: 0.35rem;"></i>
+                                        {{ appointment.requested_date|date:"M d, Y" }} · {{ appointment.requested_time|time:"g:i A" }}
+                                    </p>
+                                    {% if appointment.message %}
+                                    <p class="appointment-message" style="margin-top: 0.35rem; font-size: 0.9rem; color: #374151;">
+                                        {{ appointment.message }}
+                                    </p>
+                                    {% endif %}
                                     {% if appointment.response_message %}
-                                    <p style="margin-top: 0.5rem; padding: 0.5rem; border-radius: 8px; font-size: 0.9rem; {% if appointment.status == 'rejected' %}background: #fff3cd; border-left: 4px solid #dc3545;{% else %}background: #e8f5e9;{% endif %}">
-                                        <strong>{% if appointment.status == 'rejected' %}Reason rejected:{% else %}Expert:{% endif %}</strong> {{ appointment.response_message }}
+                                    <p class="appointment-response" style="margin-top: 0.5rem; padding: 0.55rem 0.7rem; border-radius: 8px; font-size: 0.85rem; {% if appointment.status == 'rejected' %}background: #fff7ed; border-left: 3px solid #f97316;{% else %}background: #ecfdf3; border-left: 3px solid #16a34a;{% endif %}">
+                                        <strong style="font-weight: 600;">
+                                            {% if appointment.status == 'rejected' %}Reason rejected:{% else %}Expert reply:{% endif %}
+                                        </strong>
+                                        {{ appointment.response_message }}
                                     </p>
                                     {% endif %}
                                     {% if appointment.status == 'accepted' and appointment.visit_status %}
-                                    <p style="margin-top: 0.5rem; font-size: 0.9rem; color: #666;">Visit status: <strong>{{ appointment.get_visit_status_display }}</strong></p>
+                                    <p style="margin-top: 0.4rem; font-size: 0.85rem; color: #4b5563;">
+                                        <i class="fas fa-map-marker-alt" style="margin-right: 0.3rem;"></i>
+                                        Visit status:
+                                        <strong>{{ appointment.get_visit_status_display }}</strong>
+                                    </p>
                                     {% endif %}
-                                    <p style="margin-top: 0.75rem; font-size: 0.85rem; color: #666;">To cancel this appointment, please contact the Farmity team.</p>
                                 </div>
-                                <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;">
-                                    <span class="appointment-status status-{{ appointment.status }}">{{ appointment.get_status_display }}</span>
+                                <div style="display: flex; flex-direction: column; gap: 0.45rem; align-items: flex-end;">
+                                    <span class="appointment-status status-{{ appointment.status }}">
+                                        <i class="fas fa-circle" style="font-size: 0.5rem;"></i>
+                                        {{ appointment.get_status_display }}
+                                    </span>
+                                    <button type="button"
+                                            class="btn-primary"
+                                            style="font-size: 0.85rem; padding: 0.45rem 0.9rem; background: #e5f3eb; color: #166534; border: 1px solid #bbf7d0;"
+                                            onclick="openChatWithExpert({{ appointment.expert.id }}, '{{ appointment.expert.name|default:appointment.expert.user.email|escapejs }}', '{{ appointment.expert.qualification|escapejs }}', '{{ appointment.expert.specialization|escapejs }}', '{{ appointment.expert.experience|escapejs }}')">
+                                        <i class="fas fa-comments"></i> Join chat
+                                    </button>
                                     {% if appointment.status == 'pending' %}
-                                    <button type="button" class="btn-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem;" onclick="openChangeAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
-                                        <i class="fas fa-edit"></i> Change date/time
+                                    <button type="button" class="btn-primary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;" onclick="openChangeAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
+                                        <i class="fas fa-calendar-alt"></i> Change date/time
                                     </button>
                                     {% elif appointment.status == 'rejected' %}
-                                    <button type="button" class="btn-primary" style="font-size: 0.9rem; padding: 0.5rem 1rem; background: var(--secondary);" onclick="openReapplyAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
+                                    <button type="button" class="btn-primary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem; background: var(--secondary);" onclick="openReapplyAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
                                         <i class="fas fa-redo"></i> Edit and apply again
                                     </button>
                                     {% endif %}
+                                    <small style="font-size: 0.78rem; color: #9ca3af; text-align: right;">To cancel, please contact the Farmity team.</small>
                                 </div>
                             </div>
                             {% endfor %}
@@ -3127,13 +3295,20 @@
         }
 
         function setChatHeader(name, qual, spec, exp) {
+            var header = document.getElementById('chatHeader');
+            var titleSpan = header && header.querySelector('.chat-header-title span');
+            var subtitleEl = document.getElementById('chatHeaderSubtitle');
             var parts = [];
             if (qual) parts.push(qual);
             if (spec) parts.push(spec);
             if (exp) parts.push(exp + ' experience');
             var sub = parts.length ? parts.join(' • ') : '';
-            var h = document.getElementById('chatHeader');
-            h.innerHTML = '<div>Chat with ' + (name || 'Expert') + '</div>' + (sub ? '<div style="font-size:0.85rem;opacity:0.9;margin-top:0.25rem;">' + sub + '</div>' : '');
+            if (titleSpan) {
+                titleSpan.textContent = name || 'Expert';
+            }
+            if (subtitleEl) {
+                subtitleEl.textContent = sub;
+            }
         }
         function openChatWithExpert(expertId, expertName, qual, spec, exp) {
             showSection('chat');
@@ -3169,7 +3344,8 @@
             currentChatThreadId = threadId;
             currentChatExpertName = expertName || 'Expert';
             setChatHeader(expertName, qual, spec, exp);
-            document.getElementById('chatInputArea').style.display = 'flex';
+            var inputArea = document.getElementById('chatInputArea');
+            if (inputArea) inputArea.style.display = 'flex';
             loadChatMessages();
         }
 
@@ -3196,7 +3372,11 @@
             }
             messagesDiv.innerHTML = messages.map(m => {
                 const cls = m.is_mine ? 'sent' : 'received';
-                return '<div class="message ' + cls + '"><div class="message-bubble">' + escapeHtml(m.message) + '<div style="font-size:0.75rem;opacity:0.8;margin-top:0.25rem;">' + m.created_at + '</div></div></div>';
+                const avatarIcon = m.is_mine ? 'fa-user' : 'fa-user-graduate';
+                return '<div class="message ' + cls + '">' +
+                       '<div class="message-avatar"><i class="fas ' + avatarIcon + '"></i></div>' +
+                       '<div class="message-bubble"><div class="message-text">' + escapeHtml(m.message) + '</div>' +
+                       '<div class="message-time">' + (m.created_at || '') + '</div></div></div>';
             }).join('');
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
         }
@@ -3216,7 +3396,10 @@
             const messagesDiv = document.getElementById('chatMessages');
             const placeholder = document.createElement('div');
             placeholder.className = 'message sent';
-            placeholder.innerHTML = '<div class="message-bubble">' + escapeHtml(msg) + '<div style="font-size:0.75rem;opacity:0.8;margin-top:0.25rem;">Sending...</div></div>';
+            placeholder.innerHTML =
+                '<div class="message-avatar"><i class="fas fa-user"></i></div>' +
+                '<div class="message-bubble"><div class="message-text">' + escapeHtml(msg) +
+                '</div><div class="message-time">Sending...</div></div>';
             messagesDiv.appendChild(placeholder);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             const formData = new FormData();
@@ -3231,9 +3414,11 @@
                     placeholder.querySelector('.message-bubble').innerHTML = escapeHtml(msg) + ' <span style="color:#dc3545;">(Failed)</span>';
                     return;
                 }
-                placeholder.querySelector('.message-bubble').innerHTML = escapeHtml(data.message) + '<div style="font-size:0.75rem;opacity:0.8;margin-top:0.25rem;">' + data.created_at + '</div>';
+                placeholder.querySelector('.message-text').textContent = data.message || msg;
+                const timeEl = placeholder.querySelector('.message-time');
+                if (timeEl) timeEl.textContent = data.created_at || '';
             }).catch(() => {
-                placeholder.querySelector('.message-bubble').innerHTML = escapeHtml(msg) + ' <span style="color:#dc3545;">(Failed)</span>';
+                placeholder.querySelector('.message-text').innerHTML = escapeHtml(msg) + ' <span style="color:#dc3545;">(Failed)</span>';
             });
         }
 
