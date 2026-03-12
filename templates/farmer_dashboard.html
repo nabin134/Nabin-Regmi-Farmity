@@ -1323,6 +1323,48 @@
             font-size: 1.5rem;
         }
 
+        /* Toast notifications */
+        .toast-container {
+            position: fixed;
+            right: 1.5rem;
+            bottom: 1.5rem;
+            z-index: 99999;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        .toast {
+            min-width: 260px;
+            max-width: 360px;
+            padding: 0.85rem 1rem;
+            border-radius: 10px;
+            box-shadow: 0 10px 30px rgba(15,23,42,0.18);
+            background: #ffffff;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.6rem;
+            font-size: 0.9rem;
+            border-left: 4px solid var(--primary);
+            animation: toast-in 0.25s ease-out;
+        }
+        .toast-icon {
+            margin-top: 0.1rem;
+            color: var(--primary);
+        }
+        .toast-message {
+            color: #111827;
+        }
+        .toast.toast-error {
+            border-left-color: var(--danger);
+        }
+        .toast.toast-error .toast-icon {
+            color: var(--danger);
+        }
+        @keyframes toast-in {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
         /* Language Selector */
         .language-selector {
             padding: 0.5rem 1rem;
@@ -2115,14 +2157,20 @@
                             {% for appointment in appointments %}
                             <div class="appointment-item">
                                 <div class="appointment-info">
-                                    <h4 class="appointment-expert-name" style="font-size: 1rem; font-weight: 700; color: #111827; margin-bottom: 0.25rem;">
-                                        <i class="fas fa-user-graduate" style="color: var(--primary); margin-right: 0.35rem;"></i>
+                                    <h4 class="appointment-expert-name" style="font-size: 1rem; font-weight: 700; color: #111827; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
+                                        <span style="width: 32px; height: 32px; border-radius: 999px; background: rgba(53,141,88,0.08); display: inline-flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0;">
+                                            <i class="fas fa-user-graduate"></i>
+                                        </span>
                                         {{ appointment.expert.name|default:appointment.expert.user.email }}
                                     </h4>
-                                    <p class="appointment-datetime" style="font-size: 0.9rem; color: #4b5563; margin-bottom: 0.35rem;">
-                                        <i class="far fa-calendar-alt" style="margin-right: 0.35rem;"></i>
-                                        {{ appointment.requested_date|date:"M d, Y" }} · {{ appointment.requested_time|time:"g:i A" }}
-                                    </p>
+                                    <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem; flex-wrap:wrap;">
+                                        <p class="appointment-datetime" style="font-size: 0.85rem; color: #4b5563; margin:0;">
+                                            <i class="far fa-calendar-alt" style="margin-right: 0.35rem;"></i>
+                                            <span class="appointment-date-text">{{ appointment.requested_date|date:"M d, Y" }}</span>
+                                            <span style="opacity:0.5;">·</span>
+                                            <span class="appointment-time-text">{{ appointment.requested_time|time:"g:i A" }}</span>
+                                        </p>
+                                    </div>
                                     {% if appointment.message %}
                                     <p class="appointment-message" style="margin-top: 0.35rem; font-size: 0.9rem; color: #374151;">
                                         {{ appointment.message }}
@@ -2144,7 +2192,7 @@
                                     </p>
                                     {% endif %}
                                 </div>
-                                <div style="display: flex; flex-direction: column; gap: 0.45rem; align-items: flex-end;">
+                                <div style="display: flex; flex-direction: column; gap: 0.45rem; align-items: flex-end; min-width: 180px;">
                                     <span class="appointment-status status-{{ appointment.status }}">
                                         <i class="fas fa-circle" style="font-size: 0.5rem;"></i>
                                         {{ appointment.get_status_display }}
@@ -2921,7 +2969,7 @@
                 <h3><i class="fas fa-calendar-check"></i> Book Appointment</h3>
                 <button class="close-modal" onclick="closeModal('appointmentModal')">&times;</button>
             </div>
-            <form method="POST" action="{% url 'appointment_request' %}" id="appointmentBookForm">
+            <form method="POST" action="{% url 'appointment_request' %}" id="appointmentBookForm" data-ajax="1">
                 {% csrf_token %}
                 <input type="hidden" name="expert_id" id="apptExpertId">
                 
@@ -2992,7 +3040,7 @@
                 <button class="close-modal" onclick="closeModal('changeAppointmentModal')">&times;</button>
             </div>
             <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #666;">Only available dates are selectable in the calendar.</p>
-            <form method="POST" action="{% url 'farmer_dashboard' %}" id="changeAppointmentForm">
+            <form method="POST" action="{% url 'farmer_dashboard' %}" id="changeAppointmentForm" data-ajax="1">
                 {% csrf_token %}
                 <input type="hidden" name="update_appointment" value="1">
                 <input type="hidden" name="return_section" value="appointments">
@@ -3024,7 +3072,7 @@
                 <button class="close-modal" onclick="closeModal('reapplyAppointmentModal')">&times;</button>
             </div>
             <p style="margin-bottom: 1rem; color: #666;">Only available dates are selectable in the calendar. The doctor will review your new request.</p>
-            <form method="POST" action="{% url 'farmer_dashboard' %}" id="reapplyAppointmentForm">
+            <form method="POST" action="{% url 'farmer_dashboard' %}" id="reapplyAppointmentForm" data-ajax="1">
                 {% csrf_token %}
                 <input type="hidden" name="reapply_appointment" value="1">
                 <input type="hidden" name="return_section" value="appointments">
@@ -3534,34 +3582,144 @@
             document.getElementById('appointmentModal').classList.add('active');
         }
         document.getElementById('appointmentBookForm').addEventListener('submit', function(e) {
+            e.preventDefault();
             var expertId = document.getElementById('apptExpertId').value;
             var dates = expertAvailability[expertId];
             var sel = document.getElementById('apptRequestedDate').value;
             if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
-                e.preventDefault();
                 alert('Appointment not available at this date. Please choose a highlighted available date.');
                 return false;
             }
+            var form = this;
+            ajaxSubmitForm(form, {
+                onSuccess: function (payload) {
+                    closeModal('appointmentModal');
+                    var list = document.querySelector('#appointments-section .appointments-list');
+                    var body = document.querySelector('#appointments-section .section-body');
+                    if (!list && body) {
+                        body.innerHTML = '<div class="appointments-list"></div>';
+                        list = body.querySelector('.appointments-list');
+                    }
+                    if (!list) return;
+                    var appt = payload.appointment || {};
+                    var card = document.createElement('div');
+                    card.className = 'appointment-item';
+                    var expertName = appt.expert_name || document.getElementById('apptExpertName').value || 'Expert';
+                    var dateText = appt.requested_date_display || sel;
+                    var timeText = appt.requested_time_display || (document.getElementById('apptRequestedTime').value || '');
+                    var msg = appt.message || (document.querySelector('#appointmentBookForm textarea[name=message]')?.value || '');
+                    var statusCode = (appt.status || 'pending');
+                    var statusDisplay = appt.status_display || 'Pending';
+                    var apptId = appt.id || '';
+                    card.innerHTML =
+                        '<div class="appointment-info">' +
+                        '<h4 class="appointment-expert-name" style="font-size: 1rem; font-weight: 700; color: #111827; margin-bottom: 0.25rem; display:flex; align-items:center; gap:0.4rem;">' +
+                        '<span style="width:32px;height:32px;border-radius:999px;background:rgba(53,141,88,0.08);display:inline-flex;align-items:center;justify-content:center;color:var(--primary);flex-shrink:0;"><i class="fas fa-user-graduate"></i></span>' +
+                        expertName +
+                        '</h4>' +
+                        '<div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem; flex-wrap:wrap;">' +
+                        '<p class="appointment-datetime" style="font-size:0.85rem;color:#4b5563;margin:0;">' +
+                        '<i class="far fa-calendar-alt" style="margin-right:0.35rem;"></i>' +
+                        '<span class="appointment-date-text">' + dateText + '</span>' +
+                        '<span style="opacity:0.5;">·</span>' +
+                        '<span class="appointment-time-text">' + timeText + '</span>' +
+                        '</p>' +
+                        '</div>' +
+                        (msg ? '<p class="appointment-message" style="margin-top:0.35rem;font-size:0.9rem;color:#374151;">' + msg + '</p>' : '') +
+                        '</div>' +
+                        '<div style="display:flex;flex-direction:column;gap:0.45rem;align-items:flex-end;min-width:180px;">' +
+                        '<span class="appointment-status status-' + statusCode + '">' +
+                        '<i class="fas fa-circle" style="font-size:0.5rem;"></i> ' + statusDisplay +
+                        '</span>' +
+                        '<button type="button" class="btn-primary" ' +
+                        'style="font-size:0.85rem;padding:0.45rem 0.9rem;background:white;color:#111827;border:1px solid #e5e7eb;" ' +
+                        'onclick="openAppointmentDetails(this)" ' +
+                        (apptId ? ('data-appt-id="' + apptId + '" ') : '') +
+                        'data-expert-id="" data-expert-name="' + expertName.replace(/"/g, '&quot;') + '" ' +
+                        'data-expert-qual="" data-expert-spec="" data-expert-exp="" ' +
+                        'data-date="' + dateText.replace(/"/g, '&quot;') + '" ' +
+                        'data-time="' + timeText.replace(/"/g, '&quot;') + '" ' +
+                        'data-status="' + statusDisplay.replace(/"/g, '&quot;') + '" ' +
+                        'data-status-code="' + statusCode.replace(/"/g, '&quot;') + '" ' +
+                        'data-visit-status="" data-message="' + (msg || '').replace(/"/g, '&quot;') + '" data-response="">' +
+                        '<i class="fas fa-eye"></i> View details</button>' +
+                        '<button type="button" class="btn-primary" ' +
+                        'style="font-size:0.85rem;padding:0.45rem 0.9rem;background:#e5f3eb;color:#166534;border:1px solid #bbf7d0;" ' +
+                        'onclick="openChatWithExpert(\'\', \'' + expertName.replace(/'/g, '\\\'') + '\', \'\', \'\', \'\')">' +
+                        '<i class="fas fa-comments"></i> Join chat</button>' +
+                        '<small style="font-size:0.78rem;color:#9ca3af;text-align:right;">To cancel, please contact the Farmity team.</small>' +
+                        '</div>';
+                    list.prepend(card);
+                }
+            });
         });
         document.getElementById('changeAppointmentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
             var expertId = document.getElementById('changeApptExpertId').value;
             var dates = expertAvailability[expertId];
             var sel = document.getElementById('changeApptDate').value;
             if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
-                e.preventDefault();
                 alert('Appointment not available at this date. Please choose an available date from the list above.');
                 return false;
             }
+            var form = this;
+            ajaxSubmitForm(form, {
+                onSuccess: function (payload) {
+                    closeModal('changeAppointmentModal');
+                    var apptId = payload.appointment_id || form.querySelector('[name=appointment_id]')?.value;
+                    if (!apptId) return;
+                    var btn = document.querySelector('.appointments-list [data-appt-id="' + apptId + '"]');
+                    if (!btn) return;
+                    var item = btn.closest('.appointment-item');
+                    if (!item) return;
+                    var dateText = payload.requested_date_display || sel;
+                    var timeText = payload.requested_time_display || (document.getElementById('changeApptTime').value || '');
+                    var dateEl = item.querySelector('.appointment-date-text');
+                    var timeEl = item.querySelector('.appointment-time-text');
+                    if (dateEl) dateEl.textContent = dateText;
+                    if (timeEl) timeEl.textContent = timeText;
+                    btn.dataset.date = dateText;
+                    btn.dataset.time = timeText;
+                }
+            });
         });
         document.getElementById('reapplyAppointmentForm').addEventListener('submit', function(e) {
+            e.preventDefault();
             var expertId = document.getElementById('reapplyApptExpertId').value;
             var dates = expertAvailability[expertId];
             var sel = document.getElementById('reapplyApptDate').value;
             if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
-                e.preventDefault();
                 alert('Appointment not available at this date. Please choose an available date from the list above.');
                 return false;
             }
+            var form = this;
+            ajaxSubmitForm(form, {
+                onSuccess: function (payload) {
+                    closeModal('reapplyAppointmentModal');
+                    var apptId = payload.appointment_id || form.querySelector('[name=appointment_id]')?.value;
+                    if (!apptId) return;
+                    var btn = document.querySelector('.appointments-list [data-appt-id="' + apptId + '"]');
+                    if (!btn) return;
+                    var item = btn.closest('.appointment-item');
+                    if (!item) return;
+                    var dateText = payload.requested_date_display || sel;
+                    var timeText = payload.requested_time_display || (document.getElementById('reapplyApptTime').value || '');
+                    var dateEl = item.querySelector('.appointment-date-text');
+                    var timeEl = item.querySelector('.appointment-time-text');
+                    if (dateEl) dateEl.textContent = dateText;
+                    if (timeEl) timeEl.textContent = timeText;
+                    var statusBadge = item.querySelector('.appointment-status');
+                    if (statusBadge) {
+                        statusBadge.className = 'appointment-status status-' + (payload.status || 'pending');
+                        statusBadge.innerHTML = '<i class="fas fa-circle" style="font-size:0.5rem;"></i> ' + (payload.status_display || 'Pending');
+                    }
+                    btn.dataset.date = dateText;
+                    btn.dataset.time = timeText;
+                    btn.dataset.status = payload.status_display || 'Pending';
+                    btn.dataset.statusCode = payload.status || 'pending';
+                    btn.dataset.response = '';
+                }
+            });
         });
 
         var currentChatThreadId = null;
@@ -3569,6 +3727,72 @@
 
         function getCsrfToken() {
             return document.querySelector('[name=csrfmiddlewaretoken]')?.value || document.cookie.replace(/(?:(?:^|.*;\s*)csrftoken\s*=\s*([^;]*).*$)|^.*$/, '$1');
+        }
+
+        function showToast(message, type) {
+            if (!message) return;
+            var container = document.querySelector('.toast-container');
+            if (!container) {
+                container = document.createElement('div');
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+            var toast = document.createElement('div');
+            toast.className = 'toast' + (type === 'error' ? ' toast-error' : '');
+            toast.innerHTML = '<div class="toast-icon"><i class="fas ' + (type === 'error' ? 'fa-exclamation-circle' : 'fa-check-circle') + '"></i></div>' +
+                '<div class="toast-message">' + message + '</div>';
+            container.appendChild(toast);
+            setTimeout(function () {
+                toast.style.opacity = '0';
+                toast.style.transform = 'translateY(4px)';
+                setTimeout(function () {
+                    if (toast.parentNode) toast.parentNode.removeChild(toast);
+                    if (container && !container.children.length && container.parentNode) {
+                        container.parentNode.removeChild(container);
+                    }
+                }, 250);
+            }, 3000);
+        }
+
+        function ajaxSubmitForm(form, options) {
+            options = options || {};
+            var formData = new FormData(form);
+            formData.append('ajax', '1');
+            var scrollY = window.scrollY || window.pageYOffset || 0;
+            var visibleSection = document.querySelector('.dashboard-section:not([style*="display: none"])');
+            var visibleId = visibleSection ? visibleSection.id : null;
+
+            fetch(form.action, {
+                method: form.method || 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            }).then(function (r) {
+                var status = r.status;
+                return r.json().catch(function () { return null; }).then(function (data) {
+                    return { status: status, data: data };
+                });
+            }).then(function (res) {
+                window.scrollTo(0, scrollY);
+                if (!res || !res.data || typeof res.data.success === 'undefined') {
+                    showToast('Action completed, but response could not be parsed.', 'error');
+                    return;
+                }
+                var data = res.data;
+                if (data.message) {
+                    showToast(data.message, data.success ? 'success' : 'error');
+                }
+                if (data.success && options.onSuccess) {
+                    options.onSuccess(data.data || {}, form);
+                }
+                if (visibleId && typeof showSection === 'function') {
+                    showSection(visibleId.replace('-section', ''), null, { skipScroll: true });
+                }
+            }).catch(function () {
+                window.scrollTo(0, scrollY);
+                showToast('Something went wrong. Please try again.', 'error');
+            });
         }
 
         function setChatHeader(name, qual, spec, exp) {

@@ -1808,6 +1808,7 @@ def change_password(request):
 def farmer_dashboard(request):
     if request.user.role != 'farmer':
         return _redirect_to_role_home_response(request.user)
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1'
     if request.session.pop('show_login_success', None):
         messages.success(request, 'Welcome back! You have been logged in successfully.')
     
@@ -2210,12 +2211,17 @@ def farmer_dashboard(request):
     
     # Get appointments
     appointments = ExpertAppointment.objects.filter(requester=request.user).select_related('expert', 'expert__user').order_by('-created_at')
-    
+
     # Handle update appointment (change date/time) - requester only, pending only
     if request.method == 'POST' and 'update_appointment' in request.POST:
         appointment_id = request.POST.get('appointment_id')
         requested_date = (request.POST.get('requested_date') or '').strip()
         requested_time = (request.POST.get('requested_time') or '').strip()
+
+        success = False
+        out_message = ''
+        payload = {}
+
         if appointment_id and requested_date and requested_time:
             try:
                 req_date = date.fromisoformat(requested_date)
@@ -2224,27 +2230,54 @@ def farmer_dashboard(request):
             try:
                 appointment = ExpertAppointment.objects.get(id=appointment_id, requester=request.user)
                 if appointment.status != ExpertAppointment.STATUS_PENDING:
-                    messages.error(request, 'Only pending appointments can be rescheduled. Accepted appointments cannot be changed.')
+                    out_message = 'Only pending appointments can be rescheduled. Accepted appointments cannot be changed.'
                 elif not req_date:
-                    messages.error(request, 'Invalid date format.')
+                    out_message = 'Invalid date format.'
                 elif not ExpertAvailability.objects.filter(expert=appointment.expert, date=req_date).exists():
-                    messages.error(request, 'Appointment not available at this date. Please choose an available date.')
+                    out_message = 'Appointment not available at this date. Please choose an available date.'
                 else:
                     appointment.requested_date = requested_date
                     appointment.requested_time = requested_time
                     appointment.save()
-                    messages.success(request, 'Appointment date/time updated successfully.')
+                    success = True
+                    out_message = 'Appointment date/time updated successfully.'
+                    try:
+                        time_display = appointment.requested_time.strftime('%I:%M %p') if appointment.requested_time else requested_time
+                    except Exception:
+                        time_display = requested_time
+                    payload = {
+                        'appointment_id': appointment.id,
+                        'requested_date_iso': requested_date,
+                        'requested_date_display': req_date.strftime('%b %d, %Y') if req_date else requested_date,
+                        'requested_time_display': time_display,
+                        'status': appointment.status,
+                        'status_display': appointment.get_status_display(),
+                    }
             except ExpertAppointment.DoesNotExist:
-                messages.error(request, 'Appointment not found.')
+                out_message = 'Appointment not found.'
         else:
-            messages.error(request, 'Please provide date and time.')
+            out_message = 'Please provide date and time.'
+
+        if is_ajax:
+            status_code = 200 if success else 400
+            return JsonResponse({'success': success, 'message': out_message, 'data': payload}, status=status_code)
+
+        if success:
+            messages.success(request, out_message)
+        elif out_message:
+            messages.error(request, out_message)
         return _redirect_same_page(request, 'farmer_dashboard')
-    
+
     # Handle reapply (rejected appointment: edit and apply again)
     if request.method == 'POST' and 'reapply_appointment' in request.POST:
         appointment_id = request.POST.get('appointment_id')
         requested_date = (request.POST.get('requested_date') or '').strip()
         requested_time = (request.POST.get('requested_time') or '').strip()
+
+        success = False
+        out_message = ''
+        payload = {}
+
         if appointment_id and requested_date and requested_time:
             try:
                 req_date = date.fromisoformat(requested_date)
@@ -2253,22 +2286,44 @@ def farmer_dashboard(request):
             try:
                 appointment = ExpertAppointment.objects.get(id=appointment_id, requester=request.user)
                 if appointment.status != ExpertAppointment.STATUS_REJECTED:
-                    messages.error(request, 'Only rejected appointments can be reapplied.')
+                    out_message = 'Only rejected appointments can be reapplied.'
                 elif not req_date:
-                    messages.error(request, 'Invalid date format.')
+                    out_message = 'Invalid date format.'
                 elif not ExpertAvailability.objects.filter(expert=appointment.expert, date=req_date).exists():
-                    messages.error(request, 'Appointment not available at this date. Please choose an available date.')
+                    out_message = 'Appointment not available at this date. Please choose an available date.'
                 else:
                     appointment.requested_date = requested_date
                     appointment.requested_time = requested_time
                     appointment.status = ExpertAppointment.STATUS_PENDING
                     appointment.response_message = None  # fresh request for doctor
                     appointment.save()
-                    messages.success(request, 'Appointment updated and resubmitted. The doctor will review your new request.')
+                    success = True
+                    out_message = 'Appointment updated and resubmitted. The doctor will review your new request.'
+                    try:
+                        time_display = appointment.requested_time.strftime('%I:%M %p') if appointment.requested_time else requested_time
+                    except Exception:
+                        time_display = requested_time
+                    payload = {
+                        'appointment_id': appointment.id,
+                        'requested_date_iso': requested_date,
+                        'requested_date_display': req_date.strftime('%b %d, %Y') if req_date else requested_date,
+                        'requested_time_display': time_display,
+                        'status': appointment.status,
+                        'status_display': appointment.get_status_display(),
+                    }
             except ExpertAppointment.DoesNotExist:
-                messages.error(request, 'Appointment not found.')
+                out_message = 'Appointment not found.'
         else:
-            messages.error(request, 'Please provide date and time.')
+            out_message = 'Please provide date and time.'
+
+        if is_ajax:
+            status_code = 200 if success else 400
+            return JsonResponse({'success': success, 'message': out_message, 'data': payload}, status=status_code)
+
+        if success:
+            messages.success(request, out_message)
+        elif out_message:
+            messages.error(request, out_message)
         return _redirect_same_page(request, 'farmer_dashboard')
     
     # Get chat threads
@@ -4729,12 +4784,17 @@ def appointment_request_page(request):
     if request.user.role not in {'buyer', 'farmer'}:
         return _redirect_to_role_home_response(request.user)
 
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1'
+
     # Check KYC for farmers (buyers don't need KYC)
     if request.user.role == 'farmer':
         kyc_request = request.user.kyc_requests.first()
         kyc_status = kyc_request.status if kyc_request else None
         if kyc_status != 'approved':
-            messages.error(request, 'KYC verification is required to book appointments. Please complete your KYC verification first.')
+            error_msg = 'KYC verification is required to book appointments. Please complete your KYC verification first.'
+            if is_ajax:
+                return JsonResponse({'success': False, 'message': error_msg}, status=400)
+            messages.error(request, error_msg)
             return redirect('farmer_dashboard')
 
     if request.method == 'POST':
@@ -4742,39 +4802,75 @@ def appointment_request_page(request):
         requested_date = (request.POST.get('requested_date') or '').strip()
         requested_time = (request.POST.get('requested_time') or '').strip()
         message = (request.POST.get('message') or '').strip() or None
+        success = False
+        out_message = ''
+        payload = {}
+
         if expert_id and requested_date and requested_time:
             try:
                 req_date = date.fromisoformat(requested_date)
             except (ValueError, TypeError):
                 req_date = None
+
             if not req_date:
-                messages.error(request, 'Invalid date format.')
+                out_message = 'Invalid date format.'
             else:
                 expert = ExpertProfile.objects.get(id=expert_id)
                 if not ExpertAvailability.objects.filter(expert=expert, date=req_date).exists():
-                    messages.error(request, 'Appointment not available at this date. Please choose an available date from the expert\'s calendar.')
-                    if request.user.role == 'farmer':
-                        return redirect('farmer_dashboard')
-                    return redirect('user_dashboard')
-                ExpertAppointment.objects.create(
-                    expert=expert,
-                    requester=request.user,
-                    requested_date=requested_date,
-                    requested_time=requested_time,
-                    message=message,
-                    status=ExpertAppointment.STATUS_PENDING
-                )
-                create_notification(
-                    expert.user,
-                    'New appointment request',
-                    f'{request.user.email} requested an appointment on {requested_date} at {requested_time}.',
-                    reverse('expert_dashboard') + '?section=appointments',
-                    UserNotification.TYPE_APPOINTMENT
-                )
-                messages.success(request, 'Appointment booked successfully! The doctor has been notified and will accept or reject your request. Go to My Appointments to see status and change date if needed.')
-                if request.user.role == 'farmer':
-                    return redirect('farmer_dashboard')
-                return redirect('user_dashboard')
+                    out_message = "Appointment not available at this date. Please choose an available date from the expert's calendar."
+                else:
+                    appt = ExpertAppointment.objects.create(
+                        expert=expert,
+                        requester=request.user,
+                        requested_date=requested_date,
+                        requested_time=requested_time,
+                        message=message,
+                        status=ExpertAppointment.STATUS_PENDING
+                    )
+                    create_notification(
+                        expert.user,
+                        'New appointment request',
+                        f'{request.user.email} requested an appointment on {requested_date} at {requested_time}.',
+                        reverse('expert_dashboard') + '?section=appointments',
+                        UserNotification.TYPE_APPOINTMENT
+                    )
+                    success = True
+                    out_message = 'Appointment booked successfully! The doctor has been notified and will accept or reject your request. Go to My Appointments to see status and change date if needed.'
+                    # Basic payload so frontend can optimistically update UI
+                    try:
+                        time_display = appt.requested_time.strftime('%I:%M %p') if appt.requested_time else requested_time
+                    except Exception:
+                        time_display = requested_time
+                    payload = {
+                        'appointment': {
+                            'id': appt.id,
+                            'expert_name': expert.name or expert.user.email,
+                            'requested_date_iso': requested_date,
+                            'requested_date_display': req_date.strftime('%b %d, %Y'),
+                            'requested_time_display': time_display,
+                            'status': appt.status,
+                            'status_display': appt.get_status_display(),
+                            'message': message or '',
+                        }
+                    }
+        else:
+            out_message = 'Please provide expert, date, and time.'
+
+        if is_ajax:
+            status_code = 200 if success else 400
+            return JsonResponse({'success': success, 'message': out_message, 'data': payload}, status=status_code)
+
+        if success:
+            messages.success(request, out_message)
+            if request.user.role == 'farmer':
+                return redirect('farmer_dashboard')
+            return redirect('user_dashboard')
+        else:
+            if out_message:
+                messages.error(request, out_message)
+            if request.user.role == 'farmer':
+                return redirect('farmer_dashboard')
+            return redirect('user_dashboard')
     
     experts = ExpertProfile.objects.select_related('user').all()
     context = {'experts': experts}
