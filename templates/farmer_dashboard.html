@@ -1631,7 +1631,7 @@
             </a>
             <a href="#appointments" class="nav-item" onclick="return showSection('appointments', event);">
                 <i class="fas fa-calendar-check"></i>
-                <span>My Appointments</span>
+                <span data-translate="nav.appointments">My Appointments</span>
             </a>
             <a href="#chat" class="nav-item" onclick="return showSection('chat', event);">
                 <i class="fas fa-comments"></i>
@@ -2159,7 +2159,7 @@
                 {% if active_section == 'appointments' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-calendar-check"></i> My Appointments</h2>
+                        <h2><i class="fas fa-calendar-check"></i> <span data-translate="appointments.title">My Appointments</span></h2>
                     </div>
                     <div class="section-body">
                         {% if appointments %}
@@ -2230,18 +2230,18 @@
                                             class="btn-primary"
                                             style="font-size: 0.85rem; padding: 0.45rem 0.9rem; background: #16A34A; color: #ffffff; border: 1px solid #15803D;"
                                             onclick="openChatWithExpert({{ appointment.expert.id }}, '{{ appointment.expert.name|default:appointment.expert.user.email|escapejs }}', '{{ appointment.expert.qualification|escapejs }}', '{{ appointment.expert.specialization|escapejs }}', '{{ appointment.expert.experience|escapejs }}')">
-                                        <i class="fas fa-comments"></i> Join chat
+                                        <i class="fas fa-comments"></i> <span data-translate="appointments.joinChat">Join chat</span>
                                     </button>
                                     {% if appointment.status == 'pending' %}
                                     <button type="button" class="btn-primary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;" onclick="openChangeAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
-                                        <i class="fas fa-calendar-alt"></i> Change date/time
+                                        <i class="fas fa-calendar-alt"></i> <span data-translate="appointments.changeDateTime">Change date/time</span>
                                     </button>
                                     {% elif appointment.status == 'rejected' %}
                                     <button type="button" class="btn-primary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem; background: var(--secondary);" onclick="openReapplyAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
-                                        <i class="fas fa-redo"></i> Edit and apply again
+                                        <i class="fas fa-redo"></i> <span data-translate="appointments.reapply">Edit and apply again</span>
                                     </button>
                                     {% endif %}
-                                    <small style="font-size: 0.78rem; color: #9ca3af; text-align: right;">To cancel, please contact the Farmity team.</small>
+                                    <small style="font-size: 0.78rem; color: #9ca3af; text-align: right;" data-translate="appointments.cancelNote">To cancel, please contact the Farmity team.</small>
                                 </div>
                             </div>
                             {% endfor %}
@@ -2249,8 +2249,8 @@
                         {% else %}
                         <div class="empty-state">
                             <i class="fas fa-calendar-check"></i>
-                            <h3>No appointments</h3>
-                            <p>Book an appointment with an expert from the dashboard</p>
+                            <h3 data-translate="appointments.emptyTitle">No appointments</h3>
+                            <p data-translate="appointments.emptyDesc">Book an appointment with an expert from the dashboard</p>
                         </div>
                         {% endif %}
                     </div>
@@ -2976,7 +2976,7 @@
     <div id="appointmentModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-calendar-check"></i> Book Appointment</h3>
+                <h3><i class="fas fa-calendar-check"></i> <span data-translate="appointments.bookTitle">Book Appointment</span></h3>
                 <button class="close-modal" onclick="closeModal('appointmentModal')">&times;</button>
             </div>
             <form method="POST" action="{% url 'appointment_request' %}" id="appointmentBookForm" data-ajax="1">
@@ -2984,21 +2984,21 @@
                 <input type="hidden" name="expert_id" id="apptExpertId">
                 
                 <div class="form-group">
-                    <label>Expert Name <span style="color: red;">*</span></label>
+                    <label><span data-translate="appointments.expertLabel">Expert Name</span> <span style="color: red;">*</span></label>
                     <input type="text" id="apptExpertName" class="form-control" readonly style="background: #f5f5f5;">
                     <p id="apptConsultationFee" style="margin: 0.5rem 0 0; font-size: 0.9rem; color: #666;"></p>
                 </div>
                 
                 <div class="form-group">
-                    <label>Date & time <span style="color: red;">*</span></label>
-                    <small style="display: block; color: #666; margin-bottom: 0.5rem;">Only available dates are selectable in the calendar.</small>
+                    <label><span data-translate="appointments.dateTimeLabel">Date &amp; time</span> <span style="color: red;">*</span></label>
+                    <small style="display: block; color: #666; margin-bottom: 0.5rem;" data-translate="appointments.dateHint">Only available dates are selectable in the calendar.</small>
                     <div class="form-row" style="display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
                         <div class="form-group" style="flex: 1; min-width: 140px; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Date</label>
+                            <label style="font-size: 0.85rem;" data-translate="appointments.dateLabel">Date</label>
                             <input type="text" name="requested_date" id="apptRequestedDate" class="form-control" placeholder="YYYY-MM-DD" required readonly style="background: #fff;">
                         </div>
                         <div class="form-group" style="flex: 1; min-width: 100px; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Time</label>
+                            <label style="font-size: 0.85rem;" data-translate="appointments.timeLabel">Time</label>
                             <input type="time" name="requested_time" id="apptRequestedTime" class="form-control" required>
                         </div>
                     </div>
@@ -3031,12 +3031,12 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Message (Optional)</label>
+                    <label data-translate="appointments.messageLabel">Message (Optional)</label>
                     <textarea name="message" class="form-control" rows="4" placeholder="Describe your agricultural issue or question..."></textarea>
                 </div>
 
                 <button type="submit" class="btn-primary" style="width: 100%;">
-                    <i class="fas fa-calendar-check"></i> Book Appointment
+                    <i class="fas fa-calendar-check"></i> <span data-translate="appointments.bookCta">Book Appointment</span>
                 </button>
             </form>
         </div>
@@ -3046,10 +3046,10 @@
     <div id="changeAppointmentModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-edit"></i> Change appointment date/time</h3>
+                <h3><i class="fas fa-edit"></i> <span data-translate="appointments.changeTitle">Change appointment date/time</span></h3>
                 <button class="close-modal" onclick="closeModal('changeAppointmentModal')">&times;</button>
             </div>
-            <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #666;">Only available dates are selectable in the calendar.</p>
+            <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #666;" data-translate="appointments.changeHint">Only available dates are selectable in the calendar.</p>
             <form method="POST" action="{% url 'farmer_dashboard' %}" id="changeAppointmentForm" data-ajax="1">
                 {% csrf_token %}
                 <input type="hidden" name="update_appointment" value="1">
@@ -3057,19 +3057,19 @@
                 <input type="hidden" name="appointment_id" id="changeApptId">
                 <input type="hidden" id="changeApptExpertId">
                 <div class="form-group">
-                    <label>New date & time <span style="color: red;">*</span></label>
+                    <label><span data-translate="appointments.newDateTime">New date &amp; time</span> <span style="color: red;">*</span></label>
                     <div class="form-row" style="display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
                         <div class="form-group" style="flex: 1; min-width: 140px; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Date</label>
+                            <label style="font-size: 0.85rem;" data-translate="appointments.dateLabel">Date</label>
                             <input type="text" name="requested_date" id="changeApptDate" class="form-control" placeholder="YYYY-MM-DD" required readonly style="background: #fff;">
                         </div>
                         <div class="form-group" style="flex: 1; min-width: 100px; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Time</label>
+                            <label style="font-size: 0.85rem;" data-translate="appointments.timeLabel">Time</label>
                             <input type="time" name="requested_time" id="changeApptTime" class="form-control" required>
                         </div>
                     </div>
                 </div>
-                <button type="submit" class="btn-primary" style="width: 100%;"><i class="fas fa-save"></i> Update</button>
+                <button type="submit" class="btn-primary" style="width: 100%;"><i class="fas fa-save"></i> <span data-translate="appointments.updateCta">Update</span></button>
             </form>
         </div>
     </div>
@@ -3078,10 +3078,10 @@
     <div id="reapplyAppointmentModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3><i class="fas fa-redo"></i> Edit and apply again</h3>
+                <h3><i class="fas fa-redo"></i> <span data-translate="appointments.reapplyTitle">Edit and apply again</span></h3>
                 <button class="close-modal" onclick="closeModal('reapplyAppointmentModal')">&times;</button>
             </div>
-            <p style="margin-bottom: 1rem; color: #666;">Only available dates are selectable in the calendar. The doctor will review your new request.</p>
+            <p style="margin-bottom: 1rem; color: #666;" data-translate="appointments.reapplyHint">Only available dates are selectable in the calendar. The doctor will review your new request.</p>
             <form method="POST" action="{% url 'farmer_dashboard' %}" id="reapplyAppointmentForm" data-ajax="1">
                 {% csrf_token %}
                 <input type="hidden" name="reapply_appointment" value="1">
@@ -3089,19 +3089,19 @@
                 <input type="hidden" name="appointment_id" id="reapplyApptId">
                 <input type="hidden" id="reapplyApptExpertId">
                 <div class="form-group">
-                    <label>New date & time <span style="color: red;">*</span></label>
+                    <label><span data-translate="appointments.newDateTime">New date &amp; time</span> <span style="color: red;">*</span></label>
                     <div class="form-row" style="display: flex; align-items: flex-end; gap: 1rem; flex-wrap: wrap;">
                         <div class="form-group" style="flex: 1; min-width: 140px; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Date</label>
+                            <label style="font-size: 0.85rem;" data-translate="appointments.dateLabel">Date</label>
                             <input type="text" name="requested_date" id="reapplyApptDate" class="form-control" placeholder="YYYY-MM-DD" required readonly style="background: #fff;">
                         </div>
                         <div class="form-group" style="flex: 1; min-width: 100px; margin-bottom: 0;">
-                            <label style="font-size: 0.85rem;">Time</label>
+                            <label style="font-size: 0.85rem;" data-translate="appointments.timeLabel">Time</label>
                             <input type="time" name="requested_time" id="reapplyApptTime" class="form-control" required>
                         </div>
                     </div>
                 </div>
-                <button type="submit" class="btn-primary" style="width: 100%; background: var(--secondary);"><i class="fas fa-paper-plane"></i> Apply again</button>
+                <button type="submit" class="btn-primary" style="width: 100%; background: var(--secondary);"><i class="fas fa-paper-plane"></i> <span data-translate="appointments.reapplyCta">Apply again</span></button>
             </form>
         </div>
     </div>
@@ -3110,7 +3110,7 @@
     <div id="appointmentDetailsModal" class="modal">
         <div class="modal-content" style="max-width: 720px;">
             <div class="modal-header">
-                <h3><i class="fas fa-file-medical-alt"></i> Appointment details</h3>
+                <h3><i class="fas fa-file-medical-alt"></i> <span data-translate="appointments.detailsTitle">Appointment details</span></h3>
                 <button class="close-modal" onclick="closeModal('appointmentDetailsModal')">&times;</button>
             </div>
             <div class="section-body" style="padding: 1.5rem;">
@@ -4212,6 +4212,30 @@
                 'common.add': 'Add',
                 'common.update': 'Update',
                 'common.close': 'Close',
+                // Appointments
+                'appointments.title': 'My Appointments',
+                'appointments.joinChat': 'Join chat',
+                'appointments.changeDateTime': 'Change date/time',
+                'appointments.reapply': 'Edit and apply again',
+                'appointments.cancelNote': 'To cancel, please contact the Farmity team.',
+                'appointments.emptyTitle': 'No appointments',
+                'appointments.emptyDesc': 'Book an appointment with an expert from the dashboard',
+                'appointments.bookTitle': 'Book Appointment',
+                'appointments.expertLabel': 'Expert Name',
+                'appointments.dateTimeLabel': 'Date & time',
+                'appointments.dateHint': 'Only available dates are selectable in the calendar.',
+                'appointments.dateLabel': 'Date',
+                'appointments.timeLabel': 'Time',
+                'appointments.messageLabel': 'Message (Optional)',
+                'appointments.bookCta': 'Book Appointment',
+                'appointments.changeTitle': 'Change appointment date/time',
+                'appointments.changeHint': 'Only available dates are selectable in the calendar.',
+                'appointments.newDateTime': 'New date & time',
+                'appointments.updateCta': 'Update',
+                'appointments.reapplyTitle': 'Edit and apply again',
+                'appointments.reapplyHint': 'Only available dates are selectable in the calendar. The doctor will review your new request.',
+                'appointments.reapplyCta': 'Apply again',
+                'appointments.detailsTitle': 'Appointment details',
             },
             np: {
                 // Navigation
@@ -4294,6 +4318,30 @@
                 'common.add': 'थप्नुहोस्',
                 'common.update': 'अपडेट गर्नुहोस्',
                 'common.close': 'बन्द गर्नुहोस्',
+                // Appointments
+                'appointments.title': 'मेरो भेटघाटहरू',
+                'appointments.joinChat': 'च्याटमा सहभागी हुनुहोस्',
+                'appointments.changeDateTime': 'मिति र समय परिवर्तन गर्नुहोस्',
+                'appointments.reapply': 'सम्पादन गरी पुनः पठाउनुहोस्',
+                'appointments.cancelNote': 'भेटघाट रद्द गर्न फार्मिटी टोलीलाई सम्पर्क गर्नुहोस्।',
+                'appointments.emptyTitle': 'कुनै भेटघाट छैन',
+                'appointments.emptyDesc': 'विशेषज्ञसँग भेटघाट बुक गर्न ड्यासबोर्डबाट सुरु गर्नुहोस्।',
+                'appointments.bookTitle': 'भेटघाट बुक गर्नुहोस्',
+                'appointments.expertLabel': 'विशेषज्ञको नाम',
+                'appointments.dateTimeLabel': 'मिति र समय',
+                'appointments.dateHint': 'क्यालेन्डरमा देखिएका उपलब्ध मितिहरू मात्र छान्न सकिन्छ।',
+                'appointments.dateLabel': 'मिति',
+                'appointments.timeLabel': 'समय',
+                'appointments.messageLabel': 'सन्देश (ऐच्छिक)',
+                'appointments.bookCta': 'भेटघाट बुक गर्नुहोस्',
+                'appointments.changeTitle': 'भेटघाटको मिति / समय परिवर्तन',
+                'appointments.changeHint': 'क्यालेन्डरमा देखिएका उपलब्ध मितिहरू मात्र छान्न सकिन्छ।',
+                'appointments.newDateTime': 'नयाँ मिति र समय',
+                'appointments.updateCta': 'अपडेट गर्नुहोस्',
+                'appointments.reapplyTitle': 'सम्पादन गरी पुनः पठाउनुहोस्',
+                'appointments.reapplyHint': 'उपलब्ध मिति छानेर नयाँ अनुरोध पठाउन सक्नुहुन्छ। डाक्टरले पुनः समीक्षा गर्छन्।',
+                'appointments.reapplyCta': 'फेरि आवेदन गर्नुहोस्',
+                'appointments.detailsTitle': 'भेटघाट विवरण',
             }
         };
 
