@@ -1048,8 +1048,8 @@
         }
 
         .status-accepted {
-            background: #D4EDDA;
-            color: #155724;
+            background: #DCFCE7;
+            color: #166534;
         }
 
         .status-rejected {
@@ -1074,13 +1074,11 @@
         }
 
         .appointments-list .appointment-item {
-            padding: 1.4rem 1.6rem;
+            padding: 1.6rem 1.8rem;
             border-radius: 18px;
-            background: radial-gradient(circle at top left, #f4f9f6 0, #ffffff 40%, #ffffff 100%);
-            border: 1px solid #e4ebe6;
-            box-shadow:
-                0 18px 45px rgba(15, 23, 42, 0.08),
-                0 0 0 1px rgba(15, 23, 42, 0.01);
+            background: #ffffff;
+            border: 1px solid #E6F4EA;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
             display: flex;
             justify-content: space-between;
             align-items: flex-start;
@@ -1088,6 +1086,18 @@
             gap: 0.9rem;
             position: relative;
             overflow: hidden;
+        }
+
+        /* Highlight the most recent / first appointment card */
+        .appointments-list .appointment-item:first-child {
+            border-color: rgba(22, 163, 74, 0.45);
+            box-shadow: 0 14px 30px rgba(22, 163, 74, 0.18);
+        }
+
+        .appointments-list .appointment-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 16px 36px rgba(15, 23, 42, 0.12);
+            border-color: rgba(22, 163, 74, 0.55);
         }
 
         .appointments-list .appointment-item::before {
@@ -2177,7 +2187,7 @@
                                     </p>
                                     {% endif %}
                                     {% if appointment.response_message %}
-                                    <p class="appointment-response" style="margin-top: 0.5rem; padding: 0.55rem 0.7rem; border-radius: 8px; font-size: 0.85rem; {% if appointment.status == 'rejected' %}background: #fff7ed; border-left: 3px solid #f97316;{% else %}background: #ecfdf3; border-left: 3px solid #16a34a;{% endif %}">
+                                    <p class="appointment-response" style="margin-top: 0.6rem; padding: 0.7rem 0.8rem; border-radius: 10px; font-size: 0.85rem; {% if appointment.status == 'rejected' %}background: #FFF7ED; border-left: 3px solid #F97316;{% else %}background: #F0FDF4; border-left: 3px solid #16A34A;{% endif %}">
                                         <strong style="font-weight: 600;">
                                             {% if appointment.status == 'rejected' %}Reason rejected:{% else %}Expert reply:{% endif %}
                                         </strong>
@@ -2192,14 +2202,14 @@
                                     </p>
                                     {% endif %}
                                 </div>
-                                <div style="display: flex; flex-direction: column; gap: 0.45rem; align-items: flex-end; min-width: 180px;">
+                                <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end; min-width: 190px;">
                                     <span class="appointment-status status-{{ appointment.status }}">
                                         <i class="fas fa-circle" style="font-size: 0.5rem;"></i>
                                         {{ appointment.get_status_display }}
                                     </span>
                                     <button type="button"
                                             class="btn-primary"
-                                            style="font-size: 0.85rem; padding: 0.45rem 0.9rem; background: white; color: #111827; border: 1px solid #e5e7eb;"
+                                            style="font-size: 0.85rem; padding: 0.45rem 0.9rem; background: #F8FAFC; color: #0F172A; border: 1px solid #E5E7EB;"
                                             onclick="openAppointmentDetails(this)"
                                             data-appt-id="{{ appointment.id }}"
                                             data-expert-id="{{ appointment.expert.id }}"
@@ -2218,7 +2228,7 @@
                                     </button>
                                     <button type="button"
                                             class="btn-primary"
-                                            style="font-size: 0.85rem; padding: 0.45rem 0.9rem; background: #e5f3eb; color: #166534; border: 1px solid #bbf7d0;"
+                                            style="font-size: 0.85rem; padding: 0.45rem 0.9rem; background: #16A34A; color: #ffffff; border: 1px solid #15803D;"
                                             onclick="openChatWithExpert({{ appointment.expert.id }}, '{{ appointment.expert.name|default:appointment.expert.user.email|escapejs }}', '{{ appointment.expert.qualification|escapejs }}', '{{ appointment.expert.specialization|escapejs }}', '{{ appointment.expert.experience|escapejs }}')">
                                         <i class="fas fa-comments"></i> Join chat
                                     </button>
@@ -3627,12 +3637,12 @@
                         '</div>' +
                         (msg ? '<p class="appointment-message" style="margin-top:0.35rem;font-size:0.9rem;color:#374151;">' + msg + '</p>' : '') +
                         '</div>' +
-                        '<div style="display:flex;flex-direction:column;gap:0.45rem;align-items:flex-end;min-width:180px;">' +
+                        '<div style="display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end;min-width:190px;">' +
                         '<span class="appointment-status status-' + statusCode + '">' +
                         '<i class="fas fa-circle" style="font-size:0.5rem;"></i> ' + statusDisplay +
                         '</span>' +
                         '<button type="button" class="btn-primary" ' +
-                        'style="font-size:0.85rem;padding:0.45rem 0.9rem;background:white;color:#111827;border:1px solid #e5e7eb;" ' +
+                        'style="font-size:0.85rem;padding:0.45rem 0.9rem;background:#F8FAFC;color:#0F172A;border:1px solid #E5E7EB;" ' +
                         'onclick="openAppointmentDetails(this)" ' +
                         (apptId ? ('data-appt-id="' + apptId + '" ') : '') +
                         'data-expert-id="" data-expert-name="' + expertName.replace(/"/g, '&quot;') + '" ' +
@@ -3644,7 +3654,7 @@
                         'data-visit-status="" data-message="' + (msg || '').replace(/"/g, '&quot;') + '" data-response="">' +
                         '<i class="fas fa-eye"></i> View details</button>' +
                         '<button type="button" class="btn-primary" ' +
-                        'style="font-size:0.85rem;padding:0.45rem 0.9rem;background:#e5f3eb;color:#166534;border:1px solid #bbf7d0;" ' +
+                        'style="font-size:0.85rem;padding:0.45rem 0.9rem;background:#16A34A;color:#ffffff;border:1px solid #15803D;" ' +
                         'onclick="openChatWithExpert(\'\', \'' + expertName.replace(/'/g, '\\\'') + '\', \'\', \'\', \'\')">' +
                         '<i class="fas fa-comments"></i> Join chat</button>' +
                         '<small style="font-size:0.78rem;color:#9ca3af;text-align:right;">To cancel, please contact the Farmity team.</small>' +
@@ -3710,7 +3720,8 @@
                     if (timeEl) timeEl.textContent = timeText;
                     var statusBadge = item.querySelector('.appointment-status');
                     if (statusBadge) {
-                        statusBadge.className = 'appointment-status status-' + (payload.status || 'pending');
+                        var statusCode = payload.status || 'pending';
+                        statusBadge.className = 'appointment-status status-' + statusCode;
                         statusBadge.innerHTML = '<i class="fas fa-circle" style="font-size:0.5rem;"></i> ' + (payload.status_display || 'Pending');
                     }
                     btn.dataset.date = dateText;
