@@ -127,7 +127,7 @@ class VendorProfile(models.Model):
     description = models.TextField(blank=True, null=True, help_text="Business description")
     # Amount already released by admin before tracking (e.g. manual payouts); shown as part of "total received"
     previous_released_amount = models.DecimalField(
-        max_digits=12, decimal_places=2, default=300, blank=True,
+        max_digits=12, decimal_places=2, default=0, blank=True,
         help_text="Earnings already released by admin before system tracking (e.g. 300)"
     )
 
