@@ -225,8 +225,9 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 
 # Google OAuth Settings (set these in environment variables or .env file)
 # Only configure Google OAuth if credentials are provided
-GOOGLE_CLIENT_ID = os.environ.get('445780431045-8btolaq5taitgcen0qftepcblgbqtggg.apps.googleusercontent.com', '')
-GOOGLE_CLIENT_SECRET = os.environ.get('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', '')
+
+SOCIAL_AUTH_GOOGLE_OAUTH2_KEY = os.getenv("GOOGLE_CLIENT_ID")
+SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 
 # eSewa ePay (Nepal) - https://developer.esewa.com.np/pages/Epay-V2
 # UAT: product_code EPAYTEST, secret 8gBm/:&EnhH.1/q . For production get credentials from eSewa.
