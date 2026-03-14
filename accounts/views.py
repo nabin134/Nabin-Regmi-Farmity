@@ -2579,6 +2579,11 @@ def vendor_dashboard(request):
     )
     total_released_amount = sum((p['amount'] or Decimal('0')) for p in released_payouts)
     previous_released = getattr(profile, 'previous_released_amount', None) or Decimal('0')
+    
+    # For Mainali Tools and Technology vendor, set previous released to zero since they have no sales
+    if request.user.email == 'np05cp4s240077@iic.edu.np':
+        previous_released = Decimal('0')
+    
     total_received = total_released_amount + previous_released
     # Total amount collect (sales + previous release by admin, for Earnings card)
     total_amount_collect = amount_collected + previous_released

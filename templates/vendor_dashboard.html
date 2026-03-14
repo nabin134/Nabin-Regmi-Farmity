@@ -1462,12 +1462,11 @@
                         <h2><i class="fas fa-wallet"></i> Earnings & Payouts</h2>
                     </div>
                     <div class="section-body">
-                        <p class="earnings-intro">Summary of your earnings. Total amount collect includes Rs. {{ previous_released_amount|floatformat:0 }} from previous release by admin.</p>
                         <div class="earnings-cards">
                             <div class="earnings-card card-total-collect">
                                 <span class="earnings-card-label">Total amount collect</span>
                                 <div class="earnings-card-value">Rs. {{ total_amount_collect|floatformat:2 }}</div>
-                                <div class="earnings-card-note">Sales + Rs. {{ previous_released_amount|floatformat:0 }} previous release by admin</div>
+                                <div class="earnings-card-note">From tool sales</div>
                             </div>
                             <div class="earnings-card card-orders-received">
                                 <span class="earnings-card-label">Total order received</span>
