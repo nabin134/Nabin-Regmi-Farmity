@@ -13,6 +13,16 @@ def admin_collections_payouts_summary(request):
         return {}
     from .models import Order
     collected = Order.objects.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED)
+    
+    # For Mainali Tools and Technology vendor, check if they have actual sales
+    mainali_vendor_orders = collected.filter(tool__vendor__user__email='np05cp4s240077@iic.edu.np')
+    mainali_has_sales = mainali_vendor_orders.filter(tool__isnull=False).exists()
+    
+    if not mainali_has_sales:
+        # Exclude Mainali Tools and Technology vendor if no actual sales
+        collected = collected.exclude(tool__vendor__user__email='np05cp4s240077@iic.edu.np')
+    # If they have sales, include them automatically
+    
     total_collected = collected.aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
     pending_q = Q(payout_status__isnull=True) | Q(payout_status=Order.PAYOUT_PENDING)
     total_pending = collected.filter(pending_q).aggregate(t=Sum('total_amount'))['t'] or Decimal('0')

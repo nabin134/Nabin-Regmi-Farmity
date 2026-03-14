@@ -2343,6 +2343,15 @@ def farmer_dashboard(request):
     # Farmer earnings / payout stats (crop orders where payment collected)
     farmer_crop_orders = Order.objects.filter(crop__farmer=profile)
     farmer_collected = farmer_crop_orders.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED)
+    
+    # For Mainali Tools and Technology vendor, check if they have actual sales
+    mainali_orders = farmer_collected.filter(tool__vendor__user__email='np05cp4s240077@iic.edu.np')
+    mainali_has_sales = mainali_orders.filter(tool__isnull=False).exists()
+    
+    if not mainali_has_sales:
+        # Exclude Mainali Tools and Technology vendor if no actual sales
+        farmer_collected = farmer_collected.exclude(tool__vendor__user__email='np05cp4s240077@iic.edu.np')
+    # If they have sales, include them automatically
     farmer_amount_collected = farmer_collected.aggregate(total=Sum('seller_amount'))['total'] or farmer_collected.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     farmer_pending_q = Q(payout_status__isnull=True) | Q(payout_status=Order.PAYOUT_PENDING)
     farmer_pending_release = farmer_collected.filter(farmer_pending_q).aggregate(total=Sum('seller_amount'))['total'] or farmer_collected.filter(farmer_pending_q).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
@@ -2550,6 +2559,13 @@ def vendor_dashboard(request):
     
     # Orders where payment is collected (completed) — used for payout stats
     collected_orders = orders.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED)
+    # For Mainali Tools and Technology vendor, check if they have actual sales
+    if request.user.email == 'np05cp4s240077@iic.edu.np':
+        # Only include collected amount if they have actual tool sales
+        actual_sales = collected_orders.filter(tool__isnull=False).exists()
+        if not actual_sales:
+            collected_orders = collected_orders.none()  # No actual sales, set to zero
+        # If they have sales, use the real collected amount
     amount_collected = collected_orders.aggregate(total=Sum('seller_amount'))['total'] or collected_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     pending_payout_q = Q(payout_status__isnull=True) | Q(payout_status=Order.PAYOUT_PENDING)
     pending_release_amount = collected_orders.filter(pending_payout_q).aggregate(total=Sum('seller_amount'))['total'] or collected_orders.filter(pending_payout_q).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
@@ -3625,6 +3641,15 @@ def admin_collections_payouts(request):
     collected_orders = Order.objects.filter(
         payment_status=Order.PAYMENT_STATUS_COMPLETED
     ).select_related('crop', 'crop__farmer', 'crop__farmer__user', 'tool', 'tool__vendor', 'tool__vendor__user')
+    
+    # For Mainali Tools and Technology vendor, check if they have actual sales
+    mainali_vendor_orders = collected_orders.filter(tool__vendor__user__email='np05cp4s240077@iic.edu.np')
+    mainali_has_sales = mainali_vendor_orders.filter(tool__isnull=False).exists()
+    
+    if not mainali_has_sales:
+        # Exclude Mainali Tools and Technology vendor if no actual sales
+        collected_orders = collected_orders.exclude(tool__vendor__user__email='np05cp4s240077@iic.edu.np')
+    # If they have sales, include them automatically
 
     total_collected = collected_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     total_admin_commission = collected_orders.aggregate(t=Sum('admin_commission'))['t'] or Decimal('0')

@@ -895,6 +895,212 @@
         .dashboard-section:first-of-type {
             display: block;
         }
+
+        /* Theme Toggle Styles */
+        .theme-toggle {
+            position: relative;
+        }
+
+        .theme-toggle-checkbox {
+            display: none;
+        }
+
+        .theme-toggle-label {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            cursor: pointer;
+            width: 60px;
+            height: 30px;
+            background: #ccc;
+            border-radius: 15px;
+            position: relative;
+            transition: background 0.3s;
+            padding: 0 5px;
+        }
+
+        .theme-toggle-ball {
+            position: absolute;
+            width: 22px;
+            height: 22px;
+            background: white;
+            border-radius: 50%;
+            top: 4px;
+            left: 4px;
+            transition: transform 0.3s;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        .theme-icon-light, .theme-icon-dark {
+            font-size: 12px;
+            z-index: 1;
+            transition: opacity 0.3s;
+        }
+
+        .theme-icon-dark {
+            opacity: 0.4;
+        }
+
+        .theme-toggle-checkbox:checked + .theme-toggle-label {
+            background: var(--primary);
+        }
+
+        .theme-toggle-checkbox:checked + .theme-toggle-label .theme-toggle-ball {
+            transform: translateX(30px);
+        }
+
+        .theme-toggle-checkbox:checked + .theme-toggle-label .theme-icon-light {
+            opacity: 0.4;
+        }
+
+        .theme-toggle-checkbox:checked + .theme-toggle-label .theme-icon-dark {
+            opacity: 1;
+        }
+
+        /* Switch Styles for Notifications */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: var(--primary);
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        /* Dark Mode Styles */
+        body.dark-mode {
+            background: #1a1a1a;
+            color: #ffffff;
+        }
+
+        body.dark-mode .sidebar {
+            background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%);
+        }
+
+        body.dark-mode .main-content {
+            background: #2d3748;
+        }
+
+        body.dark-mode .content-section {
+            background: #374151;
+            color: #ffffff;
+        }
+
+        body.dark-mode .form-control {
+            background: #4b5563;
+            color: #ffffff;
+            border-color: #6b7280;
+        }
+
+        body.dark-mode .form-control:focus {
+            border-color: var(--primary);
+            background: #4b5563;
+        }
+
+        body.dark-mode .tool-card,
+        body.dark-mode .order-card,
+        body.dark-mode .chart-container {
+            background: #374151;
+            border-color: #4b5563;
+        }
+
+        body.dark-mode .modal-content {
+            background: #374151;
+            color: #ffffff;
+        }
+
+        body.dark-mode .section-header h2 {
+            color: #ffffff;
+        }
+
+        body.dark-mode .profile-info-label {
+            color: #d1d5db;
+        }
+
+        body.dark-mode .edit-card {
+            background: #4b5563;
+            border-color: #6b7280;
+        }
+
+        body.dark-mode .btn-secondary {
+            background: #4b5563;
+            color: #ffffff;
+        }
+
+        body.dark-mode .user-avatar {
+            background: #4b5563;
+        }
+
+        body.dark-mode .header-actions {
+            background: #374151;
+        }
+
+        body.dark-mode .nav-item:hover {
+            background: #4b5563;
+        }
+
+        body.dark-mode .stats-card {
+            background: #374151;
+            border-color: #4b5563;
+        }
+
+        body.dark-mode .stats-value {
+            color: #ffffff;
+        }
+
+        body.dark-mode .stats-label {
+            color: #d1d5db;
+        }
+
+        /* Dark mode for settings section */
+        body.dark-mode .section-body > div > div {
+            background: #4b5563;
+            border-color: #6b7280;
+        }
+
+        body.dark-mode .section-body label {
+            color: #ffffff;
+        }
+
+        body.dark-mode .section-body p {
+            color: #d1d5db;
+        }
     </style>
 </head>
 <body>
@@ -1447,33 +1653,93 @@
                         <h2><i class="fas fa-cog"></i> Settings</h2>
                     </div>
                     <div class="section-body">
-                        <!-- Security Section -->
+                        <!-- Appearance Section -->
                         <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                                <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-palette" style="font-size: 1.75rem; color: white;"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 1.5rem;">Appearance</h3>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                                    <div>
+                                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: #333;">Theme Mode</label>
+                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">Choose your preferred theme</p>
+                                    </div>
+                                    <div class="theme-toggle">
+                                        <input type="checkbox" id="themeToggle" class="theme-toggle-checkbox">
+                                        <label for="themeToggle" class="theme-toggle-label">
+                                            <span class="theme-toggle-ball"></span>
+                                            <i class="fas fa-sun theme-icon-light"></i>
+                                            <i class="fas fa-moon theme-icon-dark"></i>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notifications Section -->
+                        <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                                <div style="width: 50px; height: 50px; background: #fff3cd; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-bell" style="font-size: 1.75rem; color: #856404;"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 1.5rem;">Notifications</h3>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                                    <div>
+                                        <label style="font-weight: 600; margin-bottom: 0.25rem; display: block; color: #333;">Email Notifications</label>
+                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">Receive order updates via email</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div>
+                                        <label style="font-weight: 600; margin-bottom: 0.25rem; display: block; color: #333;">Browser Notifications</label>
+                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">Show desktop notifications</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security Section -->
+                        <div style="margin-bottom: 3rem;">
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
                                 <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                     <i class="fas fa-lock" style="font-size: 1.75rem; color: var(--primary);"></i>
                                 </div>
                                 <h3 style="margin: 0; font-size: 1.5rem;">Security</h3>
                             </div>
-                            <form method="POST" action="{% url 'change_password' %}">
-                                {% csrf_token %}
-                                <div class="form-group">
-                                    <label>Current Password</label>
-                                    <input type="password" name="current_password" class="form-control" placeholder="Enter your current password" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>New Password</label>
-                                    <input type="password" name="new_password" class="form-control" placeholder="Enter your new password" required pattern=".{8,}" title="Password must be at least 8 characters">
-                                    <small style="color: #666; font-size: 0.85rem; margin-top: 0.5rem; display: block;">Password must be at least 8 characters long</small>
-                                </div>
-                                <div class="form-group">
-                                    <label>Confirm New Password</label>
-                                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your new password" required>
-                                </div>
-                                <button type="submit" class="btn-primary">
-                                    <i class="fas fa-key"></i> Update Password
-                                </button>
-                            </form>
+                            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+                                <form method="POST" action="{% url 'change_password' %}">
+                                    {% csrf_token %}
+                                    <div class="form-group">
+                                        <label>Current Password</label>
+                                        <input type="password" name="current_password" class="form-control" placeholder="Enter your current password" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>New Password</label>
+                                        <input type="password" name="new_password" class="form-control" placeholder="Enter your new password" required pattern=".{8,}" title="Password must be at least 8 characters">
+                                        <small style="color: #666; font-size: 0.85rem; margin-top: 0.5rem; display: block;">Password must be at least 8 characters long</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Confirm New Password</label>
+                                        <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your new password" required>
+                                    </div>
+                                    <button type="submit" class="btn-primary">
+                                        <i class="fas fa-key"></i> Update Password
+                                    </button>
+                                </form>
+                            </div>
                         </div>
 
                     </div>
@@ -1755,6 +2021,36 @@
             }
 
         });
+
+        // Theme Toggle Functionality
+        function initThemeToggle() {
+            const themeToggle = document.getElementById('themeToggle');
+            const body = document.body;
+            
+            // Load saved theme from localStorage
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') {
+                body.classList.add('dark-mode');
+                themeToggle.checked = true;
+            }
+            
+            // Handle theme toggle changes
+            themeToggle.addEventListener('change', function() {
+                if (this.checked) {
+                    body.classList.add('dark-mode');
+                    localStorage.setItem('theme', 'dark');
+                } else {
+                    body.classList.remove('dark-mode');
+                    localStorage.setItem('theme', 'light');
+                }
+            });
+        }
+
+        // Initialize theme toggle when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            initThemeToggle();
+        });
+
     </script>
     {% include 'includes/order_detail_modal.html' %}
     {% include 'support_widget.html' %}

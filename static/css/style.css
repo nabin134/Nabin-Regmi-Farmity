@@ -47,6 +47,113 @@ body.dark-mode .form-control {
     color: white;
 }
 
+/* Theme Toggle Global Styles */
+.theme-toggle {
+    position: relative;
+}
+
+.theme-toggle-checkbox {
+    display: none;
+}
+
+.theme-toggle-label {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    cursor: pointer;
+    width: 60px;
+    height: 30px;
+    background: #ccc;
+    border-radius: 15px;
+    position: relative;
+    transition: background 0.3s;
+    padding: 0 5px;
+}
+
+.theme-toggle-ball {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    background: white;
+    border-radius: 50%;
+    top: 4px;
+    left: 4px;
+    transition: transform 0.3s;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
+.theme-icon-light, .theme-icon-dark {
+    font-size: 12px;
+    z-index: 1;
+    transition: opacity 0.3s;
+}
+
+.theme-icon-dark {
+    opacity: 0.4;
+}
+
+.theme-toggle-checkbox:checked + .theme-toggle-label {
+    background: var(--sea-green);
+}
+
+.theme-toggle-checkbox:checked + .theme-toggle-label .theme-toggle-ball {
+    transform: translateX(30px);
+}
+
+.theme-toggle-checkbox:checked + .theme-toggle-label .theme-icon-light {
+    opacity: 0.4;
+}
+
+.theme-toggle-checkbox:checked + .theme-toggle-label .theme-icon-dark {
+    opacity: 1;
+}
+
+/* Switch Styles for Notifications */
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 24px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: 0.4s;
+    border-radius: 24px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 18px;
+    width: 18px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: 0.4s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--sea-green);
+}
+
+input:checked + .slider:before {
+    transform: translateX(26px);
+}
+
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     line-height: 1.6;
@@ -338,13 +445,6 @@ body {
     color: var(--text-gray);
     margin-bottom: 2rem;
     max-width: 600px;
-}
-
-    font-weight: 600;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.3s;
 }
 
 .btn-primary-large:hover {
