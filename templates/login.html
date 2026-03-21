@@ -1,290 +1,885 @@
-{% load static %}
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - Farmity</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <title>Sign In - Farmity</title>
+    <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
-        :root {
-            --primary-green: #3C894B;
-            --secondary-green: #2d6b3d;
-            --light-grey: #f0f2f5;
-            --text-dark: #333333;
-            --text-grey: #777777;
-        }
-
         * {
             margin: 0;
             padding: 0;
             box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
         body {
-            background: linear-gradient(135deg, var(--primary-green) 0%, var(--secondary-green) 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f7fa;
             min-height: 100vh;
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 1.5rem;
+            padding: 2rem;
         }
 
-        .login-card {
-            background: white;
+        .login-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            max-width: 1100px;
             width: 100%;
-            max-width: 400px;
-            padding: 2.5rem 2rem;
-            border-radius: 24px;
-            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
-            text-align: center;
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            min-height: 650px;
         }
 
-        .login-card h1 {
-            font-size: 2rem;
-            color: var(--text-dark);
+        /* Left Panel - Green Background */
+        .login-left {
+            background: linear-gradient(135deg, #3C894B 0%, #2d6b3d 100%);
+            color: white;
+            padding: 3.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .login-left::before {
+            content: '';
+            position: absolute;
+            top: -100px;
+            right: -100px;
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+        }
+
+        .login-left::after {
+            content: '';
+            position: absolute;
+            bottom: -80px;
+            left: -80px;
+            width: 250px;
+            height: 250px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 50%;
+        }
+
+        .login-left-content {
+            position: relative;
+            z-index: 1;
+        }
+
+        .logo-placeholder {
+            width: 50px;
+            height: 50px;
+            background: white;
+            border-radius: 8px;
             margin-bottom: 2.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+        }
+
+        .login-left h1 {
+            font-size: 2.75rem;
             font-weight: 700;
+            margin-bottom: 1rem;
+            line-height: 1.2;
+        }
+
+        .login-left p {
+            font-size: 1.05rem;
+            line-height: 1.7;
+            opacity: 0.95;
+            margin-bottom: 2.5rem;
+        }
+
+        .features-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .feature-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .feature-item i {
+            width: 24px;
+            height: 24px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1rem;
+        }
+
+        .copyright {
+            position: relative;
+            z-index: 1;
+            font-size: 0.85rem;
+            opacity: 0.9;
+            margin-top: 2rem;
+        }
+
+        /* Right Panel - White Form */
+        .login-right {
+            padding: 3.5rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+
+        .form-header h2 {
+            font-size: 2.25rem;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 0.5rem;
+        }
+
+        .form-header p {
+            color: #6b7280;
+            font-size: 0.95rem;
+            margin-bottom: 2.5rem;
         }
 
         .form-group {
-            margin-bottom: 1.25rem;
-            position: relative;
+            margin-bottom: 1.5rem;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #374151;
+            font-weight: 600;
+            font-size: 0.9rem;
         }
 
         .input-wrapper {
-            background: var(--light-grey);
-            border-radius: 50px;
-            display: flex;
-            align-items: center;
-            padding: 0 1.5rem;
-            transition: all 0.3s ease;
+            position: relative;
         }
 
-        .input-wrapper:focus-within {
-            background: #e8eaed;
-            box-shadow: 0 0 0 2px rgba(60, 137, 75, 0.2);
-        }
-
-        .input-wrapper i {
-            color: var(--text-grey);
+        .input-icon {
+            position: absolute;
+            left: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
             font-size: 1.1rem;
-            width: 24px;
+            z-index: 1;
         }
 
-        .input-wrapper input {
-            background: transparent;
-            border: none;
-            outline: none;
+        .input-icon.email-icon {
+            color: #9333ea;
+        }
+
+        .input-icon.password-icon {
+            color: #f97316;
+        }
+
+        .form-control {
             width: 100%;
-            padding: 1rem 0.75rem;
-            font-size: 1rem;
-            color: var(--text-dark);
+            padding: 0.9375rem 1rem 0.9375rem 2.75rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            transition: all 0.3s ease;
+            background: white;
+            color: #1a1a1a;
         }
 
-        .input-wrapper input::placeholder {
-            color: #aaaaaa;
+        .form-control:focus {
+            outline: none;
+            border-color: #3C894B;
+            box-shadow: 0 0 0 3px rgba(60, 137, 75, 0.1);
+        }
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .toggle-password {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            cursor: pointer;
+            color: #9ca3af;
+            font-size: 1.1rem;
+            z-index: 1;
+        }
+
+        .toggle-password:hover {
+            color: #3C894B;
         }
 
         .form-options {
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            justify-content: flex-start;
-            gap: 0.5rem;
-            margin: 1.5rem 0.5rem;
+            margin-bottom: 1.5rem;
         }
 
         .checkbox-wrapper {
             display: flex;
             align-items: center;
+            gap: 0.5rem;
+        }
+
+        .checkbox-wrapper input[type="checkbox"] {
+            width: 18px;
+            height: 18px;
             cursor: pointer;
-            user-select: none;
+            accent-color: #3C894B;
         }
 
-        .checkbox-wrapper input {
-            display: none;
+        .checkbox-wrapper label {
+            color: #374151;
+            font-size: 0.9rem;
+            cursor: pointer;
+            margin: 0;
         }
 
-        .custom-checkbox {
-            width: 20px;
-            height: 20px;
-            background: #ffcc66; /* Match the orange from image or use primary */
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-right: 0.75rem;
-            transition: all 0.2s ease;
+        .forgot-link {
+            color: #3C894B;
+            text-decoration: none;
+            font-size: 0.9rem;
+            font-weight: 600;
         }
 
-        .checkbox-wrapper input:checked + .custom-checkbox {
-            background: var(--primary-green);
+        .forgot-link:hover {
+            text-decoration: underline;
         }
 
-        .custom-checkbox i {
-            color: white;
-            font-size: 0.8rem;
-            display: none;
-        }
-
-        .checkbox-wrapper input:checked + .custom-checkbox i {
-            display: block;
-        }
-
-        .checkbox-wrapper span {
-            color: var(--text-grey);
-            font-size: 0.95rem;
-        }
-
-        .btn-login {
+        .btn-signin {
             width: 100%;
             padding: 1rem;
-            border: none;
-            border-radius: 50px;
-            background: linear-gradient(to right, #ffbb33, #ff4444); /* Keep original gradient as per user preference or use green? User said "dont change the colour" - I'll stick to Green gradient for button too to be safe, but they might want the image colors. Wait, "dont change the colour" usually means their primary brand color. I'll use a nice green gradient. */
-            background: linear-gradient(to right, #4CAF50, #2E7D32);
+            background: #3C894B;
             color: white;
-            font-size: 1.1rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            border: none;
+            border-radius: 10px;
+            font-size: 1rem;
+            font-weight: 600;
             cursor: pointer;
-            box-shadow: 0 5px 15px rgba(60, 137, 75, 0.3);
             transition: all 0.3s ease;
             margin-bottom: 1.5rem;
         }
 
-        .btn-login:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(60, 137, 75, 0.4);
+        .btn-signin:hover {
+            background: #2d6b3d;
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(60, 137, 75, 0.3);
         }
 
-        .forgot-password {
-            display: block;
-            color: var(--text-grey);
+        .divider {
+            text-align: center;
+            margin: 2rem 0;
+            position: relative;
+        }
+
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background: #e5e7eb;
+        }
+
+        .divider span {
+            background: white;
+            padding: 0 1rem;
+            color: #9ca3af;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 600;
+            position: relative;
+        }
+
+        .social-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .social-btn {
+            padding: 0.875rem;
+            border: 2px solid #e5e7eb;
+            background: white;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.75rem;
+            font-weight: 600;
+            color: #374151;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
             text-decoration: none;
-            font-size: 0.95rem;
-            margin-bottom: 4rem;
         }
 
-        .signup-text {
-            color: var(--text-grey);
-            font-size: 0.95rem;
+        .social-btn.google {
+            border-color: #dc2626;
         }
 
-        .signup-text a {
-            color: #6688ff;
+        .social-btn.google:hover {
+            background: #fef2f2;
+            border-color: #dc2626;
+        }
+
+        .social-btn.facebook {
+            border-color: #2563eb;
+        }
+
+        .social-btn.facebook:hover {
+            background: #eff6ff;
+            border-color: #2563eb;
+        }
+
+        .social-icon {
+            font-size: 1.2rem;
+        }
+
+        .social-btn.google .social-icon {
+            color: #4285F4;
+        }
+
+        .social-btn.facebook .social-icon {
+            color: #1877F2;
+        }
+
+        .signup-link {
+            text-align: center;
+            color: #6b7280;
+            font-size: 0.9rem;
+        }
+
+        .signup-link a {
+            color: #3C894B;
             text-decoration: none;
             font-weight: 600;
         }
 
-        /* Error Message Styling */
-        .error-message {
-            background: #ffebee;
-            color: #c62828;
-            padding: 0.75rem;
+        .signup-link a:hover {
+            text-decoration: underline;
+        }
+
+        .message {
+            padding: 1rem;
             border-radius: 10px;
-            margin-bottom: 1.5rem;
+            margin-bottom: 1rem;
             font-size: 0.9rem;
             display: none;
+        }
+
+        .message.success {
+            background: #d1fae5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+            display: block;
+        }
+
+        .message.error {
+            background: #fee2e2;
+            color: #991b1b;
+            border: 1px solid #fca5a5;
+            display: block;
+        }
+
+        @media (max-width: 968px) {
+            .login-container {
+                grid-template-columns: 1fr;
+                max-width: 500px;
+            }
+
+            .login-left {
+                display: none;
+            }
+
+            .login-right {
+                padding: 2.5rem 2rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            body {
+                padding: 1rem;
+            }
+
+            .login-right {
+                padding: 2rem 1.5rem;
+            }
+
+            .form-header h2 {
+                font-size: 1.75rem;
+            }
+
+            .social-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* OTP Step Styles */
+        .login-step, .otp-step {
+            transition: opacity 0.3s ease;
+        }
+
+        .otp-step {
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        #otp {
+            text-align: center;
+            font-size: 1.5rem;
+            letter-spacing: 0.5rem;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
-    <div class="login-card">
-        <h1>Login</h1>
-
-        <div id="errorMessage" class="error-message"></div>
-
-        <form id="loginForm">
-            {% csrf_token %}
-            <div class="form-group">
-                <div class="input-wrapper">
-                    <i class="far fa-user"></i>
-                    <input type="email" id="email" name="email" placeholder="Username" required autocomplete="email">
+    <div class="login-container">
+        <!-- Left Panel - Green Background -->
+        <div class="login-left">
+            <div class="login-left-content">
+                <div class="logo-placeholder">
+                    <img src="/static/images/Farmity%20logo.png" alt="Farmity" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;" onerror="this.style.display='none'; this.parentElement.innerHTML='🌾';">
                 </div>
+                <h1>Welcome Back!</h1>
+                <p>Sign in to access your farming dashboard, connect with vendors, and get expert agricultural advice.</p>
+                <ul class="features-list">
+                    <li class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Access live market prices</span>
+                    </li>
+                    <li class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Connect with verified vendors</span>
+                    </li>
+                    <li class="feature-item">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Expert consultation</span>
+                    </li>
+                </ul>
+            </div>
+            <div class="copyright">© 2025 Farmity. All rights reserved.</div>
+        </div>
+
+        <!-- Right Panel - White Form -->
+        <div class="login-right">
+            <div class="form-header">
+                <h2>Sign In</h2>
+                <p>Enter your credentials to access your account.</p>
             </div>
 
-            <div class="form-group">
-                <div class="input-wrapper">
-                    <i class="fas fa-lock"></i>
-                    <input type="password" id="password" name="password" placeholder="Password" required autocomplete="current-password">
-                </div>
+            {% if messages %}
+            <div class="login-page-messages messages-auto-dismiss" data-dismiss-ms="3000" style="position: fixed; top: 0; left: 0; right: 0; z-index: 99999; padding: 0.75rem 1.5rem; margin: 0; box-shadow: 0 2px 12px rgba(0,0,0,0.12); transition: opacity 0.3s ease;">
+                {% for message in messages %}
+                <div class="message-alert {{ message.tags }}" role="alert" style="max-width: 480px; margin: 0 auto 0.5rem; padding: 0.75rem 1.25rem; border-radius: 10px; border-left: 4px solid #28a745; background: #D4EDDA; color: #155724;">{{ message }}</div>
+                {% endfor %}
             </div>
+            <style>.login-page-messages.messages-hidden { opacity: 0; pointer-events: none; } .login-page-messages .message-alert:last-child { margin-bottom: 0 !important; } .login-page-messages .message-alert.error { background: #F8D7DA; color: #721C24; border-left-color: #dc3545; } .login-page-messages .message-alert.warning { background: #FFF3CD; color: #856404; border-left-color: #ffc107; } .login-page-messages .message-alert.info { background: #D1ECF1; color: #0C5460; border-left-color: #17a2b8; }</style>
+            <script>(function(){ var el = document.querySelector('.login-page-messages.messages-auto-dismiss'); if (el) { var ms = parseInt(el.getAttribute('data-dismiss-ms')||'3000',10); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
+            {% endif %}
 
-            <div class="form-options">
-                <label class="checkbox-wrapper">
-                    <input type="checkbox" name="remember">
-                    <div class="custom-checkbox">
-                        <i class="fas fa-check"></i>
+            <form id="loginForm">
+                {% csrf_token %}
+                <div id="message" class="message"></div>
+
+                <!-- Step 1: Email and Password -->
+                <div id="loginStep" class="login-step">
+                    <div class="form-group">
+                        <label for="email">Email Address</label>
+                        <div class="input-wrapper">
+                            <i class="fas fa-envelope input-icon email-icon"></i>
+                            <input type="email" id="email" name="email" class="form-control" placeholder="your@email.com" required>
+                        </div>
                     </div>
-                    <span>Remember me</span>
-                </label>
-            </div>
 
-            <button type="submit" class="btn-login" id="submitBtn">Log In</button>
-            
-            <a href="{% url 'forgot_password' %}" class="forgot-password">Forget Password</a>
+                    <div class="form-group">
+                        <label for="password">Password</label>
+                        <div class="input-wrapper password-wrapper">
+                            <i class="fas fa-lock input-icon password-icon"></i>
+                            <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required>
+                            <span class="toggle-password" id="togglePassword">
+                                <i class="far fa-eye"></i>
+                            </span>
+                        </div>
+                    </div>
 
-            <div class="signup-text">
-                Not a member? <a href="{% url 'role-selection' %}">Sign up now</a>
-            </div>
-        </form>
+                    <div class="form-options">
+                        <div class="checkbox-wrapper">
+                            <input type="checkbox" id="remember" name="remember">
+                            <label for="remember">Remember me</label>
+                        </div>
+                        <a href="/forgot-password/" class="forgot-link">Forgot Password?</a>
+                    </div>
+
+                    <button type="submit" class="btn-signin">Sign In</button>
+                </div>
+
+                <!-- Step 2: OTP Verification -->
+                <div id="otpStep" class="otp-step" style="display: none;">
+                    <div class="form-group">
+                        <label for="otp">Enter OTP</label>
+                        <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
+                            We've sent a 6-digit OTP to your email:
+                        </p>
+                        <p style="margin-bottom: 15px; font-size: 15px;">
+                            <strong id="otpEmail" style="color: #1a1a1a;"></strong>
+                        </p>
+                        <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
+                            Please check your inbox (and spam folder) for the code and enter it below.
+                        </p>
+                        <div id="otpDisplay" style="display: none; background: #e7f3ff; border: 1px solid #0066cc; border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 13px; color: #004085;">
+                            <strong>Dev only:</strong> OTP shown below (email not configured). In production, OTP is sent only to your email.
+                            <div style="font-size: 24px; font-weight: bold; color: #0066cc; letter-spacing: 0.3rem; margin-top: 8px;" id="displayOtpCode"></div>
+                        </div>
+                        <div class="input-wrapper">
+                            <i class="fas fa-key input-icon"></i>
+                            <input type="text" id="otp" name="otp" class="form-control" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required autocomplete="off">
+                        </div>
+                    </div>
+
+                    <div class="form-options" style="justify-content: center; margin-bottom: 20px;">
+                        <a href="#" id="resendOtp" class="forgot-link">Resend OTP</a>
+                    </div>
+
+                    <button type="button" id="verifyOtpBtn" class="btn-signin">Verify OTP</button>
+                    <button type="button" id="backToLogin" class="btn-signin" style="background: #6c757d; margin-top: 10px;">Back to Login</button>
+                </div>
+
+                <div class="divider">
+                    <span>OR CONTINUE WITH</span>
+                </div>
+
+                <div class="social-buttons">
+                    {% if google_oauth_enabled %}
+                    <a href="/accounts/google/login/?process=login" class="social-btn google" title="Sign in with Google">
+                        <i class="fab fa-google social-icon"></i>
+                        <span>Continue with Google</span>
+                    </a>
+                    {% else %}
+                    <div class="social-btn google" style="opacity: 0.6; cursor: not-allowed;" title="Google OAuth not configured">
+                        <i class="fab fa-google social-icon"></i>
+                        <span>Continue with Google (Not Available)</span>
+                    </div>
+                    {% if google_oauth_error %}
+                    <small style="display: block; color: #dc3545; margin-top: 8px; font-size: 12px;">{{ google_oauth_error }}</small>
+                    {% if google_redirect_uri %}
+                    <small style="display: block; color: #666; margin-top: 4px; font-size: 11px;">Add this to Google Console → Authorized redirect URIs:<br><code style="word-break: break-all;">{{ google_redirect_uri }}</code></small>
+                    {% endif %}
+                    {% endif %}
+                    {% endif %}
+                    <a href="/accounts/facebook/login/?process=login" class="social-btn facebook" onclick="event.preventDefault(); alert('Facebook login coming soon!'); return false;" title="Sign in with Facebook">
+                        <i class="fab fa-facebook-f social-icon"></i>
+                        <span>Continue with Facebook</span>
+                    </a>
+                </div>
+
+                <div class="signup-link">
+                    Don't have an account? <a href="/role-selection/">Sign Up</a>
+                </div>
+            </form>
+        </div>
     </div>
 
-    <script src="{% static 'js/main.js' %}"></script>
     <script>
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const submitBtn = document.getElementById('submitBtn');
-            const errorDiv = document.getElementById('errorMessage');
+        // Wait for DOM to be ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Password toggle
+            const togglePassword = document.getElementById('togglePassword');
+            if (togglePassword) {
+                togglePassword.addEventListener('click', function() {
+                    const passwordInput = document.getElementById('password');
+                    const icon = this.querySelector('i');
+                    
+                    if (passwordInput && passwordInput.type === 'password') {
+                        passwordInput.type = 'text';
+                        if (icon) {
+                            icon.classList.remove('fa-eye');
+                            icon.classList.add('fa-eye-slash');
+                        }
+                    } else if (passwordInput) {
+                        passwordInput.type = 'password';
+                        if (icon) {
+                            icon.classList.remove('fa-eye-slash');
+                            icon.classList.add('fa-eye');
+                        }
+                    }
+                });
+            }
+
+            // OTP handling
+            let userEmail = '';
             
-            submitBtn.disabled = true;
-            submitBtn.textContent = 'Logging in...';
-            errorDiv.style.display = 'none';
-
-            const formData = new FormData(this);
-            const data = Object.fromEntries(formData.entries());
-
-            try {
-                const response = await fetch('/api/auth/login/', {
+            // Simple, reliable login handler
+            function handleLogin(e) {
+                if (e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                
+                const emailInput = document.getElementById('email');
+                const passwordInput = document.getElementById('password');
+                const messageDiv = document.getElementById('message');
+                const submitBtn = document.querySelector('button[type="submit"]');
+                
+                if (!emailInput || !passwordInput) {
+                    if (messageDiv) {
+                        messageDiv.textContent = 'Form error. Please refresh the page.';
+                        messageDiv.className = 'message error';
+                    }
+                    return false;
+                }
+                
+                const email = emailInput.value.trim();
+                const password = passwordInput.value;
+                
+                if (!email || !password) {
+                    if (messageDiv) {
+                        messageDiv.textContent = 'Please enter both email and password.';
+                        messageDiv.className = 'message error';
+                    }
+                    return false;
+                }
+                
+                // Disable submit button
+                const originalBtnText = submitBtn ? submitBtn.textContent : 'Sign In';
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.textContent = 'Signing In...';
+                }
+                
+                // Clear previous messages
+                if (messageDiv) {
+                    messageDiv.textContent = '';
+                    messageDiv.className = 'message';
+                }
+                
+                fetch('/api/auth/login/', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': data.csrfmiddlewaretoken
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                     },
-                    body: JSON.stringify({
-                        email: data.email,
-                        password: data.password
-                    })
-                });
-
-                const result = await response.json();
-
-                if (response.ok) {
-                    // Save user data
-                    localStorage.setItem('user', JSON.stringify(result.user));
-                    localStorage.setItem('isLoggedIn', 'true');
+                    body: JSON.stringify({ email, password })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Re-enable submit button
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalBtnText;
+                    }
                     
-                    // Redirect based on role or next parameter
-                    const urlParams = new URLSearchParams(window.location.search);
-                    const next = urlParams.get('next');
-                    window.location.href = next || result.redirect_url || '/dashboard/';
+                    if (data.redirect_url) {
+                        // Direct login successful (OTP disabled)
+                        if (messageDiv) {
+                            messageDiv.textContent = 'Login successful! Redirecting...';
+                            messageDiv.className = 'message success';
+                        }
+                        setTimeout(() => {
+                            window.location.href = data.redirect_url;
+                        }, 300);
+                    } else if (data.requires_otp) {
+                        // Show OTP step
+                        userEmail = data.email;
+                        const loginStep = document.getElementById('loginStep');
+                        const otpStep = document.getElementById('otpStep');
+                        const otpEmail = document.getElementById('otpEmail');
+                        
+                        if (loginStep) loginStep.style.display = 'none';
+                        if (otpStep) otpStep.style.display = 'block';
+                        if (otpEmail) otpEmail.textContent = userEmail;
+                        
+                        // Success message: OTP sent to user's email
+                        let otpMessage = '✅ OTP sent to <strong>' + userEmail + '</strong>. Check your inbox (and spam folder) for the code.';
+                        if (data.otp_code) {
+                            const otpDisplay = document.getElementById('otpDisplay');
+                            const displayOtpCode = document.getElementById('displayOtpCode');
+                            if (otpDisplay) otpDisplay.style.display = 'block';
+                            if (displayOtpCode) displayOtpCode.textContent = data.otp_code;
+                        }
+                        if (messageDiv) {
+                            messageDiv.innerHTML = otpMessage;
+                            messageDiv.className = 'message success';
+                        }
+                        
+                        setTimeout(() => {
+                            const otpInput = document.getElementById('otp');
+                            if (otpInput) otpInput.focus();
+                        }, 100);
+                    } else {
+                        // Fallback redirect
+                        window.location.href = '/dashboard/';
+                    }
+                })
+                .catch(error => {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalBtnText;
+                    }
+                    if (messageDiv) {
+                        messageDiv.textContent = 'Login failed. Please check your credentials and try again.';
+                        messageDiv.className = 'message error';
+                    }
+                    console.error('Login error:', error);
+                });
+                
+                return false;
+            }
+            
+            // Attach login handler
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.onsubmit = handleLogin;
+                
+                // Also attach to button click as backup
+                const submitBtn = loginForm.querySelector('button[type="submit"]');
+                if (submitBtn) {
+                    submitBtn.onclick = function(e) {
+                        e.preventDefault();
+                        handleLogin(e);
+                        return false;
+                    };
+                }
+            }
+                
+                // Verify OTP
+                const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+                if (verifyOtpBtn) {
+                    verifyOtpBtn.addEventListener('click', async function() {
+            const otp = document.getElementById('otp').value;
+            const messageDiv = document.getElementById('message');
+            
+            if (otp.length !== 6) {
+                messageDiv.textContent = 'Please enter a valid 6-digit OTP.';
+                messageDiv.className = 'message error';
+                return;
+            }
+            
+            try {
+                const response = await fetch('/api/auth/verify-otp/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ email: userEmail, otp })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.textContent = 'OTP verified successfully! Redirecting...';
+                    messageDiv.className = 'message success';
+                    setTimeout(() => {
+                        window.location.href = data.redirect_url || '/dashboard/';
+                    }, 1000);
                 } else {
-                    errorDiv.textContent = result.error || 'Login failed. Please try again.';
-                    errorDiv.style.display = 'block';
+                    messageDiv.textContent = data.error || 'Invalid OTP. Please try again.';
+                    messageDiv.className = 'message error';
                 }
             } catch (error) {
-                console.error('Login error:', error);
-                errorDiv.textContent = 'An error occurred. Please try again later.';
-                errorDiv.style.display = 'block';
-            } finally {
-                submitBtn.disabled = false;
-                submitBtn.textContent = 'Log In';
+                messageDiv.textContent = 'An error occurred. Please try again.';
+                messageDiv.className = 'message error';
+                console.error('OTP verification error:', error);
             }
-        });
+                    });
+                }
+                
+                // Resend OTP
+                const resendOtp = document.getElementById('resendOtp');
+                if (resendOtp) {
+                    resendOtp.addEventListener('click', async function(e) {
+            e.preventDefault();
+            const messageDiv = document.getElementById('message');
+            
+            try {
+                const response = await fetch('/api/auth/resend-otp/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                    },
+                    body: JSON.stringify({ email: userEmail })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    messageDiv.innerHTML = '✅ OTP resent to <strong>' + userEmail + '</strong>. Check your inbox for the new code.';
+                    messageDiv.className = 'message success';
+                } else {
+                    messageDiv.textContent = data.error || 'Failed to resend OTP. Please try again.';
+                    messageDiv.className = 'message error';
+                }
+            } catch (error) {
+                messageDiv.textContent = 'An error occurred. Please try again.';
+                messageDiv.className = 'message error';
+                console.error('Resend OTP error:', error);
+            }
+                    });
+                }
+                
+                // Back to login
+                const backToLogin = document.getElementById('backToLogin');
+                if (backToLogin) {
+                    backToLogin.addEventListener('click', function() {
+                        document.getElementById('loginStep').style.display = 'block';
+                        document.getElementById('otpStep').style.display = 'none';
+                        const otpInput = document.getElementById('otp');
+                        if (otpInput) otpInput.value = '';
+                        const msgDiv = document.getElementById('message');
+                        if (msgDiv) {
+                            msgDiv.textContent = '';
+                            msgDiv.className = 'message';
+                        }
+                    });
+                }
+                
+                // OTP input - only allow numbers
+                const otpInput = document.getElementById('otp');
+                if (otpInput) {
+                    otpInput.addEventListener('input', function(e) {
+                        e.target.value = e.target.value.replace(/[^0-9]/g, '');
+                    });
+                }
+
+                // Check for registration success
+                const urlParams = new URLSearchParams(window.location.search);
+                const registered = urlParams.get('registered');
+                if (registered === 'true') {
+                    const messageDiv = document.getElementById('message');
+                    if (messageDiv) {
+                        messageDiv.textContent = 'Registration successful! Please login to continue.';
+                        messageDiv.className = 'message success';
+                        window.history.replaceState({}, document.title, window.location.pathname);
+                    }
+                }
+
+                // Check if already logged in
+                const isLoggedIn = localStorage.getItem('isLoggedIn');
+                if (isLoggedIn === 'true') {
+                    window.location.href = '/dashboard/';
+                }
+            });
     </script>
 </body>
 </html>
