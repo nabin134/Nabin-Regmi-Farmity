@@ -38,9 +38,29 @@ SECRET_KEY = os.environ.get(
     'django-insecure-change-this-in-production'
 )
 
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'true').lower() in ('1', 'true', 'yes', 'on')
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost','https://nabin-regmi-farmity.onrender.com', 'https://onrender.com','nabin-regmi-farmity.onrender.com',]
+
+def _split_csv_env(name, default=''):
+    raw = os.environ.get(name, default) or ''
+    return [item.strip() for item in raw.split(',') if item.strip()]
+
+
+# Host list should contain hostnames only (no scheme)
+ALLOWED_HOSTS = _split_csv_env(
+    'ALLOWED_HOSTS',
+    '127.0.0.1,localhost,nabin-regmi-farmity.onrender.com,.onrender.com'
+)
+
+# CSRF requires full origins (with scheme)
+CSRF_TRUSTED_ORIGINS = _split_csv_env(
+    'CSRF_TRUSTED_ORIGINS',
+    'http://127.0.0.1:8000,http://localhost:8000,https://nabin-regmi-farmity.onrender.com'
+)
+
+# Render/Proxy HTTPS handling
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+USE_X_FORWARDED_HOST = True
 
 # OTP Settings
 REQUIRE_OTP_FOR_LOGIN = False  # Set to False to skip OTP in development, True for production
@@ -121,10 +141,10 @@ if USE_POSTGRES:
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('DB_NAME', 'farmity_foryou'),
-            'USER': os.environ.get('DB_USER', 'farmity_foryou_user'),
-            'PASSWORD': os.environ.get('DB_PASSWORD', 'sAFOb3zsrUFbFmw38ogKymHyECMgFp3v'),
-            'HOST': os.environ.get('DB_HOST', 'dpg-d6vbo46uk2gs738mckm0-a'),
+            'NAME': os.environ.get('DB_NAME', ''),
+            'USER': os.environ.get('DB_USER', ''),
+            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
+            'HOST': os.environ.get('DB_HOST', ''),
             'PORT': os.environ.get('DB_PORT', '5432'),
         }
     }
@@ -175,6 +195,7 @@ USE_TZ = True
 # ======================
 STATIC_URL = '/static/'   # 🔥 must start & end with /
 STATICFILES_DIRS = [BASE_DIR / 'static']
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 
 # ======================
 # MEDIA FILES
