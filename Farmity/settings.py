@@ -5,6 +5,7 @@ Django settings for Farmity project.
 from pathlib import Path
 import os
 
+
 # Load .env so EMAIL_HOST_PASSWORD is read – OTP then sends from farmityforyou@gmail.com
 _project_root = Path(__file__).resolve().parent.parent  # same folder as manage.py
 try:
@@ -39,7 +40,7 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost','https://nabin-regmi-farmity.onrender.com', 'https://onrender.com']
 
 # OTP Settings
 REQUIRE_OTP_FOR_LOGIN = False  # Set to False to skip OTP in development, True for production
