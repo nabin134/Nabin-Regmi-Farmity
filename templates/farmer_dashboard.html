@@ -1114,6 +1114,18 @@
             pointer-events: none;
         }
 
+        .appointments-list .appointment-item::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #22c55e 0%, #16a34a 45%, #4f46e5 100%);
+            opacity: 0.85;
+            pointer-events: none;
+        }
+
         .appointments-list .appointment-item > * {
             position: relative;
             z-index: 1;
@@ -1124,20 +1136,129 @@
         }
 
         .appointment-expert-name {
+            font-size: 1.04rem;
+            font-weight: 700;
+            color: #0f172a;
+            margin-bottom: 0.35rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
             letter-spacing: 0.01em;
+        }
+
+        .appointment-expert-avatar {
+            width: 32px;
+            height: 32px;
+            border-radius: 999px;
+            background: rgba(53, 141, 88, 0.1);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--primary);
+            flex-shrink: 0;
         }
 
         .appointment-datetime {
             display: inline-flex;
             align-items: center;
             gap: 0.35rem;
-            padding: 0.3rem 0.7rem;
+            padding: 0.36rem 0.76rem;
             border-radius: 999px;
             background: rgba(15, 23, 42, 0.03);
+            font-size: 0.83rem;
+            color: #475569;
+            margin: 0;
+            border: 1px solid rgba(148, 163, 184, 0.2);
         }
 
         .appointment-datetime i {
             color: var(--primary);
+        }
+
+        .appointment-message {
+            margin-top: 0.5rem;
+            padding: 0.75rem 0.9rem;
+            border-radius: 10px;
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            font-size: 0.9rem;
+            color: #334155;
+            line-height: 1.45;
+        }
+
+        .appointment-response {
+            margin-top: 0.65rem;
+            padding: 0.8rem 0.9rem;
+            border-radius: 10px;
+            font-size: 0.85rem;
+            line-height: 1.45;
+        }
+
+        .appointment-visit-status {
+            margin-top: 0.55rem;
+            font-size: 0.85rem;
+            color: #475569;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+        }
+
+        .appointment-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.55rem;
+            align-items: stretch;
+            min-width: 210px;
+        }
+
+        .appointment-actions .btn-primary {
+            width: 100%;
+            justify-content: center;
+            white-space: nowrap;
+        }
+
+        .appointment-btn-muted {
+            font-size: 0.85rem;
+            padding: 0.45rem 0.9rem;
+            background: #f8fafc;
+            color: #0f172a;
+            border: 1px solid #e5e7eb;
+        }
+
+        .appointment-btn-success {
+            font-size: 0.85rem;
+            padding: 0.45rem 0.9rem;
+            background: #16a34a;
+            color: #ffffff;
+            border: 1px solid #15803d;
+        }
+
+        .appointment-btn-warning {
+            font-size: 0.85rem;
+            padding: 0.45rem 0.9rem;
+            background: var(--secondary);
+            border: 1px solid rgba(0, 0, 0, 0.08);
+        }
+
+        .appointment-note {
+            font-size: 0.78rem;
+            color: #94a3b8;
+            text-align: right;
+        }
+
+        @media (max-width: 900px) {
+            .appointment-info {
+                max-width: 100%;
+            }
+
+            .appointment-actions {
+                width: 100%;
+                min-width: 100%;
+            }
+
+            .appointment-note {
+                text-align: left;
+            }
         }
 
         .status-confirmed {
@@ -2188,27 +2309,27 @@
                             {% for appointment in appointments %}
                             <div class="appointment-item">
                                 <div class="appointment-info">
-                                    <h4 class="appointment-expert-name" style="font-size: 1rem; font-weight: 700; color: #111827; margin-bottom: 0.25rem; display: flex; align-items: center; gap: 0.4rem;">
-                                        <span style="width: 32px; height: 32px; border-radius: 999px; background: rgba(53,141,88,0.08); display: inline-flex; align-items: center; justify-content: center; color: var(--primary); flex-shrink: 0;">
+                                    <h4 class="appointment-expert-name">
+                                        <span class="appointment-expert-avatar">
                                             <i class="fas fa-user-graduate"></i>
                                         </span>
                                         {{ appointment.expert.name|default:appointment.expert.user.email }}
                                     </h4>
                                     <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.4rem; flex-wrap:wrap;">
-                                        <p class="appointment-datetime" style="font-size: 0.85rem; color: #4b5563; margin:0;">
-                                            <i class="far fa-calendar-alt" style="margin-right: 0.35rem;"></i>
+                                        <p class="appointment-datetime">
+                                            <i class="far fa-calendar-alt"></i>
                                             <span class="appointment-date-text">{{ appointment.requested_date|date:"M d, Y" }}</span>
                                             <span style="opacity:0.5;">·</span>
                                             <span class="appointment-time-text">{{ appointment.requested_time|time:"g:i A" }}</span>
                                         </p>
                                     </div>
                                     {% if appointment.message %}
-                                    <p class="appointment-message" style="margin-top: 0.35rem; font-size: 0.9rem; color: #374151;">
+                                    <p class="appointment-message">
                                         {{ appointment.message }}
                                     </p>
                                     {% endif %}
                                     {% if appointment.response_message %}
-                                    <p class="appointment-response" style="margin-top: 0.6rem; padding: 0.7rem 0.8rem; border-radius: 10px; font-size: 0.85rem; {% if appointment.status == 'rejected' %}background: #FFF7ED; border-left: 3px solid #F97316;{% else %}background: #F0FDF4; border-left: 3px solid #16A34A;{% endif %}">
+                                    <p class="appointment-response" style="{% if appointment.status == 'rejected' %}background: #FFF7ED; border-left: 3px solid #F97316;{% else %}background: #F0FDF4; border-left: 3px solid #16A34A;{% endif %}">
                                         <strong style="font-weight: 600;">
                                             {% if appointment.status == 'rejected' %}Reason rejected:{% else %}Expert reply:{% endif %}
                                         </strong>
@@ -2216,21 +2337,26 @@
                                     </p>
                                     {% endif %}
                                     {% if appointment.status == 'accepted' and appointment.visit_status %}
-                                    <p style="margin-top: 0.4rem; font-size: 0.85rem; color: #4b5563;">
-                                        <i class="fas fa-map-marker-alt" style="margin-right: 0.3rem;"></i>
+                                    <p class="appointment-visit-status">
+                                        <i class="fas fa-map-marker-alt"></i>
                                         Visit status:
                                         <strong>{{ appointment.get_visit_status_display }}</strong>
                                     </p>
                                     {% endif %}
                                 </div>
-                                <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end; min-width: 190px;">
+                                <div class="appointment-actions">
                                     <span class="appointment-status status-{{ appointment.status }}">
-                                        <i class="fas fa-circle" style="font-size: 0.5rem;"></i>
+                                        {% if appointment.status == 'accepted' %}
+                                            <i class="fas fa-check-circle"></i>
+                                        {% elif appointment.status == 'rejected' %}
+                                            <i class="fas fa-times-circle"></i>
+                                        {% else %}
+                                            <i class="fas fa-hourglass-half"></i>
+                                        {% endif %}
                                         {{ appointment.get_status_display }}
                                     </span>
                                     <button type="button"
-                                            class="btn-primary"
-                                            style="font-size: 0.85rem; padding: 0.45rem 0.9rem; background: #F8FAFC; color: #0F172A; border: 1px solid #E5E7EB;"
+                                            class="btn-primary appointment-btn-muted"
                                             onclick="openAppointmentDetails(this)"
                                             data-appt-id="{{ appointment.id }}"
                                             data-expert-id="{{ appointment.expert.id }}"
@@ -2248,21 +2374,20 @@
                                         <i class="fas fa-eye"></i> View details
                                     </button>
                                     <button type="button"
-                                            class="btn-primary"
-                                            style="font-size: 0.85rem; padding: 0.45rem 0.9rem; background: #16A34A; color: #ffffff; border: 1px solid #15803D;"
+                                            class="btn-primary appointment-btn-success"
                                             onclick="openChatWithExpert({{ appointment.expert.id }}, '{{ appointment.expert.name|default:appointment.expert.user.email|escapejs }}', '{{ appointment.expert.qualification|escapejs }}', '{{ appointment.expert.specialization|escapejs }}', '{{ appointment.expert.experience|escapejs }}')">
                                         <i class="fas fa-comments"></i> <span data-translate="appointments.joinChat">Join chat</span>
                                     </button>
                                     {% if appointment.status == 'pending' %}
-                                    <button type="button" class="btn-primary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem;" onclick="openChangeAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
+                                    <button type="button" class="btn-primary appointment-btn-muted" onclick="openChangeAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
                                         <i class="fas fa-calendar-alt"></i> <span data-translate="appointments.changeDateTime">Change date/time</span>
                                     </button>
                                     {% elif appointment.status == 'rejected' %}
-                                    <button type="button" class="btn-primary" style="font-size: 0.85rem; padding: 0.45rem 0.9rem; background: var(--secondary);" onclick="openReapplyAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
+                                    <button type="button" class="btn-primary appointment-btn-warning" onclick="openReapplyAppointmentModal({{ appointment.id }}, {{ appointment.expert.id }}, '{{ appointment.requested_date|date:'Y-m-d' }}', '{{ appointment.requested_time|time:'H:i' }}')">
                                         <i class="fas fa-redo"></i> <span data-translate="appointments.reapply">Edit and apply again</span>
                                     </button>
                                     {% endif %}
-                                    <small style="font-size: 0.78rem; color: #9ca3af; text-align: right;" data-translate="appointments.cancelNote">To cancel, please contact the Farmity team.</small>
+                                    <small class="appointment-note" data-translate="appointments.cancelNote">To cancel, please contact the Farmity team.</small>
                                 </div>
                             </div>
                             {% endfor %}
