@@ -112,23 +112,29 @@ WSGI_APPLICATION = 'Farmity.wsgi.application'
 # ======================
 # DATABASE
 # ======================
-# DATABASES = {
-#     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',
-#         'NAME': BASE_DIR / 'db.sqlite3',
-#     }
-# }
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.postgresql",
-        "NAME":"farmity_foryou",
-        "USER":"farmity_foryou_user",
-        "PASSWORD":"sAFOb3zsrUFbFmw38ogKymHyECMgFp3v" ,
-        "HOST": "dpg-d6vbo46uk2gs738mckm0-a",
-        "PORT": "5432",
+# Local-first database config:
+# - Default: SQLite (stable for local development)
+# - Optional Postgres: set USE_POSTGRES=1 with DB_* env vars
+USE_POSTGRES = os.environ.get('USE_POSTGRES', '0') == '1'
 
+if USE_POSTGRES:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME', 'farmity_foryou'),
+            'USER': os.environ.get('DB_USER', 'farmity_foryou_user'),
+            'PASSWORD': os.environ.get('DB_PASSWORD', 'sAFOb3zsrUFbFmw38ogKymHyECMgFp3v'),
+            'HOST': os.environ.get('DB_HOST', 'dpg-d6vbo46uk2gs738mckm0-a'),
+            'PORT': os.environ.get('DB_PORT', '5432'),
+        }
     }
-}
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 
 # ======================

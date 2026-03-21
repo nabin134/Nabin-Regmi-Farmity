@@ -716,6 +716,98 @@
         .btn-save-inline { background: var(--primary); color: white; }
         .btn-cancel-inline { background: #e9ecef; color: #495057; }
 
+        /* Buyer profile premium refresh */
+        .buyer-profile-shell {
+            background: #fff;
+            border: 1px solid #e8edf2;
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 10px 24px rgba(15, 23, 42, 0.08);
+        }
+        .buyer-profile-topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 1.2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid #edf2f7;
+        }
+        .buyer-profile-title {
+            margin: 0;
+            font-size: 1.45rem;
+            font-weight: 800;
+            color: #0f172a;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+        .buyer-profile-title i { color: var(--primary); }
+        .buyer-profile-statgrid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+            gap: 0.9rem;
+            margin-bottom: 1.25rem;
+        }
+        .buyer-profile-stat {
+            border: 1px solid #e7edf3;
+            border-radius: 14px;
+            padding: 0.9rem 1rem;
+            background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+        }
+        .buyer-profile-stat-label {
+            color: #64748b;
+            font-size: 0.78rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 0.25rem;
+        }
+        .buyer-profile-stat-value { font-size: 1.35rem; font-weight: 800; color: #0f172a; }
+        .buyer-profile-hero {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+            margin-bottom: 1.2rem;
+            padding: 1rem;
+            border-radius: 14px;
+            background: linear-gradient(110deg, #f8fbff 0%, #f1f8f3 100%);
+            border: 1px solid #e6eef5;
+            flex-wrap: wrap;
+        }
+        .buyer-profile-avatar-col { flex: 0 0 130px; text-align: center; }
+        .buyer-profile-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 4px solid #fff;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, 0.14);
+            background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%);
+            color: #fff;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+        }
+        .buyer-profile-name { margin: 0 0 0.5rem 0; font-size: 1.5rem; font-weight: 800; color: #111827; }
+        .buyer-profile-tags { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+        .buyer-profile-tag {
+            padding: 0.4rem 0.85rem;
+            border-radius: 999px;
+            font-size: 0.8rem;
+            font-weight: 700;
+        }
+        .buyer-profile-tag.role { background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: #fff; }
+        .buyer-profile-tag.ok { background: #dcfce7; color: #166534; }
+        .buyer-profile-tag.warn { background: #fef3c7; color: #92400e; }
+        .buyer-profile-form-actions { margin-top: 1rem; display: flex; gap: 0.6rem; }
+        @media (max-width: 640px) {
+            .buyer-profile-shell { padding: 1rem; }
+            .buyer-profile-avatar-col { flex-basis: 100%; }
+        }
+
         .form-group {
             margin-bottom: 1.5rem;
         }
@@ -2214,49 +2306,38 @@
             <!-- ========== PROFILE SECTION (same UI as profile page: card view + edit form) ========== -->
             <div id="profile" class="content-section" style="display: none !important;">
                 {% if active_section == 'profile' %}{% include 'includes/messages_block.html' %}{% endif %}
-                <div class="profile-section-card" style="background: white; border-radius: 20px; padding: 2rem; box-shadow: 0 2px 12px rgba(0,0,0,0.08); border: 1px solid #eee;">
-                    <div style="margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 2px solid #f0f0f0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
-                        <h2 style="margin: 0; color: #1a1a1a; font-size: 1.75rem; font-weight: 700; display: flex; align-items: center; gap: 0.75rem;">
-                            <i class="fas fa-user-circle" style="color: var(--primary);"></i> My Profile
+                <div class="buyer-profile-shell">
+                    <div class="buyer-profile-topbar">
+                        <h2 class="buyer-profile-title">
+                            <i class="fas fa-user-circle"></i> My Profile
                         </h2>
                         <button type="button" id="editProfileBtn" class="btn-edit-profile" onclick="toggleEditMode()">
                             <i class="fas fa-edit"></i> <span id="editBtnText">Edit Profile</span>
                         </button>
                     </div>
                     <!-- Stats -->
-                    <div style="margin-bottom: 2.5rem;">
-                        <div class="stats-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1.5rem;">
-                            <div class="stat-card" style="border-left: 4px solid var(--accent);">
-                                <div class="stat-content">
-                                    <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; font-weight: 600;">Total Orders</h4>
-                                    <span style="color: var(--accent); font-size: 2rem; font-weight: bold;">{{ total_orders }}</span>
-                                </div>
-                                <i class="fas fa-shopping-cart stat-icon" style="color: var(--accent); opacity: 0.2;"></i>
+                    <div class="buyer-profile-statgrid">
+                            <div class="buyer-profile-stat">
+                                <div class="buyer-profile-stat-label">Total Orders</div>
+                                <div class="buyer-profile-stat-value">{{ total_orders }}</div>
                             </div>
-                            <div class="stat-card" style="border-left: 4px solid #2196F3;">
-                                <div class="stat-content">
-                                    <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; font-weight: 600;">Total Spent</h4>
-                                    <span style="color: #2196F3; font-size: 1.5rem; font-weight: bold;">Rs. {{ total_spent|floatformat:2 }}</span>
-                                </div>
-                                <i class="fas fa-rupee-sign stat-icon" style="color: #2196F3; opacity: 0.2;"></i>
+                            <div class="buyer-profile-stat">
+                                <div class="buyer-profile-stat-label">Total Spent</div>
+                                <div class="buyer-profile-stat-value">Rs. {{ total_spent|floatformat:2 }}</div>
                             </div>
-                            <div class="stat-card" style="border-left: 4px solid var(--warning);">
-                                <div class="stat-content">
-                                    <h4 style="margin: 0 0 0.5rem 0; color: #666; font-size: 0.9rem; font-weight: 600;">Pending</h4>
-                                    <span style="color: var(--warning); font-size: 2rem; font-weight: bold;">{{ pending_orders }}</span>
-                                </div>
-                                <i class="fas fa-clock stat-icon" style="color: var(--warning); opacity: 0.2;"></i>
+                            <div class="buyer-profile-stat">
+                                <div class="buyer-profile-stat-label">Pending Orders</div>
+                                <div class="buyer-profile-stat-value">{{ pending_orders }}</div>
                             </div>
-                        </div>
                     </div>
                     <!-- View mode: card grid (default) -->
                     <div id="buyerProfileViewMode" style="display: block;">
-                        <div style="display: flex; align-items: center; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
-                            <div style="flex: 0 0 140px;">
+                        <div class="buyer-profile-hero">
+                            <div class="buyer-profile-avatar-col">
                                 {% if profile.photo %}
-                                <img src="{{ profile.photo.url }}" alt="Profile" id="buyerViewPhoto" style="width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 4px solid var(--primary);">
+                                <img src="{{ profile.photo.url }}" alt="Profile" id="buyerViewPhoto" class="buyer-profile-avatar">
                                 {% else %}
-                                <div id="buyerViewPhoto" style="width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;"><i class="fas fa-user"></i></div>
+                                <div id="buyerViewPhoto" class="buyer-profile-avatar"><i class="fas fa-user"></i></div>
                                 {% endif %}
                                 <form method="POST" action="{% url 'user_dashboard' %}" enctype="multipart/form-data" style="margin-top: 0.75rem; text-align: center;">
                                     {% csrf_token %}
@@ -2266,14 +2347,14 @@
                                     <input type="file" name="photo" id="buyerPhotoChangeInput" accept="image/*" style="display: none;" onchange="this.form.submit()">
                                 </form>
                             </div>
-                            <div style="flex: 1; min-width: 200px;">
-                                <h3 style="margin: 0 0 0.75rem 0; font-size: 1.75rem; font-weight: 700; color: #1a1a1a;">{{ profile.name|default:request.user.email }}</h3>
-                                <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
-                                    <span style="padding: 0.5rem 1rem; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border-radius: 20px; font-weight: 600;">{{ role_display|default:"Buyer" }}</span>
+                            <div style="flex: 1; min-width: 240px;">
+                                <h3 class="buyer-profile-name">{{ profile.name|default:request.user.email }}</h3>
+                                <div class="buyer-profile-tags">
+                                    <span class="buyer-profile-tag role">{{ role_display|default:"Buyer" }}</span>
                                     {% if request.user.is_verified %}
-                                    <span style="padding: 0.5rem 1rem; background: #D4EDDA; color: #155724; border-radius: 20px; font-weight: 600;"><i class="fas fa-check-circle"></i> Verified</span>
+                                    <span class="buyer-profile-tag ok"><i class="fas fa-check-circle"></i> Verified</span>
                                     {% else %}
-                                    <span style="padding: 0.5rem 1rem; background: #FFF3CD; color: #856404; border-radius: 20px; font-weight: 600;"><i class="fas fa-exclamation-circle"></i> Unverified</span>
+                                    <span class="buyer-profile-tag warn"><i class="fas fa-exclamation-circle"></i> Unverified</span>
                                     {% endif %}
                                 </div>
                             </div>
@@ -2303,7 +2384,7 @@
                     </div>
                     <!-- Edit form (hidden by default) – details only; photo shown for context -->
                     <div id="buyerProfileFormWrap" style="display: none;">
-                        <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+                        <div class="buyer-profile-hero" style="margin-bottom: 1rem;">
                             <div style="flex: 0 0 80px;">
                                 {% if profile.photo %}
                                 <img src="{{ profile.photo.url }}" alt="Profile" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary);">
@@ -2343,7 +2424,7 @@
                                     <div style="font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-calendar" style="color: var(--primary);"></i> {{ request.user.date_joined|date:"M d, Y" }}</div>
                                 </div>
                             </div>
-                            <div style="margin-top: 1.25rem; display: flex; gap: 0.5rem;">
+                            <div class="buyer-profile-form-actions">
                                 <button type="button" class="btn-primary btn-form-sm" style="background: #6c757d;" onclick="toggleEditMode()"><i class="fas fa-times"></i> Cancel</button>
                                 <button type="submit" class="btn-edit-profile btn-form-sm"><i class="fas fa-save"></i> Save</button>
                             </div>
