@@ -40,7 +40,7 @@ SECRET_KEY = os.environ.get(
 
 DEBUG = True
 
-ALLOWED_HOSTS = ['127.0.0.1', 'localhost','https://nabin-regmi-farmity.onrender.com', 'https://onrender.com']
+ALLOWED_HOSTS = ['127.0.0.1', 'localhost','https://nabin-regmi-farmity.onrender.com', 'https://onrender.com','nabin-regmi-farmity.onrender.com',]
 
 # OTP Settings
 REQUIRE_OTP_FOR_LOGIN = False  # Set to False to skip OTP in development, True for production
