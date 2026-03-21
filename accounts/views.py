@@ -75,6 +75,13 @@ otp_storage = {}  # Store OTPs: {email: {'otp': '123456', 'token': '...', 'creat
 def _user_requires_kyc(user):
     return user.role in {'farmer', 'vendor', 'agricultural_expert'}
 
+
+def _to_decimal_or_none(value):
+    try:
+        return Decimal(str(value))
+    except (TypeError, ValueError, InvalidOperation):
+        return None
+
 def _ensure_google_oauth(request=None):
     """
     Fix Google OAuth setup for local development:
@@ -1863,13 +1870,17 @@ def farmer_dashboard(request):
         quantity = request.POST.get('quantity')
         price = request.POST.get('price')
         if name and quantity and price:
+            quantity_value = _to_decimal_or_none(quantity)
+            if quantity_value is None or quantity_value < 0:
+                messages.error(request, 'Please enter a valid crop quantity.')
+                return _redirect_same_page(request, 'farmer_dashboard')
             product = FarmerProduct.objects.create(
                 farmer=profile,
                 name=name,
                 quantity=quantity,
                 price_per_unit=price,
                 unit=request.POST.get('unit', 'kg'),
-                is_available=True
+                is_available=quantity_value > 0
             )
             if request.FILES.get('product_image'):
                 product.image = request.FILES.get('product_image')
@@ -1893,11 +1904,16 @@ def farmer_dashboard(request):
         product_id = request.POST.get('product_id')
         try:
             product = FarmerProduct.objects.get(id=product_id, farmer=profile)
+            quantity_raw = request.POST.get('quantity')
+            quantity_value = _to_decimal_or_none(quantity_raw)
+            if quantity_value is None or quantity_value < 0:
+                messages.error(request, 'Please enter a valid crop quantity.')
+                return _redirect_same_page(request, 'farmer_dashboard')
             product.name = request.POST.get('product_name')
-            product.quantity = request.POST.get('quantity')
+            product.quantity = quantity_raw
             product.price_per_unit = request.POST.get('price')
             product.unit = request.POST.get('unit', 'kg')
-            product.is_available = request.POST.get('is_available') == 'on'
+            product.is_available = (request.POST.get('is_available') == 'on') and (quantity_value > 0)
             if request.FILES.get('product_image'):
                 product.image = request.FILES.get('product_image')
             product.save()
@@ -2461,13 +2477,21 @@ def vendor_dashboard(request):
         is_available = request.POST.get('is_available') == 'on'
         
         if name and price and stock:
+            try:
+                stock_value = int(stock)
+            except (TypeError, ValueError):
+                messages.error(request, 'Please enter a valid tool stock quantity.')
+                return _redirect_same_page(request, 'vendor_dashboard')
+            if stock_value < 0:
+                messages.error(request, 'Stock quantity cannot be negative.')
+                return _redirect_same_page(request, 'vendor_dashboard')
             tool = VendorTool.objects.create(
                 vendor=profile,
                 name=name,
                 description=description,
                 price=price,
-                stock_quantity=int(stock),
-                is_available=is_available
+                stock_quantity=stock_value,
+                is_available=is_available and stock_value > 0
             )
             if request.FILES.get('image'):
                 tool.image = request.FILES.get('image')
@@ -2491,11 +2515,20 @@ def vendor_dashboard(request):
         tool_id = request.POST.get('tool_id')
         try:
             tool = VendorTool.objects.get(id=tool_id, vendor=profile)
+            stock_raw = request.POST.get('stock', 0)
+            try:
+                stock_value = int(stock_raw)
+            except (TypeError, ValueError):
+                messages.error(request, 'Please enter a valid tool stock quantity.')
+                return _redirect_same_page(request, 'vendor_dashboard')
+            if stock_value < 0:
+                messages.error(request, 'Stock quantity cannot be negative.')
+                return _redirect_same_page(request, 'vendor_dashboard')
             tool.name = request.POST.get('name')
             tool.description = request.POST.get('description')
             tool.price = request.POST.get('price')
-            tool.stock_quantity = int(request.POST.get('stock', 0))
-            tool.is_available = request.POST.get('is_available') == 'on'
+            tool.stock_quantity = stock_value
+            tool.is_available = (request.POST.get('is_available') == 'on') and (stock_value > 0)
             if request.FILES.get('image'):
                 tool.image = request.FILES.get('image')
             tool.save()

@@ -563,6 +563,11 @@
             color: #721C24;
         }
 
+        .status-low-stock {
+            background: #FFF3CD;
+            color: #856404;
+        }
+
         /* Orders Table */
         .orders-table {
             width: 100%;
@@ -1337,8 +1342,16 @@
                                             <div class="tool-price">Rs. {{ tool.price }}</div>
                                             <div class="tool-stock">Stock: {{ tool.stock_quantity }} units</div>
                                         </div>
-                                        <span class="tool-status status-{% if tool.is_available %}available{% else %}unavailable{% endif %}">
-                                            {% if tool.is_available %}Available{% else %}Unavailable{% endif %}
+                                        <span class="tool-status {% if tool.stock_quantity == 0 %}status-unavailable{% elif tool.stock_quantity < 5 %}status-low-stock{% elif tool.is_available %}status-available{% else %}status-unavailable{% endif %}">
+                                            {% if tool.stock_quantity == 0 %}
+                                                No Stock (Sold Out)
+                                            {% elif tool.stock_quantity < 5 %}
+                                                Low Stock
+                                            {% elif tool.is_available %}
+                                                Available
+                                            {% else %}
+                                                Unavailable
+                                            {% endif %}
                                         </span>
                                     </div>
                                 </div>

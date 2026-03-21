@@ -1862,16 +1862,32 @@
                                 <div class="product-footer" style="display: flex; flex-direction: column; gap: 0.75rem;">
                                     <span class="price" style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">Rs. {{ crop.price_per_unit }}/{{ crop.unit }}</span>
                                     <div class="buyer-action-row" style="display: flex; gap: 0.5rem; flex-wrap: nowrap;">
-                                        <button class="btn-buy" onclick="openPurchaseCropModal({{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.price_per_unit }}, {{ crop.quantity }}, '{{ crop.unit|escapejs }}', '{% if crop.image %}{{ crop.image.url|escapejs }}{% endif %}')" style="flex: 1; min-width: 0; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                            <i class="fas fa-shopping-bag"></i> Buy Now
-                                        </button>
-                                        <button class="btn-cart" {% if crop.image %}data-image-url="{{ request.scheme }}://{{ request.get_host }}{{ crop.image.url }}"{% endif %} onclick="addToCart(event, 'crop', {{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.price_per_unit }}, {{ crop.quantity }}, '{{ crop.unit|escapejs }}')" style="flex: 1; min-width: 0; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                            <i class="fas fa-shopping-cart"></i> Add to Cart
-                                        </button>
+                                        {% if crop.quantity <= 0 %}
+                                            <button class="btn-buy" disabled style="flex: 1; min-width: 0; background: #9ca3af; color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: not-allowed; opacity: 0.75; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                                <i class="fas fa-ban"></i> Sold Out
+                                            </button>
+                                            <button class="btn-cart" disabled style="flex: 1; min-width: 0; background: #f3f4f6; color: #9ca3af; border: 2px solid #d1d5db; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: not-allowed; opacity: 0.75; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                                <i class="fas fa-shopping-cart"></i> Sold Out
+                                            </button>
+                                        {% else %}
+                                            <button class="btn-buy" onclick="openPurchaseCropModal({{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.price_per_unit }}, {{ crop.quantity }}, '{{ crop.unit|escapejs }}', '{% if crop.image %}{{ crop.image.url|escapejs }}{% endif %}')" style="flex: 1; min-width: 0; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                                <i class="fas fa-shopping-bag"></i> Buy Now
+                                            </button>
+                                            <button class="btn-cart" {% if crop.image %}data-image-url="{{ request.scheme }}://{{ request.get_host }}{{ crop.image.url }}"{% endif %} onclick="addToCart(event, 'crop', {{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.price_per_unit }}, {{ crop.quantity }}, '{{ crop.unit|escapejs }}')" style="flex: 1; min-width: 0; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                                <i class="fas fa-shopping-cart"></i> Add to Cart
+                                            </button>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem; padding: 0.5rem; background: var(--light-bg); border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
-                                    <i class="fas fa-box" style="color: var(--primary);"></i> <strong>Available:</strong> {{ crop.quantity }} {{ crop.unit }}
+                                    <i class="fas fa-box" style="color: var(--primary);"></i>
+                                    {% if crop.quantity <= 0 %}
+                                        <strong>No Stock (Sold Out)</strong>
+                                    {% elif crop.quantity < 5 %}
+                                        <strong>Low Stock:</strong> {{ crop.quantity }} {{ crop.unit }}
+                                    {% else %}
+                                        <strong>Available:</strong> {{ crop.quantity }} {{ crop.unit }}
+                                    {% endif %}
                                 </p>
                             </div>
                         </div>
@@ -1908,16 +1924,32 @@
                                 <div class="tool-footer" style="display: flex; flex-direction: column; gap: 0.75rem;">
                                     <span class="price" style="font-size: 1.25rem; font-weight: 700; color: var(--primary);">Rs. {{ tool.price }}</span>
                                     <div class="buyer-action-row" style="display: flex; gap: 0.5rem; flex-wrap: nowrap;">
-                                        <button class="btn-buy" onclick="openPurchaseToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}, '{% if tool.image %}{{ tool.image.url|escapejs }}{% endif %}')" style="flex: 1; min-width: 0; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                            <i class="fas fa-shopping-bag"></i> Buy Now
-                                        </button>
-                                        <button class="btn-cart tool-add-cart" {% if tool.image %}data-image-url="{{ request.scheme }}://{{ request.get_host }}{{ tool.image.url }}"{% endif %} data-tool-id="{{ tool.id }}" data-name="{{ tool.name|escapejs }}" data-price="{{ tool.price }}" data-stock="{{ tool.stock_quantity }}" style="flex: 1; min-width: 0; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
-                                            <i class="fas fa-shopping-cart"></i> Add to Cart
-                                        </button>
+                                        {% if tool.stock_quantity <= 0 %}
+                                            <button class="btn-buy" disabled style="flex: 1; min-width: 0; background: #9ca3af; color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: not-allowed; opacity: 0.75; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                                <i class="fas fa-ban"></i> Sold Out
+                                            </button>
+                                            <button class="btn-cart tool-add-cart" disabled style="flex: 1; min-width: 0; background: #f3f4f6; color: #9ca3af; border: 2px solid #d1d5db; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: not-allowed; opacity: 0.75; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                                <i class="fas fa-shopping-cart"></i> Sold Out
+                                            </button>
+                                        {% else %}
+                                            <button class="btn-buy" onclick="openPurchaseToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}, '{% if tool.image %}{{ tool.image.url|escapejs }}{% endif %}')" style="flex: 1; min-width: 0; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                                <i class="fas fa-shopping-bag"></i> Buy Now
+                                            </button>
+                                            <button class="btn-cart tool-add-cart" {% if tool.image %}data-image-url="{{ request.scheme }}://{{ request.get_host }}{{ tool.image.url }}"{% endif %} data-tool-id="{{ tool.id }}" data-name="{{ tool.name|escapejs }}" data-price="{{ tool.price }}" data-stock="{{ tool.stock_quantity }}" style="flex: 1; min-width: 0; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                                <i class="fas fa-shopping-cart"></i> Add to Cart
+                                            </button>
+                                        {% endif %}
                                     </div>
                                 </div>
                                 <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem; padding: 0.5rem; background: var(--light-bg); border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
-                                    <i class="fas fa-box" style="color: var(--primary);"></i> <strong>Available:</strong> {{ tool.stock_quantity }} units
+                                    <i class="fas fa-box" style="color: var(--primary);"></i>
+                                    {% if tool.stock_quantity == 0 %}
+                                        <strong>No Stock (Sold Out)</strong>
+                                    {% elif tool.stock_quantity < 5 %}
+                                        <strong>Low Stock:</strong> {{ tool.stock_quantity }} units
+                                    {% else %}
+                                        <strong>Available:</strong> {{ tool.stock_quantity }} units
+                                    {% endif %}
                                 </p>
                             </div>
                         </div>

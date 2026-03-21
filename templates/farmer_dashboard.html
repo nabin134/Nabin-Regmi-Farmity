@@ -575,6 +575,11 @@
             color: #721C24;
         }
 
+        .status-low-stock {
+            background: #FFF3CD;
+            color: #856404;
+        }
+
         /* Tools Grid */
         .tools-grid {
             display: grid;
@@ -1894,8 +1899,16 @@
                                         <div><i class="fas fa-calendar"></i> Added: {{ product.created_at|date:"M d, Y" }}</div>
                                     </div>
                                     <div class="product-price">Rs. {{ product.price_per_unit }}/{{ product.unit }}</div>
-                                    <span class="product-status status-{% if product.is_available %}available{% else %}unavailable{% endif %}">
-                                        {% if product.is_available %}Available{% else %}Unavailable{% endif %}
+                                    <span class="product-status {% if product.quantity <= 0 %}status-unavailable{% elif product.quantity < 5 %}status-low-stock{% elif product.is_available %}status-available{% else %}status-unavailable{% endif %}">
+                                        {% if product.quantity <= 0 %}
+                                            No Stock (Sold Out)
+                                        {% elif product.quantity < 5 %}
+                                            Low Stock
+                                        {% elif product.is_available %}
+                                            Available
+                                        {% else %}
+                                            Unavailable
+                                        {% endif %}
                                     </span>
                                 </div>
                             </div>
@@ -1943,10 +1956,18 @@
                                             <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">{{ tool.description|truncatewords:20 }}</p>
                                             {% endif %}
                                             <div class="tool-price">Rs. {{ tool.price }}</div>
-                                            <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">Available: {{ tool.stock_quantity }}</p>
+                                            <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
+                                                {% if tool.stock_quantity == 0 %}
+                                                    No Stock (Sold Out)
+                                                {% elif tool.stock_quantity < 5 %}
+                                                    Low Stock: {{ tool.stock_quantity }}
+                                                {% else %}
+                                                    Available: {{ tool.stock_quantity }}
+                                                {% endif %}
+                                            </p>
                                             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
-                                                <button class="btn-buy farmer-tool-buy" data-tool-id="{{ tool.id }}" data-name="{{ tool.name|escapejs }}" data-price="{{ tool.price }}" data-stock="{{ tool.stock_quantity }}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; flex: 1; min-width: 100px;"{% else %}style="flex: 1; min-width: 100px;"{% endif %}>Buy Now</button>
-                                                <button class="btn-farmer-tool-cart" {% if tool.image %}data-image-url="{{ request.scheme }}://{{ request.get_host }}{{ tool.image.url }}"{% endif %} data-tool-id="{{ tool.id }}" data-name="{{ tool.name|escapejs }}" data-price="{{ tool.price }}" data-stock="{{ tool.stock_quantity }}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; flex: 1; min-width: 100px; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.6rem 0.75rem; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;"{% else %}style="flex: 1; min-width: 100px; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.6rem 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;"{% endif %}><i class="fas fa-cart-plus"></i> Add to Cart</button>
+                                                <button class="btn-buy farmer-tool-buy" data-tool-id="{{ tool.id }}" data-name="{{ tool.name|escapejs }}" data-price="{{ tool.price }}" data-stock="{{ tool.stock_quantity }}" {% if kyc_status != 'approved' or tool.stock_quantity <= 0 %}disabled style="opacity: 0.6; cursor: not-allowed; flex: 1; min-width: 100px;"{% else %}style="flex: 1; min-width: 100px;"{% endif %}>{% if tool.stock_quantity <= 0 %}Sold Out{% else %}Buy Now{% endif %}</button>
+                                                <button class="btn-farmer-tool-cart" {% if tool.image %}data-image-url="{{ request.scheme }}://{{ request.get_host }}{{ tool.image.url }}"{% endif %} data-tool-id="{{ tool.id }}" data-name="{{ tool.name|escapejs }}" data-price="{{ tool.price }}" data-stock="{{ tool.stock_quantity }}" {% if kyc_status != 'approved' or tool.stock_quantity <= 0 %}disabled style="opacity: 0.6; cursor: not-allowed; flex: 1; min-width: 100px; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.6rem 0.75rem; border-radius: 8px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;"{% else %}style="flex: 1; min-width: 100px; background: white; color: var(--primary); border: 2px solid var(--primary); padding: 0.6rem 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 0.35rem;"{% endif %}><i class="fas fa-cart-plus"></i> {% if tool.stock_quantity <= 0 %}Sold Out{% else %}Add to Cart{% endif %}</button>
                                             </div>
                                         </div>
                                     </div>
