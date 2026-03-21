@@ -1523,6 +1523,49 @@
                                 {% endif %}
                             </div>
                         </div>
+                        <div class="content-section" style="margin-top: 2rem;">
+                            <div class="section-header">
+                                <h3><i class="fas fa-receipt"></i> Transaction records</h3>
+                            </div>
+                            <div class="section-body">
+                                {% if vendor_transactions %}
+                                <div class="table-responsive">
+                                    <table class="data-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Date & time</th>
+                                                <th>Order</th>
+                                                <th>Buyer</th>
+                                                <th>Item</th>
+                                                <th>Qty</th>
+                                                <th>Total</th>
+                                                <th>Payment</th>
+                                                <th>Payout</th>
+                                                <th>Order status</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for t in vendor_transactions %}
+                                            <tr>
+                                                <td>{{ t.created_at|date:"M d, Y h:i A" }}</td>
+                                                <td>#{{ t.id }}</td>
+                                                <td>{{ t.buyer.email }}</td>
+                                                <td>{{ t.tool.name|default:"-" }}</td>
+                                                <td>{{ t.quantity }} units</td>
+                                                <td>Rs. {{ t.total_amount|floatformat:2 }}</td>
+                                                <td>{{ t.get_payment_method_display|default:"-" }} / {{ t.get_payment_status_display|default:"Pending" }}</td>
+                                                <td>{{ t.get_payout_status_display|default:"Pending payout" }}{% if t.payout_at %} ({{ t.payout_at|date:"M d, Y h:i A" }}){% endif %}</td>
+                                                <td>{{ t.get_status_display }}</td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                                {% else %}
+                                <p style="color: #6c757d;">No transaction records yet.</p>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>

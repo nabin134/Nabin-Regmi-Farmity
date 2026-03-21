@@ -2384,6 +2384,12 @@ def farmer_dashboard(request):
     farmer_total_spend = farmer_spend_orders.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED).aggregate(
         total=Sum('total_amount')
     )['total'] or Decimal('0')
+    farmer_sale_transactions = Order.objects.filter(crop__farmer=profile).select_related(
+        'buyer', 'crop'
+    ).order_by('-created_at')[:200]
+    farmer_purchase_transactions = Order.objects.filter(buyer=request.user).select_related(
+        'tool', 'tool__vendor', 'tool__vendor__user', 'crop', 'crop__farmer', 'crop__farmer__user'
+    ).order_by('-created_at')[:200]
 
     # Determine if features should be restricted
     features_restricted = (kyc_status != 'approved')
@@ -2421,6 +2427,8 @@ def farmer_dashboard(request):
         'farmer_total_released': farmer_total_released,
         'farmer_total_spend': farmer_total_spend,
         'farmer_released_payouts': farmer_released_payouts,
+        'farmer_sale_transactions': farmer_sale_transactions,
+        'farmer_purchase_transactions': farmer_purchase_transactions,
     }
     return render(request, 'farmer_dashboard.html', context)
 
@@ -2589,6 +2597,7 @@ def vendor_dashboard(request):
     
     # Get orders for vendor's tools
     orders = Order.objects.filter(tool__vendor=profile).select_related('buyer', 'tool').order_by('-created_at')
+    vendor_transactions = orders[:200]
     
     # Orders where payment is collected (completed) — used for payout stats
     collected_orders = orders.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED)
@@ -2685,6 +2694,7 @@ def vendor_dashboard(request):
         'total_amount_collect': total_amount_collect,
         'total_orders_received': total_orders_received,
         'released_payouts': released_payouts,
+        'vendor_transactions': vendor_transactions,
     }
     return render(request, 'vendor_dashboard.html', context)
 
@@ -3596,6 +3606,15 @@ def admin_dashboard(request):
     recent_kyc_requests = KYCRequest.objects.select_related('user').order_by('-created_at')[:5]
     recent_orders = Order.objects.select_related('buyer', 'tool', 'crop').order_by('-created_at')[:5]
     recent_users = User.objects.order_by('-date_joined')[:5]
+    admin_transactions = Order.objects.select_related(
+        'buyer',
+        'tool',
+        'tool__vendor',
+        'tool__vendor__user',
+        'crop',
+        'crop__farmer',
+        'crop__farmer__user'
+    ).order_by('-created_at')[:200]
     
     # Chart Data - User Growth (last 6 months)
     six_months_ago = timezone.now() - timedelta(days=180)
@@ -3657,6 +3676,7 @@ def admin_dashboard(request):
         'recent_kyc_requests': recent_kyc_requests,
         'recent_orders': recent_orders,
         'recent_users': recent_users,
+        'admin_transactions': admin_transactions,
         
         # Chart Data - JSON serialized
         'user_growth': json.dumps(user_growth),
@@ -3829,6 +3849,28 @@ def admin_collections_payouts(request):
             'admin_commission': o.admin_commission or Decimal('0'),
             'payout_amount': _order_seller_amount(o),
         })
+    # Build per-order rows for Payouts tab (pending only, with full transaction details)
+    pending_payout_rows = []
+    for o in pending_orders:
+        if o.crop_id:
+            product_name = o.crop.name
+            product_type = 'Crop'
+            seller_name = o.crop.farmer.name or o.crop.farmer.user.email if o.crop and o.crop.farmer else 'Unknown'
+        elif o.tool_id:
+            product_name = o.tool.name
+            product_type = 'Tool'
+            seller_name = o.tool.vendor.company_name or o.tool.vendor.user.email if o.tool and o.tool.vendor else 'Unknown'
+        else:
+            product_name = '—'
+            product_type = '—'
+            seller_name = '—'
+        pending_payout_rows.append({
+            'order': o,
+            'product_name': product_name,
+            'product_type': product_type,
+            'seller_name': seller_name,
+            'payout_amount': _order_seller_amount(o),
+        })
     context = {
         'total_collected': float(total_collected),
         'total_admin_commission': float(total_admin_commission),
@@ -3839,6 +3881,7 @@ def admin_collections_payouts(request):
         'vendor_collected_list': list(vendor_collected.values()),
         'farmer_pending_list': list(farmer_pending.values()),
         'vendor_pending_list': list(vendor_pending.values()),
+        'pending_payout_rows': pending_payout_rows,
         'open_support_count': SupportTicket.objects.filter(
             status__in=[SupportTicket.STATUS_OPEN, SupportTicket.STATUS_IN_PROGRESS]
         ).count(),

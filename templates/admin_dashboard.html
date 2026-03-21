@@ -369,6 +369,52 @@
         .status-badge.rejected { background: #f8d7da; color: #721c24; }
         .status-badge.delivered { background: #d4edda; color: #155724; }
 
+        .transactions-section {
+            margin-top: 24px;
+            background: #fff;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .transactions-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        .transactions-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: var(--dark);
+        }
+
+        .transactions-table-wrap {
+            overflow-x: auto;
+        }
+
+        .transactions-table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 1100px;
+        }
+
+        .transactions-table th,
+        .transactions-table td {
+            padding: 10px 12px;
+            border-bottom: 1px solid #edf2f7;
+            text-align: left;
+            font-size: 13px;
+            vertical-align: top;
+        }
+
+        .transactions-table th {
+            background: #f8fafc;
+            color: #334155;
+            font-weight: 600;
+        }
+
         /* Responsive */
         @media (max-width: 768px) {
             .sidebar {
@@ -694,6 +740,57 @@
                     <p style="text-align: center; color: #999; padding: 20px;">No recent users</p>
                     {% endfor %}
                 </div>
+            </div>
+
+            <div class="transactions-section">
+                <div class="transactions-header">
+                    <h3 class="transactions-title">All Transaction Records</h3>
+                    <span style="font-size: 12px; color: #64748b;">Latest {{ admin_transactions|length }} records</span>
+                </div>
+                {% if admin_transactions %}
+                <div class="transactions-table-wrap">
+                    <table class="transactions-table">
+                        <thead>
+                            <tr>
+                                <th>Date & time</th>
+                                <th>Order</th>
+                                <th>Type</th>
+                                <th>Buyer</th>
+                                <th>Seller</th>
+                                <th>Item</th>
+                                <th>Qty</th>
+                                <th>Total</th>
+                                <th>Payment</th>
+                                <th>Payout</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for t in admin_transactions %}
+                            <tr>
+                                <td>{{ t.created_at|date:"M d, Y h:i A" }}</td>
+                                <td>#{{ t.id }}</td>
+                                <td>{% if t.tool %}Tool{% elif t.crop %}Crop{% else %}-{% endif %}</td>
+                                <td>{{ t.buyer.email }}</td>
+                                <td>
+                                    {% if t.tool and t.tool.vendor %}{{ t.tool.vendor.company_name|default:t.tool.vendor.user.email }}
+                                    {% elif t.crop and t.crop.farmer %}{{ t.crop.farmer.name|default:t.crop.farmer.user.email }}
+                                    {% else %}-{% endif %}
+                                </td>
+                                <td>{% if t.tool %}{{ t.tool.name }}{% elif t.crop %}{{ t.crop.name }}{% else %}-{% endif %}</td>
+                                <td>{{ t.quantity }}</td>
+                                <td>Rs. {{ t.total_amount|floatformat:2 }}</td>
+                                <td>{{ t.get_payment_method_display|default:"-" }} / {{ t.get_payment_status_display|default:"Pending" }}</td>
+                                <td>{{ t.get_payout_status_display|default:"Pending payout" }}{% if t.payout_at %} ({{ t.payout_at|date:"M d, Y h:i A" }}){% endif %}</td>
+                                <td>{{ t.get_status_display }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p style="color:#64748b;">No transaction records found.</p>
+                {% endif %}
             </div>
         </div>
     </div>

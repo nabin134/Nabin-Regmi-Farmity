@@ -1,4 +1,145 @@
 {# Order detail content for embedding in modal (no full page wrapper) #}
+<style>
+    .od-modal-wrap {
+        --od-ink: #0f172a;
+        --od-muted: #64748b;
+        --od-line: #e2e8f0;
+        --od-brand: #1f7a45;
+        --od-brand-dark: #14532d;
+        --od-accent: #f59e0b;
+    }
+    .od-modal-wrap .od-card {
+        border: 1px solid var(--od-line);
+        border-radius: 16px;
+        overflow: hidden;
+        background: #fff;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.12);
+    }
+    .od-modal-wrap .od-card-header {
+        background: linear-gradient(90deg, #0b1f30 0%, #0d3a3e 38%, #13984a 100%);
+        color: #fff;
+        padding: 14px 16px;
+        min-height: 62px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+    }
+    .od-modal-wrap .od-modal-title {
+        margin: 0;
+        font-size: 2rem;
+        line-height: 1;
+        letter-spacing: 0.2px;
+        font-weight: 800;
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .od-modal-wrap .od-modal-title i { font-size: 1rem; opacity: 0.95; }
+    .od-modal-wrap .od-status-pill {
+        background: rgba(16, 185, 129, 0.22);
+        border: 2px solid rgba(255,255,255,0.9);
+        border-radius: 2px;
+        color: #fff;
+        font-weight: 700;
+        font-size: 0.78rem;
+        letter-spacing: 0.02em;
+        padding: 6px 10px;
+        text-transform: capitalize;
+    }
+    .od-modal-wrap .od-card-body {
+        padding: 16px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        background:
+            radial-gradient(circle at 100% 0%, rgba(31,122,69,0.06), transparent 38%),
+            linear-gradient(180deg, #ffffff 0%, #fbfdff 100%);
+    }
+    .od-modal-wrap .od-section {
+        border: 1px solid var(--od-line);
+        border-radius: 12px;
+        padding: 12px;
+        background: #fff;
+    }
+    .od-modal-wrap .od-section-title {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 700;
+        color: var(--od-brand-dark);
+        margin-bottom: 8px;
+    }
+    .od-modal-wrap .od-row {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 7px 0;
+        border-bottom: 1px dashed #edf2f7;
+    }
+    .od-modal-wrap .od-row:last-child { border-bottom: none; }
+    .od-modal-wrap .od-label { color: var(--od-muted); font-size: 0.86rem; }
+    .od-modal-wrap .od-value { color: var(--od-ink); font-weight: 600; font-size: 0.9rem; text-align: right; }
+    .od-modal-wrap .od-total-row {
+        margin-top: 6px;
+        border-top: 2px solid #dcfce7;
+        padding-top: 10px;
+        font-weight: 700;
+    }
+    .od-modal-wrap .od-address {
+        border: 1px solid #eaf2ff;
+        background: #f8fbff;
+        border-radius: 10px;
+        padding: 10px;
+        color: #1e293b;
+        font-size: 0.88rem;
+    }
+    .od-modal-wrap .od-badge {
+        display: inline-block;
+        padding: 3px 8px;
+        border-radius: 999px;
+        font-size: 0.76rem;
+        font-weight: 700;
+        margin-left: 4px;
+    }
+    .od-modal-wrap .od-badge.cod { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
+    .od-modal-wrap .od-badge.esewa { background: #eef2ff; color: #3730a3; border: 1px solid #c7d2fe; }
+    .od-modal-wrap .od-badge.paid { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .od-modal-wrap .status-pending { color: #fef3c7; }
+    .od-modal-wrap .status-accepted, .od-modal-wrap .status-delivered { color: #dcfce7; }
+    .od-modal-wrap .status-rejected, .od-modal-wrap .status-cancelled { color: #fee2e2; }
+    .od-modal-wrap .od-span-2 { grid-column: 1 / -1; }
+    .od-modal-wrap .od-kpi-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+        margin-bottom: 12px;
+    }
+    .od-modal-wrap .od-kpi {
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 8px 10px;
+    }
+    .od-modal-wrap .od-kpi-label {
+        font-size: 0.72rem;
+        color: #64748b;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        margin-bottom: 4px;
+    }
+    .od-modal-wrap .od-kpi-value {
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: #0f172a;
+    }
+    @media (max-width: 860px) {
+        .od-modal-wrap .od-modal-title { font-size: 1.25rem; }
+        .od-modal-wrap .od-card-body { grid-template-columns: 1fr; }
+        .od-modal-wrap .od-kpi-grid { grid-template-columns: 1fr; }
+        .od-modal-wrap .od-span-2 { grid-column: auto; }
+    }
+</style>
 <div class="od-modal-wrap" data-order-id="{{ order.id }}">
     <div class="od-card od-modal-card">
         <div class="od-card-header">
@@ -6,6 +147,20 @@
             <span class="od-status od-status-pill status-{{ order.status }}">{{ order.get_status_display }}</span>
         </div>
         <div class="od-card-body">
+            <div class="od-kpi-grid od-span-2">
+                <div class="od-kpi">
+                    <div class="od-kpi-label">Order Date & Time</div>
+                    <div class="od-kpi-value">{{ order.created_at|date:"M d, Y h:i A" }}</div>
+                </div>
+                <div class="od-kpi">
+                    <div class="od-kpi-label">Payment Status</div>
+                    <div class="od-kpi-value">{{ order.get_payment_status_display|default:"Pending" }}</div>
+                </div>
+                <div class="od-kpi">
+                    <div class="od-kpi-label">Order Total</div>
+                    <div class="od-kpi-value">Rs. {{ order.total_amount|default:0|floatformat:2 }}</div>
+                </div>
+            </div>
             <div class="od-section">
                 <div class="od-section-title">Product</div>
                 <div class="od-row">
@@ -72,7 +227,7 @@
             {% if is_seller %}
             <div class="od-section"><div class="od-section-title">Buyer</div><div class="od-row"><span class="od-label">Customer</span><span class="od-value">{{ order.buyer.get_full_name|default:order.buyer.email }}</span></div></div>
             {% endif %}
-            {% if order.notes %}<div class="od-section"><div class="od-section-title">Notes</div><div class="od-address">{{ order.notes }}</div></div>{% endif %}
+            {% if order.notes %}<div class="od-section od-span-2"><div class="od-section-title">Notes</div><div class="od-address">{{ order.notes }}</div></div>{% endif %}
         </div>
     </div>
 </div>
