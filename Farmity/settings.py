@@ -132,29 +132,23 @@ WSGI_APPLICATION = 'Farmity.wsgi.application'
 # ======================
 # DATABASE
 # ======================
-# Local-first database config:
-# - Default: SQLite (stable for local development)
-# - Optional Postgres: set USE_POSTGRES=1 with DB_* env vars
-USE_POSTGRES = os.environ.get('USE_POSTGRES', '0') == '1'
+# DATABASES = {
+#     'default': {
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'farmity_foryou',
+#         'USER': 'farmity_foryou_user',
+#         'PASSWORD': 'sAFOb3zsrUFbFmw38ogKymHyECMgFp3v',
+#         'HOST': 'dpg-d6vbo46uk2gs738mckm0-a',
+#         'PORT': '5432',
+#     }
+# }
 
-if USE_POSTGRES:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.postgresql',
-            'NAME': os.environ.get('DB_NAME', ''),
-            'USER': os.environ.get('DB_USER', ''),
-            'PASSWORD': os.environ.get('DB_PASSWORD', ''),
-            'HOST': os.environ.get('DB_HOST', ''),
-            'PORT': os.environ.get('DB_PORT', '5432'),
-        }
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',  # SQLite backend
+        'NAME': BASE_DIR / 'db.sqlite3',         # Database file path
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
 
 
 # ======================

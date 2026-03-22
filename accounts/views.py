@@ -17,6 +17,8 @@ from django.urls import reverse
 import secrets
 import hashlib
 import json
+import logging
+import smtplib
 from datetime import timedelta, datetime, date
 from decimal import Decimal, InvalidOperation
 import calendar
@@ -795,21 +797,34 @@ Farmity Team''',
                     print(f"[Email] send_mail returned 0 for {recipient_email}")
             except Exception as e:
                 email_failed = True
-                import smtplib
+                log = logging.getLogger(__name__)
+                # 535 from Gmail: wrong password type or bad credentials — don't spam the console with a full traceback
                 if isinstance(e, smtplib.SMTPAuthenticationError):
-                    print("[Email] Gmail login failed (535). Use a Gmail App Password in .env, not your normal password.")
-                    print("[Email] See EMAIL_SETUP.md or https://support.google.com/accounts/answer/185833")
+                    log.warning(
+                        "Gmail SMTP auth failed (535): set EMAIL_HOST_PASSWORD to a 16-char "
+                        "App Password (Google Account → Security → App passwords), not your normal password. "
+                        "See EMAIL_SETUP.md."
+                    )
+                    if settings.DEBUG:
+                        log.debug("OTP (email not sent, DEBUG only): %s", otp)
                 else:
-                    print(f"[Email] Forgot-password send failed: {type(e).__name__}: {e}")
-                if getattr(settings, 'DEBUG', False):
-                    import traceback
-                    traceback.print_exc()
-                    print("[DEBUG] OTP (email not sent):", otp)
+                    log.error("Forgot-password email failed: %s: %s", type(e).__name__, e)
+                    if settings.DEBUG:
+                        import traceback
+                        traceback.print_exc()
+                        log.debug("OTP (email not sent, DEBUG only): %s", otp)
             
             response_data = {
                 "message": "If an account with that email exists, an OTP has been sent. Check your inbox and spam folder.",
                 "token": token,
             }
+            if settings.DEBUG:
+                response_data["email_sent"] = not email_failed
+                if email_failed:
+                    response_data["dev_note"] = (
+                        "Email did not send: fix Gmail App Password in .env (EMAIL_HOST_PASSWORD). "
+                        "See EMAIL_SETUP.md."
+                    )
             return Response(response_data, status=status.HTTP_200_OK)
         except Exception as e:
             import traceback
