@@ -236,6 +236,48 @@ class SignupView(APIView):
                 # Auto-activate: log user in and redirect to KYC (for farmer/vendor/expert) or dashboard (buyer)
                 login(request, user)
                 redirect_url = _redirect_to_role_home(user)  # KYC page or role dashboard
+
+                # Welcome email (user + admin copy).
+                # Signup currently creates no in-app notification, so we send directly here.
+                try:
+                    admin_emails = list(
+                        get_user_model().objects.filter(role='admin', is_active=True).values_list('email', flat=True).distinct()
+                    )
+                except Exception:
+                    admin_emails = []
+
+                recipient_list = []
+                if user.email:
+                    recipient_list.append(user.email)
+                for e in admin_emails:
+                    if e and e not in recipient_list:
+                        recipient_list.append(e)
+
+                if recipient_list:
+                    kyc_next = redirect_url == reverse('kyc')
+                    next_step_line = (
+                        f"Next step: Complete your KYC verification here: {redirect_url}"
+                        if kyc_next
+                        else f"Next step: Go to your dashboard here: {redirect_url}"
+                    )
+                    role_name = (getattr(user, 'role', '') or '').replace('_', ' ').title() or 'Account'
+                    welcome_body = (
+                        "Welcome to Farmity!\n\n"
+                        f"Account created successfully for: {user.email}\n"
+                        f"Role: {role_name}\n\n"
+                        f"{next_step_line}\n\n"
+                        "If you need help, contact Farmity Support from the app.\n"
+                    )
+                    try:
+                        send_mail(
+                            subject="Welcome to Farmity",
+                            message=welcome_body,
+                            from_email=settings.DEFAULT_FROM_EMAIL,
+                            recipient_list=recipient_list,
+                            fail_silently=False,
+                        )
+                    except Exception:
+                        logging.getLogger(__name__).exception("Failed to send welcome email")
                 return Response(
                     {
                         "message": "Account created successfully. Redirecting...",
@@ -1625,6 +1667,18 @@ def kyc_page(request):
                 existing.rejection_reason = None
                 existing.save()
                 messages.success(request, 'KYC resubmitted successfully!')
+
+                # Email copy for "KYC submitted/resubmitted" (user + admin).
+                try:
+                    create_notification(
+                        request.user,
+                        'KYC submitted',
+                        'Your KYC verification has been submitted (resubmission) and is pending approval. You will receive an email after review (approved or rejected).',
+                        reverse('kyc'),
+                        UserNotification.TYPE_KYC,
+                    )
+                except Exception:
+                    logging.getLogger(__name__).exception("Failed to send KYC resubmission email")
             else:
                 # Create new request only if none exists
                 if not existing:
@@ -1639,6 +1693,18 @@ def kyc_page(request):
                         status=KYCRequest.STATUS_PENDING,
                     )
                     messages.success(request, 'KYC submitted successfully!')
+
+                    # Email copy for "KYC submitted" (user + admin).
+                    try:
+                        create_notification(
+                            request.user,
+                            'KYC submitted',
+                            'Your KYC verification has been submitted and is pending approval. You will receive an email after review (approved or rejected).',
+                            reverse('kyc'),
+                            UserNotification.TYPE_KYC,
+                        )
+                    except Exception:
+                        logging.getLogger(__name__).exception("Failed to send KYC submission email")
                 else:
                     messages.error(request, 'An error occurred. Please contact support.')
             
@@ -2145,6 +2211,7 @@ def farmer_dashboard(request):
             Order.STATUS_SHIPPED,
             Order.STATUS_ON_THE_WAY,
             Order.STATUS_DELIVERED,
+            Order.STATUS_CANCELLED,
         )
         try:
             order_id = int(order_id) if order_id else None
@@ -2157,7 +2224,14 @@ def farmer_dashboard(request):
                 )
                 order.status = new_status
                 order.save(update_fields=['status'])
-                if order.buyer and new_status in (Order.STATUS_SHIPPED, Order.STATUS_DELIVERED):
+                notify_statuses = {
+                    Order.STATUS_READY_TO_SHIP,
+                    Order.STATUS_SHIPPED,
+                    Order.STATUS_ON_THE_WAY,
+                    Order.STATUS_DELIVERED,
+                    Order.STATUS_CANCELLED,
+                }
+                if order.buyer and new_status in notify_statuses:
                     try:
                         status_label = order.get_status_display()
                         item_name = (order.crop.name if order.crop else 'item') or 'item'
@@ -2276,6 +2350,18 @@ def farmer_dashboard(request):
                         time_display = appointment.requested_time.strftime('%I:%M %p') if appointment.requested_time else requested_time
                     except Exception:
                         time_display = requested_time
+
+                    # Notify expert so they can review the updated pending appointment.
+                    try:
+                        create_notification(
+                            appointment.expert.user,
+                            'Appointment updated',
+                            f'{request.user.email} updated an appointment request to {req_date.strftime("%b %d, %Y") if req_date else requested_date} at {time_display}.',
+                            reverse('expert_dashboard') + '?section=appointments',
+                            UserNotification.TYPE_APPOINTMENT,
+                        )
+                    except Exception:
+                        logging.getLogger(__name__).exception("Failed to send appointment update email")
                     payload = {
                         'appointment_id': appointment.id,
                         'requested_date_iso': requested_date,
@@ -2334,6 +2420,18 @@ def farmer_dashboard(request):
                         time_display = appointment.requested_time.strftime('%I:%M %p') if appointment.requested_time else requested_time
                     except Exception:
                         time_display = requested_time
+
+                    # Notify expert so they know about the resubmitted appointment.
+                    try:
+                        create_notification(
+                            appointment.expert.user,
+                            'Appointment resubmitted',
+                            f'{request.user.email} resubmitted a pending appointment for {req_date.strftime("%b %d, %Y") if req_date else requested_date} at {time_display}.',
+                            reverse('expert_dashboard') + '?section=appointments',
+                            UserNotification.TYPE_APPOINTMENT,
+                        )
+                    except Exception:
+                        logging.getLogger(__name__).exception("Failed to send appointment resubmission email")
                     payload = {
                         'appointment_id': appointment.id,
                         'requested_date_iso': requested_date,
@@ -2591,8 +2689,15 @@ def vendor_dashboard(request):
             if tracking_number:
                 order.tracking_number = tracking_number
             order.save()
-            # Notify buyer when order is shipped or delivered
-            if order.buyer and new_status in (Order.STATUS_SHIPPED, Order.STATUS_DELIVERED):
+            # Notify buyer when order is on the way / delivered (and cancelled too).
+            notify_statuses = {
+                Order.STATUS_READY_TO_SHIP,
+                Order.STATUS_SHIPPED,
+                Order.STATUS_ON_THE_WAY,
+                Order.STATUS_DELIVERED,
+                Order.STATUS_CANCELLED,
+            }
+            if order.buyer and new_status in notify_statuses:
                 status_label = order.get_status_display()
                 create_notification(
                     order.buyer,
@@ -2912,7 +3017,7 @@ def expert_dashboard(request):
                 create_notification(
                     appointment.requester,
                     'Appointment accepted',
-                    f'Your appointment with {profile.name or profile.user.email} on {appointment.date} has been accepted.',
+                    f'Your appointment with {profile.name or profile.user.email} on {appointment.requested_date} at {appointment.requested_time} has been accepted.',
                     reverse('user_dashboard') + '?section=appointments',
                     UserNotification.TYPE_APPOINTMENT
                 )
@@ -2927,7 +3032,7 @@ def expert_dashboard(request):
                 create_notification(
                     appointment.requester,
                     'Appointment not accepted',
-                    f'Your appointment with {profile.name or profile.user.email} on {appointment.date} was not accepted. Reason: ' + (response_message or 'See your appointments.'),
+                    f'Your appointment with {profile.name or profile.user.email} on {appointment.requested_date} at {appointment.requested_time} was not accepted. Reason: ' + (response_message or 'See your appointments.'),
                     reverse('user_dashboard') + '?section=appointments',
                     UserNotification.TYPE_APPOINTMENT
                 )
@@ -2950,6 +3055,19 @@ def expert_dashboard(request):
             elif visit_status in (ExpertAppointment.VISIT_VISITED, ExpertAppointment.VISIT_WILL_VISIT, ExpertAppointment.VISIT_WAITING):
                 appointment.visit_status = visit_status
                 appointment.save()
+
+                # Email copy for "will visit / visited / waiting" status updates.
+                try:
+                    visit_status_label = appointment.get_visit_status_display()
+                    create_notification(
+                        appointment.requester,
+                        'Appointment visit status updated',
+                        f'Your appointment on {appointment.requested_date} at {appointment.requested_time} is now: {visit_status_label}.',
+                        reverse('user_dashboard') + '?section=appointments',
+                        UserNotification.TYPE_APPOINTMENT,
+                    )
+                except Exception:
+                    logging.getLogger(__name__).exception("Failed to send appointment visit-status email")
                 messages.success(request, 'Visit status updated.')
             else:
                 messages.error(request, 'Please select a valid visit status.')
@@ -4576,8 +4694,14 @@ def admin_marketplace_oversight(request):
                         order.payment_status != Order.PAYMENT_STATUS_COMPLETED):
                     order.payment_status = Order.PAYMENT_STATUS_COMPLETED
                     order.save(update_fields=['payment_status'])
-                # Notify buyer when status changes to Shipped/Delivered
-                if order.buyer and order.status != old_status and order.status in (Order.STATUS_SHIPPED, Order.STATUS_DELIVERED):
+                # Notify buyer when order status moves through delivery lifecycle (and cancelled).
+                if order.buyer and order.status != old_status and order.status in (
+                    Order.STATUS_READY_TO_SHIP,
+                    Order.STATUS_SHIPPED,
+                    Order.STATUS_ON_THE_WAY,
+                    Order.STATUS_DELIVERED,
+                    Order.STATUS_CANCELLED,
+                ):
                     status_label = order.get_status_display()
                     item_name = (order.tool.name if order.tool else order.crop.name) if (order.tool or order.crop) else 'item'
                     create_notification(
@@ -4743,12 +4867,56 @@ def admin_appointment_management(request):
             appointment_id = request.POST.get('appointment_id')
             try:
                 appointment = ExpertAppointment.objects.get(id=appointment_id)
+                old_status = appointment.status
+                old_requested_date = appointment.requested_date
+                old_requested_time = appointment.requested_time
                 appointment.requested_date = request.POST.get('requested_date', appointment.requested_date)
                 appointment.requested_time = request.POST.get('requested_time', appointment.requested_time)
                 appointment.status = request.POST.get('status', appointment.status)
                 appointment.message = request.POST.get('message', appointment.message)
                 appointment.response_message = request.POST.get('response_message', appointment.response_message)
                 appointment.save()
+
+                # Email copy for important appointment status updates (user + admin).
+                try:
+                    if appointment.status != old_status:
+                        if appointment.status == ExpertAppointment.STATUS_ACCEPTED:
+                            create_notification(
+                                appointment.requester,
+                                'Appointment accepted',
+                                f'Your appointment with {appointment.expert.name or appointment.expert.user.email} on {appointment.requested_date} at {appointment.requested_time} has been accepted.',
+                                reverse('user_dashboard') + '?section=appointments',
+                                UserNotification.TYPE_APPOINTMENT,
+                            )
+                        elif appointment.status == ExpertAppointment.STATUS_REJECTED:
+                            create_notification(
+                                appointment.requester,
+                                'Appointment not accepted',
+                                f'Your appointment with {appointment.expert.name or appointment.expert.user.email} on {appointment.requested_date} at {appointment.requested_time} was not accepted. Reason: ' + (appointment.response_message or 'See your appointments.'),
+                                reverse('user_dashboard') + '?section=appointments',
+                                UserNotification.TYPE_APPOINTMENT,
+                            )
+                        elif appointment.status == ExpertAppointment.STATUS_PENDING:
+                            create_notification(
+                                appointment.expert.user,
+                                'Appointment resubmitted',
+                                f'Appointment is pending for {appointment.requested_date} at {appointment.requested_time}.',
+                                reverse('expert_dashboard') + '?section=appointments',
+                                UserNotification.TYPE_APPOINTMENT,
+                            )
+                    # If admin only changed date/time while pending, notify expert as well.
+                    elif appointment.status == ExpertAppointment.STATUS_PENDING and (
+                        old_requested_date != appointment.requested_date or old_requested_time != appointment.requested_time
+                    ):
+                        create_notification(
+                            appointment.expert.user,
+                            'Appointment updated',
+                            f'Appointment date/time updated to {appointment.requested_date} at {appointment.requested_time} (pending).',
+                            reverse('expert_dashboard') + '?section=appointments',
+                            UserNotification.TYPE_APPOINTMENT,
+                        )
+                except Exception:
+                    logging.getLogger(__name__).exception("Failed to send appointment admin email")
                 messages.success(request, 'Appointment updated successfully!')
             except ExpertAppointment.DoesNotExist:
                 messages.error(request, 'Appointment not found!')
@@ -4757,7 +4925,30 @@ def admin_appointment_management(request):
             appointment_id = request.POST.get('appointment_id')
             try:
                 appointment = ExpertAppointment.objects.get(id=appointment_id)
+                requester = appointment.requester
+                expert_user = appointment.expert.user
+                appt_date = appointment.requested_date
+                appt_time = appointment.requested_time
                 appointment.delete()
+
+                # Email copy for cancelled appointment (admin action).
+                try:
+                    create_notification(
+                        requester,
+                        'Appointment cancelled',
+                        f'Your appointment on {appt_date} at {appt_time} was cancelled by Farmity admin.',
+                        reverse('user_dashboard') + '?section=appointments',
+                        UserNotification.TYPE_APPOINTMENT,
+                    )
+                    create_notification(
+                        expert_user,
+                        'Appointment cancelled',
+                        f'An appointment on {appt_date} at {appt_time} was cancelled by Farmity admin.',
+                        reverse('expert_dashboard') + '?section=appointments',
+                        UserNotification.TYPE_APPOINTMENT,
+                    )
+                except Exception:
+                    logging.getLogger(__name__).exception("Failed to send appointment cancellation email")
                 messages.success(request, 'Appointment deleted successfully!')
             except ExpertAppointment.DoesNotExist:
                 messages.error(request, 'Appointment not found!')
@@ -5420,6 +5611,18 @@ def api_support_create_ticket(request):
         return JsonResponse({'error': 'Subject and message required'}, status=400)
     ticket = SupportTicket.objects.create(user=request.user, subject=subject, status=SupportTicket.STATUS_OPEN)
     SupportMessage.objects.create(ticket=ticket, sender=request.user, message=message)
+
+    # Notify user (and email admins) that the support ticket was created.
+    try:
+        create_notification(
+            request.user,
+            'Support ticket created',
+            f'#{ticket.id}: {ticket.subject}',
+            reverse('support_ticket', args=[ticket.id]),
+            UserNotification.TYPE_SUPPORT,
+        )
+    except Exception:
+        logging.getLogger(__name__).exception("Failed to create support ticket notification")
     return JsonResponse({
         'id': ticket.id,
         'subject': ticket.subject,
