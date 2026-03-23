@@ -18,11 +18,12 @@ from .models import UserNotification
 logger = logging.getLogger(__name__)
 
 ROLE_THEMES = {
-    "buyer": {"primary": "#2563eb", "secondary": "#dbeafe", "label": "Buyer"},
-    "farmer": {"primary": "#2e7d32", "secondary": "#e8f5e9", "label": "Farmer"},
-    "vendor": {"primary": "#6d28d9", "secondary": "#efe7ff", "label": "Vendor"},
-    "agricultural_expert": {"primary": "#0f766e", "secondary": "#dff7f4", "label": "Agricultural Expert"},
-    "admin": {"primary": "#374151", "secondary": "#f3f4f6", "label": "Admin"},
+    # Per request: unified green mail palette across all sections/roles.
+    "buyer": {"primary": "#2E7D32", "secondary": "#E8F5E9", "label": "Buyer"},
+    "farmer": {"primary": "#2E7D32", "secondary": "#E8F5E9", "label": "Farmer"},
+    "vendor": {"primary": "#2E7D32", "secondary": "#E8F5E9", "label": "Vendor"},
+    "agricultural_expert": {"primary": "#2E7D32", "secondary": "#E8F5E9", "label": "Agricultural Expert"},
+    "admin": {"primary": "#2E7D32", "secondary": "#E8F5E9", "label": "Admin"},
 }
 
 EVENT_SUBJECTS = {
@@ -84,7 +85,7 @@ def send_branded_email(
 
     from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", None)
     role_key = (role or "").strip().lower()
-    theme = ROLE_THEMES.get(role_key, {"primary": "#2E7D32", "secondary": "#e8f5e9", "label": "Member"})
+    theme = ROLE_THEMES.get(role_key, {"primary": "#2E7D32", "secondary": "#E8F5E9", "label": "Member"})
 
     subject_line = EVENT_SUBJECTS.get(event_type, subject or "Farmity Update")
     subject_line = f"Farmity | {subject_line}"
@@ -107,9 +108,9 @@ def send_branded_email(
     html_body = f"""
     <div style="background:#f5f7fb;padding:28px 12px;font-family:Segoe UI,Arial,sans-serif;color:#1f2937;">
       <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">
-        <div style="background:linear-gradient(135deg,{primary} 0%,#111827 120%);padding:20px 24px;">
+        <div style="background:linear-gradient(135deg,{primary} 0%,#1B5E20 100%);padding:20px 24px;">
           <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:.2px;">Farmity</h1>
-          <p style="margin:6px 0 0 0;color:#f3f4f6;font-size:13px;">Smart agriculture platform</p>
+          <p style="margin:6px 0 0 0;color:#E8F5E9;font-size:13px;">Smart agriculture platform</p>
         </div>
         <div style="padding:24px;">
           <div style="display:inline-block;background:{secondary};color:{primary};border:1px solid {secondary};padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;margin-bottom:12px;">

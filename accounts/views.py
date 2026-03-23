@@ -4088,7 +4088,7 @@ def admin_kyc_management(request):
                     kyc.user,
                     'KYC approved',
                     'Your KYC verification has been approved. You now have full access to your account features.',
-                    reverse('kyc_page') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile_page'),
+                    reverse('kyc') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile'),
                     UserNotification.TYPE_KYC
                 )
                 messages.success(request, f'KYC request for {kyc.user.email} has been approved.')
@@ -4107,7 +4107,7 @@ def admin_kyc_management(request):
                         kyc.user,
                         'KYC rejected',
                         'Your KYC verification was not approved. Reason: ' + (rejection_reason or 'See details in KYC page.'),
-                        reverse('kyc_page') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile_page'),
+                        reverse('kyc') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile'),
                         UserNotification.TYPE_KYC
                     )
                     messages.success(request, f'KYC request for {kyc.user.email} has been rejected.')
