@@ -608,7 +608,7 @@
                             <label>
                                 Identity Document <span class="required">*</span>
                             </label>
-                            <div class="file-upload-wrapper" onclick="document.getElementById('id_document').click()">
+                            <div class="file-upload-wrapper">
                                 <input type="file" id="id_document" name="id_document" 
                                        class="file-input" accept=".pdf,.jpg,.jpeg,.png"
                                        {% if not kyc %}required{% endif %}
@@ -632,7 +632,7 @@
                             <label>
                                 Your Photo (Selfie) <span class="required">*</span>
                             </label>
-                            <div class="file-upload-wrapper" onclick="document.getElementById('selfie').click()">
+                            <div class="file-upload-wrapper">
                                 <input type="file" id="selfie" name="selfie" 
                                        class="file-input" accept=".jpg,.jpeg,.png"
                                        {% if not kyc %}required{% endif %}
@@ -657,7 +657,7 @@
                             <label>
                                 Company Registration Document <span class="required">*</span>
                             </label>
-                            <div class="file-upload-wrapper" onclick="document.getElementById('company_document').click()">
+                            <div class="file-upload-wrapper">
                                 <input type="file" id="company_document" name="company_document" 
                                        class="file-input" accept=".pdf,.jpg,.jpeg,.png"
                                        {% if not kyc %}required{% endif %}
@@ -683,7 +683,7 @@
                             <label>
                                 Professional Certificate <span class="required">*</span>
                             </label>
-                            <div class="file-upload-wrapper" onclick="document.getElementById('certificate_document').click()">
+                            <div class="file-upload-wrapper">
                                 <input type="file" id="certificate_document" name="certificate_document" 
                                        class="file-input" accept=".pdf,.jpg,.jpeg,.png"
                                        {% if not kyc %}required{% endif %}
@@ -801,8 +801,15 @@
                 const idDoc = document.getElementById('id_document').files[0];
                 const selfie = document.getElementById('selfie').files[0];
                 const hasExistingKyc = {{ kyc|yesno:"true,false" }};
+                const userRole = '{{ request.user.role }}';
                 
-                if (!hasExistingKyc && (!idDoc || !selfie)) {
+                const missingIdSelfie = !hasExistingKyc && (!idDoc || !selfie);
+                const missingRoleDocs = !hasExistingKyc && (
+                    (userRole === 'vendor' && !document.getElementById('company_document')?.files?.[0]) ||
+                    (userRole === 'agricultural_expert' && !document.getElementById('certificate_document')?.files?.[0])
+                );
+                
+                if (missingIdSelfie || missingRoleDocs) {
                     alert('Please upload all required documents');
                     return false;
                 }
@@ -931,6 +938,19 @@
 
         // Form submission
         document.getElementById('kycForm').addEventListener('submit', function(e) {
+            // Prevent accidental double-submit which can look like duplicate uploads.
+            if (window.__kycSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+
+            window.__kycSubmitting = true;
+            const submitBtn = document.getElementById('submitBtn');
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.textContent = 'Submitting...';
+            }
+
             if (!validateStep(3)) {
                 e.preventDefault();
                 return false;

@@ -1653,12 +1653,17 @@ def kyc_page(request):
         certificate_document = request.FILES.get('certificate_document')
 
         errors = {}
+        is_resubmission = bool(existing and existing.status == KYCRequest.STATUS_REJECTED)
         if not full_name:
             errors['full_name'] = 'Full name is required.'
         if not id_number:
             errors['id_number'] = 'ID number is required.'
-        if not id_document:
+        # On resubmission, allow keeping already-uploaded documents.
+        if not id_document and not (is_resubmission and existing and existing.id_document):
             errors['id_document'] = 'ID document is required.'
+        # Selfie is required for first-time submission, but optional on resubmission.
+        if not selfie and not is_resubmission:
+            errors['selfie'] = 'Selfie photo is required.'
         
         # Validate role-specific documents
         if request.user.role == 'vendor':
