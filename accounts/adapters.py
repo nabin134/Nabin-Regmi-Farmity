@@ -2,6 +2,8 @@ from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
+from django.urls import reverse
 
 User = get_user_model()
 
@@ -130,6 +132,24 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         Retrieves name, email, and profile picture from Google account.
         This is called for both new signups and existing user logins.
         """
+        # Detect whether user existed before saving (for welcome-email on new social signup).
+        # allauth exposes `is_existing` on some versions, but we guard defensively.
+        existing_before = getattr(sociallogin, "is_existing", None)
+        if existing_before is None:
+            email = None
+            if hasattr(sociallogin, "account") and sociallogin.account:
+                extra = getattr(sociallogin.account, "extra_data", {}) or {}
+                if isinstance(extra, dict):
+                    email = extra.get("email") or extra.get("Email")
+            if not email and getattr(sociallogin, "email_addresses", None):
+                for ea in sociallogin.email_addresses:
+                    addr = getattr(ea, "email", None)
+                    if addr:
+                        email = str(addr)
+                        break
+            email = str(email).strip().lower() if email else None
+            existing_before = bool(email and User.objects.filter(email__iexact=email).exists())
+
         user = super().save_user(request, sociallogin, form)
         if user:
             # Use signup_role only for NEW users (don't overwrite existing admin etc.)
@@ -207,6 +227,43 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                     pass
             if profile:
                 profile.save()
+
+            # Welcome email for new social signup.
+            # Best-effort: do not break login/signup if SMTP fails.
+            if not existing_before and getattr(user, "email", None):
+                try:
+                    kyc_roles = {"farmer", "vendor", "agricultural_expert"}
+                    redirect_url = (
+                        reverse("kyc") if user.role in kyc_roles else
+                        reverse("user_dashboard") if user.role == "buyer" else
+                        reverse("admin_dashboard") if user.role == "admin" else
+                        reverse("user_dashboard")
+                    )
+                    role_name = (user.role or "").replace("_", " ").title() or "Account"
+                    next_step_line = (
+                        f"Next step: Complete your KYC verification here: {redirect_url}"
+                        if user.role in kyc_roles
+                        else f"Next step: Go to your dashboard here: {redirect_url}"
+                    )
+                    welcome_body = (
+                        "Welcome to Farmity!\n\n"
+                        f"Account created successfully for: {user.email}\n"
+                        f"Role: {role_name}\n\n"
+                        f"{next_step_line}\n\n"
+                        "If you need help, contact Farmity Support from the app.\n"
+                    )
+                    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", None)
+                    send_mail(
+                        subject="Welcome to Farmity",
+                        message=welcome_body,
+                        from_email=from_email,
+                        recipient_list=[user.email],
+                        fail_silently=False,
+                    )
+                except Exception:
+                    # Don't fail signup if email is broken.
+                    import logging
+                    logging.getLogger(__name__).exception("Failed to send welcome email (social signup)")
             
         return user
 

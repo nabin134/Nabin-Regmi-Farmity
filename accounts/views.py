@@ -239,6 +239,8 @@ class SignupView(APIView):
 
                 # Welcome email (user + admin copy).
                 # Signup currently creates no in-app notification, so we send directly here.
+                email_failed = False
+                last_email_exc = None
                 try:
                     admin_emails = list(
                         get_user_model().objects.filter(role='admin', is_active=True).values_list('email', flat=True).distinct()
@@ -268,24 +270,41 @@ class SignupView(APIView):
                         f"{next_step_line}\n\n"
                         "If you need help, contact Farmity Support from the app.\n"
                     )
-                    try:
-                        send_mail(
-                            subject="Welcome to Farmity",
-                            message=welcome_body,
-                            from_email=settings.DEFAULT_FROM_EMAIL,
-                            recipient_list=recipient_list,
-                            fail_silently=False,
+                    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", None)
+                    for attempt in (1, 2):
+                        try:
+                            send_mail(
+                                subject="Welcome to Farmity",
+                                message=welcome_body,
+                                from_email=from_email,
+                                recipient_list=recipient_list,
+                                fail_silently=False,
+                            )
+                            break
+                        except Exception as exc:
+                            email_failed = True
+                            last_email_exc = exc
+                            logging.getLogger(__name__).exception("Failed to send welcome email (attempt %s)", attempt)
+                            if attempt == 2:
+                                break
+
+                response_data = {
+                    "message": "Account created successfully. Redirecting...",
+                    "email": user.email,
+                    "redirect_url": redirect_url,
+                }
+                # Helpful for debugging SMTP issues.
+                if getattr(settings, "DEBUG", False):
+                    response_data["email_sent"] = not email_failed
+                    if email_failed:
+                        response_data["dev_note"] = (
+                            "Welcome email did not send. Check Gmail SMTP settings in .env "
+                            "(EMAIL_HOST_PASSWORD must be a 16-char Gmail App Password)."
                         )
-                    except Exception:
-                        logging.getLogger(__name__).exception("Failed to send welcome email")
-                return Response(
-                    {
-                        "message": "Account created successfully. Redirecting...",
-                        "email": user.email,
-                        "redirect_url": redirect_url,
-                    },
-                    status=status.HTTP_201_CREATED
-                )
+                else:
+                    response_data["email_sent"] = not email_failed
+
+                return Response(response_data, status=status.HTTP_201_CREATED)
 
             print(f"Signup validation errors: {serializer.errors}")
             return Response(
