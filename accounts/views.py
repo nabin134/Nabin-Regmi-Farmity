@@ -9,6 +9,7 @@ from django.http import JsonResponse, HttpResponse, Http404
 from django.contrib import messages
 from django.utils import timezone
 from django.utils.crypto import get_random_string
+from django.core.mail import send_mail
 from django.conf import settings
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth, TruncDate
@@ -4113,6 +4114,7 @@ def admin_kyc_management(request):
                     messages.success(request, f'KYC request for {kyc.user.email} has been rejected.')
             elif action == 'edit_kyc':
                 # Update KYC details
+                old_status = kyc.status
                 kyc.full_name = request.POST.get('full_name', kyc.full_name)
                 kyc.id_number = request.POST.get('id_number', kyc.id_number)
                 kyc.status = request.POST.get('status', kyc.status)
@@ -4137,6 +4139,25 @@ def admin_kyc_management(request):
                     kyc.user.save()
                 
                 kyc.save()
+
+                # Ensure notification + email is sent when status is changed via edit flow too.
+                if old_status != kyc.status:
+                    if kyc.status == KYCRequest.STATUS_APPROVED:
+                        create_notification(
+                            kyc.user,
+                            'KYC approved',
+                            'Your KYC verification has been approved. You now have full access to your account features.',
+                            reverse('kyc') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile'),
+                            UserNotification.TYPE_KYC
+                        )
+                    elif kyc.status == KYCRequest.STATUS_REJECTED:
+                        create_notification(
+                            kyc.user,
+                            'KYC rejected',
+                            'Your KYC verification was not approved. Reason: ' + (kyc.rejection_reason or 'See details in KYC page.'),
+                            reverse('kyc') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile'),
+                            UserNotification.TYPE_KYC
+                        )
                 messages.success(request, f'KYC details for {kyc.user.email} have been updated.')
         except KYCRequest.DoesNotExist:
             messages.error(request, 'KYC request not found.')
