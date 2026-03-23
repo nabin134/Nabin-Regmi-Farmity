@@ -4026,15 +4026,20 @@
                 });
             }).then(function (res) {
                 window.scrollTo(0, scrollY);
-                if (!res || !res.data || typeof res.data.success === 'undefined') {
+                if (!res || !res.data) {
                     showToast('Action completed, but response could not be parsed.', 'error');
                     return;
                 }
+
                 var data = res.data;
+                var hasSuccessField = typeof data.success !== 'undefined';
+                var httpOk = (typeof res.status === 'number' ? res.status >= 200 && res.status < 300 : true);
+                var successFlag = hasSuccessField ? !!data.success : httpOk;
+
                 if (data.message) {
-                    showToast(data.message, data.success ? 'success' : 'error');
+                    showToast(data.message, successFlag ? 'success' : 'error');
                 }
-                if (data.success && options.onSuccess) {
+                if (successFlag && options.onSuccess) {
                     options.onSuccess(data.data || {}, form);
                 }
                 if (visibleId && typeof showSection === 'function') {
