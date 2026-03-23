@@ -7,18 +7,46 @@ This file also supports sending email copies of important notifications.
 from __future__ import annotations
 
 import logging
-from typing import Iterable
+from html import escape
 
 from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
+from django.core.mail import EmailMultiAlternatives
 
 from .models import UserNotification
 
 logger = logging.getLogger(__name__)
 
+ROLE_THEMES = {
+    "buyer": {"primary": "#2563eb", "secondary": "#dbeafe", "label": "Buyer"},
+    "farmer": {"primary": "#2e7d32", "secondary": "#e8f5e9", "label": "Farmer"},
+    "vendor": {"primary": "#6d28d9", "secondary": "#efe7ff", "label": "Vendor"},
+    "agricultural_expert": {"primary": "#0f766e", "secondary": "#dff7f4", "label": "Agricultural Expert"},
+    "admin": {"primary": "#374151", "secondary": "#f3f4f6", "label": "Admin"},
+}
 
-def _get_admin_emails() -> list[str]:
+EVENT_SUBJECTS = {
+    "signup": "Welcome to Farmity",
+    "kyc_submitted": "KYC Submitted Successfully",
+    "kyc_approved": "KYC Approved - Full Access Unlocked",
+    "kyc_rejected": "KYC Update Required",
+    "order_shipped": "Your Order Has Been Shipped",
+    "order_on_the_way": "Your Order Is On The Way",
+    "order_delivered": "Your Order Was Delivered",
+    "order_cancelled": "Order Cancellation Update",
+    "payment_completed": "Payment Confirmation",
+    "payout_paid": "Payout Released",
+    "appointment_booked": "Appointment Request Confirmed",
+    "appointment_accepted": "Appointment Accepted",
+    "appointment_rejected": "Appointment Update",
+    "appointment_cancelled": "Appointment Cancelled",
+    "appointment_visit_status": "Appointment Visit Status Updated",
+    "support_created": "Support Ticket Created",
+    "support_reply": "New Reply On Support Ticket",
+}
+
+
+def get_admin_email_recipients() -> list[str]:
     """
     Admin recipients: all users with role='admin'.
     """
@@ -32,6 +60,86 @@ def _get_admin_emails() -> list[str]:
     except Exception:
         logger.exception("Failed to fetch admin emails")
         return []
+
+
+def send_branded_email(
+    *,
+    subject: str,
+    title: str,
+    message: str,
+    recipient_list: list[str],
+    cta_link: str = "",
+    cta_text: str = "Open Farmity",
+    retry_attempts: int = 2,
+    role: str = "",
+    event_type: str = "",
+) -> bool:
+    """
+    Send a professional Farmity email (HTML + text fallback) with retries.
+    Returns True on success, False otherwise.
+    """
+    recipients = [r for r in (recipient_list or []) if r]
+    if not recipients:
+        return False
+
+    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", None)
+    role_key = (role or "").strip().lower()
+    theme = ROLE_THEMES.get(role_key, {"primary": "#2E7D32", "secondary": "#e8f5e9", "label": "Member"})
+
+    subject_line = EVENT_SUBJECTS.get(event_type, subject or "Farmity Update")
+    subject_line = f"Farmity | {subject_line}"
+
+    safe_title = escape(title or "Farmity Update")
+    safe_message = escape(message or "").replace("\n", "<br>")
+    safe_cta_text = escape(cta_text or "Open Farmity")
+    safe_cta_link = escape(cta_link or "")
+    safe_role = escape(theme["label"])
+    primary = theme["primary"]
+    secondary = theme["secondary"]
+
+    text_body = (
+        f"{title}\n\n"
+        f"{message}\n\n"
+        + (f"Action: {cta_link}\n" if cta_link else "")
+        + "Thank you,\nFarmity Team\n"
+    )
+
+    html_body = f"""
+    <div style="background:#f5f7fb;padding:28px 12px;font-family:Segoe UI,Arial,sans-serif;color:#1f2937;">
+      <div style="max-width:640px;margin:0 auto;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e5e7eb;">
+        <div style="background:linear-gradient(135deg,{primary} 0%,#111827 120%);padding:20px 24px;">
+          <h1 style="margin:0;color:#ffffff;font-size:22px;font-weight:700;letter-spacing:.2px;">Farmity</h1>
+          <p style="margin:6px 0 0 0;color:#f3f4f6;font-size:13px;">Smart agriculture platform</p>
+        </div>
+        <div style="padding:24px;">
+          <div style="display:inline-block;background:{secondary};color:{primary};border:1px solid {secondary};padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;margin-bottom:12px;">
+            {safe_role} Update
+          </div>
+          <h2 style="margin:0 0 12px 0;font-size:20px;line-height:1.3;color:#111827;">{safe_title}</h2>
+          <div style="font-size:15px;line-height:1.7;color:#374151;">{safe_message}</div>
+          {f'<div style="margin-top:22px;"><a href="{safe_cta_link}" style="display:inline-block;background:{primary};color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:10px;font-weight:600;font-size:14px;">{safe_cta_text}</a></div>' if cta_link else ''}
+        </div>
+        <div style="padding:14px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;color:#6b7280;font-size:12px;">
+          This is an automated email from Farmity. Please do not reply directly.
+        </div>
+      </div>
+    </div>
+    """
+
+    for attempt in range(1, max(1, retry_attempts) + 1):
+        try:
+            msg = EmailMultiAlternatives(
+                subject=subject_line,
+                body=text_body,
+                from_email=from_email,
+                to=recipients,
+            )
+            msg.attach_alternative(html_body, "text/html")
+            msg.send(fail_silently=False)
+            return True
+        except Exception:
+            logger.exception("Branded email send failed (attempt %s)", attempt)
+    return False
 
 
 def _send_notification_email(
@@ -61,32 +169,68 @@ def _send_notification_email(
         recipient_list.append(user_email)
 
     # Also notify admins (requested by the user)
-    for e in _get_admin_emails():
+    for e in get_admin_email_recipients():
         if e and e not in recipient_list:
             recipient_list.append(e)
 
     if not recipient_list:
         return
 
-    subject = f"Farmity: {title}"
-    # Keep it plain-text for reliability across mail providers.
-    body = (
-        f"{title}\n\n"
-        f"{message or ''}\n\n"
-        f"Link: {link or '-'}\n"
-    )
+    role = getattr(user, "role", "") or ""
+    lower_title = (title or "").lower()
+    lower_message = (message or "").lower()
+    event_type = ""
+    if notification_type == UserNotification.TYPE_KYC:
+        if "approved" in lower_title or "approved" in lower_message:
+            event_type = "kyc_approved"
+        elif "rejected" in lower_title or "rejected" in lower_message:
+            event_type = "kyc_rejected"
+        else:
+            event_type = "kyc_submitted"
+    elif notification_type == UserNotification.TYPE_ORDER:
+        if "payout" in lower_title or "payout" in lower_message:
+            event_type = "payout_paid"
+        elif "payment" in lower_title or "payment" in lower_message:
+            event_type = "payment_completed"
+        elif "delivered" in lower_title or "delivered" in lower_message:
+            event_type = "order_delivered"
+        elif "on the way" in lower_title or "on the way" in lower_message:
+            event_type = "order_on_the_way"
+        elif "shipped" in lower_title or "shipped" in lower_message:
+            event_type = "order_shipped"
+        elif "cancel" in lower_title or "cancel" in lower_message:
+            event_type = "order_cancelled"
+    elif notification_type == UserNotification.TYPE_APPOINTMENT:
+        if "accepted" in lower_title:
+            event_type = "appointment_accepted"
+        elif "not accepted" in lower_title or "rejected" in lower_title:
+            event_type = "appointment_rejected"
+        elif "cancel" in lower_title:
+            event_type = "appointment_cancelled"
+        elif "visit status" in lower_title or "visit status" in lower_message:
+            event_type = "appointment_visit_status"
+        else:
+            event_type = "appointment_booked"
+    elif notification_type == UserNotification.TYPE_SUPPORT:
+        if "reply" in lower_title:
+            event_type = "support_reply"
+        else:
+            event_type = "support_created"
 
-    try:
-        send_mail(
-            subject=subject,
-            message=body,
-            from_email=getattr(settings, "DEFAULT_FROM_EMAIL", None),
-            recipient_list=recipient_list,
-            fail_silently=False,
-        )
-    except Exception:
+    ok = send_branded_email(
+        subject=title,
+        title=title,
+        message=message or "You have a new update in your Farmity account.",
+        recipient_list=recipient_list,
+        cta_link=link or "",
+        cta_text="View Update",
+        retry_attempts=2,
+        role=role,
+        event_type=event_type,
+    )
+    if not ok:
         # Never fail notification creation due to SMTP issues.
-        logger.exception("Failed to send notification email")
+        logger.error("Failed to send notification email")
 
 
 def create_notification(

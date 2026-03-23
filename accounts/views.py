@@ -9,7 +9,6 @@ from django.http import JsonResponse, HttpResponse, Http404
 from django.contrib import messages
 from django.utils import timezone
 from django.utils.crypto import get_random_string
-from django.core.mail import send_mail
 from django.conf import settings
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth, TruncDate
@@ -60,7 +59,7 @@ from .models import (
 )
 from .serializers import SignupSerializer, LoginSerializer, UserSerializer, OTPVerificationSerializer
 from .decorators import kyc_required, kyc_optional
-from .notifications import create_notification
+from .notifications import create_notification, get_admin_email_recipients, send_branded_email
 
 
 def _chat_notification_link(recipient, thread_id):
@@ -240,13 +239,7 @@ class SignupView(APIView):
                 # Welcome email (user + admin copy).
                 # Signup currently creates no in-app notification, so we send directly here.
                 email_failed = False
-                last_email_exc = None
-                try:
-                    admin_emails = list(
-                        get_user_model().objects.filter(role='admin', is_active=True).values_list('email', flat=True).distinct()
-                    )
-                except Exception:
-                    admin_emails = []
+                admin_emails = get_admin_email_recipients()
 
                 recipient_list = []
                 if user.email:
@@ -264,29 +257,22 @@ class SignupView(APIView):
                     )
                     role_name = (getattr(user, 'role', '') or '').replace('_', ' ').title() or 'Account'
                     welcome_body = (
-                        "Welcome to Farmity!\n\n"
-                        f"Account created successfully for: {user.email}\n"
+                        f"Your account has been created successfully for {user.email}.\n"
                         f"Role: {role_name}\n\n"
                         f"{next_step_line}\n\n"
-                        "If you need help, contact Farmity Support from the app.\n"
+                        "We are excited to have you with us. If you need help, contact Farmity Support from the app."
                     )
-                    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", None)
-                    for attempt in (1, 2):
-                        try:
-                            send_mail(
-                                subject="Welcome to Farmity",
-                                message=welcome_body,
-                                from_email=from_email,
-                                recipient_list=recipient_list,
-                                fail_silently=False,
-                            )
-                            break
-                        except Exception as exc:
-                            email_failed = True
-                            last_email_exc = exc
-                            logging.getLogger(__name__).exception("Failed to send welcome email (attempt %s)", attempt)
-                            if attempt == 2:
-                                break
+                    email_failed = not send_branded_email(
+                        subject="Welcome to Farmity",
+                        title="Welcome to Farmity",
+                        message=welcome_body,
+                        recipient_list=recipient_list,
+                        cta_link=redirect_url,
+                        cta_text="Go to My Account",
+                        retry_attempts=2,
+                        role=getattr(user, "role", "") or "",
+                        event_type="signup",
+                    )
 
                 response_data = {
                     "message": "Account created successfully. Redirecting...",

@@ -1,9 +1,8 @@
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
-from django.conf import settings
 from django.contrib.auth import get_user_model
-from django.core.mail import send_mail
 from django.urls import reverse
+from .notifications import send_branded_email
 
 User = get_user_model()
 
@@ -246,19 +245,21 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                         else f"Next step: Go to your dashboard here: {redirect_url}"
                     )
                     welcome_body = (
-                        "Welcome to Farmity!\n\n"
-                        f"Account created successfully for: {user.email}\n"
+                        f"Your account has been created successfully for {user.email}.\n"
                         f"Role: {role_name}\n\n"
                         f"{next_step_line}\n\n"
-                        "If you need help, contact Farmity Support from the app.\n"
+                        "We are excited to have you with us. If you need help, contact Farmity Support from the app."
                     )
-                    from_email = getattr(settings, "DEFAULT_FROM_EMAIL", None) or getattr(settings, "EMAIL_HOST_USER", None)
-                    send_mail(
+                    send_branded_email(
                         subject="Welcome to Farmity",
+                        title="Welcome to Farmity",
                         message=welcome_body,
-                        from_email=from_email,
                         recipient_list=[user.email],
-                        fail_silently=False,
+                        cta_link=redirect_url,
+                        cta_text="Go to My Account",
+                        retry_attempts=2,
+                        role=user.role,
+                        event_type="signup",
                     )
                 except Exception:
                     # Don't fail signup if email is broken.
