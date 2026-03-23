@@ -72,6 +72,28 @@
         .open-badge { background: var(--danger); color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
         .empty-state { text-align: center; color: #666; padding: 2.5rem 1.5rem; }
         .empty-state i { font-size: 2.5rem; color: #ccc; margin-bottom: 0.5rem; display: block; }
+
+        /* Mobile: collapse sidebar to an icon rail */
+        @media (max-width: 768px) {
+            :root { --sidebar-width: 72px; }
+
+            .sidebar-header {
+                padding: 16px 12px;
+                justify-content: center;
+            }
+            .sidebar-header h2 { display: none; }
+
+            .sidebar-menu { padding: 12px 0; }
+            .menu-item {
+                padding: 12px 10px;
+                justify-content: center;
+            }
+            .menu-item i { width: 20px; }
+            .menu-item span { display: none; }
+
+            .main-content { margin-left: var(--sidebar-width); }
+            .dashboard-content { padding: 18px 16px; }
+        }
     </style>
 </head>
 <body>

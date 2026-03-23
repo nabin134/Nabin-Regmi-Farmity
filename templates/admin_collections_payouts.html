@@ -244,6 +244,28 @@
             gap: 6px;
         }
         .btn-modal:hover { background: #f1f5f9; }
+
+        /* Mobile: collapse sidebar to an icon rail */
+        @media (max-width: 768px) {
+            :root { --sidebar-width: 72px; }
+
+            .sidebar-header {
+                padding: 16px 12px;
+                justify-content: center;
+            }
+            .sidebar-header h2 { display: none; }
+
+            .sidebar-menu { padding: 12px 0; }
+            .menu-item {
+                padding: 12px 10px;
+                justify-content: center;
+            }
+            .menu-item i { width: 22px; }
+            .menu-item span { display: none; }
+
+            .dashboard-content { padding: 18px 16px 30px; }
+            .top-header { padding-left: 16px; padding-right: 16px; }
+        }
     </style>
 </head>
 <body>

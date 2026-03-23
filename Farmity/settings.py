@@ -132,23 +132,23 @@ WSGI_APPLICATION = 'Farmity.wsgi.application'
 # ======================
 # DATABASE
 # ======================
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'farmity_foryou',
-        'USER': 'farmity_foryou_user',
-        'PASSWORD': 'sAFOb3zsrUFbFmw38ogKymHyECMgFp3v',
-        'HOST': 'dpg-d6vbo46uk2gs738mckm0-a',
-        'PORT': '5432',
-    }
-}
-
 # DATABASES = {
 #     'default': {
-#         'ENGINE': 'django.db.backends.sqlite3',  # SQLite backend
-#         'NAME': BASE_DIR / 'db.sqlite3',         # Database file path
+#         'ENGINE': 'django.db.backends.postgresql',
+#         'NAME': 'farmity_foryou',
+#         'USER': 'farmity_foryou_user',
+#         'PASSWORD': 'sAFOb3zsrUFbFmw38ogKymHyECMgFp3v',
+#         'HOST': 'dpg-d6vbo46uk2gs738mckm0-a',
+#         'PORT': '5432',
 #     }
 # }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',  # SQLite backend
+        'NAME': BASE_DIR / 'db.sqlite3',         # Database file path
+    }
+}
 
 
 # ======================

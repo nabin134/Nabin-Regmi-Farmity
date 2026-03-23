@@ -1900,6 +1900,12 @@
             var clickedItem = (evt && evt.target) ? evt.target.closest('.nav-item') : null;
             if (!clickedItem) clickedItem = document.querySelector('.nav-item[href="#' + sectionId + '"]');
             if (clickedItem) clickedItem.classList.add('active');
+
+            // Close sidebar after a section change on small screens
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+                sidebar.classList.remove('active');
+            }
         }
 
         function toggleSidebar() {

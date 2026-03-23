@@ -61,6 +61,28 @@
         .msg.user .msg-meta { text-align: right; }
         .empty-msg { text-align: center; color: #999; padding: 2rem; font-size: 0.95rem; }
         .admin-badge { font-size: 0.7rem; color: #666; margin-top: 2px; }
+
+        /* Mobile: collapse sidebar to an icon rail */
+        @media (max-width: 768px) {
+            :root { --sidebar-width: 72px; }
+
+            .sidebar-header {
+                padding: 16px 12px;
+                justify-content: center;
+            }
+            .sidebar-header h2 { display: none; }
+
+            .sidebar-menu { padding: 12px 0; }
+            .menu-item {
+                padding: 12px 10px;
+                justify-content: center;
+            }
+            .menu-item i { width: 20px; }
+            .menu-item span { display: none; }
+
+            .main-content { margin-left: var(--sidebar-width); }
+            .dashboard-content { padding: 18px 16px; }
+        }
     </style>
 </head>
 <body>

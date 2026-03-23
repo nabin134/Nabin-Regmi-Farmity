@@ -4,6 +4,11 @@
     box-sizing: border-box;
 }
 
+/* Prevent accidental horizontal scroll/desktop squeezing on phones */
+html, body {
+    overflow-x: hidden;
+}
+
 :root {
     /* Color Palette */
     --athens-gray: #E9EBF1;

@@ -1961,6 +1961,12 @@
             if (mainContent) {
                 mainContent.scrollTop = 0;
             }
+
+            // Close sidebar after a section change on small screens
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar && window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+                sidebar.classList.remove('active');
+            }
             
             // Debug: Log section visibility
             console.log('Showing section:', sectionId, targetSection ? 'found' : 'not found');
