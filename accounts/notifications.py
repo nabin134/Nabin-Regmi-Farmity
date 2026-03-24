@@ -28,9 +28,9 @@ ROLE_THEMES = {
 
 EVENT_SUBJECTS = {
     "signup": "Welcome to Farmity",
-    "kyc_submitted": "KYC Submitted Successfully",
-    "kyc_approved": "KYC Approved - Full Access Unlocked",
-    "kyc_rejected": "KYC Update Required",
+    "kyc_Submitted": "KYC Submitted Successfully",
+    "kyc_Approved": "KYC Approved - Full Access Unlocked",
+    "kyc_Rejected": "KYC Update Required",
     "order_shipped": "Your Order Has Been Shipped",
     "order_on_the_way": "Your Order Is On The Way",
     "order_delivered": "Your Order Was Delivered",

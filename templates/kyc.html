@@ -15,7 +15,10 @@
 
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #358D58 0%, #A8AD3B 100%);
+            background:
+                radial-gradient(circle at 12% 18%, rgba(232, 245, 233, 0.95) 0%, rgba(232, 245, 233, 0) 42%),
+                radial-gradient(circle at 86% 12%, rgba(220, 242, 223, 0.9) 0%, rgba(220, 242, 223, 0) 44%),
+                linear-gradient(145deg, #EAF7EC 0%, #D7EEDC 48%, #E4F4E7 100%);
             min-height: 100vh;
             padding: 2rem 1rem;
         }
@@ -23,14 +26,15 @@
         .kyc-container {
             max-width: 1000px;
             margin: 0 auto;
-            background: white;
+            background: linear-gradient(180deg, #ffffff 0%, #F7FCF8 100%);
             border-radius: 24px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            border: 1px solid rgba(53, 141, 88, 0.15);
+            box-shadow: 0 16px 42px rgba(30, 80, 46, 0.14);
             overflow: hidden;
         }
 
         .kyc-header {
-            background: linear-gradient(135deg, #358D58 0%, #A8AD3B 100%);
+            background: linear-gradient(135deg, #4EAF72 0%, #7CC48D 52%, #A9D8B1 100%);
             color: white;
             padding: 3rem 2rem;
             text-align: center;
@@ -98,6 +102,7 @@
 
         .wizard-container {
             padding: 3rem 2rem;
+            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(243, 250, 245, 0.96) 100%);
         }
 
         .wizard-steps {
@@ -242,7 +247,7 @@
             border-radius: 16px;
             padding: 2.5rem;
             text-align: center;
-            background: #E9EBF1;
+            background: #EFF8F1;
             cursor: pointer;
             transition: all 0.3s;
             position: relative;
@@ -250,7 +255,7 @@
 
         .file-upload-wrapper:hover {
             border-color: #358D58;
-            background: #f0f7f2;
+            background: #E6F3EA;
         }
 
         .file-upload-wrapper.drag-over {
