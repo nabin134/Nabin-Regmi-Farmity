@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -34,7 +34,7 @@
         }
 
         .kyc-header {
-            background: linear-gradient(135deg, #4EAF72 0%, #7CC48D 52%, #A9D8B1 100%);
+            background: linear-gradient(135deg, #2F9B57 0%, #4EAF72 52%, #79C58F 100%);
             color: white;
             padding: 3rem 2rem;
             text-align: center;
@@ -102,7 +102,7 @@
 
         .wizard-container {
             padding: 3rem 2rem;
-            background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(243, 250, 245, 0.96) 100%);
+            background: linear-gradient(180deg, rgba(236, 247, 239, 0.98) 0%, rgba(228, 243, 232, 0.98) 100%);
         }
 
         .wizard-steps {
@@ -160,7 +160,7 @@
         }
 
         .wizard-step.completed .step-circle::after {
-            content: '✓';
+            content: 'âœ“';
         }
 
         .step-label {
@@ -229,17 +229,18 @@
         .form-control {
             width: 100%;
             padding: 1rem 1.25rem;
-            border: 2px solid #e5e7eb;
+            border: 2px solid #cfe8d5;
             border-radius: 12px;
             font-size: 1rem;
             transition: all 0.3s;
             font-family: inherit;
+            background: #fcfffd;
         }
 
         .form-control:focus {
             outline: none;
             border-color: #358D58;
-            box-shadow: 0 0 0 4px rgba(53, 141, 88, 0.1);
+            box-shadow: 0 0 0 4px rgba(53, 141, 88, 0.12);
         }
 
         .file-upload-wrapper {
@@ -380,25 +381,41 @@
         .wizard-actions {
             display: flex;
             justify-content: space-between;
+            align-items: center;
             margin-top: 3rem;
             padding-top: 2rem;
             border-top: 2px solid #E9EBF1;
         }
 
         .btn {
-            padding: 0.875rem 2.25rem;
+            padding: 0.6rem 1rem;
             border: none;
             border-radius: 10px;
-            font-size: 1rem;
+            font-size: 0.88rem;
             font-weight: 600;
             cursor: pointer;
             transition: all 0.3s;
             display: inline-flex;
             align-items: center;
-            gap: 0.75rem;
-            min-height: 48px;
-            min-width: 140px;
+            gap: 0.35rem;
+            min-height: 36px;
+            min-width: 96px;
             justify-content: center;
+        }
+
+        .wizard-actions #prevBtn {
+            margin-right: auto;
+        }
+        .wizard-actions #wizardForwardBtn {
+            margin-left: auto;
+        }
+        .wizard-actions #prevBtn,
+        .wizard-actions #wizardForwardBtn {
+            min-width: 90px;
+            max-width: 116px;
+            height: 34px;
+            padding: 0.45rem 0.75rem;
+            white-space: nowrap;
         }
 
         .btn-primary {
@@ -418,14 +435,16 @@
         }
 
         .btn-secondary {
-            background: #A04A24;
-            color: white;
+            background: #f3fbf5;
+            color: #2d7a4a;
+            border: 1.5px solid #b9dfc3;
         }
 
         .btn-secondary:hover {
-            background: #8a3f1f;
+            background: #e8f6ec;
+            border-color: #9dd0ab;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(160, 74, 36, 0.3);
+            box-shadow: 0 4px 12px rgba(53, 141, 88, 0.18);
         }
 
         .btn-secondary:active {
@@ -470,14 +489,26 @@
             }
 
             .wizard-actions {
-                flex-direction: column;
-                gap: 1rem;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                gap: 0.6rem;
             }
 
             .btn {
-                width: 100%;
+                width: auto;
+                min-width: 92px;
+                max-width: 120px;
                 justify-content: center;
-                min-width: 100%;
+            }
+
+            .wizard-actions #prevBtn,
+            .wizard-actions #wizardForwardBtn {
+                min-width: 84px;
+                max-width: 108px;
+                height: 32px;
+                padding: 0.4rem 0.65rem;
+                font-size: 0.82rem;
             }
 
             .form-row {
@@ -538,7 +569,7 @@
                 </div>
                 <div class="wizard-step" data-step="3">
                     <div class="step-circle">3</div>
-                    <div class="step-label">Review</div>
+                    <div class="step-label">Submit</div>
                 </div>
             </div>
 
@@ -728,9 +759,9 @@
                         <div class="panel-header">
                             <h2>
                                 <i class="fas fa-check-circle"></i>
-                                Review & Submit
+                                Submit
                             </h2>
-                            <p>Please review your information before submitting</p>
+                            <p>Review your details below, then tap Submit to send your verification</p>
                         </div>
 
                         <div class="info-card" style="background: #fff3cd; border-left-color: #ffc107;">
@@ -761,13 +792,9 @@
                         Previous
                     </button>
                     <div style="flex: 1;"></div>
-                    <button type="button" class="btn btn-primary" id="nextBtn" onclick="changeStep(1)">
+                    <button type="button" class="btn btn-primary" id="wizardForwardBtn">
                         Next
                         <i class="fas fa-arrow-right"></i>
-                    </button>
-                    <button type="submit" class="btn btn-primary" id="submitBtn" style="display: none;">
-                        <i class="fas fa-paper-plane"></i>
-                        {% if kyc.status == 'rejected' %}Resubmit KYC{% else %}Submit Verification{% endif %}
                     </button>
                 </div>
             </form>
@@ -844,12 +871,19 @@
 
             // Update buttons
             const prevBtn = document.getElementById('prevBtn');
-            const nextBtn = document.getElementById('nextBtn');
-            const submitBtn = document.getElementById('submitBtn');
+            const forwardBtn = document.getElementById('wizardForwardBtn');
 
             prevBtn.style.display = currentStep > 1 ? 'inline-flex' : 'none';
-            nextBtn.style.display = currentStep < totalSteps ? 'inline-flex' : 'none';
-            submitBtn.style.display = currentStep === totalSteps ? 'inline-flex' : 'none';
+            forwardBtn.style.display = 'inline-flex';
+            if (currentStep < totalSteps) {
+                forwardBtn.type = 'button';
+                forwardBtn.innerHTML = 'Next\n                        <i class="fas fa-arrow-right"></i>';
+                forwardBtn.onclick = function () { changeStep(1); };
+            } else {
+                forwardBtn.type = 'submit';
+                forwardBtn.innerHTML = '<i class="fas fa-paper-plane"></i>\n                        Submit';
+                forwardBtn.onclick = null;
+            }
 
             // Update review summary
             if (currentStep === 3) {
@@ -949,16 +983,19 @@
                 return false;
             }
 
-            window.__kycSubmitting = true;
-            const submitBtn = document.getElementById('submitBtn');
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.textContent = 'Submitting...';
-            }
-
             if (!validateStep(3)) {
                 e.preventDefault();
                 return false;
+            }
+
+            window.__kycSubmitting = true;
+            const forwardBtn = document.getElementById('wizardForwardBtn');
+            if (forwardBtn) {
+                forwardBtn.innerHTML = 'Submitting...';
+                // Defer disabling so the browser does not cancel the actual form submit (WebKit quirk).
+                setTimeout(function () {
+                    forwardBtn.disabled = true;
+                }, 0);
             }
         });
 
