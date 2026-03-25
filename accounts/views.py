@@ -1143,11 +1143,13 @@ def landing_page(request):
         VendorProfile.objects.annotate(
             tool_count=Count('tools', filter=Q(tools__is_available=True, tools__stock_quantity__gt=0))
         )
+        .filter(user__is_verified=True)
         .filter(tool_count__gt=0)
         .order_by('id')
         .values_list('id', flat=True)
     )
-    selected_vendor_ids = _pick_cyclic(vendor_ids, 4)
+    # Show at most 4 distinct vendors. If there are only 3 registered vendors, show only 3 (no duplicates).
+    selected_vendor_ids = _pick_cyclic(vendor_ids, min(4, len(vendor_ids)))
 
     vendors_qs = (
         VendorProfile.objects.annotate(
@@ -1211,6 +1213,7 @@ def landing_page(request):
         'experts': experts,
         'farming_tips': farming_tips,
         'vendors': vendors,
+        'vendor_spotlight_count': len(vendors),
         'landing_features': landing_features,
         'farmers_count': farmers_count,
         'vendors_count': vendors_count,
