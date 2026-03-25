@@ -1650,33 +1650,93 @@
                         <h2><i class="fas fa-cog"></i> Settings</h2>
                     </div>
                     <div class="section-body">
-                        <!-- Security Section -->
+                        <!-- Appearance Section -->
                         <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                                <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-palette" style="font-size: 1.75rem; color: white;"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 1.5rem;">Appearance</h3>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                                    <div>
+                                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: #333;">Theme Mode</label>
+                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">Choose your preferred theme</p>
+                                    </div>
+                                    <div class="theme-toggle">
+                                        <input type="checkbox" id="themeToggle" class="theme-toggle-checkbox">
+                                        <label for="themeToggle" class="theme-toggle-label">
+                                            <span class="theme-toggle-ball"></span>
+                                            <i class="fas fa-sun theme-icon-light"></i>
+                                            <i class="fas fa-moon theme-icon-dark"></i>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notifications Section -->
+                        <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                                <div style="width: 50px; height: 50px; background: #fff3cd; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-bell" style="font-size: 1.75rem; color: #856404;"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 1.5rem;">Notifications</h3>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                                    <div>
+                                        <label style="font-weight: 600; margin-bottom: 0.25rem; display: block; color: #333;">Email Notifications</label>
+                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">Receive order updates via email</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div>
+                                        <label style="font-weight: 600; margin-bottom: 0.25rem; display: block; color: #333;">Browser Notifications</label>
+                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">Show desktop notifications</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security Section -->
+                        <div style="margin-bottom: 3rem;">
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
                                 <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                     <i class="fas fa-lock" style="font-size: 1.75rem; color: var(--primary);"></i>
                                 </div>
                                 <h3 style="margin: 0; font-size: 1.5rem;">Security</h3>
                             </div>
-                            <form method="POST" action="{% url 'change_password' %}">
-                                {% csrf_token %}
-                                <div class="form-group">
-                                    <label>Current Password</label>
-                                    <input type="password" name="current_password" class="form-control" placeholder="Enter your current password" required>
-                                </div>
-                                <div class="form-group">
-                                    <label>New Password</label>
-                                    <input type="password" name="new_password" class="form-control" placeholder="Enter your new password" required pattern=".{8,}" title="Password must be at least 8 characters">
-                                    <small style="color: #666; font-size: 0.85rem; margin-top: 0.5rem; display: block;">Password must be at least 8 characters long</small>
-                                </div>
-                                <div class="form-group">
-                                    <label>Confirm New Password</label>
-                                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your new password" required>
-                                </div>
-                                <button type="submit" class="btn-primary">
-                                    <i class="fas fa-key"></i> Update Password
-                                </button>
-                            </form>
+                            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+                                <form method="POST" action="{% url 'change_password' %}">
+                                    {% csrf_token %}
+                                    <div class="form-group">
+                                        <label>Current Password</label>
+                                        <input type="password" name="current_password" class="form-control" placeholder="Enter your current password" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>New Password</label>
+                                        <input type="password" name="new_password" class="form-control" placeholder="Enter your new password" required pattern=".{8,}" title="Password must be at least 8 characters">
+                                        <small style="color: #666; font-size: 0.85rem; margin-top: 0.5rem; display: block;">Password must be at least 8 characters long</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Confirm New Password</label>
+                                        <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your new password" required>
+                                    </div>
+                                    <button type="submit" class="btn-primary">
+                                        <i class="fas fa-key"></i> Update Password
+                                    </button>
+                                </form>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -2187,6 +2247,22 @@
         function changeLanguage(lang) {
             localStorage.setItem('language', lang);
         }
+
+        // Theme toggle (dark mode) for settings
+        document.addEventListener('DOMContentLoaded', function() {
+            const themeToggle = document.getElementById('themeToggle');
+            if (!themeToggle) return;
+
+            const darkMode = localStorage.getItem('darkMode') === 'true';
+            themeToggle.checked = darkMode;
+            if (darkMode) document.body.classList.add('dark-mode');
+
+            themeToggle.addEventListener('change', function() {
+                const isDark = this.checked;
+                localStorage.setItem('darkMode', isDark ? 'true' : 'false');
+                document.body.classList.toggle('dark-mode', isDark);
+            });
+        });
 
         // Force dashboard visibility immediately when script loads
         (function() {

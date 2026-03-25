@@ -2831,74 +2831,92 @@
                         <h2><i class="fas fa-cog"></i> <span data-translate="settings.title">Settings</span></h2>
                     </div>
                     <div class="section-body">
-                        <!-- Security Section -->
+                        <!-- Appearance Section -->
                         <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                                <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-palette" style="font-size: 1.75rem; color: white;"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 1.5rem;">Appearance</h3>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+                                    <div>
+                                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: #333;">Theme Mode</label>
+                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">Choose your preferred theme</p>
+                                    </div>
+                                    <div class="theme-toggle">
+                                        <input type="checkbox" id="themeToggle" class="theme-toggle-checkbox">
+                                        <label for="themeToggle" class="theme-toggle-label">
+                                            <span class="theme-toggle-ball"></span>
+                                            <i class="fas fa-sun theme-icon-light"></i>
+                                            <i class="fas fa-moon theme-icon-dark"></i>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notifications Section -->
+                        <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+                                <div style="width: 50px; height: 50px; background: #fff3cd; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+                                    <i class="fas fa-bell" style="font-size: 1.75rem; color: #856404;"></i>
+                                </div>
+                                <h3 style="margin: 0; font-size: 1.5rem;">Notifications</h3>
+                            </div>
+                            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+                                    <div>
+                                        <label style="font-weight: 600; margin-bottom: 0.25rem; display: block; color: #333;">Email Notifications</label>
+                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">Receive order updates via email</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox" checked>
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                    <div>
+                                        <label style="font-weight: 600; margin-bottom: 0.25rem; display: block; color: #333;">Browser Notifications</label>
+                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">Show desktop notifications</p>
+                                    </div>
+                                    <label class="switch">
+                                        <input type="checkbox">
+                                        <span class="slider"></span>
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Security Section -->
+                        <div style="margin-bottom: 3rem;">
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
                                 <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                     <i class="fas fa-lock" style="font-size: 1.75rem; color: var(--primary);"></i>
                                 </div>
-                                <h3 style="margin: 0; font-size: 1.5rem;" data-translate="settings.security">Security</h3>
+                                <h3 style="margin: 0; font-size: 1.5rem;">Security</h3>
                             </div>
-                            <form method="POST" action="{% url 'change_password' %}">
-                                {% csrf_token %}
-                                <div class="form-group">
-                                    <label data-translate="settings.currentPassword">Current Password</label>
-                                    <input type="password" name="current_password" class="form-control" placeholder="Enter your current password" required>
-                                </div>
-                                <div class="form-group">
-                                    <label data-translate="settings.newPassword">New Password</label>
-                                    <input type="password" name="new_password" class="form-control" placeholder="Enter your new password" required pattern=".{8,}" title="Password must be at least 8 characters">
-                                    <small style="color: #666; font-size: 0.85rem; margin-top: 0.5rem; display: block;" data-translate="settings.passwordHint">Password must be at least 8 characters long</small>
-                                </div>
-                                <div class="form-group">
-                                    <label data-translate="settings.confirmPassword">Confirm New Password</label>
-                                    <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your new password" required>
-                                </div>
-                                <button type="submit" class="btn-primary">
-                                    <i class="fas fa-key"></i> <span data-translate="settings.updatePassword">Update Password</span>
-                                </button>
-                            </form>
-                        </div>
-
-                        <!-- Language Section -->
-                        <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
-                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
-                                <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-globe" style="font-size: 1.75rem; color: var(--primary);"></i>
-                                </div>
-                                <h3 style="margin: 0; font-size: 1.5rem;" data-translate="settings.language">Language & Region</h3>
-                            </div>
-                            <div class="form-group">
-                                <label data-translate="settings.preferredLanguage">Preferred Language</label>
-                                <select id="settingsLanguageSelect" class="form-control" onchange="changeLanguage(this.value)">
-                                    <option value="en">English</option>
-                                    <option value="np">नेपाली (Nepali)</option>
-                                </select>
-                                <div style="background: #E3F2FD; border-left: 4px solid #2196F3; border-radius: 12px; padding: 1rem; margin-top: 1rem;">
-                                    <p style="color: #1565C0; font-size: 0.9rem; margin: 0;" data-translate="settings.languageHint">
-                                        <i class="fas fa-info-circle"></i> Your language preference will be saved and applied across the platform
-                                    </p>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Appearance Section -->
-                        <div>
-                            <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
-                                <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
-                                    <i class="fas fa-palette" style="font-size: 1.75rem; color: var(--primary);"></i>
-                                </div>
-                                <h3 style="margin: 0; font-size: 1.5rem;" data-translate="settings.appearance">Appearance</h3>
-                            </div>
-                            <div style="display: flex; align-items: center; justify-content: space-between; padding: 1.5rem; background: #f8f9fa; border-radius: 12px; border: 2px solid #e9ecef;">
-                                <div>
-                                    <div style="font-size: 1.1rem; font-weight: 600; color: #1a1a1a; margin-bottom: 0.25rem;" data-translate="settings.darkMode">Dark Mode</div>
-                                    <div style="font-size: 0.9rem; color: #6c757d;" data-translate="settings.darkModeDesc">Switch between light and dark themes for better viewing experience</div>
-                                </div>
-                                <label class="toggle-switch">
-                                    <input type="checkbox" id="darkModeToggle">
-                                    <span class="slider"></span>
-                                </label>
+                            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+                                <form method="POST" action="{% url 'change_password' %}">
+                                    {% csrf_token %}
+                                    <div class="form-group">
+                                        <label>Current Password</label>
+                                        <input type="password" name="current_password" class="form-control" placeholder="Enter your current password" required>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>New Password</label>
+                                        <input type="password" name="new_password" class="form-control" placeholder="Enter your new password" required pattern=".{8,}" title="Password must be at least 8 characters">
+                                        <small style="color: #666; font-size: 0.85rem; margin-top: 0.5rem; display: block;">Password must be at least 8 characters long</small>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Confirm New Password</label>
+                                        <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your new password" required>
+                                    </div>
+                                    <button type="submit" class="btn-primary">
+                                        <i class="fas fa-key"></i> Update Password
+                                    </button>
+                                </form>
                             </div>
                         </div>
                     </div>
@@ -4677,15 +4695,15 @@
         }
 
         // Dark mode toggle
-        const darkModeToggle = document.getElementById('darkModeToggle');
-        if (darkModeToggle) {
+        const themeToggle = document.getElementById('themeToggle');
+        if (themeToggle) {
             // Check saved preference
             if (localStorage.getItem('darkMode') === 'true') {
-                darkModeToggle.checked = true;
+                themeToggle.checked = true;
                 document.body.classList.add('dark-mode');
             }
             
-            darkModeToggle.addEventListener('change', function() {
+            themeToggle.addEventListener('change', function() {
                 if (this.checked) {
                     localStorage.setItem('darkMode', 'true');
                     document.body.classList.add('dark-mode');
