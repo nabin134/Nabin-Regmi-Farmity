@@ -1096,14 +1096,98 @@ def _fetch_kalimati_prices():
 # ======================
 def landing_page(request):
     """Landing page with real data: crops, tools, vendors, experts, learning tips, and Kalimati live prices."""
-    crops = FarmerProduct.objects.filter(is_available=True).select_related('farmer', 'farmer__user').order_by('-created_at')[:8]
-    tools = VendorTool.objects.filter(is_available=True, stock_quantity__gt=0).select_related('vendor', 'vendor__user').order_by('-created_at')[:8]
+    # Rotate featured items hourly (reset daily) for a predictable "change" effect on refresh.
+    now = timezone.localtime(timezone.now())
+    seed = ((now.date() - date(1970, 1, 1)).days * 24) + now.hour  # 0..23 per day, changes hourly
+
+    from collections import defaultdict
+
+    def _pick_cyclic(ids, n, start_offset=0):
+        if not ids:
+            return []
+        start = (seed + start_offset) % len(ids)
+        return [ids[(start + i) % len(ids)] for i in range(n)]
+
+    # --- Featured Crops (show exactly 4, rotate hourly) ---
+    crop_ids = list(
+        FarmerProduct.objects.filter(is_available=True, quantity__gt=0)
+        .order_by('-created_at', 'id')
+        .values_list('id', flat=True)
+    )
+    selected_crop_ids = _pick_cyclic(crop_ids, 4)
+    crop_qs = (
+        FarmerProduct.objects.filter(id__in=selected_crop_ids)
+        .select_related('farmer', 'farmer__user')
+        .order_by('-created_at', 'id')
+    )
+    crops_map = {c.id: c for c in crop_qs}
+    crops = [crops_map[cid] for cid in selected_crop_ids if cid in crops_map]
+
+    # --- Featured Tools (show exactly 4, rotate hourly) ---
+    tool_ids = list(
+        VendorTool.objects.filter(is_available=True, stock_quantity__gt=0)
+        .order_by('-created_at', 'id')
+        .values_list('id', flat=True)
+    )
+    selected_tool_ids = _pick_cyclic(tool_ids, 4)
+    tool_qs = (
+        VendorTool.objects.filter(id__in=selected_tool_ids)
+        .select_related('vendor', 'vendor__user')
+        .order_by('-created_at', 'id')
+    )
+    tools_map = {t.id: t for t in tool_qs}
+    tools = [tools_map[tid] for tid in selected_tool_ids if tid in tools_map]
+
+    # --- Vendor Spotlight (show exactly 4 vendors, one featured tool per vendor changes hourly) ---
+    vendor_ids = list(
+        VendorProfile.objects.annotate(
+            tool_count=Count('tools', filter=Q(tools__is_available=True, tools__stock_quantity__gt=0))
+        )
+        .filter(tool_count__gt=0)
+        .order_by('id')
+        .values_list('id', flat=True)
+    )
+    selected_vendor_ids = _pick_cyclic(vendor_ids, 4)
+
+    vendors_qs = (
+        VendorProfile.objects.annotate(
+            tool_count=Count('tools', filter=Q(tools__is_available=True, tools__stock_quantity__gt=0))
+        )
+        .filter(id__in=set(selected_vendor_ids))
+        .select_related('user')
+    )
+    vendors_map = {v.id: v for v in vendors_qs}
+    vendors = [vendors_map[vid] for vid in selected_vendor_ids if vid in vendors_map]
+
+    # Featured tool per vendor card (rotate hourly within each vendor's tools)
+    spotlight_tool_qs = (
+        VendorTool.objects.filter(
+            vendor_id__in=set(selected_vendor_ids),
+            is_available=True,
+            stock_quantity__gt=0,
+        )
+        .select_related('vendor', 'vendor__user')
+        .order_by('-created_at', 'id')
+    )
+    tools_by_vendor = defaultdict(list)
+    for tool in spotlight_tool_qs:
+        tools_by_vendor[tool.vendor_id].append(tool)
+
+    for vendor_id in selected_vendor_ids:
+        vendor = vendors_map.get(vendor_id)
+        if not vendor:
+            continue
+        options = tools_by_vendor.get(vendor_id) or []
+        if not options:
+            continue
+        pick_idx = (seed + vendor_id) % len(options)
+        vendor.featured_tool = options[pick_idx]
+
     experts = ExpertProfile.objects.select_related('user').all()[:6]
     farming_tips = FarmingTip.objects.filter(is_published=True, approval_status=FarmingTip.APPROVAL_APPROVED).select_related('expert', 'expert__user').order_by('-created_at')[:4]
     farmers_count = FarmerProfile.objects.count()
     vendors_count = VendorProfile.objects.count()
     experts_count = ExpertProfile.objects.count()
-    vendors = VendorProfile.objects.annotate(tool_count=Count('tools')).filter(tool_count__gt=0).select_related('user').order_by('-tool_count')[:6]
     landing_features = LandingFeature.objects.filter(is_active=True).order_by('display_order', 'created_at')
     from django.db.models import Min
     crop_prices = list(FarmerProduct.objects.filter(is_available=True, quantity__gt=0).values('name').annotate(min_price=Min('price_per_unit')).order_by('name')[:6])

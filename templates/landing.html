@@ -206,6 +206,14 @@
                     <h4>{{ vendor.company_name|default:vendor.user.email }}</h4>
                     <p class="vendor-location">{% if vendor.address %}📍 {{ vendor.address }}{% endif %}</p>
                     <p class="vendor-products">{{ vendor.tool_count }} Tools</p>
+                    {% if vendor.featured_tool %}
+                    <p style="margin: 0.75rem 0 0.25rem; color: var(--text-dark); font-weight: 700; font-size: 0.95rem;">
+                        Featured Tool: {{ vendor.featured_tool.name }}
+                    </p>
+                    <p style="margin: 0; color: var(--sea-green); font-weight: 800;">
+                        Rs. {{ vendor.featured_tool.price }}
+                    </p>
+                    {% endif %}
                     <a href="/login/?next=/user/dashboard/" class="btn-view-store">View Store</a>
                 </div>
                 {% empty %}
@@ -397,10 +405,11 @@
         // Real-time weather (Open-Meteo, no API key) – Kathmandu default
         var weatherEl = document.getElementById('weatherTemp');
         var iconEl = document.getElementById('weatherIcon');
-        var codes = { 0:'☀️', 1:'🌤️', 2:'⛅', 3:'☁️', 45: '🌫️', 48:'🌫️', 51: '🌧️', 61:'🌧️', 80:'🌦️', 95:'⛈️', 96:'⛈️ };
+        // Weather icon labels (ASCII-only to avoid JS parse/lint issues)
+        var codes = { 0:'SUN', 1:'PARTLY', 2:'CLOUD', 3:'OVERCAST', 45:'FOG', 48:'FOG', 51:'RAIN', 61:'RAIN', 80:'SHOWERS', 95:'STORM', 96:'STORM' };
         function showWeather(temp, code) {
-            if (weatherEl) weatherEl.textContent = (temp != null ? Math.round(temp) : '--') + '°C';
-            if (iconEl) iconEl.textContent = codes[code] || '🌡️';
+            if (weatherEl) weatherEl.textContent = (temp != null ? Math.round(temp) : '--') + ' C';
+            if (iconEl) iconEl.textContent = codes[code] || 'TEMP';
         }
         function fetchWeather() {
             var lat = 27.7172, lon = 85.3240;
@@ -441,7 +450,7 @@
                 var noRes = document.getElementById('searchNoResults');
                 if (noRes) {
                     if (q && visible === 0) {
-                        noRes.textContent = 'No results for “‘ + input.value.trim() + '”. Try different words.';
+                        noRes.textContent = "No results for '" + input.value.trim() + "'. Try different words.";
                         noRes.style.display = 'block';
                     } else {
                         noRes.style.display = 'none';
