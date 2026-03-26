@@ -955,7 +955,7 @@ body {
 /* Give the CTA some breathing room under the featured block */
 .vendors-grid .vendor-card .btn-view-store {
     margin-top: auto; /* push button to card bottom for consistent alignment */
-    width: 100%;
+    width: auto;
     max-width: 360px;
     display: inline-block;
     padding: 0.85rem 1.25rem;
@@ -1044,10 +1044,18 @@ body {
     border-radius: 25px;
     cursor: pointer;
     font-weight: 600;
-    width: 100%;
+    width: auto;
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
     transition: background 0.3s;
     text-decoration: none; /* prevent underline/line on anchor */
     font-size: 0.9rem;
+}
+
+/* Keep course CTA aligned nicely when not full-width */
+.course-card .btn-start-learning {
+    margin-top: 0.35rem;
 }
 
 .btn-start-learning:hover {
@@ -2265,7 +2273,7 @@ html, body {
 }
 
 .btn-login, .btn-primary {
-    width: 100%;
+    width: auto;
     padding: 0.7rem 1.1rem;
     border: none;
     border-radius: 999px;
@@ -2279,6 +2287,11 @@ html, body {
     text-transform: none;
     box-shadow: 0 4px 12px rgba(0,0,0,0.10);
     letter-spacing: 0.2px;
+}
+
+/* Auth pages: login button should remain full width */
+.btn-login {
+    width: 100%;
 }
 
 .btn-login:hover, .btn-primary:hover {
