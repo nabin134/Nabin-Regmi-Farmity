@@ -5894,11 +5894,85 @@ def api_support_status(request, ticket_id):
     return JsonResponse({'ok': True})
 
 
-def _notification_link_for_user(request, link):
-    """Ensure notification link points to the correct dashboard/section for the current user (page where notification came from)."""
+def _notification_fallback_link(request, notification_type='', title='', message=''):
+    """Fallback link if notification link is missing/invalid."""
+    role = (getattr(request.user, 'role', '') or '').strip().lower()
+    ntype = (notification_type or UserNotification.TYPE_INFO).strip().lower()
+    text = f"{title or ''} {message or ''}".lower()
+
+    if ntype == UserNotification.TYPE_ORDER:
+        if role == 'farmer':
+            return reverse('farmer_dashboard') + '?section=orders'
+        if role == 'vendor':
+            return reverse('vendor_dashboard') + '?section=orders'
+        if role == 'admin':
+            return reverse('admin_marketplace_oversight')
+        return reverse('user_dashboard') + '?section=orders'
+
+    if ntype == UserNotification.TYPE_KYC:
+        if role == 'admin':
+            return reverse('admin_kyc_management')
+        if role in {'farmer', 'vendor', 'agricultural_expert'}:
+            return reverse('kyc')
+        return reverse('profile')
+
+    if ntype == UserNotification.TYPE_APPOINTMENT:
+        if role == 'agricultural_expert':
+            return reverse('expert_dashboard') + '?section=appointments'
+        if role == 'farmer':
+            return reverse('farmer_dashboard') + '?section=appointments'
+        return reverse('appointment_request')
+
+    if ntype == UserNotification.TYPE_SUPPORT:
+        return reverse('admin_support_desk') if role == 'admin' else reverse('support_hub')
+
+    if ntype == UserNotification.TYPE_CHAT:
+        if role == 'agricultural_expert':
+            return reverse('expert_dashboard') + '?section=chat'
+        return reverse('chat_threads')
+
+    # TYPE_INFO and unknowns
+    if 'profile' in text:
+        return reverse('profile')
+    if 'booking' in text or 'appointment' in text:
+        if role == 'agricultural_expert':
+            return reverse('expert_dashboard') + '?section=appointments'
+        if role == 'farmer':
+            return reverse('farmer_dashboard') + '?section=appointments'
+        return reverse('appointment_request')
+    if 'kyc' in text or 'verification' in text:
+        if role == 'admin':
+            return reverse('admin_kyc_management')
+        if role in {'farmer', 'vendor', 'agricultural_expert'}:
+            return reverse('kyc')
+    if 'order' in text or 'payment' in text or 'payout' in text:
+        if role == 'farmer':
+            return reverse('farmer_dashboard') + '?section=orders'
+        if role == 'vendor':
+            return reverse('vendor_dashboard') + '?section=orders'
+        if role == 'admin':
+            return reverse('admin_marketplace_oversight')
+        return reverse('user_dashboard') + '?section=orders'
+    if role == 'admin':
+        return reverse('admin_dashboard')
+    if role == 'agricultural_expert':
+        return reverse('expert_dashboard')
+    if role == 'farmer':
+        return reverse('farmer_dashboard')
+    if role == 'vendor':
+        return reverse('vendor_dashboard')
+    return reverse('user_dashboard')
+
+
+def _notification_link_for_user(request, link, notification_type='', title='', message=''):
+    """Normalize notification links and always return a contextual destination."""
+    fallback_link = _notification_fallback_link(request, notification_type, title, message)
     if not link or not link.strip():
-        return link or ''
+        return fallback_link
     link = link.strip()
+    # Security: reject dangerous pseudo URLs.
+    if link.lower().startswith('javascript:') or link.lower().startswith('data:'):
+        return fallback_link
     # Rewrite old generic /dashboard/?section=... to role-specific dashboard so redirect lands in the right place
     if link.startswith('/dashboard/') or (link.startswith('/dashboard') and '?' in link):
         qs = link.split('?', 1)[-1] if '?' in link else ''
@@ -5912,10 +5986,15 @@ def _notification_link_for_user(request, link):
             return reverse('vendor_dashboard') + ('?' + qs if qs else '')
         if request.user.role == 'admin':
             return reverse('admin_dashboard') + ('?' + qs if qs else '')
+    # External links: allow only HTTPS to keep navigation secure.
+    if link.startswith('http://'):
+        return fallback_link
+    if link.startswith('https://'):
+        return link
     # Ensure internal paths start with / so frontend can navigate from any page
     if link and not link.startswith('/') and not link.startswith('http'):
         return '/' + link.lstrip('?')
-    return link
+    return link or fallback_link
 
 
 # ---------- Notifications API (for bell dropdown on all user dashboards) ----------
@@ -5934,7 +6013,13 @@ def api_notifications_list(request):
     unread_count = unread_qs.count()
     items = []
     for n in qs:
-        link = _notification_link_for_user(request, n.link)
+        link = _notification_link_for_user(
+            request,
+            n.link,
+            n.notification_type,
+            n.title,
+            n.message,
+        )
         items.append({
             'id': n.id,
             'title': n.title,

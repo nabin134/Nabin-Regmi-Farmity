@@ -12,6 +12,7 @@ from html import escape
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.mail import EmailMultiAlternatives
+from django.urls import reverse
 
 from .models import UserNotification
 
@@ -52,6 +53,78 @@ RED_EVENT_TYPES = {
     "appointment_rejected",
     "appointment_cancelled",
 }
+
+
+def _default_link_for_notification(user, notification_type: str, title: str, message: str) -> str:
+    """Provide a consistent fallback link when caller does not pass one."""
+    role = (getattr(user, "role", "") or "").strip().lower()
+    ntype = (notification_type or UserNotification.TYPE_INFO).strip().lower()
+    text = f"{title or ''} {message or ''}".lower()
+
+    if ntype == UserNotification.TYPE_ORDER:
+        if role == "farmer":
+            return reverse("farmer_dashboard") + "?section=orders"
+        if role == "vendor":
+            return reverse("vendor_dashboard") + "?section=orders"
+        if role == "admin":
+            return reverse("admin_marketplace_oversight")
+        return reverse("user_dashboard") + "?section=orders"
+
+    if ntype == UserNotification.TYPE_KYC:
+        if role == "admin":
+            return reverse("admin_kyc_management")
+        if role in {"farmer", "vendor", "agricultural_expert"}:
+            return reverse("kyc")
+        return reverse("profile")
+
+    if ntype == UserNotification.TYPE_APPOINTMENT:
+        if role == "agricultural_expert":
+            return reverse("expert_dashboard") + "?section=appointments"
+        if role == "farmer":
+            return reverse("farmer_dashboard") + "?section=appointments"
+        return reverse("appointment_request")
+
+    if ntype == UserNotification.TYPE_SUPPORT:
+        if role == "admin":
+            return reverse("admin_support_desk")
+        return reverse("support_hub")
+
+    if ntype == UserNotification.TYPE_CHAT:
+        if role == "agricultural_expert":
+            return reverse("expert_dashboard") + "?section=chat"
+        return reverse("chat_threads")
+
+    # TYPE_INFO and unknowns: infer likely section from content for better context.
+    if "profile" in text:
+        return reverse("profile")
+    if "booking" in text or "appointment" in text:
+        if role == "agricultural_expert":
+            return reverse("expert_dashboard") + "?section=appointments"
+        if role == "farmer":
+            return reverse("farmer_dashboard") + "?section=appointments"
+        return reverse("appointment_request")
+    if "order" in text or "payment" in text or "payout" in text:
+        if role == "farmer":
+            return reverse("farmer_dashboard") + "?section=orders"
+        if role == "vendor":
+            return reverse("vendor_dashboard") + "?section=orders"
+        if role == "admin":
+            return reverse("admin_marketplace_oversight")
+        return reverse("user_dashboard") + "?section=orders"
+    if "kyc" in text or "verification" in text:
+        if role == "admin":
+            return reverse("admin_kyc_management")
+        if role in {"farmer", "vendor", "agricultural_expert"}:
+            return reverse("kyc")
+    if role == "admin":
+        return reverse("admin_dashboard")
+    if role == "agricultural_expert":
+        return reverse("expert_dashboard")
+    if role == "farmer":
+        return reverse("farmer_dashboard")
+    if role == "vendor":
+        return reverse("vendor_dashboard")
+    return reverse("user_dashboard")
 
 
 def get_admin_email_recipients() -> list[str]:
@@ -263,11 +336,18 @@ def create_notification(
     if not user or not title:
         return None
 
+    resolved_link = (link or "").strip() or _default_link_for_notification(
+        user,
+        notification_type or UserNotification.TYPE_INFO,
+        title or "",
+        message or "",
+    )
+
     notification = UserNotification.objects.create(
         user=user,
         title=title,
         message=message or "",
-        link=link or "",
+        link=resolved_link,
         notification_type=notification_type or UserNotification.TYPE_INFO,
     )
 
@@ -277,7 +357,7 @@ def create_notification(
             user=user,
             title=title,
             message=message or "",
-            link=link or "",
+            link=resolved_link,
             notification_type=notification.notification_type,
         )
     except Exception:
