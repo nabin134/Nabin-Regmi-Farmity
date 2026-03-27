@@ -29,6 +29,9 @@ class SignupSerializer(serializers.ModelSerializer):
         value = value.strip().lower()
         if not EMAIL_REGEX.match(value):
             raise serializers.ValidationError("Please enter a valid email address.")
+        domain = value.split('@')[-1].lower() if '@' in value else ''
+        if domain not in ('gmail.com', 'yahoo.com'):
+            raise serializers.ValidationError("Only Gmail.com or Yahoo.com email addresses are allowed.")
         if User.objects.filter(email__iexact=value).exists():
             raise serializers.ValidationError(
                 "This email is already registered. Please sign in or use a different email to create an account."
@@ -131,8 +134,8 @@ class SignupSerializer(serializers.ModelSerializer):
             password=validated_data['password'],
             role=role,
             phone=phone,
-            is_active=True,
-            email_verified=True,
+            is_active=False,
+            email_verified=False,
         )
 
         # Create per-role profile data

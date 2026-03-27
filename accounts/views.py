@@ -233,9 +233,25 @@ class SignupView(APIView):
                 print("Signup validation successful")
                 user = serializer.save()
                 print(f"User created: {user.email} (ID: {user.id})")
-                # Auto-activate: log user in and redirect to KYC (for farmer/vendor/expert) or dashboard (buyer)
-                login(request, user)
-                redirect_url = _redirect_to_role_home(user)  # KYC page or role dashboard
+                # Send OTP and require email verification before KYC/dashboard.
+                otp = OTP.generate_otp(user, expiry_minutes=30, purpose=OTP.PURPOSE_EMAIL_VERIFY)
+                try:
+                    send_mail(
+                        subject='Verify your email - Farmity',
+                        message=(
+                            f'Your Farmity verification code is: {otp.otp_code}\n\n'
+                            f'This code will expire in 30 minutes.\n\n'
+                            f'If you did not create this account, please ignore this email.'
+                        ),
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[user.email],
+                        fail_silently=False,
+                    )
+                except Exception as e:
+                    # Keep consistent signup UX even if SMTP fails in dev.
+                    print(f"Error sending signup email verification OTP: {str(e)}")
+
+                redirect_url = reverse('verify_email') + f'?email={user.email}'
 
                 # Welcome email (user + admin copy).
                 # Signup currently creates no in-app notification, so we send directly here.
@@ -276,7 +292,7 @@ class SignupView(APIView):
                     )
 
                 response_data = {
-                    "message": "Account created successfully. Redirecting...",
+                    "message": "Account created successfully. We sent a verification code (OTP) to your email.",
                     "email": user.email,
                     "redirect_url": redirect_url,
                 }
@@ -365,8 +381,12 @@ class VerifyEmailView(APIView):
             user.is_active = True
             user.save(update_fields=['email_verified', 'is_active'])
 
+            # Log the user in and send them to KYC (or role home if KYC not required)
+            login(request, user)
+            redirect_url = reverse('kyc') if _user_requires_kyc(user) else _redirect_to_role_home(user)
+
             return Response(
-                {"message": "Email verified successfully. You can now log in.", "email": user.email},
+                {"message": "Email verified successfully.", "email": user.email, "redirect_url": redirect_url},
                 status=status.HTTP_200_OK,
             )
         except Exception as e:
@@ -1695,6 +1715,9 @@ def dashboard(request):
 
 @login_required
 def kyc_page(request):
+    if not getattr(request.user, 'email_verified', False):
+        messages.error(request, 'Please verify your email (OTP) before continuing to KYC.')
+        return redirect(reverse('verify_email') + f'?email={request.user.email}')
     if not _user_requires_kyc(request.user):
         return _redirect_to_role_home_response(request.user)
     if request.session.pop('show_login_success', None):

@@ -287,6 +287,16 @@ async function handleRegister(e) {
         showTempMessage(messageDiv, '', '');
     }
 
+    // Enforce allowed domains early (backend also enforces).
+    const emailParts = (email || '').toLowerCase().split('@');
+    const domain = emailParts.length === 2 ? emailParts[1] : '';
+    if (!domain || (domain !== 'gmail.com' && domain !== 'yahoo.com')) {
+        if (messageDiv) {
+            showTempMessage(messageDiv, 'Only Gmail.com or Yahoo.com email addresses are allowed.', 'error', 3000);
+        }
+        return;
+    }
+
     if (password !== confirmPassword) {
         if (messageDiv) {
             showTempMessage(messageDiv, 'Passwords do not match!', 'error', 3000);
@@ -309,6 +319,7 @@ async function handleRegister(e) {
         const requestData = {
             email,
             password,
+            confirmPassword,
             role,
             fullName: fullNameInput ? fullNameInput.value.trim() : '',
             phone: phoneInput ? phoneInput.value.trim() : '',

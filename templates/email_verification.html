@@ -188,9 +188,9 @@
                     });
                     var data = await res.json().catch(function(){ return {}; });
                     if (res.ok) {
-                        showMessage('Email verified! Redirecting to login…', 'success', 3000);
+                        showMessage('Email verified! Redirecting…', 'success', 3000);
                         setTimeout(function() {
-                            window.location.href = '/login/?email_verified=true';
+                            window.location.href = (data && data.redirect_url) ? data.redirect_url : '/kyc/';
                         }, 900);
                     } else {
                         showMessage((data && (data.error || (data.details && JSON.stringify(data.details)))) || 'Verification failed.', 'error', 3000);
