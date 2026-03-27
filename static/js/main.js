@@ -100,9 +100,208 @@ function showTempMessage(messageDiv, text, type, ms = 3000) {
     }
 }
 
+function ensureLogoutModal() {
+    if (document.getElementById('farmityLogoutModalOverlay')) return;
+
+    const style = document.createElement('style');
+    style.id = 'farmityLogoutModalStyles';
+    style.textContent = `
+        :root{
+            --logout-modal-bg: rgba(15, 23, 42, 0.55);
+            --logout-card: #ffffff;
+            --logout-text: #0f172a;
+            --logout-muted: #475569;
+            --logout-border: rgba(15, 23, 42, 0.10);
+            --logout-shadow: 0 25px 60px rgba(2, 6, 23, 0.25);
+            --logout-primary: #15803d;
+            --logout-primary-dark: #166534;
+            --logout-danger: #dc2626;
+            --logout-danger-dark: #b91c1c;
+        }
+        #farmityLogoutModalOverlay{
+            position: fixed;
+            inset: 0;
+            background: var(--logout-modal-bg);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            z-index: 9999;
+            backdrop-filter: blur(6px);
+        }
+        #farmityLogoutModalOverlay.show{ display:flex; }
+        .farmity-logout-card{
+            width: 100%;
+            max-width: 460px;
+            background: var(--logout-card);
+            border: 1px solid var(--logout-border);
+            border-radius: 16px;
+            box-shadow: var(--logout-shadow);
+            overflow: hidden;
+            transform: translateY(8px);
+            opacity: 0;
+            transition: transform 160ms ease, opacity 160ms ease;
+            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+        }
+        #farmityLogoutModalOverlay.show .farmity-logout-card{
+            transform: translateY(0);
+            opacity: 1;
+        }
+        .farmity-logout-head{
+            display:flex;
+            gap: 12px;
+            align-items: center;
+            padding: 18px 18px 12px;
+        }
+        .farmity-logout-icon{
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            display:flex;
+            align-items:center;
+            justify-content:center;
+            background: rgba(220, 38, 38, 0.10);
+            color: var(--logout-danger);
+            flex: 0 0 44px;
+        }
+        .farmity-logout-title{
+            margin: 0;
+            font-size: 1.05rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            color: var(--logout-text);
+        }
+        .farmity-logout-body{
+            padding: 0 18px 16px;
+        }
+        .farmity-logout-desc{
+            margin: 0;
+            color: var(--logout-muted);
+            line-height: 1.55;
+            font-size: 0.92rem;
+        }
+        .farmity-logout-actions{
+            display:flex;
+            gap: 10px;
+            justify-content: flex-end;
+            padding: 14px 18px 18px;
+            background: rgba(2, 6, 23, 0.02);
+            border-top: 1px solid rgba(15, 23, 42, 0.06);
+        }
+        .farmity-logout-btn{
+            appearance: none;
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            background: #fff;
+            color: var(--logout-text);
+            border-radius: 999px;
+            padding: 10px 14px;
+            font-weight: 800;
+            font-size: 0.92rem;
+            cursor: pointer;
+            transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, border-color 120ms ease;
+            user-select: none;
+        }
+        .farmity-logout-btn:active{ transform: translateY(1px); }
+        .farmity-logout-btn.cancel:hover{
+            background: rgba(2, 6, 23, 0.04);
+        }
+        .farmity-logout-btn.confirm{
+            border-color: rgba(220, 38, 38, 0.25);
+            background: linear-gradient(135deg, var(--logout-danger) 0%, var(--logout-danger-dark) 100%);
+            color: #fff;
+            box-shadow: 0 10px 22px rgba(220, 38, 38, 0.25);
+        }
+        .farmity-logout-btn.confirm:hover{
+            box-shadow: 0 12px 26px rgba(220, 38, 38, 0.30);
+        }
+        @media (max-width: 420px){
+            .farmity-logout-actions{ flex-direction: column-reverse; }
+            .farmity-logout-btn{ width: 100%; justify-content: center; }
+        }
+    `;
+    document.head.appendChild(style);
+
+    const overlay = document.createElement('div');
+    overlay.id = 'farmityLogoutModalOverlay';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.setAttribute('aria-hidden', 'true');
+    overlay.innerHTML = `
+        <div class="farmity-logout-card" role="document" tabindex="-1">
+            <div class="farmity-logout-head">
+                <div class="farmity-logout-icon" aria-hidden="true">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+                        <path d="M12 9v4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
+                        <path d="M12 17h.01" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>
+                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div>
+                    <h3 class="farmity-logout-title">Are you sure you want to log out?</h3>
+                </div>
+            </div>
+            <div class="farmity-logout-body">
+                <p class="farmity-logout-desc">You will need to sign in again to access your dashboard and account features.</p>
+            </div>
+            <div class="farmity-logout-actions">
+                <button type="button" class="farmity-logout-btn cancel" data-action="cancel">Cancel</button>
+                <button type="button" class="farmity-logout-btn confirm" data-action="confirm">Confirm Logout</button>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(overlay);
+}
+
+function showLogoutConfirmation() {
+    ensureLogoutModal();
+    const overlay = document.getElementById('farmityLogoutModalOverlay');
+    const card = overlay ? overlay.querySelector('.farmity-logout-card') : null;
+    const btnConfirm = overlay ? overlay.querySelector('[data-action="confirm"]') : null;
+    const btnCancel = overlay ? overlay.querySelector('[data-action="cancel"]') : null;
+
+    if (!overlay || !card || !btnConfirm || !btnCancel) {
+        return Promise.resolve(window.confirm('Are you sure you want to log out?'));
+    }
+
+    return new Promise((resolve) => {
+        let done = false;
+        const finish = (val) => {
+            if (done) return;
+            done = true;
+            overlay.classList.remove('show');
+            overlay.setAttribute('aria-hidden', 'true');
+            document.removeEventListener('keydown', onKeyDown, true);
+            overlay.removeEventListener('click', onOverlayClick, true);
+            btnConfirm.removeEventListener('click', onConfirm, true);
+            btnCancel.removeEventListener('click', onCancel, true);
+            resolve(val);
+        };
+
+        const onConfirm = (e) => { e.preventDefault(); finish(true); };
+        const onCancel = (e) => { e.preventDefault(); finish(false); };
+        const onOverlayClick = (e) => {
+            // Click outside the card = cancel
+            if (e.target === overlay) finish(false);
+        };
+        const onKeyDown = (e) => {
+            if (e.key === 'Escape') finish(false);
+            if (e.key === 'Enter') finish(true);
+        };
+
+        overlay.addEventListener('click', onOverlayClick, true);
+        btnConfirm.addEventListener('click', onConfirm, true);
+        btnCancel.addEventListener('click', onCancel, true);
+        document.addEventListener('keydown', onKeyDown, true);
+
+        overlay.classList.add('show');
+        overlay.setAttribute('aria-hidden', 'false');
+        setTimeout(() => card.focus(), 0);
+    });
+}
+
 // Logout Function
-function logout() {
-    const ok = window.confirm('Are you sure you want to log out?');
+async function logout() {
+    const ok = await showLogoutConfirmation();
     if (!ok) return;
     localStorage.removeItem('user');
     localStorage.removeItem('isLoggedIn');
@@ -110,12 +309,8 @@ function logout() {
     window.location.href = '/logout/';
 }
 
-function shouldProceedLogout() {
-    return window.confirm('Are you sure you want to log out?');
-}
-
 // Global logout safeguard: works for user + admin logout links/forms.
-document.addEventListener('click', function(e) {
+document.addEventListener('click', async function(e) {
     const link = e.target && e.target.closest ? e.target.closest('a') : null;
     if (!link) return;
     const href = (link.getAttribute('href') || '').trim();
@@ -125,23 +320,28 @@ document.addEventListener('click', function(e) {
     const isLogoutLink = href === '/logout/' || href === 'logout/' || href.endsWith('/logout/');
     if (!isLogoutLink) return;
 
-    if (!shouldProceedLogout()) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
+    e.preventDefault();
+    e.stopPropagation();
+
+    const ok = await showLogoutConfirmation();
+    if (!ok) return;
+    window.location.href = href;
 }, true);
 
-document.addEventListener('submit', function(e) {
+document.addEventListener('submit', async function(e) {
     const form = e.target;
     if (!form || !form.getAttribute) return;
     const action = (form.getAttribute('action') || '').trim();
     if (!action) return;
     const isLogoutForm = action === '/logout/' || action === 'logout/' || action.endsWith('/logout/');
     if (!isLogoutForm) return;
-    if (!shouldProceedLogout()) {
-        e.preventDefault();
-        e.stopPropagation();
-    }
+
+    e.preventDefault();
+    e.stopPropagation();
+
+    const ok = await showLogoutConfirmation();
+    if (!ok) return;
+    form.submit();
 }, true);
 
 // Update Header based on Auth Status
