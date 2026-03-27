@@ -102,10 +102,47 @@ function showTempMessage(messageDiv, text, type, ms = 3000) {
 
 // Logout Function
 function logout() {
+    const ok = window.confirm('Are you sure you want to log out?');
+    if (!ok) return;
     localStorage.removeItem('user');
     localStorage.removeItem('isLoggedIn');
-    window.location.href = '/'; // Redirect to landing page
+    // Use backend logout so Django session is cleared too.
+    window.location.href = '/logout/';
 }
+
+function shouldProceedLogout() {
+    return window.confirm('Are you sure you want to log out?');
+}
+
+// Global logout safeguard: works for user + admin logout links/forms.
+document.addEventListener('click', function(e) {
+    const link = e.target && e.target.closest ? e.target.closest('a') : null;
+    if (!link) return;
+    const href = (link.getAttribute('href') || '').trim();
+    if (!href) return;
+
+    // Match Django logout URL regardless of absolute/relative form.
+    const isLogoutLink = href === '/logout/' || href === 'logout/' || href.endsWith('/logout/');
+    if (!isLogoutLink) return;
+
+    if (!shouldProceedLogout()) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+}, true);
+
+document.addEventListener('submit', function(e) {
+    const form = e.target;
+    if (!form || !form.getAttribute) return;
+    const action = (form.getAttribute('action') || '').trim();
+    if (!action) return;
+    const isLogoutForm = action === '/logout/' || action === 'logout/' || action.endsWith('/logout/');
+    if (!isLogoutForm) return;
+    if (!shouldProceedLogout()) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+}, true);
 
 // Update Header based on Auth Status
 function updateAuthHeader() {
