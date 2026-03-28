@@ -250,7 +250,7 @@ function ensureLogoutModal() {
                 </div>
             </div>
             <div class="farmity-logout-body">
-                <p class="farmity-logout-desc">You will need to sign in again to access your dashboard and account features.</p>
+                <p class="farmity-logout-desc">You will need to sign in again to access your dashboard, admin tools, and account features.</p>
             </div>
             <div class="farmity-logout-actions">
                 <button type="button" class="farmity-logout-btn cancel" data-action="cancel">Cancel</button>
@@ -702,6 +702,27 @@ function validateSignupFormFrontend(form) {
 
     const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
 
+    var genderEl = form.querySelector('input[name="gender"]:checked');
+    /* Role may be pre-selected from the role page; if nothing else was filled in, one clear message is enough. */
+    var hasAnyUserInput = !!(
+        email ||
+        fullName ||
+        location ||
+        digits.length ||
+        genderEl ||
+        password ||
+        confirmPassword ||
+        (termsInput && termsInput.checked)
+    );
+    if (!hasAnyUserInput) {
+        setSignupFieldError(
+            form,
+            'non_field_errors',
+            'Please fill out all required fields before continuing.'
+        );
+        return false;
+    }
+
     let ok = true;
 
     if (!email) {
@@ -731,7 +752,6 @@ function validateSignupFormFrontend(form) {
         ok = false;
     }
 
-    var genderEl = form.querySelector('input[name="gender"]:checked');
     if (!genderEl) {
         setSignupFieldError(form, 'gender', 'Gender is required.');
         ok = false;
