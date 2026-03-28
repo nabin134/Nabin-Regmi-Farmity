@@ -624,6 +624,25 @@
             display: block;
         }
 
+        /* Inline validation under each field */
+        .register-field-error {
+            display: none;
+            margin: 0.4rem 0 0 0;
+            padding: 0;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #b91c1c;
+            line-height: 1.4;
+        }
+        .register-field-error.show {
+            display: block;
+        }
+        #registerForm .form-control.field-invalid,
+        #registerForm select.form-control.field-invalid {
+            border-color: #f87171 !important;
+            box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.15);
+        }
+
         /* Role Selection Dropdown - visibility controlled by inline style when role is pre-selected */
         #roleSelectionGroup.show-dropdown {
             display: block;
@@ -776,6 +795,7 @@
                 <input type="hidden" id="role" name="role" value="{% if role and role != 'None' and role != 'null' and role != '' %}{{ role }}{% else %}{% endif %}">
 
                 <div id="message" class="message"></div>
+                <p class="register-field-error" id="registerFieldError-general" role="alert" aria-live="polite"></p>
 
                 <div class="form-group">
                     <label for="fullName">Full Name <span style="color: #dc3545;">*</span></label>
@@ -783,6 +803,7 @@
                         <i class="fas fa-user input-icon name-icon"></i>
                         <input type="text" id="fullName" name="fullName" class="form-control" placeholder="Enter your full name" required>
                     </div>
+                    <p class="register-field-error" id="registerFieldError-fullName" role="alert" aria-live="polite"></p>
                 </div>
 
                 <div class="form-group">
@@ -791,6 +812,7 @@
                         <i class="fas fa-envelope input-icon email-icon"></i>
                         <input type="email" id="email" name="email" class="form-control" placeholder="your@email.com" required>
                     </div>
+                    <p class="register-field-error" id="registerFieldError-email" role="alert" aria-live="polite"></p>
                 </div>
 
                 <div class="form-group">
@@ -806,6 +828,7 @@
                             <input type="tel" id="phone" name="phone" class="form-control" placeholder="Phone number" required>
                         </div>
                     </div>
+                    <p class="register-field-error" id="registerFieldError-phone" role="alert" aria-live="polite"></p>
                 </div>
 
                 <div class="form-group">
@@ -814,6 +837,7 @@
                         <i class="fas fa-map-marker-alt input-icon location-icon"></i>
                         <input type="text" id="location" name="location" class="form-control" placeholder="City, State" required>
                     </div>
+                    <p class="register-field-error" id="registerFieldError-location" role="alert" aria-live="polite"></p>
                 </div>
 
                 <!-- Role Selection - Hidden when role from role page is pre-selected (CSS .signup-role-selected also forces hide) -->
@@ -829,6 +853,7 @@
                             <option value="agricultural_expert" {% if role == 'agricultural_expert' %}selected{% endif %}>Agricultural Expert</option>
                         </select>
                     </div>
+                    <p class="register-field-error" id="registerFieldError-role" role="alert" aria-live="polite"></p>
                 </div>
 
                 <!-- Role Badge - Shown when role is pre-selected from role page (CSS .signup-role-selected also forces show) -->
@@ -854,6 +879,7 @@
                         <i class="fas fa-lock input-icon password-icon"></i>
                         <input type="password" id="password" name="password" class="form-control" placeholder="Create a password (min. 8 characters)" required minlength="8">
                     </div>
+                    <p class="register-field-error" id="registerFieldError-password" role="alert" aria-live="polite"></p>
                 </div>
 
                 <div class="form-group">
@@ -862,6 +888,7 @@
                         <i class="fas fa-lock input-icon password-icon"></i>
                         <input type="password" id="confirmPassword" name="confirmPassword" class="form-control" placeholder="Confirm your password" required minlength="8">
                     </div>
+                    <p class="register-field-error" id="registerFieldError-confirmPassword" role="alert" aria-live="polite"></p>
                 </div>
 
                 <div class="checkbox-wrapper">

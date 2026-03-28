@@ -497,6 +497,117 @@ async function handleLogin(e) {
     }
 }
 
+// ----- Signup page: inline field errors (below each input) -----
+function firstSignupErrorDetail(val) {
+    if (val == null || val === '') return '';
+    if (typeof val === 'string') return val;
+    if (Array.isArray(val)) {
+        const first = val[0];
+        if (first && typeof first === 'object') {
+            if (typeof first.string === 'string') return first.string;
+            if (typeof first.message === 'string') return first.message;
+        }
+        return String(first);
+    }
+    if (typeof val === 'object' && val.string) return val.string;
+    return String(val);
+}
+
+function clearSignupFieldErrors(form) {
+    if (!form) return;
+    form.querySelectorAll('.register-field-error').forEach(function (el) {
+        el.textContent = '';
+        el.classList.remove('show');
+    });
+    form.querySelectorAll('.field-invalid').forEach(function (el) {
+        el.classList.remove('field-invalid');
+    });
+    const msg = document.getElementById('message');
+    if (msg) {
+        msg.textContent = '';
+        msg.className = 'message';
+    }
+}
+
+function setSignupFieldError(form, apiKey, message) {
+    if (!form || !message) return;
+    var idSuffix = 'general';
+    if (apiKey && apiKey !== 'non_field_errors') {
+        idSuffix = apiKey === 'role' ? 'role' : apiKey;
+    }
+    var errEl = form.querySelector('#registerFieldError-' + idSuffix) || form.querySelector('#registerFieldError-general');
+    if (errEl) {
+        errEl.textContent = message;
+        errEl.classList.add('show');
+    }
+    if (apiKey === 'non_field_errors' || !apiKey) return;
+    var inputSel = {
+        fullName: '#fullName',
+        email: '#email',
+        phone: '#phone',
+        location: '#location',
+        role: '#userRole',
+        password: '#password',
+        confirmPassword: '#confirmPassword',
+    };
+    var sel = inputSel[apiKey];
+    if (sel) {
+        var inp = form.querySelector(sel);
+        if (inp) inp.classList.add('field-invalid');
+    }
+}
+
+function applySignupApiErrors(form, details) {
+    if (!details || typeof details !== 'object') return;
+    const known = ['fullName', 'email', 'phone', 'location', 'role', 'password', 'confirmPassword', 'non_field_errors'];
+    Object.keys(details).forEach(function (key) {
+        const msg = firstSignupErrorDetail(details[key]);
+        if (!msg) return;
+        if (known.indexOf(key) !== -1) {
+            setSignupFieldError(form, key === 'role' ? 'role' : key, msg);
+        } else {
+            setSignupFieldError(form, 'non_field_errors', msg);
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    var reg = document.getElementById('registerForm');
+    if (!reg) return;
+    function clearSignupFieldForInput(inp) {
+        var id = inp.id;
+        var name = inp.name || '';
+        var suffix = null;
+        if (id === 'fullName' || name === 'fullName') suffix = 'fullName';
+        else if (id === 'email' || name === 'email') suffix = 'email';
+        else if (id === 'phone' || name === 'phone') suffix = 'phone';
+        else if (id === 'location' || name === 'location') suffix = 'location';
+        else if (id === 'userRole' || name === 'userRole') suffix = 'role';
+        else if (id === 'password' || name === 'password') suffix = 'password';
+        else if (id === 'confirmPassword' || name === 'confirmPassword') suffix = 'confirmPassword';
+        if (suffix) {
+            var err = reg.querySelector('#registerFieldError-' + suffix);
+            if (err) {
+                err.textContent = '';
+                err.classList.remove('show');
+            }
+        }
+        inp.classList.remove('field-invalid');
+        var g = reg.querySelector('#registerFieldError-general');
+        if (g) {
+            g.textContent = '';
+            g.classList.remove('show');
+        }
+    }
+    reg.querySelectorAll('input, select').forEach(function (inp) {
+        ['input', 'change'].forEach(function (ev) {
+            inp.addEventListener(ev, function () {
+                clearSignupFieldForInput(inp);
+            });
+        });
+    });
+});
+
 // Handle Register
 async function handleRegister(e) {
     e.preventDefault();
@@ -519,25 +630,20 @@ async function handleRegister(e) {
     if (roleHidden && roleHidden.value) role = roleHidden.value;
     else if (roleSelect && roleSelect.value) role = roleSelect.value;
     
-    const messageDiv = document.getElementById('message');
-    if (messageDiv) {
-        showTempMessage(messageDiv, '', '');
-    }
+    clearSignupFieldErrors(form);
 
     // Enforce allowed domains early (backend also enforces).
     const emailParts = (email || '').toLowerCase().split('@');
     const domain = emailParts.length === 2 ? emailParts[1] : '';
     if (!domain || (domain !== 'gmail.com' && domain !== 'yahoo.com')) {
-        if (messageDiv) {
-            showTempMessage(messageDiv, 'Only Gmail.com or Yahoo.com email addresses are allowed.', 'error', 3000);
-        }
+        setSignupFieldError(form, 'email', 'Only Gmail.com or Yahoo.com email addresses are allowed.');
         return;
     }
 
     if (password !== confirmPassword) {
-        if (messageDiv) {
-            showTempMessage(messageDiv, 'Passwords do not match!', 'error', 3000);
-        }
+        setSignupFieldError(form, 'confirmPassword', 'Passwords do not match.');
+        passwordInput.classList.add('field-invalid');
+        confirmPasswordInput.classList.add('field-invalid');
         return;
     }
 
@@ -578,13 +684,19 @@ async function handleRegister(e) {
             submitButton.textContent = originalButtonText;
         }
 
-        const data = await response.json();
+        let data = {};
+        try {
+            data = await response.json();
+        } catch (parseErr) {
+            data = {};
+        }
 
         if (response.ok) {
             // Clear any existing user data (don't auto-login)
             localStorage.removeItem('user');
             localStorage.removeItem('isLoggedIn');
 
+            const messageDiv = document.getElementById('message');
             if (messageDiv) {
                 showTempMessage(messageDiv, data.message || 'Account created successfully! Redirecting...', 'success', 3000);
             }
@@ -594,40 +706,18 @@ async function handleRegister(e) {
                 window.location.href = (data && data.redirect_url) ? data.redirect_url : '/login/?registered=true';
             }, 1500);
         } else {
-            let errorMsg = data.error || 'Registration failed.';
             if (data.details) {
-                if (data.details.email && Array.isArray(data.details.email)) {
-                    errorMsg = data.details.email[0];
-                } else if (typeof data.details.email === 'string') {
-                    errorMsg = data.details.email;
-                } else if (data.details.email) {
-                    errorMsg = data.details.email;
-                } else if (data.details.phone && Array.isArray(data.details.phone)) {
-                    errorMsg = data.details.phone[0];
-                } else if (data.details.fullName && Array.isArray(data.details.fullName)) {
-                    errorMsg = data.details.fullName[0];
-                } else if (data.details.location && Array.isArray(data.details.location)) {
-                    errorMsg = data.details.location[0];
-                } else if (data.details.password && Array.isArray(data.details.password)) {
-                    errorMsg = data.details.password[0];
-                } else if (data.details.confirmPassword && Array.isArray(data.details.confirmPassword)) {
-                    errorMsg = data.details.confirmPassword[0];
-                } else {
-                    const firstKey = Object.keys(data.details)[0];
-                    const firstVal = firstKey ? data.details[firstKey] : null;
-                    if (firstVal && Array.isArray(firstVal)) errorMsg = firstVal[0];
-                    else if (firstVal && typeof firstVal === 'string') errorMsg = firstVal;
-                    else errorMsg = JSON.stringify(data.details);
-                }
+                applySignupApiErrors(form, data.details);
             }
-            if (messageDiv) {
-                showTempMessage(messageDiv, errorMsg, 'error', 3000);
+            var detailMsg = data.detail != null ? firstSignupErrorDetail(data.detail) : '';
+            if (detailMsg && !form.querySelector('.register-field-error.show')) {
+                setSignupFieldError(form, 'non_field_errors', detailMsg);
+            } else if (!form.querySelector('.register-field-error.show') && data.error) {
+                setSignupFieldError(form, 'non_field_errors', data.error);
             }
         }
     } catch (error) {
         console.error('Registration error:', error);
-        if (messageDiv) {
-            showTempMessage(messageDiv, 'Network error. Please check your connection.', 'error', 3000);
-        }
+        setSignupFieldError(form, 'non_field_errors', 'Network error. Please check your connection.');
     }
 }

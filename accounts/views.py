@@ -382,7 +382,19 @@ class VerifyEmailView(APIView):
             user.save(update_fields=['email_verified', 'is_active'])
 
             # Log the user in and send them to KYC (or role home if KYC not required)
-            login(request, user)
+            # When multiple auth backends are configured (e.g. ModelBackend + allauth),
+            # Django requires an explicit backend to log a user in.
+            backend_path = None
+            try:
+                backend_path = getattr(user, "backend", None)
+            except Exception:
+                backend_path = None
+            if not backend_path:
+                backend_path = (getattr(settings, "AUTHENTICATION_BACKENDS", None) or [None])[0]
+            if backend_path:
+                login(request, user, backend=backend_path)
+            else:
+                login(request, user)
             redirect_url = reverse('kyc') if _user_requires_kyc(user) else _redirect_to_role_home(user)
 
             return Response(
