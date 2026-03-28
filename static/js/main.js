@@ -66,6 +66,20 @@ document.addEventListener('DOMContentLoaded', function() {
     wirePasswordToggle(document.getElementById('togglePassword'), 'password');
     wirePasswordToggle(document.getElementById('toggleConfirmPassword'), 'confirmPassword');
 
+    // Login page: clear inline errors when user edits a field
+    if (window.location.pathname.includes('/login/')) {
+        var loginForm = document.getElementById('loginForm');
+        if (loginForm) {
+            ['#email', '#password', '#otp'].forEach(function (sel) {
+                var el = loginForm.querySelector(sel);
+                if (!el) return;
+                el.addEventListener('input', function () {
+                    clearLoginFieldErrors();
+                });
+            });
+        }
+    }
+
     // Password confirmation validation
     const confirmPassword = document.getElementById('confirmPassword');
     const password = document.getElementById('password');
@@ -517,6 +531,10 @@ function clearSignupFieldErrors(form) {
     form.querySelectorAll('.field-invalid').forEach(function (el) {
         el.classList.remove('field-invalid');
     });
+    var phoneWrap = form.querySelector('.phone-wrapper');
+    if (phoneWrap) phoneWrap.classList.remove('has-field-error');
+    var termsWrap = form.querySelector('#termsCheckboxWrapper');
+    if (termsWrap) termsWrap.classList.remove('field-invalid-terms');
     const msg = document.getElementById('message');
     if (msg) {
         msg.textContent = '';
@@ -545,16 +563,25 @@ function setSignupFieldError(form, apiKey, message) {
         password: '#password',
         confirmPassword: '#confirmPassword',
     };
+    if (apiKey === 'terms') {
+        var tw = form.querySelector('#termsCheckboxWrapper');
+        if (tw) tw.classList.add('field-invalid-terms');
+        return;
+    }
     var sel = inputSel[apiKey];
     if (sel) {
         var inp = form.querySelector(sel);
         if (inp) inp.classList.add('field-invalid');
     }
+    if (apiKey === 'phone') {
+        var pw = form.querySelector('.phone-wrapper');
+        if (pw) pw.classList.add('has-field-error');
+    }
 }
 
 function applySignupApiErrors(form, details) {
     if (!details || typeof details !== 'object') return;
-    const known = ['fullName', 'email', 'phone', 'location', 'role', 'password', 'confirmPassword', 'non_field_errors'];
+    const known = ['fullName', 'email', 'phone', 'location', 'role', 'password', 'confirmPassword', 'terms', 'non_field_errors'];
     Object.keys(details).forEach(function (key) {
         const msg = firstSignupErrorDetail(details[key]);
         if (!msg) return;
@@ -564,6 +591,40 @@ function applySignupApiErrors(form, details) {
             setSignupFieldError(form, 'non_field_errors', msg);
         }
     });
+}
+
+/** Login page (`login.html`): inline errors below fields, same pattern as signup. */
+function clearLoginFieldErrors() {
+    var form = document.getElementById('loginForm');
+    if (!form) return;
+    form.querySelectorAll('.login-field-error').forEach(function (el) {
+        el.textContent = '';
+        el.classList.remove('show');
+    });
+    form.querySelectorAll('#loginStep .form-control.field-invalid, #otpStep .form-control.field-invalid').forEach(function (el) {
+        el.classList.remove('field-invalid');
+    });
+}
+
+function setLoginFieldError(field, message) {
+    var form = document.getElementById('loginForm');
+    if (!form || !message) return;
+    var fid = field && field !== 'general' ? field : 'general';
+    var errEl = form.querySelector('#loginFieldError-' + fid) || form.querySelector('#loginFieldError-general');
+    if (errEl) {
+        errEl.textContent = message;
+        errEl.classList.add('show');
+    }
+    if (field === 'email') {
+        var em = form.querySelector('#email');
+        if (em) em.classList.add('field-invalid');
+    } else if (field === 'password') {
+        var pw = form.querySelector('#password');
+        if (pw) pw.classList.add('field-invalid');
+    } else if (field === 'otp') {
+        var ot = form.querySelector('#otp');
+        if (ot) ot.classList.add('field-invalid');
+    }
 }
 
 /** Signup page only: top banner for success / general errors (all driven by frontend). Stays visible at least 5s when timed. */
@@ -609,6 +670,7 @@ function initRegisterPageMessages() {
 
 /** Client-side checks aligned with SignupSerializer (length, phone digits, password rules). */
 function validateSignupFormFrontend(form) {
+    const emailInput = form.querySelector('#email');
     const fullNameInput = form.querySelector('#fullName');
     const locationInput = form.querySelector('#location');
     const phoneInput = form.querySelector('#phone');
@@ -616,7 +678,9 @@ function validateSignupFormFrontend(form) {
     const confirmPasswordInput = form.querySelector('#confirmPassword');
     const roleSelect = form.querySelector('#userRole');
     const roleHidden = form.querySelector('#role');
+    const termsInput = form.querySelector('#terms');
 
+    const email = emailInput ? emailInput.value.trim() : '';
     const fullName = fullNameInput ? fullNameInput.value.trim() : '';
     const location = locationInput ? locationInput.value.trim() : '';
     const phoneRaw = phoneInput ? phoneInput.value.trim() : '';
@@ -629,26 +693,48 @@ function validateSignupFormFrontend(form) {
     else if (roleSelect && roleSelect.value) role = String(roleSelect.value).trim();
     if (role === 'None' || role === 'null' || role === 'undefined') role = '';
 
+    const emailOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+
     let ok = true;
+
+    if (!email) {
+        setSignupFieldError(form, 'email', 'Email address is required.');
+        ok = false;
+    } else if (!emailOk) {
+        setSignupFieldError(form, 'email', 'Enter a valid email address.');
+        ok = false;
+    }
 
     if (!role) {
         setSignupFieldError(form, 'role', 'Please select your role.');
         ok = false;
     }
-    if (fullName.length < 2) {
+    if (!fullName) {
+        setSignupFieldError(form, 'fullName', 'Full name is required.');
+        ok = false;
+    } else if (fullName.length < 2) {
         setSignupFieldError(form, 'fullName', 'Full name must be at least 2 characters.');
         ok = false;
     }
-    if (location.length < 2) {
-        setSignupFieldError(form, 'location', 'Address/location must be at least 2 characters.');
+    if (!location) {
+        setSignupFieldError(form, 'location', 'Location is required.');
+        ok = false;
+    } else if (location.length < 2) {
+        setSignupFieldError(form, 'location', 'Location must be at least 2 characters.');
         ok = false;
     }
-    if (digits.length !== 10) {
+    if (!digits.length) {
+        setSignupFieldError(form, 'phone', 'Phone number is required.');
+        ok = false;
+    } else if (digits.length !== 10) {
         setSignupFieldError(form, 'phone', 'Phone number must be exactly 10 digits.');
         ok = false;
     }
 
-    if (password.length < 8) {
+    if (!password) {
+        setSignupFieldError(form, 'password', 'Password is required.');
+        ok = false;
+    } else if (password.length < 8) {
         setSignupFieldError(form, 'password', 'Password must be at least 8 characters long.');
         ok = false;
     } else if (!/[A-Z]/.test(password)) {
@@ -665,10 +751,18 @@ function validateSignupFormFrontend(form) {
         ok = false;
     }
 
-    if (password !== confirmPassword) {
+    if (!confirmPassword) {
+        setSignupFieldError(form, 'confirmPassword', 'Confirm password is required.');
+        ok = false;
+    } else if (password !== confirmPassword) {
         setSignupFieldError(form, 'confirmPassword', 'Passwords do not match.');
         if (passwordInput) passwordInput.classList.add('field-invalid');
         if (confirmPasswordInput) confirmPasswordInput.classList.add('field-invalid');
+        ok = false;
+    }
+
+    if (!termsInput || !termsInput.checked) {
+        setSignupFieldError(form, 'terms', 'You must agree to the Terms of Service and Privacy Policy.');
         ok = false;
     }
 
@@ -690,6 +784,8 @@ document.addEventListener('DOMContentLoaded', function () {
         else if (id === 'userRole' || name === 'userRole') suffix = 'role';
         else if (id === 'password' || name === 'password') suffix = 'password';
         else if (id === 'confirmPassword' || name === 'confirmPassword') suffix = 'confirmPassword';
+        else if (id === 'terms' || name === 'terms') suffix = 'terms';
+        else if (id === 'countryCode' || name === 'countryCode') suffix = 'phone';
         if (suffix) {
             var err = reg.querySelector('#registerFieldError-' + suffix);
             if (err) {
@@ -698,6 +794,14 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         }
         inp.classList.remove('field-invalid');
+        if (suffix === 'phone') {
+            var pw = reg.querySelector('.phone-wrapper');
+            if (pw) pw.classList.remove('has-field-error');
+        }
+        if (suffix === 'terms') {
+            var tw = reg.querySelector('#termsCheckboxWrapper');
+            if (tw) tw.classList.remove('field-invalid-terms');
+        }
         var g = reg.querySelector('#registerFieldError-general');
         if (g) {
             g.textContent = '';
@@ -711,6 +815,18 @@ document.addEventListener('DOMContentLoaded', function () {
             });
         });
     });
+    var termsCb = reg.querySelector('#terms');
+    if (termsCb) {
+        termsCb.addEventListener('change', function () {
+            var err = reg.querySelector('#registerFieldError-terms');
+            if (err) {
+                err.textContent = '';
+                err.classList.remove('show');
+            }
+            var tw = reg.querySelector('#termsCheckboxWrapper');
+            if (tw) tw.classList.remove('field-invalid-terms');
+        });
+    }
 });
 
 // Handle Register
@@ -737,15 +853,15 @@ async function handleRegister(e) {
     
     clearSignupFieldErrors(form);
 
-    // Enforce allowed domains early (backend also enforces).
-    const emailParts = (email || '').toLowerCase().split('@');
-    const domain = emailParts.length === 2 ? emailParts[1] : '';
-    if (!domain || (domain !== 'gmail.com' && domain !== 'yahoo.com')) {
-        setSignupFieldError(form, 'email', 'Only Gmail.com or Yahoo.com email addresses are allowed.');
+    if (!validateSignupFormFrontend(form)) {
         return;
     }
 
-    if (!validateSignupFormFrontend(form)) {
+    // Enforce allowed domains (backend also enforces).
+    const emailParts = (email || '').toLowerCase().split('@');
+    const domain = emailParts.length === 2 ? emailParts[1] : '';
+    if (domain !== 'gmail.com' && domain !== 'yahoo.com') {
+        setSignupFieldError(form, 'email', 'Only Gmail.com or Yahoo.com email addresses are allowed.');
         return;
     }
 

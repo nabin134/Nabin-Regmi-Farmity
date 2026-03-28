@@ -653,14 +653,14 @@
             display: block;
         }
 
-        /* Inline validation under each field */
+        /* Inline validation under each field (red border + light pink fill on inputs) */
         .register-field-error {
             display: none;
             margin: 0.4rem 0 0 0;
             padding: 0;
             font-size: 0.8125rem;
-            font-weight: 600;
-            color: #991b1b;
+            font-weight: 500;
+            color: #b91c1c;
             line-height: 1.4;
         }
         .register-field-error.show {
@@ -668,8 +668,18 @@
         }
         #registerForm .form-control.field-invalid,
         #registerForm select.form-control.field-invalid {
-            border-color: #f87171 !important;
-            box-shadow: 0 0 0 1px rgba(220, 38, 38, 0.15);
+            border: 1px solid #dc2626 !important;
+            background: rgba(254, 226, 226, 0.45) !important;
+            box-shadow: none !important;
+        }
+        #registerForm .phone-wrapper.has-field-error .form-control {
+            border: 1px solid #dc2626 !important;
+            background: rgba(254, 226, 226, 0.45) !important;
+            box-shadow: none !important;
+        }
+        #registerForm #termsCheckboxWrapper.field-invalid-terms {
+            border-color: #dc2626 !important;
+            background: rgba(254, 226, 226, 0.4) !important;
         }
 
         /* Role Selection Dropdown - visibility controlled by inline style when role is pre-selected */
@@ -808,7 +818,7 @@
                 {% endif %}
             </div>
 
-            <form id="registerForm">
+            <form id="registerForm" novalidate>
                 {% csrf_token %}
                 <input type="hidden" id="role" name="role" value="{% if role and role != 'None' and role != 'null' and role != '' %}{{ role }}{% else %}{% endif %}">
 
@@ -915,14 +925,17 @@
                     <p class="register-field-error" id="registerFieldError-confirmPassword" role="alert" aria-live="polite"></p>
                 </div>
 
-                <div class="checkbox-wrapper">
-                    <input type="checkbox" id="terms" name="terms" required>
-                    <label for="terms">
-                        <span class="custom-checkbox">
-                            <i class="fas fa-check"></i>
-                        </span>
-                        I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a>
-                    </label>
+                <div class="form-group" style="margin-bottom: 1.25rem;">
+                    <div class="checkbox-wrapper" id="termsCheckboxWrapper">
+                        <input type="checkbox" id="terms" name="terms">
+                        <label for="terms">
+                            <span class="custom-checkbox">
+                                <i class="fas fa-check"></i>
+                            </span>
+                            I agree to the <a href="#" target="_blank">Terms of Service</a> and <a href="#" target="_blank">Privacy Policy</a>
+                        </label>
+                    </div>
+                    <p class="register-field-error" id="registerFieldError-terms" role="alert" aria-live="polite"></p>
                 </div>
 
                 <button type="submit" class="btn-primary" id="submitBtn">Create Account</button>
@@ -1146,20 +1159,22 @@
                 confirmPassword.addEventListener('input', function() {
                     if (this.value && this.value !== password.value) {
                         this.setCustomValidity('Passwords do not match');
-                        this.style.borderColor = '#dc3545';
+                        this.classList.add('field-invalid');
                     } else {
                         this.setCustomValidity('');
-                        this.style.borderColor = '#e5e7eb';
+                        this.classList.remove('field-invalid');
                     }
                 });
 
                 password.addEventListener('input', function() {
                     if (confirmPassword.value && this.value !== confirmPassword.value) {
                         confirmPassword.setCustomValidity('Passwords do not match');
-                        confirmPassword.style.borderColor = '#dc3545';
+                        confirmPassword.classList.add('field-invalid');
+                        this.classList.add('field-invalid');
                     } else {
                         confirmPassword.setCustomValidity('');
-                        confirmPassword.style.borderColor = '#e5e7eb';
+                        confirmPassword.classList.remove('field-invalid');
+                        this.classList.remove('field-invalid');
                     }
                 });
             }

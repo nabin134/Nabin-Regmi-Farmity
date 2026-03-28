@@ -397,6 +397,25 @@
             display: block;
         }
 
+        /* Inline field errors (match signup: red border + light pink fill) */
+        .login-field-error {
+            display: none;
+            margin: 0.4rem 0 0 0;
+            padding: 0;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            color: #b91c1c;
+            line-height: 1.4;
+        }
+        .login-field-error.show {
+            display: block;
+        }
+        #loginForm .form-control.field-invalid {
+            border: 1px solid #dc2626 !important;
+            background: rgba(254, 226, 226, 0.45) !important;
+            box-shadow: none !important;
+        }
+
         @media (max-width: 968px) {
             .login-container {
                 grid-template-columns: 1fr;
@@ -497,9 +516,10 @@
             <script>(function(){ var el = document.querySelector('.login-page-messages.messages-auto-dismiss'); if (el) { var ms = parseInt(el.getAttribute('data-dismiss-ms')||'3000',10); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
             {% endif %}
 
-            <form id="loginForm">
+            <form id="loginForm" novalidate>
                 {% csrf_token %}
                 <div id="message" class="message"></div>
+                <p class="login-field-error" id="loginFieldError-general" role="alert" aria-live="polite"></p>
 
                 <!-- Step 1: Email and Password -->
                 <div id="loginStep" class="login-step">
@@ -507,19 +527,21 @@
                         <label for="email">Email Address</label>
                         <div class="input-wrapper">
                             <i class="fas fa-envelope input-icon email-icon"></i>
-                            <input type="email" id="email" name="email" class="form-control" placeholder="your@email.com" required>
+                            <input type="email" id="email" name="email" class="form-control" placeholder="your@email.com" autocomplete="email">
                         </div>
+                        <p class="login-field-error" id="loginFieldError-email" role="alert" aria-live="polite"></p>
                     </div>
 
                     <div class="form-group">
                         <label for="password">Password</label>
                         <div class="input-wrapper password-wrapper">
                             <i class="fas fa-lock input-icon password-icon"></i>
-                            <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" required>
+                            <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" autocomplete="current-password">
                             <span class="toggle-password" id="togglePassword">
                                 <i class="far fa-eye"></i>
                             </span>
                         </div>
+                        <p class="login-field-error" id="loginFieldError-password" role="alert" aria-live="polite"></p>
                     </div>
 
                     <div class="form-options">
@@ -552,8 +574,9 @@
                         </div>
                         <div class="input-wrapper">
                             <i class="fas fa-key input-icon"></i>
-                            <input type="text" id="otp" name="otp" class="form-control" placeholder="000000" maxlength="6" pattern="[0-9]{6}" required autocomplete="off">
+                            <input type="text" id="otp" name="otp" class="form-control" placeholder="000000" maxlength="6" pattern="[0-9]{6}" autocomplete="one-time-code">
                         </div>
+                        <p class="login-field-error" id="loginFieldError-otp" role="alert" aria-live="polite"></p>
                     </div>
 
                     <div class="form-options" style="justify-content: center; margin-bottom: 20px;">
@@ -599,6 +622,7 @@
         </div>
     </div>
 
+    <script src="/static/js/main.js"></script>
     <script>
         // Wait for DOM to be ready
         document.addEventListener('DOMContentLoaded', function() {
@@ -651,11 +675,13 @@
                 const email = emailInput.value.trim();
                 const password = passwordInput.value;
                 
-                if (!email || !password) {
-                    if (messageDiv) {
-                        messageDiv.textContent = 'Please enter both email and password.';
-                        messageDiv.className = 'message error';
-                    }
+                if (typeof clearLoginFieldErrors === 'function') clearLoginFieldErrors();
+                if (!email) {
+                    if (typeof setLoginFieldError === 'function') setLoginFieldError('email', 'Email address is required.');
+                    return false;
+                }
+                if (!password) {
+                    if (typeof setLoginFieldError === 'function') setLoginFieldError('password', 'Password is required.');
                     return false;
                 }
                 
@@ -674,18 +700,36 @@
                 
                 fetch('/api/auth/login/', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
                     },
                     body: JSON.stringify({ email, password })
                 })
-                .then(response => response.json())
-                .then(data => {
+                .then(async function(response) {
+                    var data = {};
+                    try { data = await response.json(); } catch (e) { data = {}; }
                     // Re-enable submit button
                     if (submitBtn) {
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalBtnText;
+                    }
+                    
+                    if (!response.ok) {
+                        if (typeof clearLoginFieldErrors === 'function') clearLoginFieldErrors();
+                        var errMsg = data.error || data.message || 'Invalid email or password.';
+                        if (typeof setLoginFieldError === 'function') {
+                            setLoginFieldError('general', errMsg);
+                            var em = document.getElementById('email');
+                            var pw = document.getElementById('password');
+                            if (em) em.classList.add('field-invalid');
+                            if (pw) pw.classList.add('field-invalid');
+                        } else if (messageDiv) {
+                            messageDiv.textContent = errMsg;
+                            messageDiv.className = 'message error';
+                        }
+                        return;
                     }
                     
                     if (data.redirect_url) {
@@ -698,6 +742,7 @@
                             window.location.href = data.redirect_url;
                         }, 300);
                     } else if (data.requires_otp) {
+                        if (typeof clearLoginFieldErrors === 'function') clearLoginFieldErrors();
                         // Show OTP step
                         userEmail = data.email;
                         const loginStep = document.getElementById('loginStep');
@@ -735,7 +780,10 @@
                         submitBtn.disabled = false;
                         submitBtn.textContent = originalBtnText;
                     }
-                    if (messageDiv) {
+                    if (typeof clearLoginFieldErrors === 'function') clearLoginFieldErrors();
+                    if (typeof setLoginFieldError === 'function') {
+                        setLoginFieldError('general', 'Login failed. Please check your connection and try again.');
+                    } else if (messageDiv) {
                         messageDiv.textContent = 'Login failed. Please check your credentials and try again.';
                         messageDiv.className = 'message error';
                     }
@@ -765,18 +813,24 @@
                 const verifyOtpBtn = document.getElementById('verifyOtpBtn');
                 if (verifyOtpBtn) {
                     verifyOtpBtn.addEventListener('click', async function() {
-            const otp = document.getElementById('otp').value;
+            const otpInput = document.getElementById('otp');
+            const otp = otpInput ? otpInput.value.replace(/\D/g, '') : '';
             const messageDiv = document.getElementById('message');
             
+            if (typeof clearLoginFieldErrors === 'function') clearLoginFieldErrors();
             if (otp.length !== 6) {
-                messageDiv.textContent = 'Please enter a valid 6-digit OTP.';
-                messageDiv.className = 'message error';
+                if (typeof setLoginFieldError === 'function') setLoginFieldError('otp', 'Please enter the 6-digit code.');
+                else if (messageDiv) {
+                    messageDiv.textContent = 'Please enter a valid 6-digit OTP.';
+                    messageDiv.className = 'message error';
+                }
                 return;
             }
             
             try {
                 const response = await fetch('/api/auth/verify-otp/', {
                     method: 'POST',
+                    credentials: 'same-origin',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
@@ -793,12 +847,18 @@
                         window.location.href = data.redirect_url || '/dashboard/';
                     }, 1000);
                 } else {
-                    messageDiv.textContent = data.error || 'Invalid OTP. Please try again.';
-                    messageDiv.className = 'message error';
+                    if (typeof setLoginFieldError === 'function') setLoginFieldError('otp', data.error || 'Invalid OTP. Please try again.');
+                    else if (messageDiv) {
+                        messageDiv.textContent = data.error || 'Invalid OTP. Please try again.';
+                        messageDiv.className = 'message error';
+                    }
                 }
             } catch (error) {
-                messageDiv.textContent = 'An error occurred. Please try again.';
-                messageDiv.className = 'message error';
+                if (typeof setLoginFieldError === 'function') setLoginFieldError('otp', 'An error occurred. Please try again.');
+                else if (messageDiv) {
+                    messageDiv.textContent = 'An error occurred. Please try again.';
+                    messageDiv.className = 'message error';
+                }
                 console.error('OTP verification error:', error);
             }
                     });
@@ -846,6 +906,7 @@
                         document.getElementById('otpStep').style.display = 'none';
                         const otpInput = document.getElementById('otp');
                         if (otpInput) otpInput.value = '';
+                        if (typeof clearLoginFieldErrors === 'function') clearLoginFieldErrors();
                         const msgDiv = document.getElementById('message');
                         if (msgDiv) {
                             msgDiv.textContent = '';
