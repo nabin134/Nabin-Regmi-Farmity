@@ -535,6 +535,8 @@ function clearSignupFieldErrors(form) {
     if (phoneWrap) phoneWrap.classList.remove('has-field-error');
     var termsWrap = form.querySelector('#termsCheckboxWrapper');
     if (termsWrap) termsWrap.classList.remove('field-invalid-terms');
+    var genderGrp = form.querySelector('#genderGroup');
+    if (genderGrp) genderGrp.classList.remove('field-invalid-gender');
     const msg = document.getElementById('message');
     if (msg) {
         msg.textContent = '';
@@ -568,6 +570,11 @@ function setSignupFieldError(form, apiKey, message) {
         if (tw) tw.classList.add('field-invalid-terms');
         return;
     }
+    if (apiKey === 'gender') {
+        var gg = form.querySelector('#genderGroup');
+        if (gg) gg.classList.add('field-invalid-gender');
+        return;
+    }
     var sel = inputSel[apiKey];
     if (sel) {
         var inp = form.querySelector(sel);
@@ -581,7 +588,7 @@ function setSignupFieldError(form, apiKey, message) {
 
 function applySignupApiErrors(form, details) {
     if (!details || typeof details !== 'object') return;
-    const known = ['fullName', 'email', 'phone', 'location', 'role', 'password', 'confirmPassword', 'terms', 'non_field_errors'];
+    const known = ['fullName', 'email', 'phone', 'location', 'gender', 'role', 'password', 'confirmPassword', 'terms', 'non_field_errors'];
     Object.keys(details).forEach(function (key) {
         const msg = firstSignupErrorDetail(details[key]);
         if (!msg) return;
@@ -723,6 +730,13 @@ function validateSignupFormFrontend(form) {
         setSignupFieldError(form, 'location', 'Location must be at least 2 characters.');
         ok = false;
     }
+
+    var genderEl = form.querySelector('input[name="gender"]:checked');
+    if (!genderEl) {
+        setSignupFieldError(form, 'gender', 'Gender is required.');
+        ok = false;
+    }
+
     if (!digits.length) {
         setSignupFieldError(form, 'phone', 'Phone number is required.');
         ok = false;
@@ -785,6 +799,7 @@ document.addEventListener('DOMContentLoaded', function () {
         else if (id === 'password' || name === 'password') suffix = 'password';
         else if (id === 'confirmPassword' || name === 'confirmPassword') suffix = 'confirmPassword';
         else if (id === 'terms' || name === 'terms') suffix = 'terms';
+        else if (name === 'gender') suffix = 'gender';
         else if (id === 'countryCode' || name === 'countryCode') suffix = 'phone';
         if (suffix) {
             var err = reg.querySelector('#registerFieldError-' + suffix);
@@ -802,6 +817,10 @@ document.addEventListener('DOMContentLoaded', function () {
             var tw = reg.querySelector('#termsCheckboxWrapper');
             if (tw) tw.classList.remove('field-invalid-terms');
         }
+        if (suffix === 'gender') {
+            var ggrp = reg.querySelector('#genderGroup');
+            if (ggrp) ggrp.classList.remove('field-invalid-gender');
+        }
         var g = reg.querySelector('#registerFieldError-general');
         if (g) {
             g.textContent = '';
@@ -813,6 +832,22 @@ document.addEventListener('DOMContentLoaded', function () {
             inp.addEventListener(ev, function () {
                 clearSignupFieldForInput(inp);
             });
+        });
+    });
+    reg.querySelectorAll('input[name="gender"]').forEach(function (radio) {
+        radio.addEventListener('change', function () {
+            var err = reg.querySelector('#registerFieldError-gender');
+            if (err) {
+                err.textContent = '';
+                err.classList.remove('show');
+            }
+            var ggrp = reg.querySelector('#genderGroup');
+            if (ggrp) ggrp.classList.remove('field-invalid-gender');
+            var gen = reg.querySelector('#registerFieldError-general');
+            if (gen) {
+                gen.textContent = '';
+                gen.classList.remove('show');
+            }
         });
     });
     var termsCb = reg.querySelector('#terms');
@@ -877,6 +912,7 @@ async function handleRegister(e) {
         const phoneInput = form.elements.phone || form.querySelector('#phone');
         const locationInput = form.elements.location || form.querySelector('#location');
 
+        var genderRadio = form.querySelector('input[name="gender"]:checked');
         const requestData = {
             email,
             password,
@@ -884,7 +920,8 @@ async function handleRegister(e) {
             role,
             fullName: fullNameInput ? fullNameInput.value.trim() : '',
             phone: phoneInput ? phoneInput.value.trim() : '',
-            location: locationInput ? locationInput.value.trim() : ''
+            location: locationInput ? locationInput.value.trim() : '',
+            gender: genderRadio ? genderRadio.value : '',
         };
         
         const csrftoken = getCookie('csrftoken');

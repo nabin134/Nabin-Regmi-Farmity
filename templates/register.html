@@ -330,6 +330,63 @@
             color: #94a3b8;
         }
 
+        .gender-label {
+            display: block;
+            margin-bottom: 0.45rem;
+            color: #334155;
+            font-weight: 600;
+            font-size: 0.8125rem;
+        }
+        .gender-options {
+            display: flex;
+            gap: 0.65rem;
+            flex-wrap: wrap;
+        }
+        .gender-card {
+            flex: 1;
+            min-width: 96px;
+            cursor: pointer;
+            margin: 0;
+        }
+        .gender-card input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+        .gender-card-inner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            padding: 0.85rem 0.5rem;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 12px;
+            background: #fff;
+            transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+            font-size: 0.8125rem;
+            font-weight: 600;
+            color: #334155;
+        }
+        .gender-card-inner i {
+            font-size: 1.15rem;
+            color: #358D58;
+        }
+        .gender-card input:focus-visible + .gender-card-inner {
+            outline: 2px solid rgba(53, 141, 88, 0.45);
+            outline-offset: 2px;
+        }
+        .gender-card input:checked + .gender-card-inner {
+            border-color: #358D58;
+            background: #f0fdf4;
+            box-shadow: 0 0 0 1px rgba(53, 141, 88, 0.2);
+        }
+        #genderGroup.field-invalid-gender .gender-card-inner {
+            border-color: #dc2626;
+            background: rgba(254, 226, 226, 0.4);
+        }
+
         .phone-wrapper {
             display: grid;
             grid-template-columns: 90px 1fr;
@@ -866,6 +923,34 @@
                         <input type="text" id="location" name="location" class="form-control" placeholder="City, State" required>
                     </div>
                     <p class="register-field-error" id="registerFieldError-location" role="alert" aria-live="polite"></p>
+                </div>
+
+                <div class="form-group" id="genderGroup">
+                    <span id="genderLabel" class="gender-label">Gender <span style="color: #dc3545;">*</span></span>
+                    <div class="gender-options" role="radiogroup" aria-labelledby="genderLabel">
+                        <label class="gender-card">
+                            <input type="radio" name="gender" value="male">
+                            <span class="gender-card-inner">
+                                <i class="fas fa-mars" aria-hidden="true"></i>
+                                Male
+                            </span>
+                        </label>
+                        <label class="gender-card">
+                            <input type="radio" name="gender" value="female">
+                            <span class="gender-card-inner">
+                                <i class="fas fa-venus" aria-hidden="true"></i>
+                                Female
+                            </span>
+                        </label>
+                        <label class="gender-card">
+                            <input type="radio" name="gender" value="other">
+                            <span class="gender-card-inner">
+                                <i class="fas fa-neuter" aria-hidden="true"></i>
+                                Other
+                            </span>
+                        </label>
+                    </div>
+                    <p class="register-field-error" id="registerFieldError-gender" role="alert" aria-live="polite"></p>
                 </div>
 
                 <!-- Role Selection - Hidden when role from role page is pre-selected (CSS .signup-role-selected also forces hide) -->

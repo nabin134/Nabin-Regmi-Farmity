@@ -17,10 +17,11 @@ class SignupSerializer(serializers.ModelSerializer):
     fullName = serializers.CharField(required=True, allow_blank=False, max_length=255)
     phone = serializers.CharField(required=True, allow_blank=False, max_length=32)
     location = serializers.CharField(required=True, allow_blank=False, max_length=255)
+    gender = serializers.ChoiceField(choices=['male', 'female', 'other'], required=True)
 
     class Meta:
         model = User
-        fields = ('email', 'password', 'confirmPassword', 'role', 'fullName', 'phone', 'location')
+        fields = ('email', 'password', 'confirmPassword', 'role', 'fullName', 'phone', 'location', 'gender')
 
     def validate_email(self, value):
         """Ensure email is valid and not already used by another account."""
@@ -86,6 +87,13 @@ class SignupSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(f"Invalid role. Must be one of: {', '.join(valid_roles)}")
         return value
 
+    def validate_gender(self, value):
+        if not value:
+            raise serializers.ValidationError('Gender is required.')
+        if value not in ('male', 'female', 'other'):
+            raise serializers.ValidationError('Select a valid option.')
+        return value
+
     def validate_password(self, value):
         if not value:
             raise serializers.ValidationError("Password is required.")
@@ -126,6 +134,7 @@ class SignupSerializer(serializers.ModelSerializer):
         # Strip non-model fields
         full_name = validated_data.pop('fullName', '').strip()
         location = validated_data.pop('location', '').strip()
+        gender = validated_data.pop('gender', None)
         phone = validated_data.get('phone')
         validated_data.pop('confirmPassword', None)
 
@@ -137,6 +146,9 @@ class SignupSerializer(serializers.ModelSerializer):
             is_active=False,
             email_verified=False,
         )
+        if gender:
+            user.gender = gender
+            user.save(update_fields=['gender'])
 
         # Create per-role profile data
         from .models import FarmerProfile, VendorProfile, ExpertProfile, UserProfile

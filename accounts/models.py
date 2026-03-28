@@ -41,10 +41,17 @@ class User(AbstractBaseUser, PermissionsMixin):
         ('vendor', 'Vendor'),
     )
 
+    GENDER_CHOICES = (
+        ('male', 'Male'),
+        ('female', 'Female'),
+        ('other', 'Other'),
+    )
+
     email = models.EmailField(unique=True)
     # Required at signup, but kept nullable for existing rows/migrations.
     # Uniqueness is enforced across accounts (one phone -> one account).
     phone = models.CharField(max_length=10, unique=True, blank=True, null=True)
+    gender = models.CharField(max_length=10, choices=GENDER_CHOICES, blank=True, null=True)
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='buyer')
     is_active = models.BooleanField(default=True)
     # Email ownership verification. Account activation is blocked until True.
