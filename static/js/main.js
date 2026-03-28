@@ -44,32 +44,27 @@ document.addEventListener('DOMContentLoaded', function() {
         registerForm.addEventListener('submit', handleRegister);
     }
 
-    // Password Toggle
-    const togglePassword = document.getElementById('togglePassword');
-    if (togglePassword) {
-        togglePassword.addEventListener('click', function() {
-            const passwordInput = document.getElementById('password');
+    // Password visibility toggles (login: #togglePassword only; register: #togglePassword + #toggleConfirmPassword)
+    function wirePasswordToggle(toggleEl, inputId) {
+        if (!toggleEl) return;
+        toggleEl.addEventListener('click', function () {
+            const passwordInput = document.getElementById(inputId);
+            if (!passwordInput) return;
             const icon = this.querySelector('i');
-            
-            if (passwordInput.type === 'password') {
-                passwordInput.type = 'text';
-                if (icon) {
-                    icon.classList.remove('fa-eye');
-                    icon.classList.add('fa-eye-slash');
-                } else {
-                    this.textContent = '🙈';
-                }
+            const show = passwordInput.type === 'password';
+            passwordInput.type = show ? 'text' : 'password';
+            this.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+            this.setAttribute('title', show ? 'Hide password' : 'Show password');
+            if (icon) {
+                icon.classList.toggle('fa-eye', !show);
+                icon.classList.toggle('fa-eye-slash', show);
             } else {
-                passwordInput.type = 'password';
-                if (icon) {
-                    icon.classList.remove('fa-eye-slash');
-                    icon.classList.add('fa-eye');
-                } else {
-                    this.textContent = '👁️';
-                }
+                this.textContent = show ? '🙈' : '👁️';
             }
         });
     }
+    wirePasswordToggle(document.getElementById('togglePassword'), 'password');
+    wirePasswordToggle(document.getElementById('toggleConfirmPassword'), 'confirmPassword');
 
     // Password confirmation validation
     const confirmPassword = document.getElementById('confirmPassword');
@@ -571,9 +566,119 @@ function applySignupApiErrors(form, details) {
     });
 }
 
+/** Signup page only: top banner for success / general errors (all driven by frontend). Stays visible at least 5s when timed. */
+function showRegisterBanner(text, type, ms) {
+    const el = document.getElementById('message');
+    if (!el) return;
+    clearTimeout(el._registerBannerTimer);
+    if (!text) {
+        el.textContent = '';
+        el.className = 'message';
+        return;
+    }
+    el.textContent = text;
+    el.className = 'message ' + (type === 'success' ? 'success' : 'error');
+    const hideMs = ms == null ? 5000 : Math.max(5000, ms);
+    el._registerBannerTimer = setTimeout(function () {
+        el.textContent = '';
+        el.className = 'message';
+    }, hideMs);
+}
+
+function cleanRegisterUrlQuery(paramName) {
+    try {
+        const u = new URL(window.location.href);
+        u.searchParams.delete(paramName);
+        const qs = u.searchParams.toString();
+        window.history.replaceState({}, '', u.pathname + (qs ? '?' + qs : '') + u.hash);
+    } catch (e) { /* ignore */ }
+}
+
+function initRegisterPageMessages() {
+    const params = new URLSearchParams(window.location.search || '');
+    const err = params.get('error');
+    if (err === 'email_exists') {
+        showRegisterBanner(
+            'This email is already registered. Please sign in instead, or use a different email to create a new account.',
+            'error',
+            5000
+        );
+        cleanRegisterUrlQuery('error');
+    }
+}
+
+/** Client-side checks aligned with SignupSerializer (length, phone digits, password rules). */
+function validateSignupFormFrontend(form) {
+    const fullNameInput = form.querySelector('#fullName');
+    const locationInput = form.querySelector('#location');
+    const phoneInput = form.querySelector('#phone');
+    const passwordInput = form.querySelector('#password');
+    const confirmPasswordInput = form.querySelector('#confirmPassword');
+    const roleSelect = form.querySelector('#userRole');
+    const roleHidden = form.querySelector('#role');
+
+    const fullName = fullNameInput ? fullNameInput.value.trim() : '';
+    const location = locationInput ? locationInput.value.trim() : '';
+    const phoneRaw = phoneInput ? phoneInput.value.trim() : '';
+    const digits = phoneRaw.replace(/\D/g, '');
+    const password = passwordInput ? passwordInput.value : '';
+    const confirmPassword = confirmPasswordInput ? confirmPasswordInput.value : '';
+
+    let role = '';
+    if (roleHidden && roleHidden.value) role = String(roleHidden.value).trim();
+    else if (roleSelect && roleSelect.value) role = String(roleSelect.value).trim();
+    if (role === 'None' || role === 'null' || role === 'undefined') role = '';
+
+    let ok = true;
+
+    if (!role) {
+        setSignupFieldError(form, 'role', 'Please select your role.');
+        ok = false;
+    }
+    if (fullName.length < 2) {
+        setSignupFieldError(form, 'fullName', 'Full name must be at least 2 characters.');
+        ok = false;
+    }
+    if (location.length < 2) {
+        setSignupFieldError(form, 'location', 'Address/location must be at least 2 characters.');
+        ok = false;
+    }
+    if (digits.length !== 10) {
+        setSignupFieldError(form, 'phone', 'Phone number must be exactly 10 digits.');
+        ok = false;
+    }
+
+    if (password.length < 8) {
+        setSignupFieldError(form, 'password', 'Password must be at least 8 characters long.');
+        ok = false;
+    } else if (!/[A-Z]/.test(password)) {
+        setSignupFieldError(form, 'password', 'Password must contain at least 1 uppercase letter.');
+        ok = false;
+    } else if (!/[a-z]/.test(password)) {
+        setSignupFieldError(form, 'password', 'Password must contain at least 1 lowercase letter.');
+        ok = false;
+    } else if (!/\d/.test(password)) {
+        setSignupFieldError(form, 'password', 'Password must contain at least 1 number.');
+        ok = false;
+    } else if (!/[^A-Za-z0-9]/.test(password)) {
+        setSignupFieldError(form, 'password', 'Password must contain at least 1 special character.');
+        ok = false;
+    }
+
+    if (password !== confirmPassword) {
+        setSignupFieldError(form, 'confirmPassword', 'Passwords do not match.');
+        if (passwordInput) passwordInput.classList.add('field-invalid');
+        if (confirmPasswordInput) confirmPasswordInput.classList.add('field-invalid');
+        ok = false;
+    }
+
+    return ok;
+}
+
 document.addEventListener('DOMContentLoaded', function () {
     var reg = document.getElementById('registerForm');
     if (!reg) return;
+    initRegisterPageMessages();
     function clearSignupFieldForInput(inp) {
         var id = inp.id;
         var name = inp.name || '';
@@ -640,10 +745,7 @@ async function handleRegister(e) {
         return;
     }
 
-    if (password !== confirmPassword) {
-        setSignupFieldError(form, 'confirmPassword', 'Passwords do not match.');
-        passwordInput.classList.add('field-invalid');
-        confirmPasswordInput.classList.add('field-invalid');
+    if (!validateSignupFormFrontend(form)) {
         return;
     }
 
@@ -696,15 +798,16 @@ async function handleRegister(e) {
             localStorage.removeItem('user');
             localStorage.removeItem('isLoggedIn');
 
-            const messageDiv = document.getElementById('message');
-            if (messageDiv) {
-                showTempMessage(messageDiv, data.message || 'Account created successfully! Redirecting...', 'success', 3000);
-            }
-            
-            // Redirect (backend decides next step: email verification page)
+            showRegisterBanner(
+                data.message || 'Account created successfully! Redirecting…',
+                'success',
+                5000
+            );
+
+            // Redirect after banner has time to show (at least 5s)
             setTimeout(() => {
                 window.location.href = (data && data.redirect_url) ? data.redirect_url : '/login/?registered=true';
-            }, 1500);
+            }, 5200);
         } else {
             if (data.details) {
                 applySignupApiErrors(form, data.details);

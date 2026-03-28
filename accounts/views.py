@@ -1306,9 +1306,7 @@ def register_page(request):
         request.session['signup_role'] = role
         request.session.modified = True
 
-    signup_error = request.GET.get('error', '')
-    if signup_error == 'email_exists':
-        messages.error(request, 'This email is already registered. Please sign in instead, or use a different email to create a new vendor/farmer/expert account.')
+    # Signup page errors/success banners are shown via frontend (see register.html + main.js).
 
     context = {
         'role': role,

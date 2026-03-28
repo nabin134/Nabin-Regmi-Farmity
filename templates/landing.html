@@ -46,9 +46,9 @@
     </header>
 
     {% if messages %}
-    <div class="landing-messages messages-auto-dismiss" data-dismiss-ms="3000" style="position: fixed; top: 0; left: 0; right: 0; z-index: 99999; padding: 0.75rem 1.5rem; margin: 0; box-shadow: 0 2px 12px rgba(0,0,0,0.12); transition: opacity 0.3s ease;">
+    <div class="landing-messages messages-auto-dismiss" data-dismiss-ms="5000" style="position: fixed; top: 0; left: 0; right: 0; z-index: 99999; padding: 0.75rem 1.5rem; margin: 0; box-shadow: 0 2px 12px rgba(0,0,0,0.12); transition: opacity 0.3s ease;">
         {% for message in messages %}
-        <div class="message-alert {{ message.tags }}" role="alert" style="max-width: 900px; margin: 0 auto 0.5rem; padding: 0.75rem 1.25rem; border-radius: 10px; border-left: 4px solid #28a745; background: #D4EDDA; color: #155724;">
+        <div class="message-alert {% if message.tags %}{{ message.tags }}{% else %}info{% endif %}" role="alert" style="max-width: 900px; margin: 0 auto 0.5rem; padding: 0.75rem 1.25rem; border-radius: 10px; border-left: 4px solid transparent;">
             {{ message }}
         </div>
         {% endfor %}
@@ -56,11 +56,13 @@
     <style>
     .landing-messages.messages-hidden { opacity: 0; pointer-events: none; }
     .landing-messages .message-alert:last-child { margin-bottom: 0 !important; }
+    .landing-messages .message-alert.success { background: #D4EDDA; color: #155724; border-left-color: #28a745; }
     .landing-messages .message-alert.error { background: #F8D7DA; color: #721C24; border-left-color: #dc3545; }
     .landing-messages .message-alert.warning { background: #FFF3CD; color: #856404; border-left-color: #ffc107; }
     .landing-messages .message-alert.info { background: #D1ECF1; color: #0C5460; border-left-color: #17a2b8; }
+    .landing-messages .message-alert.debug { background: #e2e3e5; color: #383d41; border-left-color: #6c757d; }
     </style>
-    <script>(function(){ var el = document.querySelector('.landing-messages.messages-auto-dismiss'); if (el) { var ms = parseInt(el.getAttribute('data-dismiss-ms')||'3000',10); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
+    <script>(function(){ var el = document.querySelector('.landing-messages.messages-auto-dismiss'); if (el) { var ms = Math.max(5000, parseInt(el.getAttribute('data-dismiss-ms')||'5000',10)); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
     {% endif %}
 
     <!-- Hero Section -->
