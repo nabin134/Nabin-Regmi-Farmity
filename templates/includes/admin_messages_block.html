@@ -1,41 +1,90 @@
+{# Django messages: styled for admin UI, auto-dismiss from the frontend (min 5s). #}
 <style>
-.admin-messages {
+.admin-messages-wrap {
     position: fixed;
     top: 0;
     left: 0;
     right: 0;
-    z-index: 99999;
-    padding: 0.75rem 1.5rem;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.15);
-    max-height: 40vh;
+    z-index: 100050;
+    padding: 0.75rem 1rem;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    max-height: 45vh;
     overflow-y: auto;
-    transition: opacity 0.3s ease;
+    box-sizing: border-box;
 }
-.admin-messages.messages-hidden { opacity: 0; pointer-events: none; }
-.admin-messages .message-alert {
-    padding: 0.75rem 1.25rem;
-    border-radius: 8px;
+.admin-messages-wrap.messages-hidden {
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.35s ease;
+}
+.admin-messages-inner {
+    width: 100%;
+    max-width: 960px;
+    pointer-events: auto;
+}
+.admin-messages-inner .message-alert {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    padding: 0.85rem 1.1rem;
+    border-radius: 10px;
     margin-bottom: 0.5rem;
-    border-left: 4px solid #28a745;
+    border-left: 4px solid #6c757d;
+    box-shadow: 0 4px 18px rgba(0,0,0,0.12);
+    font-size: 0.95rem;
+    line-height: 1.45;
 }
-.admin-messages .message-alert:last-child { margin-bottom: 0; }
-.admin-messages .message-alert.success { background: #D4EDDA; color: #155724; border-left-color: #28A745; }
-.admin-messages .message-alert.error { background: #F8D7DA; color: #721C24; border-left-color: #DC3545; }
-.admin-messages .message-alert.warning { background: #FFF3CD; color: #856404; border-left-color: #FFC107; }
-.admin-messages .message-alert.info { background: #D1ECF1; color: #0C5460; border-left-color: #17a2b8; }
+.admin-messages-inner .message-alert:last-child { margin-bottom: 0; }
+.admin-messages-inner .message-alert .msg-icon {
+    flex-shrink: 0;
+    margin-top: 0.1rem;
+    font-size: 1.1rem;
+}
+.admin-messages-inner .message-alert .msg-body { flex: 1; min-width: 0; word-break: break-word; }
+.admin-messages-inner .msg-success { background: #D4EDDA; color: #155724; border-left-color: #28A745; }
+.admin-messages-inner .msg-success .msg-icon { color: #1e7e34; }
+.admin-messages-inner .msg-info { background: #D1ECF1; color: #0C5460; border-left-color: #17a2b8; }
+.admin-messages-inner .msg-info .msg-icon { color: #117a8b; }
+.admin-messages-inner .msg-warning { background: #FFF3CD; color: #856404; border-left-color: #FFC107; }
+.admin-messages-inner .msg-warning .msg-icon { color: #d39e00; }
+.admin-messages-inner .msg-error { background: #F8D7DA; color: #721C24; border-left-color: #DC3545; }
+.admin-messages-inner .msg-error .msg-icon { color: #c82333; }
+.admin-messages-inner .msg-debug { background: #e2e3e5; color: #383d41; border-left-color: #6c757d; }
+.admin-messages-inner .msg-debug .msg-icon { color: #495057; }
 </style>
 {% if messages %}
-<div class="admin-messages messages-auto-dismiss" data-dismiss-ms="3000">
-    {% for message in messages %}
-    <div class="message-alert {{ message.tags }}" role="alert">{{ message }}</div>
-    {% endfor %}
+<div class="admin-messages-wrap messages-auto-dismiss" data-dismiss-ms="{{ dismiss_ms|default:5000 }}" aria-live="polite">
+    <div class="admin-messages-inner">
+        {% for message in messages %}
+        <div class="message-alert msg-{{ message.level_tag|default:'info' }}" role="status">
+            <span class="msg-icon" aria-hidden="true">
+                {% if message.level_tag == 'success' %}<i class="fas fa-check-circle"></i>
+                {% elif message.level_tag == 'warning' %}<i class="fas fa-exclamation-triangle"></i>
+                {% elif message.level_tag == 'error' %}<i class="fas fa-times-circle"></i>
+                {% elif message.level_tag == 'debug' %}<i class="fas fa-bug"></i>
+                {% else %}<i class="fas fa-info-circle"></i>{% endif %}
+            </span>
+            <span class="msg-body">{{ message }}</span>
+        </div>
+        {% endfor %}
+    </div>
 </div>
 <script>
-(function(){
-    var el = document.querySelector('.admin-messages.messages-auto-dismiss');
-    if (!el) return;
-    var ms = parseInt(el.getAttribute('data-dismiss-ms') || '3000', 10);
-    setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display = 'none'; }, 300); }, ms);
+(function () {
+    var wrap = document.querySelector('.admin-messages-wrap.messages-auto-dismiss');
+    if (!wrap) return;
+    var raw = parseInt(wrap.getAttribute('data-dismiss-ms') || '5000', 10);
+    var ms = isNaN(raw) ? 5000 : Math.max(5000, raw);
+    setTimeout(function () {
+        wrap.classList.add('messages-hidden');
+        setTimeout(function () {
+            wrap.style.display = 'none';
+        }, 350);
+    }, ms);
 })();
 </script>
 {% endif %}

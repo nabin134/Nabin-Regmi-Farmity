@@ -168,12 +168,6 @@
             {% include 'includes/admin_messages_block.html' %}
             <a href="{% url 'admin_support_desk' %}" class="btn-back"><i class="fas fa-arrow-left"></i> Back to ticket list</a>
 
-            {% if messages %}
-                {% for message in messages %}
-                <div class="alert alert-{{ message.tags }}"><i class="fas fa-info-circle"></i> {{ message }}</div>
-                {% endfor %}
-            {% endif %}
-
             <div class="support-card">
                 <div class="ticket-header">
                     <h2>#{{ ticket.id }} — {{ ticket.subject }}</h2>

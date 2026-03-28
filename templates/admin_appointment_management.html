@@ -641,7 +641,7 @@
         });
         (function() {
             var saved = sessionStorage.getItem('admin_appointment_scroll');
-            if (saved !== null && document.querySelector('.admin-messages .message-alert')) {
+            if (saved !== null && document.querySelector('.admin-messages-inner .message-alert')) {
                 sessionStorage.removeItem('admin_appointment_scroll');
                 var y = parseInt(saved, 10) || 0;
                 requestAnimationFrame(function() { window.scrollTo(0, y); });

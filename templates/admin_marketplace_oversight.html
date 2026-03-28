@@ -1155,7 +1155,7 @@
         // Restore scroll position after redirect (when messages are shown)
         (function() {
             var saved = sessionStorage.getItem('admin_marketplace_scroll');
-            if (saved !== null && document.querySelector('.admin-messages .message-alert')) {
+            if (saved !== null && document.querySelector('.admin-messages-inner .message-alert')) {
                 sessionStorage.removeItem('admin_marketplace_scroll');
                 var y = parseInt(saved, 10) || 0;
                 requestAnimationFrame(function() { window.scrollTo(0, y); });

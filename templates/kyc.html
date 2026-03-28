@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -385,6 +385,8 @@
             margin-top: 3rem;
             padding-top: 2rem;
             border-top: 2px solid #E9EBF1;
+            position: relative;
+            z-index: 20;
         }
 
         .btn {
@@ -583,7 +585,7 @@
             <script>(function(){ var el = document.querySelector('.kyc-page-messages.messages-auto-dismiss'); if (el) { var ms = parseInt(el.getAttribute('data-dismiss-ms')||'3000',10); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
             {% endif %}
 
-            <form method="POST" enctype="multipart/form-data" id="kycForm">
+            <form method="POST" enctype="multipart/form-data" id="kycForm" action="" novalidate>
                 {% csrf_token %}
                 
                 <div class="wizard-content">
@@ -849,6 +851,11 @@
             return true;
         }
 
+        function goToStep(step) {
+            currentStep = Math.max(1, Math.min(totalSteps, step));
+            updateWizard();
+        }
+
         function updateWizard() {
             // Update panels
             document.querySelectorAll('.wizard-panel').forEach((panel, index) => {
@@ -877,12 +884,12 @@
             forwardBtn.style.display = 'inline-flex';
             if (currentStep < totalSteps) {
                 forwardBtn.type = 'button';
-                forwardBtn.innerHTML = 'Next\n                        <i class="fas fa-arrow-right"></i>';
+                forwardBtn.innerHTML = 'Next <i class="fas fa-arrow-right"></i>';
                 forwardBtn.onclick = function () { changeStep(1); };
             } else {
                 forwardBtn.type = 'submit';
-                forwardBtn.innerHTML = '<i class="fas fa-paper-plane"></i>\n                        Submit';
-                forwardBtn.onclick = null;
+                forwardBtn.removeAttribute('onclick');
+                forwardBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Submit</span>';
             }
 
             // Update review summary
@@ -893,6 +900,7 @@
 
         function updateReviewSummary() {
             const summary = document.getElementById('review-summary');
+            if (!summary) return;
             const fullName = document.querySelector('input[name="full_name"]').value;
             const idNumber = document.querySelector('input[name="id_number"]').value;
             const idDoc = document.getElementById('id_document').files[0];
@@ -914,13 +922,19 @@
             `;
 
             {% if request.user.role == 'vendor' %}
-            const companyDoc = document.getElementById('company_document').files[0];
-            html += `<div style="margin-bottom: 1rem;"><strong>Company Document:</strong> ${companyDoc ? companyDoc.name : '{{ kyc.company_document|yesno:"Already uploaded,Not uploaded" }}'}</div>`;
+            (function () {
+                var el = document.getElementById('company_document');
+                var companyDoc = el && el.files ? el.files[0] : null;
+                html += '<div style="margin-bottom: 1rem;"><strong>Company Document:</strong> ' + (companyDoc ? companyDoc.name : '{{ kyc.company_document|yesno:"Already uploaded,Not uploaded" }}') + '</div>';
+            })();
             {% endif %}
 
             {% if request.user.role == 'agricultural_expert' %}
-            const certDoc = document.getElementById('certificate_document').files[0];
-            html += `<div style="margin-bottom: 1rem;"><strong>Certificate:</strong> ${certDoc ? certDoc.name : '{{ kyc.certificate_document|yesno:"Already uploaded,Not uploaded" }}'}</div>`;
+            (function () {
+                var el = document.getElementById('certificate_document');
+                var certDoc = el && el.files ? el.files[0] : null;
+                html += '<div style="margin-bottom: 1rem;"><strong>Certificate:</strong> ' + (certDoc ? certDoc.name : '{{ kyc.certificate_document|yesno:"Already uploaded,Not uploaded" }}') + '</div>';
+            })();
             {% endif %}
 
             summary.innerHTML = html;
@@ -975,27 +989,38 @@
             });
         });
 
-        // Form submission
+        // Form submission (step 3 = full validation of steps 1–2)
         document.getElementById('kycForm').addEventListener('submit', function(e) {
-            // Prevent accidental double-submit which can look like duplicate uploads.
             if (window.__kycSubmitting) {
                 e.preventDefault();
                 return false;
             }
 
-            if (!validateStep(3)) {
+            if (currentStep !== 3) {
                 e.preventDefault();
+                return false;
+            }
+
+            if (!validateStep(1)) {
+                e.preventDefault();
+                goToStep(1);
+                document.getElementById('panel-1')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                return false;
+            }
+            if (!validateStep(2)) {
+                e.preventDefault();
+                goToStep(2);
+                document.getElementById('panel-2')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
                 return false;
             }
 
             window.__kycSubmitting = true;
             const forwardBtn = document.getElementById('wizardForwardBtn');
             if (forwardBtn) {
-                forwardBtn.innerHTML = 'Submitting...';
-                // Defer disabling so the browser does not cancel the actual form submit (WebKit quirk).
+                forwardBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
                 setTimeout(function () {
-                    forwardBtn.disabled = true;
-                }, 0);
+                    if (forwardBtn) forwardBtn.disabled = true;
+                }, 50);
             }
         });
 
