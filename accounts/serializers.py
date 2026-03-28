@@ -175,4 +175,13 @@ class UserSerializer(serializers.ModelSerializer):
 
 class OTPVerificationSerializer(serializers.Serializer):
     email = serializers.EmailField(required=True)
-    otp = serializers.CharField(required=True, min_length=6, max_length=6, help_text="6-digit OTP code")
+    otp = serializers.CharField(required=True, min_length=1, max_length=32, help_text="6-digit OTP code")
+
+    def validate_otp(self, value):
+        digits = ''.join(c for c in (value or '') if c.isdigit())
+        if len(digits) != 6:
+            raise serializers.ValidationError('Enter the 6-digit verification code.')
+        return digits
+
+    def validate_email(self, value):
+        return (value or '').strip().lower()

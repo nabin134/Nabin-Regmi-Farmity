@@ -14,6 +14,9 @@ from django.conf import settings
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth, TruncDate
 from django.urls import reverse
+from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import csrf_exempt
+from urllib.parse import urlencode
 import secrets
 import hashlib
 import json
@@ -218,6 +221,21 @@ def _clear_stored_messages(request):
     storage.used = True
 
 
+def _login_user(request, user):
+    """Log the user in. With multiple AUTHENTICATION_BACKENDS, Django needs an explicit backend."""
+    backend_path = None
+    try:
+        backend_path = getattr(user, "backend", None)
+    except Exception:
+        backend_path = None
+    if not backend_path:
+        backend_path = (getattr(settings, "AUTHENTICATION_BACKENDS", None) or [None])[0]
+    if backend_path:
+        login(request, user, backend=backend_path)
+    else:
+        login(request, user)
+
+
 # ======================
 # SIGNUP API
 # ======================
@@ -251,7 +269,7 @@ class SignupView(APIView):
                     # Keep consistent signup UX even if SMTP fails in dev.
                     print(f"Error sending signup email verification OTP: {str(e)}")
 
-                redirect_url = reverse('verify_email') + f'?email={user.email}'
+                redirect_url = reverse('verify_email') + '?' + urlencode({'email': user.email})
 
                 # Welcome email (user + admin copy).
                 # Signup currently creates no in-app notification, so we send directly here.
@@ -329,6 +347,7 @@ class SignupView(APIView):
             )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class VerifyEmailView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -351,16 +370,19 @@ class VerifyEmailView(APIView):
             except User.DoesNotExist:
                 return Response({"error": "User not found"}, status=status.HTTP_404_NOT_FOUND)
 
-            # Find a valid email-verification OTP
-            try:
-                otp = OTP.objects.filter(
+            # Find a valid email-verification OTP (match code string; prefer latest)
+            otp = (
+                OTP.objects.filter(
                     user=user,
                     purpose=OTP.PURPOSE_EMAIL_VERIFY,
                     otp_code=otp_code,
                     is_used=False,
                     is_verified=False,
-                ).latest('created_at')
-            except OTP.DoesNotExist:
+                )
+                .order_by('-created_at')
+                .first()
+            )
+            if not otp:
                 return Response(
                     {"error": "Invalid or expired verification code. Please request a new one."},
                     status=status.HTTP_400_BAD_REQUEST,
@@ -382,19 +404,7 @@ class VerifyEmailView(APIView):
             user.save(update_fields=['email_verified', 'is_active'])
 
             # Log the user in and send them to KYC (or role home if KYC not required)
-            # When multiple auth backends are configured (e.g. ModelBackend + allauth),
-            # Django requires an explicit backend to log a user in.
-            backend_path = None
-            try:
-                backend_path = getattr(user, "backend", None)
-            except Exception:
-                backend_path = None
-            if not backend_path:
-                backend_path = (getattr(settings, "AUTHENTICATION_BACKENDS", None) or [None])[0]
-            if backend_path:
-                login(request, user, backend=backend_path)
-            else:
-                login(request, user)
+            _login_user(request, user)
             redirect_url = reverse('kyc') if _user_requires_kyc(user) else _redirect_to_role_home(user)
 
             return Response(
@@ -410,6 +420,7 @@ class VerifyEmailView(APIView):
             )
 
 
+@method_decorator(csrf_exempt, name='dispatch')
 class ResendEmailVerificationView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -535,7 +546,7 @@ class LoginView(APIView):
             # If OTP is not required (development mode), login directly
             if not require_otp:
                 # Login the user directly
-                login(request, user)
+                _login_user(request, user)
                 _clear_stored_messages(request)
                 request.session['show_login_success'] = True
                 request.session.modified = True
@@ -655,16 +666,25 @@ class OTPVerificationView(APIView):
                     status=status.HTTP_404_NOT_FOUND
                 )
             
-            # Find valid OTP for this user
+            # Find valid OTP for this user (prefer latest matching code)
             try:
-                otp = OTP.objects.filter(
-                    user=user,
-                    purpose=OTP.PURPOSE_LOGIN,
-                    otp_code=otp_code,
-                    is_used=False,
-                    is_verified=False
-                ).latest('created_at')
-                
+                otp = (
+                    OTP.objects.filter(
+                        user=user,
+                        purpose=OTP.PURPOSE_LOGIN,
+                        otp_code=otp_code,
+                        is_used=False,
+                        is_verified=False,
+                    )
+                    .order_by('-created_at')
+                    .first()
+                )
+                if not otp:
+                    return Response(
+                        {"error": "Invalid or expired OTP. Please request a new one."},
+                        status=status.HTTP_400_BAD_REQUEST,
+                    )
+
                 # Check if OTP is expired
                 if otp.is_expired():
                     return Response(
@@ -678,7 +698,7 @@ class OTPVerificationView(APIView):
                 otp.save()
                 
                 # Login the user
-                login(request, user)
+                _login_user(request, user)
                 _clear_stored_messages(request)
                 request.session['show_login_success'] = True
                 request.session.modified = True
@@ -707,11 +727,6 @@ class OTPVerificationView(APIView):
                     status=status.HTTP_200_OK
                 )
                 
-            except OTP.DoesNotExist:
-                return Response(
-                    {"error": "Invalid or expired OTP. Please request a new one."},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
             except Exception as e:
                 import traceback
                 traceback.print_exc()
@@ -1727,7 +1742,7 @@ def dashboard(request):
 def kyc_page(request):
     if not getattr(request.user, 'email_verified', False):
         messages.error(request, 'Please verify your email (OTP) before continuing to KYC.')
-        return redirect(reverse('verify_email') + f'?email={request.user.email}')
+        return redirect(reverse('verify_email') + '?' + urlencode({'email': request.user.email}))
     if not _user_requires_kyc(request.user):
         return _redirect_to_role_home_response(request.user)
     if request.session.pop('show_login_success', None):
@@ -2017,7 +2032,7 @@ def change_password(request):
         # Re-authenticate user after password change
         user = authenticate(username=user.email, password=new_password)
         if user:
-            login(request, user)
+            _login_user(request, user)
         messages.success(request, 'Password updated successfully!')
         return redirect('settings')
     return redirect('settings')

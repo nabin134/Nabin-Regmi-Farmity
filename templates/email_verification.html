@@ -183,6 +183,7 @@
                     var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
                     var res = await fetch('/api/auth/verify-email/', {
                         method: 'POST',
+                        credentials: 'same-origin',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (csrf && csrf.value) || '' },
                         body: JSON.stringify({ email: email, otp: otp })
                     });
@@ -210,6 +211,7 @@
                     var csrf = document.querySelector('[name=csrfmiddlewaretoken]');
                     var res = await fetch('/api/auth/resend-email-verification/', {
                         method: 'POST',
+                        credentials: 'same-origin',
                         headers: { 'Content-Type': 'application/json', 'X-CSRFToken': (csrf && csrf.value) || '' },
                         body: JSON.stringify({ email: email })
                     });
