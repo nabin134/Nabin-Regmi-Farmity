@@ -1394,7 +1394,7 @@ def esewa_initiate(request):
     Builds signed form and returns HTML that auto-posts to eSewa.
     """
     from .esewa import get_esewa_config, esewa_build_form_data
-    from .models import Order
+    from .models import Order, PaymentGroup
 
     merchant_code, secret, form_url, _ = get_esewa_config()
     if not merchant_code or not secret:
@@ -1427,7 +1427,16 @@ def esewa_initiate(request):
             messages.error(request, 'Invalid pending orders.')
             return _redirect_to_role_home_response(request.user)
         total_amount = sum(o.total_amount for o in orders)
-        transaction_uuid = f'cart-{order_ids[0]}-{len(order_ids)}'
+        # Persist reconciliation data in DB so callbacks work even if session is lost
+        ref = 'pg-' + secrets.token_urlsafe(16).replace('-', '').replace('_', '')[:32]
+        PaymentGroup.objects.create(
+            reference=ref,
+            buyer=request.user,
+            order_ids=list(order_ids),
+            total_amount=total_amount,
+            status=PaymentGroup.STATUS_PENDING,
+        )
+        transaction_uuid = ref
 
     scheme = 'https' if request.is_secure() else 'http'
     host = request.get_host() or '127.0.0.1:8000'
@@ -1467,7 +1476,7 @@ def esewa_success(request):
     Decode, verify signature, update order(s) payment_status to completed.
     """
     from .esewa import get_esewa_config, esewa_verify_callback_signature
-    from .models import Order
+    from .models import Order, PaymentGroup, CropSale, FarmerProduct, VendorTool
     from urllib.parse import unquote
     import base64
     import json
@@ -1544,13 +1553,16 @@ def esewa_success(request):
             order_ids_to_notify = [order_id]
         except ValueError:
             pass
-    elif transaction_uuid.startswith('cart-'):
-        order_ids = request.session.get('esewa_order_ids', [])
-        if order_ids:
-            Order.objects.filter(id__in=order_ids, payment_method=Order.PAYMENT_ESEWA).update(
+    elif transaction_uuid.startswith('pg-'):
+        pg = PaymentGroup.objects.filter(reference=transaction_uuid).first()
+        if pg and pg.order_ids:
+            Order.objects.filter(id__in=pg.order_ids, payment_method=Order.PAYMENT_ESEWA).update(
                 payment_status=Order.PAYMENT_STATUS_COMPLETED
             )
-            order_ids_to_notify = list(order_ids)
+            pg.status = PaymentGroup.STATUS_COMPLETED
+            pg.save(update_fields=['status', 'updated_at'])
+            order_ids_to_notify = list(pg.order_ids)
+        # Session cleanup (optional)
         request.session.pop('esewa_order_ids', None)
         request.session.pop('esewa_pending_order_ids', None)
         request.session.pop('esewa_transaction_ref', None)
@@ -1558,6 +1570,46 @@ def esewa_success(request):
     request.session.pop('esewa_transaction_ref', None)
     request.session.pop('esewa_order_ids', None)
     request.session.pop('esewa_pending_order_ids', None)
+
+    # Finalize inventory + crop sales for newly-paid orders (idempotent)
+    if order_ids_to_notify:
+        paid_orders = Order.objects.filter(id__in=order_ids_to_notify).select_related(
+            'tool', 'tool__vendor', 'crop', 'crop__farmer', 'buyer'
+        )
+        for o in paid_orders:
+            if o.inventory_deducted:
+                continue
+            # Tool order: deduct stock now
+            if o.tool_id:
+                tool = VendorTool.objects.filter(id=o.tool_id).first()
+                if tool:
+                    tool.stock_quantity = max(0, int(tool.stock_quantity) - int(o.quantity or 1))
+                    if tool.stock_quantity == 0:
+                        tool.is_available = False
+                    tool.save(update_fields=['stock_quantity', 'is_available'])
+            # Crop order: deduct crop quantity now + record CropSale once
+            if o.crop_id:
+                crop = FarmerProduct.objects.filter(id=o.crop_id).first()
+                if crop:
+                    # We store integer quantity on Order, but crop.quantity is Decimal.
+                    q = Decimal(str(o.quantity or 1))
+                    crop.quantity = crop.quantity - q
+                    if crop.quantity <= 0:
+                        crop.quantity = Decimal('0')
+                        crop.is_available = False
+                    crop.save(update_fields=['quantity', 'is_available'])
+                    if not CropSale.objects.filter(order=o).exists():
+                        CropSale.objects.create(
+                            crop=crop,
+                            order=o,
+                            quantity_sold=q,
+                            price_per_unit=crop.price_per_unit,
+                            total_amount=(Decimal(str(crop.price_per_unit)) * q),
+                            sold_to=o.buyer,
+                            sold_at=timezone.now(),
+                        )
+            o.inventory_deducted = True
+            o.save(update_fields=['inventory_deducted'])
 
     # Notify buyer and seller (vendor/farmer) for each paid order
     if order_ids_to_notify:
@@ -1602,6 +1654,11 @@ def esewa_success(request):
 
 def esewa_failure(request):
     """eSewa redirects here on payment failure or cancel."""
+    from .models import PaymentGroup
+    # If this failure corresponds to a PaymentGroup, mark it failed (best-effort)
+    ref = request.session.get('esewa_transaction_ref')
+    if ref and isinstance(ref, str) and ref.startswith('pg-'):
+        PaymentGroup.objects.filter(reference=ref).update(status=PaymentGroup.STATUS_FAILED)
     redirect_after = request.session.pop('esewa_redirect_after', 'user_dashboard')
     request.session.pop('esewa_order_ids', None)
     request.session.pop('esewa_pending_order_ids', None)
@@ -2187,9 +2244,10 @@ def farmer_dashboard(request):
                 if not total_amount:
                     base_amount = tool.price * quantity
                 else:
-                    base_amount = float(total_amount)
+                    # Ignore any client-provided total; parse safely if present.
+                    base_amount = _to_decimal_or_none(total_amount) or (tool.price * quantity)
                 shipping_cost = Decimal('100.00')
-                total_amount = base_amount + shipping_cost
+                total_amount = (Decimal(str(base_amount)) + shipping_cost).quantize(Decimal('0.01'))
                 admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
                 # Create order with payment method
                 order = Order.objects.create(
@@ -2209,11 +2267,14 @@ def farmer_dashboard(request):
                     notes=notes
                 )
                 
-                # Update stock
-                tool.stock_quantity -= quantity
-                if tool.stock_quantity == 0:
-                    tool.is_available = False
-                tool.save()
+                if payment_method != Order.PAYMENT_ESEWA:
+                    # Update stock immediately for COD
+                    tool.stock_quantity -= quantity
+                    if tool.stock_quantity == 0:
+                        tool.is_available = False
+                    tool.save()
+                    order.inventory_deducted = True
+                    order.save(update_fields=['inventory_deducted'])
                 vendor_user = getattr(tool.vendor, 'user', None)
                 if vendor_user:
                     create_notification(
@@ -2284,9 +2345,9 @@ def farmer_dashboard(request):
                 if tool.stock_quantity < qty:
                     errors.append(f"{tool.name}: only {tool.stock_quantity} units available")
                     continue
-                base_amount = float(tool.price) * qty
+                base_amount = (Decimal(str(tool.price)) * Decimal(str(qty))).quantize(Decimal('0.01'))
                 shipping_cost = Decimal('100.00')
-                total_amount = base_amount + shipping_cost
+                total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
                 admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
                 order = Order.objects.create(
                     buyer=request.user,
@@ -2304,10 +2365,13 @@ def farmer_dashboard(request):
                     order_email=order_email,
                     notes=notes
                 )
-                tool.stock_quantity -= qty
-                if tool.stock_quantity == 0:
-                    tool.is_available = False
-                tool.save()
+                if payment_method != Order.PAYMENT_ESEWA:
+                    tool.stock_quantity -= qty
+                    if tool.stock_quantity == 0:
+                        tool.is_available = False
+                    tool.save()
+                    order.inventory_deducted = True
+                    order.save(update_fields=['inventory_deducted'])
                 vendor_user = getattr(tool.vendor, 'user', None)
                 if vendor_user:
                     create_notification(
@@ -3377,14 +3441,12 @@ def user_dashboard(request):
         if not crop_id:
             messages.error(request, 'Please select a crop to purchase.')
             return _redirect_same_page(request, 'user_dashboard')
-        try:
-            qty_raw = request.POST.get('quantity', '1').strip()
-            quantity = float(qty_raw) if qty_raw else 1.0
-            if quantity <= 0:
-                quantity = 1.0
-        except (ValueError, TypeError):
-            quantity = 1.0
-        quantity = max(0.01, quantity)
+        qty_raw = (request.POST.get('quantity', '1') or '').strip()
+        quantity = _to_decimal_or_none(qty_raw) or Decimal('1')
+        if quantity <= 0:
+            quantity = Decimal('1')
+        if quantity < Decimal('0.01'):
+            quantity = Decimal('0.01')
         
         contact_number = (request.POST.get('contact_number') or '').strip()
         order_email = (request.POST.get('order_email') or '').strip() or None
@@ -3394,15 +3456,15 @@ def user_dashboard(request):
         try:
             crop = FarmerProduct.objects.get(id=crop_id, is_available=True)
             if crop.quantity >= quantity:
-                base_amount = crop.price_per_unit * quantity
+                base_amount = (crop.price_per_unit * quantity).quantize(Decimal('0.01'))
                 shipping_cost = Decimal('100.00')
-                total_amount = base_amount + shipping_cost
+                total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
                 admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='crop')
                 # Create order (quantity must be integer for Order model, but we store decimal in CropSale)
                 order = Order.objects.create(
                     buyer=request.user,
                     crop=crop,
-                    quantity=int(round(quantity)),  # Round and convert to int for Order model
+                    quantity=int(quantity.to_integral_value(rounding='ROUND_HALF_UP')),
                     total_amount=total_amount,
                     shipping_cost=shipping_cost,
                     admin_commission=admin_commission,
@@ -3416,22 +3478,23 @@ def user_dashboard(request):
                     notes=request.POST.get('notes', '')
                 )
                 
-                # Update crop quantity (keep as decimal)
-                crop.quantity -= Decimal(str(quantity))
-                if crop.quantity <= 0:
-                    crop.is_available = False
-                crop.save()
-                
-                # Create crop sale record (with actual decimal quantity)
-                CropSale.objects.create(
-                    crop=crop,
-                    order=order,
-                    quantity_sold=quantity,
-                    price_per_unit=crop.price_per_unit,
-                    total_amount=base_amount,
-                    sold_to=request.user,
-                    sold_at=timezone.now()
-                )
+                if payment_method != Order.PAYMENT_ESEWA:
+                    # COD: apply inventory + record sale immediately
+                    crop.quantity -= quantity
+                    if crop.quantity <= 0:
+                        crop.is_available = False
+                    crop.save()
+                    CropSale.objects.create(
+                        crop=crop,
+                        order=order,
+                        quantity_sold=quantity,
+                        price_per_unit=crop.price_per_unit,
+                        total_amount=base_amount,
+                        sold_to=request.user,
+                        sold_at=timezone.now()
+                    )
+                    order.inventory_deducted = True
+                    order.save(update_fields=['inventory_deducted'])
                 farmer_user = getattr(crop.farmer, 'user', None)
                 if farmer_user:
                     create_notification(
@@ -3504,11 +3567,13 @@ def user_dashboard(request):
                     notes=request.POST.get('notes', '')
                 )
                 
-                # Update tool stock
-                tool.stock_quantity -= quantity
-                if tool.stock_quantity == 0:
-                    tool.is_available = False
-                tool.save()
+                if payment_method != Order.PAYMENT_ESEWA:
+                    tool.stock_quantity -= quantity
+                    if tool.stock_quantity == 0:
+                        tool.is_available = False
+                    tool.save()
+                    order.inventory_deducted = True
+                    order.save(update_fields=['inventory_deducted'])
                 vendor_user = getattr(tool.vendor, 'user', None)
                 if vendor_user:
                     create_notification(
@@ -3564,7 +3629,7 @@ def user_dashboard(request):
             typ = (item.get('type') or '').lower()
             item_id = item.get('id')
             try:
-                qty = float(item.get('quantity', 1)) if typ == 'crop' else int(item.get('quantity', 1))
+                qty = (Decimal(str(item.get('quantity', 1))) if typ == 'crop' else int(item.get('quantity', 1)))
             except (ValueError, TypeError):
                 errors.append(f"Invalid quantity for item {item.get('name', item_id)}")
                 continue
@@ -3576,14 +3641,14 @@ def user_dashboard(request):
                     if crop.quantity < qty:
                         errors.append(f"{crop.name}: only {crop.quantity} {crop.unit} available")
                         continue
-                    base_amount = float(crop.price_per_unit) * qty
+                    base_amount = (Decimal(str(crop.price_per_unit)) * qty).quantize(Decimal('0.01'))
                     shipping_cost = Decimal('100.00')
-                    total_amount = base_amount + shipping_cost
+                    total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
                     admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='crop')
                     order = Order.objects.create(
                         buyer=request.user,
                         crop=crop,
-                        quantity=int(round(qty)),
+                        quantity=int(qty.to_integral_value(rounding='ROUND_HALF_UP')),
                         total_amount=total_amount,
                         shipping_cost=shipping_cost,
                         admin_commission=admin_commission,
@@ -3596,19 +3661,22 @@ def user_dashboard(request):
                         order_email=order_email,
                         notes=notes
                     )
-                    crop.quantity -= Decimal(str(qty))
-                    if crop.quantity <= 0:
-                        crop.is_available = False
-                    crop.save()
-                    CropSale.objects.create(
-                        crop=crop,
-                        order=order,
-                        quantity_sold=qty,
-                        price_per_unit=crop.price_per_unit,
-                        total_amount=base_amount,
-                        sold_to=request.user,
-                        sold_at=timezone.now()
-                    )
+                    if payment_method != Order.PAYMENT_ESEWA:
+                        crop.quantity -= qty
+                        if crop.quantity <= 0:
+                            crop.is_available = False
+                        crop.save()
+                        CropSale.objects.create(
+                            crop=crop,
+                            order=order,
+                            quantity_sold=qty,
+                            price_per_unit=crop.price_per_unit,
+                            total_amount=base_amount,
+                            sold_to=request.user,
+                            sold_at=timezone.now()
+                        )
+                        order.inventory_deducted = True
+                        order.save(update_fields=['inventory_deducted'])
                     farmer_user = getattr(crop.farmer, 'user', None)
                     if farmer_user:
                         create_notification(
@@ -3634,9 +3702,9 @@ def user_dashboard(request):
                     if tool.stock_quantity < qty:
                         errors.append(f"{tool.name}: only {tool.stock_quantity} units available")
                         continue
-                    base_amount = float(tool.price) * qty
+                    base_amount = (Decimal(str(tool.price)) * Decimal(str(qty))).quantize(Decimal('0.01'))
                     shipping_cost = Decimal('100.00')
-                    total_amount = base_amount + shipping_cost
+                    total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
                     admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
                     order = Order.objects.create(
                         buyer=request.user,
@@ -3654,10 +3722,13 @@ def user_dashboard(request):
                         order_email=order_email,
                         notes=notes
                     )
-                    tool.stock_quantity -= int(qty)
-                    if tool.stock_quantity == 0:
-                        tool.is_available = False
-                    tool.save()
+                    if payment_method != Order.PAYMENT_ESEWA:
+                        tool.stock_quantity -= int(qty)
+                        if tool.stock_quantity == 0:
+                            tool.is_available = False
+                        tool.save()
+                        order.inventory_deducted = True
+                        order.save(update_fields=['inventory_deducted'])
                     vendor_user = getattr(tool.vendor, 'user', None)
                     if vendor_user:
                         create_notification(

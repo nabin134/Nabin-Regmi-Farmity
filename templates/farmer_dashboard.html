@@ -645,7 +645,7 @@
 
         .tools-section-grid {
             display: grid;
-            grid-template-columns: 1fr 340px;
+            grid-template-columns: minmax(0, 1fr) 420px;
             gap: 1.5rem;
             align-items: start;
         }
@@ -656,47 +656,75 @@
         .farmer-tools-cart-panel {
             background: #f8f9fa;
             border: 2px solid #e9ecef;
-            border-radius: 12px;
-            padding: 1.25rem;
+            border-radius: 14px;
+            padding: 1.35rem;
+            box-shadow: 0 8px 20px rgba(15, 23, 42, 0.06);
+        }
+        .farmer-tools-cart-title {
+            margin: 0 0 1rem 0;
+            font-size: 1.22rem;
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+        }
+        .farmer-tools-cart-count {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            margin-left: 0.2rem;
+            padding: 0.18rem 0.55rem;
+            border-radius: 999px;
+            background: #e5f3eb;
+            color: var(--primary);
+            font-size: 0.8rem;
+            font-weight: 700;
         }
         .farmer-tools-cart-list {
             display: flex;
             flex-direction: column;
-            gap: 0.75rem;
-            max-height: 320px;
+            gap: 0.85rem;
+            max-height: 420px;
             overflow-y: auto;
+            padding-right: 0.2rem;
         }
         .farmer-tools-cart-item {
             display: flex;
             gap: 0.75rem;
             align-items: center;
-            padding: 0.75rem;
+            padding: 0.85rem;
             background: white;
-            border-radius: 8px;
+            border-radius: 10px;
             border: 1px solid #e9ecef;
         }
-        .farmer-tools-cart-item img { width: 50px; height: 50px; object-fit: cover; border-radius: 6px; }
+        .farmer-tools-cart-item img { width: 64px; height: 64px; object-fit: cover; border-radius: 8px; }
         .farmer-tools-cart-item-info { flex: 1; min-width: 0; }
-        .farmer-tools-cart-item-info .name { font-weight: 600; font-size: 0.95rem; }
-        .farmer-tools-cart-item-info .meta { font-size: 0.85rem; color: #666; }
-        .farmer-tools-cart-item-remove { padding: 0.35rem 0.5rem; color: #dc3545; background: transparent; border: 1px solid #dc3545; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+        .farmer-tools-cart-item-info .name { font-weight: 700; font-size: 1rem; line-height: 1.25; }
+        .farmer-tools-cart-item-info .meta { font-size: 0.9rem; color: #475569; margin-top: 0.15rem; }
+        .farmer-tools-cart-item-remove { padding: 0.45rem 0.6rem; color: #dc3545; background: transparent; border: 1px solid #dc3545; border-radius: 7px; cursor: pointer; font-size: 0.9rem; }
         .farmer-tools-cart-item-remove:hover { background: #dc3545; color: white; }
-        .farmer-tools-cart-qty-controls { display: flex; align-items: center; gap: 0.35rem; margin-top: 0.4rem; }
-        .farmer-tools-cart-qty-btn { width: 28px; height: 28px; padding: 0; border: 1px solid #dee2e6; border-radius: 6px; background: #fff; cursor: pointer; font-size: 1rem; font-weight: 600; color: var(--primary); display: inline-flex; align-items: center; justify-content: center; }
+        .farmer-tools-cart-qty-controls { display: flex; align-items: center; gap: 0.45rem; margin-top: 0.5rem; }
+        .farmer-tools-cart-qty-btn { width: 32px; height: 32px; padding: 0; border: 1px solid #dee2e6; border-radius: 7px; background: #fff; cursor: pointer; font-size: 1.08rem; font-weight: 700; color: var(--primary); display: inline-flex; align-items: center; justify-content: center; }
         .farmer-tools-cart-qty-btn:hover:not(:disabled) { background: var(--primary); color: white; border-color: var(--primary); }
         .farmer-tools-cart-qty-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-        .farmer-tools-cart-qty-value { min-width: 26px; text-align: center; font-weight: 600; font-size: 0.9rem; }
+        .farmer-tools-cart-qty-value { min-width: 30px; text-align: center; font-weight: 700; font-size: 0.95rem; }
         .farmer-tools-cart-empty {
             text-align: center;
-            padding: 1.5rem 1rem;
+            padding: 1.75rem 1rem;
             color: #666;
-            font-size: 0.9rem;
+            font-size: 0.95rem;
         }
-        .farmer-tools-cart-empty i { font-size: 2rem; opacity: 0.5; margin-bottom: 0.5rem; display: block; }
-        .farmer-tools-cart-summary .farmer-tools-cart-subtotal { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-weight: 600; }
+        .farmer-tools-cart-empty i { font-size: 2.2rem; opacity: 0.5; margin-bottom: 0.6rem; display: block; }
+        .farmer-tools-cart-summary {
+            margin-top: 0.85rem;
+            padding-top: 0.85rem;
+            border-top: 1px solid #dbe3ea;
+        }
+        .farmer-tools-cart-summary .farmer-tools-cart-subtotal { display: flex; justify-content: space-between; margin-bottom: 0.5rem; font-weight: 700; font-size: 1rem; }
+        .farmer-tools-checkout-btn { width: 100%; padding: 0.88rem; margin-top: 0.75rem; font-size: 0.96rem; }
         @media (max-width: 1024px) {
             .tools-section-grid { grid-template-columns: 1fr; }
             .tools-col-cart { position: static; }
+            .farmer-tools-cart-list { max-height: 340px; }
         }
 
         /* Chat Interface */
@@ -2097,7 +2125,7 @@
                             </div>
                             <div class="tools-col-cart">
                                 <div class="farmer-tools-cart-panel">
-                                    <h3 style="margin: 0 0 1rem 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-shopping-cart"></i> Tools cart <span class="farmer-tools-cart-count" id="farmerToolsCartCount" style="display: none;">0 items</span></h3>
+                                    <h3 class="farmer-tools-cart-title"><i class="fas fa-shopping-cart"></i> Tools cart <span class="farmer-tools-cart-count" id="farmerToolsCartCount" style="display: none;">0 items</span></h3>
                                     <div id="farmerToolsCartList" class="farmer-tools-cart-list"></div>
                                     <div id="farmerToolsCartEmpty" class="farmer-tools-cart-empty">
                                         <i class="fas fa-shopping-cart"></i>
@@ -2105,7 +2133,7 @@
                                     </div>
                                     <div id="farmerToolsCartSummary" class="farmer-tools-cart-summary" style="display: none;">
                                         <div class="farmer-tools-cart-subtotal"><span>Subtotal</span><span id="farmerToolsCartSubtotal">Rs. 0.00</span></div>
-                                        <button type="button" id="farmerToolsCheckoutBtn" class="btn-primary" style="width: 100%; padding: 0.75rem; margin-top: 0.75rem;" onclick="openFarmerToolsCheckoutModal()"><i class="fas fa-lock"></i> Proceed to checkout</button>
+                                        <button type="button" id="farmerToolsCheckoutBtn" class="btn-primary farmer-tools-checkout-btn" onclick="openFarmerToolsCheckoutModal()"><i class="fas fa-lock"></i> Proceed to checkout</button>
                                     </div>
                                 </div>
                             </div>

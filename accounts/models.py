@@ -421,6 +421,10 @@ class Order(models.Model):
     )
     payout_at = models.DateTimeField(blank=True, null=True, help_text='When admin paid this order’s amount to farmer/vendor')
 
+    # Inventory/sales bookkeeping:
+    # For eSewa payments we only deduct stock/quantity and record CropSale after payment completes.
+    inventory_deducted = models.BooleanField(default=False)
+
     class Meta:
         ordering = ('-created_at',)
 
@@ -509,6 +513,35 @@ class CropSale(models.Model):
 
     def __str__(self):
         return f"Sale of {self.quantity_sold} {self.crop.unit} {self.crop.name} - Rs. {self.total_amount}"
+
+
+class PaymentGroup(models.Model):
+    """
+    Groups multiple orders under one eSewa transaction_uuid so callbacks can be reconciled
+    even if the user's browser/session is lost.
+    """
+    STATUS_PENDING = 'pending'
+    STATUS_COMPLETED = 'completed'
+    STATUS_FAILED = 'failed'
+    STATUS_CHOICES = (
+        (STATUS_PENDING, 'Pending'),
+        (STATUS_COMPLETED, 'Completed'),
+        (STATUS_FAILED, 'Failed'),
+    )
+
+    reference = models.CharField(max_length=64, unique=True)
+    buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='payment_groups')
+    order_ids = models.JSONField(default=list, blank=True)
+    total_amount = models.DecimalField(max_digits=12, decimal_places=2, default=0)
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ('-created_at',)
+
+    def __str__(self):
+        return f"{self.reference} ({self.status})"
 
 
 class OTP(models.Model):
