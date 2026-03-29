@@ -135,12 +135,23 @@ WSGI_APPLICATION = 'Farmity.wsgi.application'
 # ======================
 # DATABASE
 # ======================
-# Render (and other hosts) provide DATABASE_URL for PostgreSQL. Local dev uses SQLite.
-if os.environ.get('DATABASE_URL'):
+# One default database at a time (Django does not use two DBs for the same app in parallel).
+#
+# Local dev (SQLite): Google OAuth, OTP, email — use db.sqlite3. Omit DATABASE_URL from .env, or set
+# USE_LOCAL_SQLITE=true if DATABASE_URL is present but you still want SQLite (e.g. copied Render env).
+#
+# Render: set DATABASE_URL from PostgreSQL. Do not set USE_LOCAL_SQLITE. Render also sets RENDER=true.
+_use_local_sqlite = os.environ.get('USE_LOCAL_SQLITE', '').lower() in ('1', 'true', 'yes')
+_on_render = os.environ.get('RENDER', '').lower() in ('1', 'true', 'yes')
+_database_url = (os.environ.get('DATABASE_URL') or '').strip()
+_use_postgres = bool(_database_url) and (not _use_local_sqlite or _on_render)
+
+if _use_postgres:
     DATABASES = {
         'default': dj_database_url.config(
             conn_max_age=600,
-            ssl_require=True,
+            ssl_require=os.environ.get('DATABASE_SSL_REQUIRE', 'true').lower()
+            in ('1', 'true', 'yes'),
         )
     }
 else:
