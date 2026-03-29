@@ -7,4 +7,10 @@ services:
       python manage.py collectstatic --noinput
       python manage.py migrate
     startCommand: gunicorn Farmity.wsgi:application --bind 0.0.0.0:$PORT
-   
+    # In the Render Dashboard, set at minimum:
+    # - DATABASE_URL (from a Render PostgreSQL instance, or paste External DB URL)
+    # - SECRET_KEY (long random string)
+    # - DEBUG=false
+    # - ALLOWED_HOSTS=your-service.onrender.com,.onrender.com
+    # - CSRF_TRUSTED_ORIGINS=https://your-service.onrender.com
+    # Optional: GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, EMAIL_HOST_PASSWORD, etc.

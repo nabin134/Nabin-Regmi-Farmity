@@ -5,6 +5,8 @@ Django settings for Farmity project.
 from pathlib import Path
 import os
 
+import dj_database_url
+
 
 # Load .env so EMAIL_HOST_PASSWORD is read – OTP then sends from farmityforyou@gmail.com
 _project_root = Path(__file__).resolve().parent.parent  # same folder as manage.py
@@ -94,6 +96,7 @@ SITE_ID = 1
 # ======================
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -132,23 +135,21 @@ WSGI_APPLICATION = 'Farmity.wsgi.application'
 # ======================
 # DATABASE
 # ======================
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'farmity_foryou',
-        'USER': 'farmity_foryou_user',
-        'PASSWORD': 'sAFOb3zsrUFbFmw38ogKymHyECMgFp3v',
-        'HOST': 'dpg-d6vbo46uk2gs738mckm0-a',
-        'PORT': '5432',
+# Render (and other hosts) provide DATABASE_URL for PostgreSQL. Local dev uses SQLite.
+if os.environ.get('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.config(
+            conn_max_age=600,
+            ssl_require=True,
+        )
     }
-}
-
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',  # SQLite backend
-        'NAME': BASE_DIR / 'db.sqlite3',         # Database file path
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
     }
-}
 
 
 # ======================
@@ -190,6 +191,16 @@ USE_TZ = True
 STATIC_URL = '/static/'   # 🔥 must start & end with /
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
+
+if not DEBUG:
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # HSTS: enable only when the whole site is served over HTTPS (e.g. Render with custom domain).
+    SECURE_HSTS_SECONDS = int(os.environ.get('SECURE_HSTS_SECONDS', '31536000'))
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = os.environ.get(
+        'SECURE_HSTS_INCLUDE_SUBDOMAINS', 'false'
+    ).lower() in ('1', 'true', 'yes')
 
 # ======================
 # MEDIA FILES
