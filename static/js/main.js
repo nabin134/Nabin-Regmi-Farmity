@@ -94,6 +94,55 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 
+// Preserve current page context for POST->redirect flows (admin CRUD/list/detail pages).
+document.addEventListener('DOMContentLoaded', function () {
+    function ensureHidden(form, name) {
+        var input = form.querySelector('input[name="' + name + '"]');
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            form.appendChild(input);
+        }
+        return input;
+    }
+
+    function stampReturnState(form) {
+        try {
+            ensureHidden(form, '_return_path').value = window.location.pathname || '/';
+            var search = window.location.search || '';
+            ensureHidden(form, '_return_query').value = search.startsWith('?') ? search.substring(1) : search;
+            ensureHidden(form, '_return_scroll').value = String(Math.max(0, Math.round(window.scrollY || 0)));
+        } catch (e) {
+            // Ignore state-stamp failures; form submission should continue.
+        }
+    }
+
+    document.querySelectorAll('form').forEach(function (form) {
+        var method = (form.getAttribute('method') || 'get').toLowerCase();
+        if (method !== 'post') return;
+        form.addEventListener('submit', function () { stampReturnState(form); }, true);
+    });
+
+    // Restore scroll from query parameter after redirect, then clean URL.
+    try {
+        var url = new URL(window.location.href);
+        var scrollVal = url.searchParams.get('_scroll');
+        if (scrollVal !== null && scrollVal !== '') {
+            var y = parseInt(scrollVal, 10);
+            if (!isNaN(y) && y >= 0) {
+                window.requestAnimationFrame(function () {
+                    window.scrollTo(0, y);
+                });
+            }
+            url.searchParams.delete('_scroll');
+            window.history.replaceState({}, '', url.pathname + (url.search ? url.search : '') + url.hash);
+        }
+    } catch (e) {
+        // Ignore restore failures safely.
+    }
+});
+
 function showTempMessage(messageDiv, text, type, ms = 3000) {
     if (!messageDiv) return;
     messageDiv.textContent = text || '';

@@ -203,11 +203,72 @@ def _redirect_same_admin_page(request, view_name):
     (section, status, search, etc.) so the user stays in the same place and
     messages display on that page.
     """
-    from urllib.parse import urlencode
-    url = reverse(view_name)
-    if request.GET:
-        query = request.GET.copy()
-        url = url + '?' + query.urlencode()
+    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+    fallback_url = reverse(view_name)
+
+    # Preferred: state explicitly posted by frontend helper on form submit.
+    return_path = (request.POST.get('_return_path') or '').strip()
+    return_query = (request.POST.get('_return_query') or '').strip()
+    return_scroll = (request.POST.get('_return_scroll') or '').strip()
+    if return_query.startswith('?'):
+        return_query = return_query[1:]
+
+    if return_path.startswith('/') and not return_path.startswith('//'):
+        url = return_path
+        if return_query:
+            url = url + '?' + return_query
+    else:
+        # Fallback: preserve current GET parameters
+        url = fallback_url
+        if request.GET:
+            query = request.GET.copy()
+            url = url + '?' + query.urlencode()
+
+    # Preserve requested scroll position after POST->redirect
+    if return_scroll:
+        try:
+            # Validate as int-like; ignore invalid values.
+            int(return_scroll)
+            parts = urlsplit(url)
+            q = dict(parse_qsl(parts.query, keep_blank_values=True))
+            q['_scroll'] = return_scroll
+            url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(q), parts.fragment))
+        except (TypeError, ValueError):
+            pass
+
+    return redirect(url)
+
+
+def _redirect_with_posted_ui_state(request, fallback_url):
+    """
+    Redirect to URL captured on form submit (_return_path/_return_query/_return_scroll),
+    otherwise use provided fallback_url.
+    """
+    from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
+
+    return_path = (request.POST.get('_return_path') or '').strip()
+    return_query = (request.POST.get('_return_query') or '').strip()
+    return_scroll = (request.POST.get('_return_scroll') or '').strip()
+    if return_query.startswith('?'):
+        return_query = return_query[1:]
+
+    if return_path.startswith('/') and not return_path.startswith('//'):
+        url = return_path
+        if return_query:
+            url = url + '?' + return_query
+    else:
+        url = fallback_url
+
+    if return_scroll:
+        try:
+            int(return_scroll)
+            parts = urlsplit(url)
+            q = dict(parse_qsl(parts.query, keep_blank_values=True))
+            q['_scroll'] = return_scroll
+            url = urlunsplit((parts.scheme, parts.netloc, parts.path, urlencode(q), parts.fragment))
+        except (TypeError, ValueError):
+            pass
+
     return redirect(url)
 
 
@@ -239,7 +300,9 @@ def _login_user(request, user):
 # ======================
 # SIGNUP API
 # ======================
+@method_decorator(csrf_exempt, name='dispatch')
 class SignupView(APIView):
+    authentication_classes = []
     permission_classes = [AllowAny]
 
     def post(self, request):
@@ -482,6 +545,7 @@ class ResendEmailVerificationView(APIView):
 # ======================
 # LOGIN API (FIXED)
 # ======================
+@method_decorator(csrf_exempt, name='dispatch')
 class LoginView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -637,6 +701,7 @@ class LoginView(APIView):
 # ======================
 # OTP VERIFICATION API
 # ======================
+@method_decorator(csrf_exempt, name='dispatch')
 class OTPVerificationView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -752,6 +817,7 @@ class OTPVerificationView(APIView):
 # ======================
 # RESEND OTP API
 # ======================
+@method_decorator(csrf_exempt, name='dispatch')
 class ResendOTPView(APIView):
     authentication_classes = []
     permission_classes = [AllowAny]
@@ -818,6 +884,7 @@ class ResendOTPView(APIView):
 # ======================
 # FORGOT PASSWORD API
 # ======================
+@method_decorator(csrf_exempt, name='dispatch')
 class ForgotPasswordView(APIView):
     permission_classes = [AllowAny]
 
@@ -1016,6 +1083,7 @@ class VerifyOTPView(APIView):
 # ======================
 # RESET PASSWORD API
 # ======================
+@method_decorator(csrf_exempt, name='dispatch')
 class ResetPasswordView(APIView):
     permission_classes = [AllowAny]
 
@@ -4169,7 +4237,7 @@ def admin_collections_payouts(request):
                 messages.error(request, 'Vendor not found.')
         else:
             messages.error(request, 'Invalid payout request.')
-        return redirect(reverse('admin_collections_payouts'))
+        return _redirect_same_admin_page(request, 'admin_collections_payouts')
 
     # Total paid out = total collected - still pending
     total_paid_out = total_collected - total_pending_payout
@@ -5764,7 +5832,9 @@ def support_ticket_detail(request, ticket_id):
         if action == 'reply':
             if ticket.status in (SupportTicket.STATUS_ANSWERED, SupportTicket.STATUS_CLOSED):
                 messages.error(request, 'This conversation has ended. No further replies can be added.')
-                return redirect('support_ticket', ticket_id=ticket_id)
+                return _redirect_with_posted_ui_state(
+                    request, reverse('support_ticket', kwargs={'ticket_id': ticket_id})
+                )
             msg_text = (request.POST.get('message') or '').strip()
             if msg_text:
                 SupportMessage.objects.create(
@@ -5777,14 +5847,18 @@ def support_ticket_detail(request, ticket_id):
                     ticket.status = SupportTicket.STATUS_IN_PROGRESS
                 ticket.save()
                 messages.success(request, 'Message sent.')
-                return redirect('support_ticket', ticket_id=ticket_id)
+                return _redirect_with_posted_ui_state(
+                    request, reverse('support_ticket', kwargs={'ticket_id': ticket_id})
+                )
         elif action == 'assign_me' and is_staff:
             ticket.assigned_to = request.user
             ticket.status = SupportTicket.STATUS_IN_PROGRESS
             ticket.updated_at = timezone.now()
             ticket.save()
             messages.success(request, 'Ticket assigned to you.')
-            return redirect('support_ticket', ticket_id=ticket_id)
+            return _redirect_with_posted_ui_state(
+                request, reverse('support_ticket', kwargs={'ticket_id': ticket_id})
+            )
         elif action == 'update_status' and is_staff:
             new_status = request.POST.get('status')
             if new_status in dict(SupportTicket.STATUS_CHOICES):
@@ -5792,7 +5866,9 @@ def support_ticket_detail(request, ticket_id):
                 ticket.updated_at = timezone.now()
                 ticket.save()
                 messages.success(request, 'Status updated.')
-                return redirect('support_ticket', ticket_id=ticket_id)
+                return _redirect_with_posted_ui_state(
+                    request, reverse('support_ticket', kwargs={'ticket_id': ticket_id})
+                )
 
     messages_list = SupportMessage.objects.filter(ticket=ticket).select_related('sender').order_by('created_at')
     context = {
