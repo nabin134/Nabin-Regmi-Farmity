@@ -59,6 +59,13 @@
             font-weight: 600;
         }
 
+        .sidebar-header .sidebar-logo-img {
+            width: 42px;
+            height: 42px;
+            object-fit: contain;
+            border-radius: 8px;
+        }
+
         .sidebar-menu {
             padding: 20px 0;
         }
@@ -333,7 +340,8 @@
     <!-- Sidebar -->
     <aside class="sidebar">
         <div class="sidebar-header">
-            <i class="fas fa-seedling"></i>
+            <img src="/static/images/Farmity%20logo.png" alt="Farmity" class="sidebar-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+            <i class="fas fa-seedling" style="display: none; font-size: 1.75rem;"></i>
             <h2>Farmity Admin</h2>
         </div>
         <nav class="sidebar-menu">
