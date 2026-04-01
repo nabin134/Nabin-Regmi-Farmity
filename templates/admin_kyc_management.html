@@ -740,11 +740,184 @@
     </div>
 
     <script>
+        // Function to show error messages using the admin messaging system
+        function showErrorMessage(message) {
+            console.log('Showing error message:', message);
+            
+            // Try multiple selectors to find the container
+            let messagesContainer = document.querySelector('.dashboard-content');
+            if (!messagesContainer) {
+                messagesContainer = document.querySelector('main') || document.body;
+            }
+            
+            // Remove any existing messages to prevent duplicates
+            const existingMessages = messagesContainer.querySelectorAll('.admin-messages-wrap');
+            existingMessages.forEach(msg => msg.remove());
+            
+            const messageHtml = `
+                <div class="admin-messages-wrap messages-auto-dismiss" data-dismiss-ms="5000" aria-live="polite">
+                    <div class="admin-messages-inner">
+                        <div class="message-alert msg-error" role="status">
+                            <span class="msg-icon" aria-hidden="true">
+                                <i class="fas fa-times-circle"></i>
+                            </span>
+                            <span class="msg-body">${message}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Insert message at the top of dashboard content
+            messagesContainer.insertAdjacentHTML('afterbegin', messageHtml);
+            
+            // Auto-dismiss after 5 seconds
+            const messageWrap = messagesContainer.querySelector('.admin-messages-wrap');
+            if (messageWrap) {
+                setTimeout(() => {
+                    messageWrap.classList.add('messages-hidden');
+                    setTimeout(() => {
+                        if (messageWrap.parentNode) {
+                            messageWrap.remove();
+                        }
+                    }, 350);
+                }, 5000);
+            }
+        }
+
+        // Function to show success messages
+        function showSuccessMessage(message) {
+            console.log('Showing success message:', message);
+            
+            // Try multiple selectors to find the container
+            let messagesContainer = document.querySelector('.dashboard-content');
+            if (!messagesContainer) {
+                messagesContainer = document.querySelector('main') || document.body;
+            }
+            
+            // Remove any existing messages to prevent duplicates
+            const existingMessages = messagesContainer.querySelectorAll('.admin-messages-wrap');
+            existingMessages.forEach(msg => msg.remove());
+            
+            const messageHtml = `
+                <div class="admin-messages-wrap messages-auto-dismiss" data-dismiss-ms="5000" aria-live="polite">
+                    <div class="admin-messages-inner">
+                        <div class="message-alert msg-success" role="status">
+                            <span class="msg-icon" aria-hidden="true">
+                                <i class="fas fa-check-circle"></i>
+                            </span>
+                            <span class="msg-body">${message}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            // Insert message at the top of dashboard content
+            messagesContainer.insertAdjacentHTML('afterbegin', messageHtml);
+            
+            // Auto-dismiss after 5 seconds
+            const messageWrap = messagesContainer.querySelector('.admin-messages-wrap');
+            if (messageWrap) {
+                setTimeout(() => {
+                    messageWrap.classList.add('messages-hidden');
+                    setTimeout(() => {
+                        if (messageWrap.parentNode) {
+                            messageWrap.remove();
+                        }
+                    }, 350);
+                }, 5000);
+            }
+        }
+
+        // Validate Edit KYC Form
+        function validateEditKYCForm() {
+            console.log('Validating Edit KYC Form');
+            
+            const fullName = document.getElementById('editKycFullName');
+            const idNumber = document.getElementById('editKycIdNumber');
+            const status = document.getElementById('editKycStatus');
+            const rejectionReason = document.getElementById('editKycRejectionReason');
+            
+            // Check if elements exist
+            if (!fullName || !idNumber || !status || !rejectionReason) {
+                console.error('Form elements not found');
+                showErrorMessage('Form validation error: Required elements not found');
+                return false;
+            }
+            
+            const fullNameValue = fullName.value.trim();
+            const idNumberValue = idNumber.value.trim();
+            const statusValue = status.value;
+            const rejectionReasonValue = rejectionReason.value.trim();
+            
+            console.log('Form values:', { fullNameValue, idNumberValue, statusValue, rejectionReasonValue });
+            
+            // Check required fields
+            if (!fullNameValue) {
+                showErrorMessage('Please fill out the Full Name field');
+                fullName.focus();
+                return false;
+            }
+            
+            if (!idNumberValue) {
+                showErrorMessage('Please fill out the ID Number field');
+                idNumber.focus();
+                return false;
+            }
+            
+            if (!statusValue) {
+                showErrorMessage('Please select a Status');
+                status.focus();
+                return false;
+            }
+            
+            // Check rejection reason if status is rejected
+            if (statusValue === 'rejected' && !rejectionReasonValue) {
+                showErrorMessage('Please provide a rejection reason when status is set to Rejected');
+                rejectionReason.focus();
+                return false;
+            }
+            
+            console.log('Form validation passed');
+            return true;
+        }
+
+        // Validate Reject KYC Form
+        function validateRejectKYCForm() {
+            console.log('Validating Reject KYC Form');
+            
+            const rejectionReasonField = document.querySelector('#rejectModal textarea');
+            
+            if (!rejectionReasonField) {
+                console.error('Rejection reason field not found');
+                showErrorMessage('Form validation error: Rejection reason field not found');
+                return false;
+            }
+            
+            const rejectionReason = rejectionReasonField.value.trim();
+            
+            if (!rejectionReason) {
+                showErrorMessage('Please fill out the rejection reason field');
+                rejectionReasonField.focus();
+                return false;
+            }
+            
+            console.log('Reject form validation passed');
+            return true;
+        }
+
         function viewKYC(kycId) {
+            console.log('Viewing KYC:', kycId);
+            
             // Fetch KYC details
             fetch(`{% url 'admin_kyc_view_json' 0 %}`.replace('0', kycId))
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Network response was not ok');
+                    }
+                    return response.json();
+                })
                 .then(data => {
+                    console.log('KYC data received:', data);
                     const modalBody = document.getElementById('modalBody');
                     modalBody.innerHTML = `
                         <div class="document-preview">
@@ -811,11 +984,14 @@
                     document.getElementById('viewModal').classList.add('active');
                 })
                 .catch(error => {
-                    alert('Error loading KYC details');
+                    console.error('Error loading KYC details:', error);
+                    showErrorMessage('Error loading KYC details. Please try again.');
                 });
         }
 
         function approveKYC(kycId) {
+            console.log('Approving KYC:', kycId);
+            
             if (confirm('Are you sure you want to approve this KYC request?')) {
                 const form = document.createElement('form');
                 form.method = 'POST';
@@ -845,17 +1021,35 @@
         }
 
         function rejectKYC(kycId) {
+            console.log('Opening reject modal for KYC:', kycId);
             document.getElementById('rejectKycId').value = kycId;
             document.getElementById('rejectModal').classList.add('active');
         }
 
         function openEditKYCModal(kycId, fullName, idNumber, status, rejectionReason) {
-            document.getElementById('editKycId').value = kycId;
-            document.getElementById('editKycFullName').value = fullName;
-            document.getElementById('editKycIdNumber').value = idNumber;
-            document.getElementById('editKycStatus').value = status;
-            document.getElementById('editKycRejectionReason').value = rejectionReason || '';
-            document.getElementById('editKYCModal').classList.add('active');
+            console.log('Opening edit modal for KYC:', kycId);
+            
+            const editKycId = document.getElementById('editKycId');
+            const editKycFullName = document.getElementById('editKycFullName');
+            const editKycIdNumber = document.getElementById('editKycIdNumber');
+            const editKycStatus = document.getElementById('editKycStatus');
+            const editKycRejectionReason = document.getElementById('editKycRejectionReason');
+            
+            if (editKycId && editKycFullName && editKycIdNumber && editKycStatus && editKycRejectionReason) {
+                editKycId.value = kycId;
+                editKycFullName.value = fullName;
+                editKycIdNumber.value = idNumber;
+                editKycStatus.value = status;
+                editKycRejectionReason.value = rejectionReason || '';
+                document.getElementById('editKYCModal').classList.add('active');
+                
+                // Trigger status change to update required field indicator
+                const event = new Event('change');
+                editKycStatus.dispatchEvent(event);
+            } else {
+                console.error('Edit modal elements not found');
+                showErrorMessage('Error opening edit modal');
+            }
         }
 
         function closeEditKYCModal() {
@@ -868,8 +1062,77 @@
 
         function closeRejectModal() {
             document.getElementById('rejectModal').classList.remove('active');
-            document.querySelector('#rejectModal textarea').value = '';
+            const textarea = document.querySelector('#rejectModal textarea');
+            if (textarea) {
+                textarea.value = '';
+            }
         }
+
+        // Add event listeners for form validation
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM Content Loaded - Setting up event listeners');
+            
+            // Edit KYC form validation
+            const editKYCForm = document.querySelector('#editKYCModal form');
+            if (editKYCForm) {
+                console.log('Edit KYC form found, adding validation');
+                editKYCForm.addEventListener('submit', function(e) {
+                    console.log('Edit KYC form submitted');
+                    if (!validateEditKYCForm()) {
+                        console.log('Edit KYC form validation failed, preventing submission');
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            } else {
+                console.error('Edit KYC form not found');
+            }
+
+            // Reject KYC form validation
+            const rejectKYCForm = document.querySelector('#rejectModal form');
+            if (rejectKYCForm) {
+                console.log('Reject KYC form found, adding validation');
+                rejectKYCForm.addEventListener('submit', function(e) {
+                    console.log('Reject KYC form submitted');
+                    if (!validateRejectKYCForm()) {
+                        console.log('Reject KYC form validation failed, preventing submission');
+                        e.preventDefault();
+                        return false;
+                    }
+                });
+            } else {
+                console.error('Reject KYC form not found');
+            }
+
+            // Status change validation for edit form
+            const statusSelect = document.getElementById('editKycStatus');
+            if (statusSelect) {
+                console.log('Status select found, adding change listener');
+                statusSelect.addEventListener('change', function() {
+                    console.log('Status changed to:', this.value);
+                    const rejectionReasonField = document.getElementById('editKycRejectionReason');
+                    const rejectionReasonGroup = rejectionReasonField ? rejectionReasonField.closest('.form-group') : null;
+                    
+                    if (rejectionReasonField && rejectionReasonGroup) {
+                        if (this.value === 'rejected') {
+                            rejectionReasonField.setAttribute('required', 'required');
+                            rejectionReasonGroup.style.borderLeft = '3px solid #dc3545';
+                            rejectionReasonGroup.style.paddingLeft = '12px';
+                            console.log('Rejection reason marked as required');
+                        } else {
+                            rejectionReasonField.removeAttribute('required');
+                            rejectionReasonGroup.style.borderLeft = '';
+                            rejectionReasonGroup.style.paddingLeft = '';
+                            console.log('Rejection reason requirement removed');
+                        }
+                    } else {
+                        console.error('Rejection reason field or group not found');
+                    }
+                });
+            } else {
+                console.error('Status select not found');
+            }
+        });
 
         // Close modal on outside click
         window.onclick = function(event) {
