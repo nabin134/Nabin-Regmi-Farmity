@@ -905,10 +905,10 @@ class ForgotPasswordView(APIView):
             try:
                 user = User.objects.get(email__iexact=email)
             except User.DoesNotExist:
-                # Don't reveal if email exists for security
+                # Email is not registered in the system
                 return Response(
-                    {"message": "If an account with that email exists, a password reset link has been sent."},
-                    status=status.HTTP_200_OK
+                    {"error": "This email is not registered with Farmity. Please check your email address or create a new account."},
+                    status=status.HTTP_404_NOT_FOUND
                 )
             
             # Generate 6-digit OTP

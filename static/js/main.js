@@ -1046,3 +1046,290 @@ async function handleRegister(e) {
         setSignupFieldError(form, 'non_field_errors', 'Network error. Please check your connection.');
     }
 }
+
+// ======================
+// REUSABLE VALIDATION UTILITIES
+// ======================
+
+/**
+ * Universal Field Validation Utility
+ * Provides consistent validation across all forms in the system
+ */
+window.FormValidator = {
+    // Email validation regex
+    emailRegex: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    
+    // Phone validation regex (10 digits)
+    phoneRegex: /^\d{10}$/,
+    
+    // Password requirements
+    passwordRequirements: {
+        minLength: 8,
+        requireUppercase: true,
+        requireLowercase: true,
+        requireNumber: true,
+        requireSpecial: true
+    },
+
+    /**
+     * Show inline field error
+     * @param {HTMLElement} field - The input field
+     * @param {string} message - Error message to display
+     */
+    showFieldError: function(field, message) {
+        if (!field) return;
+        
+        // Remove existing error
+        this.hideFieldError(field);
+        
+        // Add error styling
+        field.classList.add('field-invalid');
+        
+        // Create or update error element
+        let errorElement = field.parentNode.querySelector('.field-error');
+        if (!errorElement) {
+            errorElement = document.createElement('div');
+            errorElement.className = 'field-error';
+            errorElement.style.cssText = 'color: #dc3545; font-size: 0.85rem; margin-top: 0.5rem; font-weight: 500; display: block;';
+            field.parentNode.appendChild(errorElement);
+        }
+        
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+        
+        // Focus the field
+        field.focus();
+    },
+
+    /**
+     * Hide field error
+     * @param {HTMLElement} field - The input field
+     */
+    hideFieldError: function(field) {
+        if (!field) return;
+        
+        field.classList.remove('field-invalid');
+        
+        const errorElement = field.parentNode.querySelector('.field-error');
+        if (errorElement) {
+            errorElement.style.display = 'none';
+        }
+    },
+
+    /**
+     * Validate email field
+     * @param {HTMLElement} field - Email input field
+     * @param {boolean} required - Whether field is required
+     * @returns {boolean} - True if valid
+     */
+    validateEmail: function(field, required = true) {
+        const value = field.value.trim();
+        
+        if (required && !value) {
+            this.showFieldError(field, 'Email is required.');
+            return false;
+        }
+        
+        if (value && !this.emailRegex.test(value)) {
+            this.showFieldError(field, 'Please enter a valid email address (e.g., user@example.com).');
+            return false;
+        }
+        
+        this.hideFieldError(field);
+        return true;
+    },
+
+    /**
+     * Validate required field
+     * @param {HTMLElement} field - Input field
+     * @param {string} fieldName - Name of the field for error message
+     * @returns {boolean} - True if valid
+     */
+    validateRequired: function(field, fieldName) {
+        const value = field.value.trim();
+        
+        if (!value) {
+            this.showFieldError(field, `${fieldName} is required.`);
+            return false;
+        }
+        
+        this.hideFieldError(field);
+        return true;
+    },
+
+    /**
+     * Validate password strength
+     * @param {HTMLElement} field - Password input field
+     * @param {HTMLElement} confirmField - Confirm password field (optional)
+     * @returns {boolean} - True if valid
+     */
+    validatePassword: function(field, confirmField = null) {
+        const password = field.value;
+        
+        if (!password) {
+            this.showFieldError(field, 'Password is required.');
+            return false;
+        }
+        
+        if (password.length < this.passwordRequirements.minLength) {
+            this.showFieldError(field, `Password must be at least ${this.passwordRequirements.minLength} characters long.`);
+            return false;
+        }
+        
+        if (this.passwordRequirements.requireUppercase && !/[A-Z]/.test(password)) {
+            this.showFieldError(field, 'Password must contain at least 1 uppercase letter.');
+            return false;
+        }
+        
+        if (this.passwordRequirements.requireLowercase && !/[a-z]/.test(password)) {
+            this.showFieldError(field, 'Password must contain at least 1 lowercase letter.');
+            return false;
+        }
+        
+        if (this.passwordRequirements.requireNumber && !/\d/.test(password)) {
+            this.showFieldError(field, 'Password must contain at least 1 number.');
+            return false;
+        }
+        
+        if (this.passwordRequirements.requireSpecial && !/[^A-Za-z0-9]/.test(password)) {
+            this.showFieldError(field, 'Password must contain at least 1 special character.');
+            return false;
+        }
+        
+        // Check password confirmation
+        if (confirmField && confirmField.value) {
+            if (password !== confirmField.value) {
+                this.showFieldError(confirmField, 'Passwords do not match.');
+                return false;
+            } else {
+                this.hideFieldError(confirmField);
+            }
+        }
+        
+        this.hideFieldError(field);
+        return true;
+    },
+
+    /**
+     * Validate phone number (10 digits)
+     * @param {HTMLElement} field - Phone input field
+     * @param {boolean} required - Whether field is required
+     * @returns {boolean} - True if valid
+     */
+    validatePhone: function(field, required = true) {
+        const value = field.value.replace(/\D/g, ''); // Remove non-digits
+        
+        if (required && !value) {
+            this.showFieldError(field, 'Phone number is required.');
+            return false;
+        }
+        
+        if (value && value.length !== 10) {
+            this.showFieldError(field, 'Phone number must be exactly 10 digits.');
+            return false;
+        }
+        
+        this.hideFieldError(field);
+        return true;
+    },
+
+    /**
+     * Add real-time validation to field
+     * @param {HTMLElement} field - Input field
+     * @param {string} type - Validation type (email, required, password, phone)
+     * @param {Object} options - Additional options
+     */
+    addRealtimeValidation: function(field, type, options = {}) {
+        if (!field) return;
+        
+        const validator = this;
+        
+        // Clear error on input
+        field.addEventListener('input', function() {
+            switch (type) {
+                case 'email':
+                    validator.validateEmail(field, options.required);
+                    break;
+                case 'required':
+                    validator.validateRequired(field, options.fieldName || 'Field');
+                    break;
+                case 'password':
+                    validator.validatePassword(field, options.confirmField);
+                    break;
+                case 'phone':
+                    validator.validatePhone(field, options.required);
+                    break;
+            }
+        });
+        
+        // Clear error on focus
+        field.addEventListener('focus', function() {
+            validator.hideFieldError(field);
+        });
+    },
+
+    /**
+     * Validate entire form
+     * @param {HTMLElement} form - Form element
+     * @param {Object} rules - Validation rules
+     * @returns {boolean} - True if form is valid
+     */
+    validateForm: function(form, rules) {
+        if (!form || !rules) return true;
+        
+        let isValid = true;
+        
+        Object.keys(rules).forEach(function(fieldName) {
+            const field = form.querySelector(`[name="${fieldName}"], #${fieldName}`);
+            const rule = rules[fieldName];
+            
+            if (!field) return;
+            
+            switch (rule.type) {
+                case 'email':
+                    if (!this.validateEmail(field, rule.required)) isValid = false;
+                    break;
+                case 'required':
+                    if (!this.validateRequired(field, rule.fieldName || fieldName)) isValid = false;
+                    break;
+                case 'password':
+                    const confirmField = rule.confirmField ? form.querySelector(`[name="${rule.confirmField}"], #${rule.confirmField}`) : null;
+                    if (!this.validatePassword(field, confirmField)) isValid = false;
+                    break;
+                case 'phone':
+                    if (!this.validatePhone(field, rule.required)) isValid = false;
+                    break;
+            }
+        }.bind(this));
+        
+        return isValid;
+    }
+};
+
+// Auto-initialize common validation patterns
+document.addEventListener('DOMContentLoaded', function() {
+    // Add email validation to all email fields
+    document.querySelectorAll('input[type="email"]').forEach(function(field) {
+        FormValidator.addRealtimeValidation(field, 'email', { required: field.hasAttribute('required') });
+    });
+    
+    // Add required validation to all required fields
+    document.querySelectorAll('input[required], select[required], textarea[required]').forEach(function(field) {
+        if (field.type !== 'email') {
+            FormValidator.addRealtimeValidation(field, 'required', { 
+                fieldName: field.getAttribute('data-field-name') || field.name || 'Field' 
+            });
+        }
+    });
+    
+    // Add password validation to password fields
+    document.querySelectorAll('input[type="password"]').forEach(function(field) {
+        const confirmField = field.form.querySelector('input[type="password"][name*="confirm"], input[type="password"][id*="confirm"]');
+        FormValidator.addRealtimeValidation(field, 'password', { confirmField: confirmField });
+    });
+    
+    // Add phone validation to phone fields
+    document.querySelectorAll('input[type="tel"], input[name*="phone"], input[id*="phone"]').forEach(function(field) {
+        FormValidator.addRealtimeValidation(field, 'phone', { required: field.hasAttribute('required') });
+    });
+});
