@@ -32,9 +32,14 @@
                     <span class="search-icon">🔍</span>
                 </form>
                 <div class="weather-info" id="weatherInfo">
-                    <span class="weather-icon" id="weatherIcon">☀️</span>
-                    <span id="weatherTemp">--°C</span>
-                    <span id="weatherLocation" style="font-size:0.75rem;opacity:0.9;">Biratnagar</span>
+                    <div class="weather-main">
+                        <span class="weather-icon" id="weatherIcon">☀️</span>
+                        <span id="weatherTemp">--°C</span>
+                    </div>
+                    <div class="weather-details">
+                        <span id="weatherDesc">Loading...</span>
+                        <span id="currentDate" class="current-date">--</span>
+                    </div>
                 </div>
                 <!-- Auth buttons will be injected here by JS -->
                 <div id="authButtons" class="auth-buttons">
@@ -414,36 +419,146 @@
     <script src="/static/js/main.js"></script>
     <script>
     (function() {
-        // Real-time weather (Open-Meteo, no API key) – Kathmandu default
+        // Enhanced weather system with date and day display
         var weatherEl = document.getElementById('weatherTemp');
         var iconEl = document.getElementById('weatherIcon');
-        // Weather icon labels (ASCII-only to avoid JS parse/lint issues)
-        var codes = { 0:'SUN', 1:'PARTLY', 2:'CLOUD', 3:'OVERCAST', 45:'FOG', 48:'FOG', 51:'RAIN', 61:'RAIN', 80:'SHOWERS', 95:'STORM', 96:'STORM' };
-        function showWeather(temp, code) {
-            if (weatherEl) weatherEl.textContent = (temp != null ? Math.round(temp) : '--') + ' C';
-            if (iconEl) iconEl.textContent = codes[code] || 'TEMP';
+        var descEl = document.getElementById('weatherDesc');
+        var dateEl = document.getElementById('currentDate');
+        
+        // Weather icon mapping with emojis
+        var weatherIcons = {
+            0: '☀️',   // Clear sky
+            1: '🌤️',   // Mainly clear
+            2: '⛅',   // Partly cloudy
+            3: '☁️',   // Overcast
+            45: '🌫️',  // Fog
+            48: '🌫️',  // Fog
+            51: '🌦️',  // Drizzle
+            53: '🌦️',  // Drizzle
+            55: '🌦️',  // Drizzle
+            56: '🌧️',  // Freezing drizzle
+            57: '🌧️',  // Freezing drizzle
+            61: '🌧️',  // Rain
+            63: '🌧️',  // Rain
+            65: '🌧️',  // Rain
+            66: '🌨️',  // Freezing rain
+            67: '🌨️',  // Freezing rain
+            71: '🌨️',  // Snow
+            73: '🌨️',  // Snow
+            75: '🌨️',  // Snow
+            77: '🌨️',  // Snow
+            80: '🌦️',  // Showers
+            81: '🌦️',  // Showers
+            82: '🌦️',  // Showers
+            85: '🌨️',  // Snow
+            86: '🌨️',  // Snow
+            95: '⛈️',  // Thunderstorm
+            96: '⛈️',  // Thunderstorm
+            99: '⛈️'    // Thunderstorm
+        };
+        
+        // Weather descriptions
+        var weatherDescriptions = {
+            0: 'Clear sky',
+            1: 'Mainly clear',
+            2: 'Partly cloudy',
+            3: 'Overcast',
+            45: 'Fog',
+            48: 'Fog',
+            51: 'Light drizzle',
+            53: 'Drizzle',
+            55: 'Dense drizzle',
+            56: 'Light freezing drizzle',
+            57: 'Dense freezing drizzle',
+            61: 'Slight rain',
+            63: 'Moderate rain',
+            65: 'Heavy rain',
+            66: 'Light freezing rain',
+            67: 'Heavy freezing rain',
+            71: 'Slight snow',
+            73: 'Moderate snow',
+            75: 'Heavy snow',
+            77: 'Snow grains',
+            80: 'Slight rain showers',
+            81: 'Moderate rain showers',
+            82: 'Violent rain showers',
+            85: 'Slight snow showers',
+            86: 'Heavy snow showers',
+            95: 'Thunderstorm',
+            96: 'Thunderstorm with hail',
+            99: 'Thunderstorm with hail'
+        };
+        
+        // Update current date and day
+        function updateDateTime() {
+            var now = new Date();
+            var days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+            var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+            
+            var dayName = days[now.getDay()];
+            var monthName = months[now.getMonth()];
+            var date = now.getDate();
+            var year = now.getFullYear();
+            
+            var dateString = dayName + ', ' + monthName + ' ' + date + ', ' + year;
+            if (dateEl) dateEl.textContent = dateString;
         }
+        
+        function showWeather(temp, code) {
+            if (weatherEl) weatherEl.textContent = (temp != null ? Math.round(temp) : '--') + '°C';
+            if (iconEl) iconEl.textContent = weatherIcons[code] || '🌡️';
+            if (descEl) descEl.textContent = weatherDescriptions[code] || 'Unknown';
+        }
+        
         function fetchWeather() {
+            // Default to Kathmandu coordinates
             var lat = 27.7172, lon = 85.3240;
+            
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
-                    function(p) { lat = p.coords.latitude; lon = p.coords.longitude; request(); },
-                    function() { request(); },
+                    function(position) { 
+                        lat = position.coords.latitude; 
+                        lon = position.coords.longitude; 
+                        request(); 
+                    },
+                    function() { 
+                        console.log('Using default location (Kathmandu)'); 
+                        request(); 
+                    },
                     { timeout: 5000 }
                 );
-            } else { request(); }
+            } else { 
+                request(); 
+            }
+            
             function request() {
                 fetch('https://api.open-meteo.com/v1/forecast?latitude=' + lat + '&longitude=' + lon + '&current=temperature_2m,weather_code')
-                    .then(function(r) { return r.json(); })
-                    .then(function(d) {
-                        if (d && d.current) {
-                            showWeather(d.current.temperature_2m, d.current.weather_code);
+                    .then(function(response) { 
+                        if (!response.ok) throw new Error('Weather API error');
+                        return response.json(); 
+                    })
+                    .then(function(data) {
+                        if (data && data.current) {
+                            showWeather(data.current.temperature_2m, data.current.weather_code);
+                            console.log('Weather updated successfully:', data.current);
                         }
                     })
-                    .catch(function() { showWeather(null, 0); });
+                    .catch(function(error) { 
+                        console.error('Weather fetch error:', error);
+                        showWeather(null, 0); // Show default values
+                    });
             }
         }
+        
+        // Initialize
+        updateDateTime();
         fetchWeather();
+        
+        // Update date every minute
+        setInterval(updateDateTime, 60000);
+        
+        // Update weather every 10 minutes
+        setInterval(fetchWeather, 600000);
 
         // Search: filter cards by query
         var form = document.getElementById('landingSearchForm');
