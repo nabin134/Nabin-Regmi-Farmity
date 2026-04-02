@@ -1,16 +1,20 @@
 """
-ASGI config for config project.
-
-It exposes the ASGI callable as a module-level variable named ``application``.
-
-For more information on this file, see
-https://docs.djangoproject.com/en/5.2/howto/deployment/asgi/
+ASGI config for Farmity project with WebSocket support.
 """
-
 import os
-
-from django.core.asgi import get_asgi_application
+import django
+from channels.routing import get_default_application
+from channels.auth import AuthMiddlewareStack
+from channels.security.websocket import AllowedHostsOriginValidator
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Farmity.settings')
+django.setup()
 
-application = get_asgi_application()
+# Get Channels-enabled application
+application = get_default_application()
+
+# Add WebSocket security middleware
+application = AuthMiddlewareStack(
+    application,
+    AllowedHostsOriginValidator(['localhost', '127.0.0.1', '0.0.0.0'])
+)

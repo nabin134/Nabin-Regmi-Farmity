@@ -919,68 +919,73 @@
                 .then(data => {
                     console.log('KYC data received:', data);
                     const modalBody = document.getElementById('modalBody');
-                    modalBody.innerHTML = `
-                        <div class="document-preview">
-                            <div class="document-item">
-                                <div class="document-label">User Email:</div>
-                                <div>${data.user_email}</div>
-                            </div>
-                            <div class="document-item">
-                                <div class="document-label">Full Name:</div>
-                                <div>${data.full_name}</div>
-                            </div>
-                            <div class="document-item">
-                                <div class="document-label">ID Number:</div>
-                                <div>${data.id_number}</div>
-                            </div>
-                            <div class="document-item">
-                                <div class="document-label">Role:</div>
-                                <div>${data.role}</div>
-                            </div>
-                            <div class="document-item">
-                                <div class="document-label">Status:</div>
-                                <span class="status-badge ${data.status}">${data.status_display}</span>
-                            </div>
-                            <div class="document-item">
-                                <div class="document-label">ID Document:</div>
-                                <a href="${data.id_document}" target="_blank" class="document-link">
-                                    <i class="fas fa-file-pdf"></i> View ID Document
-                                </a>
-                            </div>
-                            ${data.selfie ? `
-                            <div class="document-item">
-                                <div class="document-label">Selfie:</div>
-                                <a href="${data.selfie}" target="_blank" class="document-link">
-                                    <i class="fas fa-image"></i> View Selfie
-                                </a>
-                            </div>
-                            ` : ''}
-                            ${data.company_document ? `
-                            <div class="document-item">
-                                <div class="document-label">Company Document:</div>
-                                <a href="${data.company_document}" target="_blank" class="document-link">
-                                    <i class="fas fa-file-pdf"></i> View Company Document
-                                </a>
-                            </div>
-                            ` : ''}
-                            ${data.certificate_document ? `
-                            <div class="document-item">
-                                <div class="document-label">Certificate Document:</div>
-                                <a href="${data.certificate_document}" target="_blank" class="document-link">
-                                    <i class="fas fa-file-pdf"></i> View Certificate
-                                </a>
-                            </div>
-                            ` : ''}
-                            ${data.rejection_reason ? `
-                            <div class="document-item">
-                                <div class="document-label">Rejection Reason:</div>
-                                <div style="padding: 12px; background: #f8d7da; border-radius: 6px; color: #721c24;">
-                                    ${data.rejection_reason}
-                                </div>
-                            </div>
-                            ` : ''}
-                        </div>
-                    `;
+                    
+                    var html = '<div class="document-preview">' +
+                        '<div class="document-item">' +
+                            '<div class="document-label">User Email:</div>' +
+                            '<div>' + data.user_email + '</div>' +
+                        '</div>' +
+                        '<div class="document-item">' +
+                            '<div class="document-label">Full Name:</div>' +
+                            '<div>' + data.full_name + '</div>' +
+                        '</div>' +
+                        '<div class="document-item">' +
+                            '<div class="document-label">ID Number:</div>' +
+                            '<div>' + data.id_number + '</div>' +
+                        '</div>' +
+                        '<div class="document-item">' +
+                            '<div class="document-label">Role:</div>' +
+                            '<div>' + data.role + '</div>' +
+                        '</div>' +
+                        '<div class="document-item">' +
+                            '<div class="document-label">Status:</div>' +
+                            '<span class="status-badge ' + data.status + '">' + data.status_display + '</span>' +
+                        '</div>' +
+                        '<div class="document-item">' +
+                            '<div class="document-label">ID Document:</div>' +
+                            '<a href="' + data.id_document + '" target="_blank" class="document-link">' +
+                                '<i class="fas fa-file-pdf"></i> View ID Document' +
+                            '</a>' +
+                        '</div>';
+                    
+                    if (data.selfie) {
+                        html += '<div class="document-item">' +
+                            '<div class="document-label">Selfie:</div>' +
+                            '<a href="' + data.selfie + '" target="_blank" class="document-link">' +
+                                '<i class="fas fa-image"></i> View Selfie' +
+                            '</a>' +
+                        '</div>';
+                    }
+                    
+                    if (data.company_document) {
+                        html += '<div class="document-item">' +
+                            '<div class="document-label">Company Document:</div>' +
+                            '<a href="' + data.company_document + '" target="_blank" class="document-link">' +
+                                '<i class="fas fa-file-pdf"></i> View Company Document' +
+                            '</a>' +
+                        '</div>';
+                    }
+                    
+                    if (data.certificate_document) {
+                        html += '<div class="document-item">' +
+                            '<div class="document-label">Certificate Document:</div>' +
+                            '<a href="' + data.certificate_document + '" target="_blank" class="document-link">' +
+                                '<i class="fas fa-file-pdf"></i> View Certificate' +
+                            '</a>' +
+                        '</div>';
+                    }
+                    
+                    if (data.rejection_reason) {
+                        html += '<div class="document-item">' +
+                            '<div class="document-label">Rejection Reason:</div>' +
+                            '<div style="padding: 12px; background: #f8d7da; border-radius: 6px; color: #721c24;">' +
+                                data.rejection_reason +
+                            '</div>' +
+                        '</div>';
+                    }
+                    
+                    html += '</div>';
+                    modalBody.innerHTML = html;
                     document.getElementById('viewModal').classList.add('active');
                 })
                 .catch(error => {
@@ -992,32 +997,36 @@
         function approveKYC(kycId) {
             console.log('Approving KYC:', kycId);
             
-            if (confirm('Are you sure you want to approve this KYC request?')) {
-                const form = document.createElement('form');
-                form.method = 'POST';
-                form.action = '{% url "admin_kyc_management" %}';
-                
-                const csrf = document.createElement('input');
-                csrf.type = 'hidden';
-                csrf.name = 'csrfmiddlewaretoken';
-                csrf.value = '{{ csrf_token }}';
-                form.appendChild(csrf);
-                
-                const kycInput = document.createElement('input');
-                kycInput.type = 'hidden';
-                kycInput.name = 'kyc_id';
-                kycInput.value = kycId;
-                form.appendChild(kycInput);
-                
-                const actionInput = document.createElement('input');
-                actionInput.type = 'hidden';
-                actionInput.name = 'action';
-                actionInput.value = 'approve';
-                form.appendChild(actionInput);
-                
-                document.body.appendChild(form);
-                form.submit();
+            // Create and submit form programmatically
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{% url "admin_kyc_management" %}';
+            
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = 'csrfmiddlewaretoken';
+            csrf.value = '{{ csrf_token }}';
+            form.appendChild(csrf);
+            
+            const kycInput = document.createElement('input');
+            kycInput.type = 'hidden';
+            kycInput.name = 'kyc_id';
+            kycInput.value = kycId;
+            form.appendChild(kycInput);
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'approve';
+            form.appendChild(actionInput);
+            
+            // Show success message before form submission
+            if (window.SuccessMessage) {
+                SuccessMessage.showActionSuccess('KYC Approved', `KYC ID: ${kycId}`);
             }
+            
+            document.body.appendChild(form);
+            form.submit();
         }
 
         function rejectKYC(kycId) {

@@ -6,6 +6,7 @@
     <title>Chat - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="/static/js/websockets.js"></script>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #E9EBF1; min-height: 100vh; display: flex; flex-direction: column; margin: 0; }
         .main-content { flex: 1; padding: 1rem; max-width: 700px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; }
@@ -83,7 +84,7 @@
                 <p>{{ thread.expert.specialization|default:"Agricultural Expert" }}</p>
             </div>
 
-            <div class="chat-messages">
+            <div class="chat-messages" id="chat-messages" data-thread-id="{{ thread.id }}">
                 {% if messages_list %}
                     {% for msg in messages_list %}
                     <div class="msg {% if msg.sender_id == request.user.id %}sent{% else %}received{% endif %}">
@@ -102,15 +103,38 @@
             </div>
 
             <div class="chat-form">
-                <form method="POST" action="">
+                <form id="chat-form" onsubmit="return false;">
                     {% csrf_token %}
-                    <input type="text" name="message" placeholder="Type your message..." required autocomplete="off">
-                    <button type="submit"><i class="fas fa-paper-plane"></i> Send</button>
+                    <input type="text" id="message-input" name="message" placeholder="Type your message..." required autocomplete="off">
+                    <button type="button" onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i> Send</button>
                 </form>
             </div>
         </div>
     </main>
     {% include 'support_widget.html' %}
     {% include 'includes/user_dashboard_scroll.html' %}
+    <script>
+    // Initialize WebSocket chat when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        if (window.realTimeChat && window.wsManager) {
+            window.realTimeChat.init({
+                onMessage: function(data) {
+                    console.log('New message received via WebSocket:', data);
+                }
+            });
+        }
+    });
+
+    // Send chat message via WebSocket
+    function sendChatMessage() {
+        const messageInput = document.getElementById('message-input');
+        const message = messageInput.value.trim();
+        
+        if (message && window.realTimeChat) {
+            window.realTimeChat.sendMessage(message);
+            messageInput.value = '';
+        }
+    }
+    </script>
 </body>
 </html>

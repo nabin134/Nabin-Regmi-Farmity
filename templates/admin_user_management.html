@@ -977,17 +977,17 @@
             
             if (action === 'activate') {
                 modalTitle.textContent = 'Activate User';
-                modalMessage.textContent = `Are you sure you want to activate the user "${email}"?`;
+                modalMessage.textContent = 'Are you sure you want to activate the user "' + email + '"?';
                 confirmBtn.textContent = 'Activate';
                 confirmBtn.className = 'btn btn-activate';
             } else if (action === 'deactivate') {
                 modalTitle.textContent = 'Deactivate User';
-                modalMessage.textContent = `Are you sure you want to deactivate the user "${email}"?`;
+                modalMessage.textContent = 'Are you sure you want to deactivate the user "' + email + '"?';
                 confirmBtn.textContent = 'Deactivate';
                 confirmBtn.className = 'btn btn-deactivate';
             } else if (action === 'block') {
                 modalTitle.textContent = 'Block User';
-                modalMessage.textContent = `Are you sure you want to block the user "${email}"? This will deactivate their account.`;
+                modalMessage.textContent = 'Are you sure you want to block the user "' + email + '"? This will deactivate their account.';
                 confirmBtn.textContent = 'Block';
                 confirmBtn.className = 'btn btn-block';
             }
@@ -1126,8 +1126,41 @@
         // Delete User Functions
         function confirmDeleteUser(userId, email) {
             document.getElementById('deleteUserId').value = userId;
-            document.getElementById('deleteUserMessage').textContent = `Are you sure you want to delete the user "${email}"? This action cannot be undone and will delete all associated data.`;
+            document.getElementById('deleteUserMessage').textContent = 'Are you sure you want to delete the user "' + email + '"? This action cannot be undone and will delete all associated data.';
             document.getElementById('deleteUserModal').classList.add('active');
+        }
+
+        function deleteUserWithSuccess(userId, email) {
+            // Show success message before form submission
+            if (window.SuccessMessage) {
+                SuccessMessage.showCrudSuccess('Delete', 'User', email);
+            }
+            
+            // Create and submit form programmatically
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = '{% url "admin_user_management" %}';
+            
+            const csrf = document.createElement('input');
+            csrf.type = 'hidden';
+            csrf.name = 'csrfmiddlewaretoken';
+            csrf.value = '{{ csrf_token }}';
+            form.appendChild(csrf);
+            
+            const actionInput = document.createElement('input');
+            actionInput.type = 'hidden';
+            actionInput.name = 'action';
+            actionInput.value = 'delete_user';
+            form.appendChild(actionInput);
+            
+            const userIdInput = document.createElement('input');
+            userIdInput.type = 'hidden';
+            userIdInput.name = 'user_id';
+            userIdInput.value = userId;
+            form.appendChild(userIdInput);
+            
+            document.body.appendChild(form);
+            form.submit();
         }
 
         function closeDeleteUserModal() {

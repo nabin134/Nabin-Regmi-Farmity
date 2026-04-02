@@ -1,0 +1,335 @@
+"""
+WebSocket consumers for real-time chat, appointments, and notifications.
+"""
+import json
+from channels.generic.websocket import AsyncWebsocketConsumer
+from channels.db import database_sync_to_async
+from channels.exceptions import StopConsumer
+from django.contrib.auth.models import AnonymousUser
+from channels.auth import login
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
+from accounts.models import ExpertChatThread, ExpertChatMessage, ExpertAppointment
+from django.utils import timezone
+from datetime import timedelta
+
+
+class ChatConsumer(AsyncWebsocketConsumer):
+    """Real-time chat consumer."""
+    
+    async def connect(self):
+        """Accept WebSocket connection and authenticate user."""
+        self.user = self.scope["user"]
+        if self.user == AnonymousUser():
+            await self.close()
+            return
+        
+        self.thread_id = self.scope['url_route']['kwargs']['thread_id']
+        
+        # Verify user has access to this chat thread
+        try:
+            thread = await database_sync_to_async(
+                ExpertChatThread.objects.select_related('expert', 'created_by').get
+            )(id=self.thread_id)
+            
+            # Check if user is expert in thread or thread creator
+            if (thread.expert.user == self.user or 
+                thread.created_by == self.user):
+                
+                # Accept connection
+                await self.accept()
+                
+                # Add user to chat group
+                self.chat_group_name = f'chat_{self.thread_id}'
+                await self.channel_layer.group_add(
+                    self.chat_group_name,
+                    self.channel_name
+                )
+                
+                # Send connection confirmation
+                await self.send(text_data=json.dumps({
+                    'type': 'connection',
+                    'message': 'Connected to chat',
+                    'user': self.user.email
+                }))
+            else:
+                await self.close()
+        except ExpertChatThread.DoesNotExist:
+            await self.close()
+    
+    async def disconnect(self, close_code):
+        """Handle WebSocket disconnection."""
+        if hasattr(self, 'chat_group_name'):
+            await self.channel_layer.group_discard(
+                self.chat_group_name,
+                self.channel_name
+            )
+    
+    async def receive(self, text_data):
+        """Handle incoming WebSocket messages."""
+        try:
+            data = json.loads(text_data)
+            message_type = data.get('type')
+            
+            if message_type == 'chat_message':
+                message_text = data.get('message', '').strip()
+                
+                if message_text:
+                    # Save message to database
+                    try:
+                        thread = await database_sync_to_async(
+                            ExpertChatThread.objects.get
+                        )(id=self.thread_id)
+                        
+                        message = await database_sync_to_async(
+                            ExpertChatMessage.objects.create
+                        )(
+                            thread=thread,
+                            sender=self.user,
+                            message=message_text
+                        )
+                        
+                        # Update thread timestamp
+                        thread.updated_at = timezone.now()
+                        await database_sync_to_async(thread.save)()
+                        
+                        # Broadcast message to all users in chat
+                        await self.channel_layer.group_send(
+                            self.chat_group_name,
+                            {
+                                'type': 'chat_message',
+                                'message': message_text,
+                                'sender': self.user.email,
+                                'sender_id': self.user.id,
+                                'timestamp': message.created_at.isoformat(),
+                                'message_id': message.id
+                            }
+                        )
+                        
+                    except Exception as e:
+                        await self.send(text_data=json.dumps({
+                            'type': 'error',
+                            'message': f'Failed to send message: {str(e)}'
+                        }))
+            else:
+                await self.send(text_data=json.dumps({
+                    'type': 'error',
+                    'message': 'Invalid message type'
+                }))
+                
+        except json.JSONDecodeError:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'Invalid JSON format'
+            }))
+
+
+class AppointmentConsumer(AsyncWebsocketConsumer):
+    """Real-time appointment updates consumer."""
+    
+    async def connect(self):
+        """Accept WebSocket connection and authenticate user."""
+        self.user = self.scope["user"]
+        if self.user == AnonymousUser():
+            await self.close()
+            return
+        
+        # Add user to their personal appointment group
+        self.appointment_group = f'appointments_{self.user.id}'
+        await self.channel_layer.group_add(
+            self.appointment_group,
+            self.channel_name
+        )
+        
+        await self.accept()
+        
+        # Send initial appointment data
+        await self.send_user_appointments()
+    
+    async def disconnect(self, close_code):
+        """Handle WebSocket disconnection."""
+        if hasattr(self, 'appointment_group'):
+            await self.channel_layer.group_discard(
+                self.appointment_group,
+                self.channel_name
+            )
+    
+    async def receive(self, text_data):
+        """Handle incoming WebSocket messages for appointment updates."""
+        try:
+            data = json.loads(text_data)
+            message_type = data.get('type')
+            
+            if message_type == 'get_appointments':
+                await self.send_user_appointments()
+            elif message_type == 'mark_available':
+                # Expert marking themselves as available
+                if self.user.role == 'agricultural_expert':
+                    await self.update_expert_availability(data)
+                    
+        except json.JSONDecodeError:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'Invalid JSON format'
+            }))
+    
+    async def send_user_appointments(self):
+        """Send user's current appointments."""
+        try:
+            if self.user.role == 'agricultural_expert':
+                # Expert - get appointments where they are the expert
+                appointments = await database_sync_to_async(
+                    ExpertAppointment.objects.filter(
+                        expert__user=self.user
+                    ).select_related('requester').order_by('-created_at')
+                )()
+            else:
+                # Other roles - get appointments they requested
+                appointments = await database_sync_to_async(
+                    ExpertAppointment.objects.filter(
+                        requester=self.user
+                    ).select_related('expert', 'expert__user').order_by('-created_at')
+                )()
+            
+            appointments_data = []
+            for appointment in appointments:
+                appointments_data.append({
+                    'id': appointment.id,
+                    'requested_date': appointment.requested_date.isoformat(),
+                    'requested_time': appointment.requested_time.isoformat() if appointment.requested_time else None,
+                    'status': appointment.status,
+                    'message': appointment.message,
+                    'response_message': appointment.response_message,
+                    'created_at': appointment.created_at.isoformat()
+                })
+            
+            await self.send(text_data=json.dumps({
+                'type': 'appointments_list',
+                'appointments': appointments_data
+            }))
+            
+        except Exception as e:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': f'Failed to load appointments: {str(e)}'
+            }))
+    
+    async def update_expert_availability(self, data):
+        """Update expert availability and notify clients."""
+        try:
+            from accounts.models import ExpertAvailability
+            
+            date_str = data.get('date')
+            start_time = data.get('start_time')
+            end_time = data.get('end_time')
+            notes = data.get('notes', '')
+            
+            if date_str:
+                # Create or update availability
+                await database_sync_to_async(
+                    ExpertAvailability.objects.update_or_create
+                )(
+                    expert__user=self.user,
+                    date=date_str,
+                    defaults={
+                        'start_time': start_time,
+                        'end_time': end_time,
+                        'notes': notes
+                    }
+                )
+                
+                # Broadcast availability update
+                await self.channel_layer.group_send(
+                    f'expert_{self.user.id}_availability',
+                    {
+                        'type': 'availability_updated',
+                        'expert_id': self.user.id,
+                        'date': date_str,
+                        'start_time': start_time,
+                        'end_time': end_time,
+                        'notes': notes
+                    }
+                )
+                
+        except Exception as e:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': f'Failed to update availability: {str(e)}'
+            }))
+
+
+class NotificationConsumer(AsyncWebsocketConsumer):
+    """Real-time notifications consumer."""
+    
+    async def connect(self):
+        """Accept WebSocket connection and authenticate user."""
+        self.user = self.scope["user"]
+        if self.user == AnonymousUser():
+            await self.close()
+            return
+        
+        # Add user to their personal notification group
+        self.notification_group = f'notifications_{self.user.id}'
+        await self.channel_layer.group_add(
+            self.notification_group,
+            self.channel_name
+        )
+        
+        await self.accept()
+        
+        # Send connection confirmation
+        await self.send(text_data=json.dumps({
+            'type': 'connection',
+            'message': 'Connected to notifications',
+            'user': self.user.email
+        }))
+    
+    async def disconnect(self, close_code):
+        """Handle WebSocket disconnection."""
+        if hasattr(self, 'notification_group'):
+            await self.channel_layer.group_discard(
+                self.notification_group,
+                self.channel_name
+            )
+    
+    async def receive(self, text_data):
+        """Handle incoming WebSocket messages for notifications."""
+        try:
+            data = json.loads(text_data)
+            message_type = data.get('type')
+            
+            if message_type == 'mark_read':
+                # Mark notification as read
+                notification_id = data.get('notification_id')
+                if notification_id:
+                    await self.mark_notification_read(notification_id)
+                    
+        except json.JSONDecodeError:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': 'Invalid JSON format'
+            }))
+    
+    async def mark_notification_read(self, notification_id):
+        """Mark a notification as read."""
+        try:
+            from accounts.models import UserNotification
+            
+            await database_sync_to_async(
+                UserNotification.objects.filter(
+                    id=notification_id,
+                    user=self.user
+                ).update
+            )(is_read=True)
+            
+            # Send confirmation
+            await self.send(text_data=json.dumps({
+                'type': 'notification_marked_read',
+                'notification_id': notification_id
+            }))
+            
+        except Exception as e:
+            await self.send(text_data=json.dumps({
+                'type': 'error',
+                'message': f'Failed to mark notification as read: {str(e)}'
+            }))

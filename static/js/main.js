@@ -1333,3 +1333,156 @@ document.addEventListener('DOMContentLoaded', function() {
         FormValidator.addRealtimeValidation(field, 'phone', { required: field.hasAttribute('required') });
     });
 });
+
+// ======================
+// UNIVERSAL SUCCESS MESSAGE UTILITIES
+// ======================
+
+/**
+ * Universal Success Message Utility
+ * Provides consistent success message display across all forms in the system
+ */
+window.SuccessMessage = {
+    /**
+     * Show success message using the admin messaging system
+     * @param {string} message - Success message to display
+     * @param {number} duration - Auto-dismiss duration in milliseconds (default: 5000)
+     */
+    show: function(message, duration = 5000) {
+        console.log('Showing success message:', message);
+        
+        // Try multiple selectors to find the container
+        let messagesContainer = document.querySelector('.dashboard-content') ||
+                              document.querySelector('main') ||
+                              document.querySelector('body') ||
+                              document.querySelector('.content-wrapper');
+        
+        if (!messagesContainer) {
+            console.warn('Could not find messages container');
+            // Fallback to alert if no container found
+            alert(message);
+            return;
+        }
+        
+        // Check if messages wrapper already exists
+        let messagesWrapper = messagesContainer.querySelector('.admin-messages-wrap');
+        if (!messagesWrapper) {
+            // Insert messages wrapper at the top of the container
+            const existingMessages = messagesContainer.querySelector('.admin-messages');
+            if (existingMessages) {
+                messagesWrapper = existingMessages;
+            } else {
+                messagesWrapper = document.createElement('div');
+                messagesWrapper.className = 'admin-messages-wrap messages-auto-dismiss';
+                messagesWrapper.setAttribute('data-dismiss-ms', duration.toString());
+                messagesWrapper.setAttribute('aria-live', 'polite');
+                
+                const innerWrapper = document.createElement('div');
+                innerWrapper.className = 'admin-messages-inner';
+                messagesWrapper.appendChild(innerWrapper);
+                
+                messagesContainer.insertBefore(messagesWrapper, messagesContainer.firstChild);
+            }
+        }
+        
+        // Create success message element
+        const messageHtml = `
+            <div class="admin-messages-wrap messages-auto-dismiss" data-dismiss-ms="${duration}" aria-live="polite">
+                <div class="admin-messages-inner">
+                    <div class="message-alert msg-success" role="status">
+                        <span class="msg-icon" aria-hidden="true">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                        <span class="msg-text">${this.escapeHtml(message)}</span>
+                        <button type="button" class="msg-close" aria-label="Dismiss message" onclick="this.closest('.admin-messages-wrap').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Insert the message
+        messagesContainer.insertAdjacentHTML('afterbegin', messageHtml);
+        
+        // Auto-dismiss after duration
+        setTimeout(function() {
+            const msgElement = messagesContainer.querySelector('.admin-messages-wrap.messages-auto-dismiss');
+            if (msgElement) {
+                msgElement.classList.add('messages-hidden');
+                setTimeout(function() {
+                    msgElement.remove();
+                }, 300);
+            }
+        }, duration);
+    },
+
+    /**
+     * Show success message for form actions
+     * @param {string} action - The action performed (e.g., 'KYC Verified', 'User Deleted')
+     * @param {string} target - The target of the action (e.g., user email, KYC ID)
+     */
+    showActionSuccess: function(action, target) {
+        const message = target ? `${action} successfully for: ${target}` : `${action} successful`;
+        this.show(message);
+    },
+
+    /**
+     * Show success message for CRUD operations
+     * @param {string} operation - Operation type (Create, Update, Delete)
+     * @param {string} itemType - Type of item (User, KYC Request, etc.)
+     * @param {string} identifier - Item identifier (name, email, ID)
+     */
+    showCrudSuccess: function(operation, itemType, identifier) {
+        const message = `${itemType} ${operation}d successfully${identifier ? `: ${identifier}` : ''}`;
+        this.show(message);
+    },
+
+    /**
+     * Escape HTML to prevent XSS
+     * @param {string} text - Text to escape
+     * @returns {string} - Escaped text
+     */
+    escapeHtml: function(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
+    /**
+     * Show success message and optionally redirect
+     * @param {string} message - Success message
+     * @param {string} redirectUrl - URL to redirect to (optional)
+     * @param {number} delay - Redirect delay in milliseconds (default: 2000)
+     */
+    showWithRedirect: function(message, redirectUrl, delay = 2000) {
+        this.show(message);
+        
+        if (redirectUrl) {
+            setTimeout(function() {
+                window.location.href = redirectUrl;
+            }, delay);
+        }
+    }
+};
+
+// Auto-initialize success messages for common actions
+document.addEventListener('DOMContentLoaded', function() {
+    // Check for URL parameters that indicate success
+    const urlParams = new URLSearchParams(window.location.search);
+    const successParam = urlParams.get('success');
+    const actionParam = urlParams.get('action');
+    const targetParam = urlParams.get('target');
+    
+    if (successParam === 'true' && actionParam) {
+        if (targetParam) {
+            SuccessMessage.showActionSuccess(actionParam.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), targetParam);
+        } else {
+            SuccessMessage.show(`${actionParam.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} successful`);
+        }
+        
+        // Clean up URL parameters
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+    }
+});
