@@ -185,6 +185,7 @@ def send_branded_email(
         f"{title}\n\n"
         f"{message}\n\n"
         + (f"Action: {cta_link}\n" if cta_link else "")
+        + "Visit Farmity: https://tinyurl.com/Farmity\n\n"
         + "Thank you,\nFarmity Team\n"
     )
 
@@ -204,7 +205,8 @@ def send_branded_email(
           {f'<div style="margin-top:22px;"><a href="{safe_cta_link}" style="display:inline-block;background:{primary};color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:10px;font-weight:600;font-size:14px;">{safe_cta_text}</a></div>' if cta_link else ''}
         </div>
         <div style="padding:14px 24px;background:#f9fafb;border-top:1px solid #e5e7eb;color:#6b7280;font-size:12px;">
-          This is an automated email from Farmity. Please do not reply directly.
+          This is an automated email from Farmity. Please do not reply directly.<br>
+          Visit us: <a href="https://tinyurl.com/Farmity" style="color:#6b7280;text-decoration:underline;">https://tinyurl.com/Farmity</a>
         </div>
       </div>
     </div>

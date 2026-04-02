@@ -322,6 +322,7 @@ class SignupView(APIView):
                         message=(
                             f'Your Farmity verification code is: {otp.otp_code}\n\n'
                             f'This code will expire in 30 minutes.\n\n'
+                            f'Visit Farmity: https://tinyurl.com/Farmity\n\n'
                             f'If you did not create this account, please ignore this email.'
                         ),
                         from_email=settings.DEFAULT_FROM_EMAIL,
@@ -516,6 +517,7 @@ class ResendEmailVerificationView(APIView):
                     message=(
                         f'Your Farmity verification code is: {otp.otp_code}\n\n'
                         f'This code will expire in 30 minutes.\n\n'
+                        f'Visit Farmity: https://tinyurl.com/Farmity\n\n'
                         f'If you did not create this account, please ignore this email.'
                     ),
                     from_email=settings.DEFAULT_FROM_EMAIL,
@@ -646,7 +648,7 @@ class LoginView(APIView):
             try:
                 send_mail(
                     subject='Your Login OTP - Farmity',
-                    message=f'Your OTP code is: {otp.otp_code}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.',
+                    message=f'Your OTP code is: {otp.otp_code}\n\nThis code will expire in 10 minutes.\n\nClick here to enter your OTP: {request.build_absolute_uri("/otp-verification/")}\n\nVisit Farmity: https://tinyurl.com/Farmity\n\nIf you did not request this, please ignore this email.',
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[user.email],
                     fail_silently=False,
@@ -847,7 +849,7 @@ class ResendOTPView(APIView):
             try:
                 send_mail(
                     subject='Your Login OTP - Farmity',
-                    message=f'Your OTP code is: {otp.otp_code}\n\nThis code will expire in 10 minutes.\n\nIf you did not request this, please ignore this email.',
+                    message=f'Your OTP code is: {otp.otp_code}\n\nThis code will expire in 10 minutes.\n\nClick here to enter your OTP: {request.build_absolute_uri("/otp-verification/")}\n\nVisit Farmity: https://tinyurl.com/Farmity\n\nIf you did not request this, please ignore this email.',
                     from_email=settings.DEFAULT_FROM_EMAIL,
                     recipient_list=[user.email],
                     fail_silently=False,
@@ -943,6 +945,10 @@ You requested to reset your password for your Farmity account (email: {recipient
 Your One-Time Password (OTP) is: {otp}
 
 This OTP will expire in 10 minutes.
+
+Click here to directly enter your OTP: {request.build_absolute_uri('/otp-verification/?token=' + token)}
+
+Visit Farmity: https://tinyurl.com/Farmity
 
 If you didn't request this, please ignore this email.
 
