@@ -6,6 +6,7 @@
     <title>Sign In - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/form-validation.css">
     <style>
         * {
             margin: 0;
@@ -397,7 +398,7 @@
             display: block;
         }
 
-        /* Inline field errors (match signup: red border + light pink fill) */
+        /* Inline field errors (ONLY below text boxes, remove right-side positioning) */
         .login-field-error {
             display: none;
             margin: 0.4rem 0 0 0;
@@ -406,6 +407,9 @@
             font-weight: 500;
             color: #b91c1c;
             line-height: 1.4;
+            text-align: left;
+            width: 100%;
+            clear: both;
         }
         .login-field-error.show {
             display: block;
@@ -414,6 +418,28 @@
             border: 1px solid #dc2626 !important;
             background: rgba(254, 226, 226, 0.45) !important;
             box-shadow: none !important;
+        }
+        
+        /* Remove any right-side or absolute positioning for ALL error elements */
+        .input-wrapper {
+            position: relative;
+        }
+        .login-field-error {
+            position: static !important;
+            right: auto !important;
+            top: auto !important;
+            left: auto !important;
+            bottom: auto !important;
+            width: 100% !important;
+            margin: 0.4rem 0 0 0 !important;
+            clear: both !important;
+        }
+        
+        /* Also fix Django messages positioning */
+        .message-alert {
+            position: static !important;
+            width: 100% !important;
+            margin: 0.5rem 0 !important;
         }
 
         @media (max-width: 968px) {
@@ -624,7 +650,134 @@
 
     <script src="/static/js/main.js"></script>
     <script>
-        // Wait for DOM to be ready
+        // Real-time validation setup
+        function setupRealTimeValidation() {
+            const emailField = document.getElementById('email');
+            const passwordField = document.getElementById('password');
+            
+            // Email field real-time validation
+            if (emailField) {
+                emailField.addEventListener('input', function() {
+                    validateEmailField(this.value.trim());
+                });
+                
+                emailField.addEventListener('blur', function() {
+                    validateEmailField(this.value.trim());
+                });
+            }
+            
+            // Password field real-time validation
+            if (passwordField) {
+                passwordField.addEventListener('input', function() {
+                    validatePasswordField(this.value);
+                });
+                
+                passwordField.addEventListener('blur', function() {
+                    validatePasswordField(this.value);
+                });
+            }
+        }
+        
+        // Email validation function
+        function validateEmailField(email) {
+            const emailError = document.getElementById('loginFieldError-email');
+            const emailInput = document.getElementById('email');
+            
+            if (!email) {
+                showFieldError('email', 'Email address is required.');
+                return false;
+            }
+            
+            // Simple email validation regex
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(email)) {
+                showFieldError('email', 'Please enter a valid email address.');
+                return false;
+            }
+            
+            clearFieldError('email');
+            return true;
+        }
+        
+        // Password validation function
+        function validatePasswordField(password) {
+            if (!password) {
+                showFieldError('password', 'Password is required.');
+                return false;
+            }
+            
+            if (password.length < 8) {
+                showFieldError('password', 'Password must be at least 8 characters long.');
+                return false;
+            }
+            
+            clearFieldError('password');
+            return true;
+        }
+        
+        // Show field error
+        function showFieldError(fieldName, message) {
+            const errorElement = document.getElementById(`loginFieldError-${fieldName}`);
+            const fieldElement = document.getElementById(fieldName);
+            
+            if (errorElement) {
+                errorElement.textContent = message;
+                errorElement.classList.add('show');
+            }
+            
+            if (fieldElement) {
+                fieldElement.classList.add('field-invalid');
+            }
+        }
+        
+        // Show success message
+        function showSuccessMessage(message) {
+            const messageDiv = document.getElementById('message');
+            if (messageDiv) {
+                messageDiv.textContent = message;
+                messageDiv.className = 'message success';
+                messageDiv.style.display = 'block';
+                
+                // Auto-hide after 3 seconds
+                setTimeout(() => {
+                    messageDiv.style.display = 'none';
+                    messageDiv.className = 'message';
+                }, 3000);
+            }
+        }
+        
+        // Show error message
+        function showErrorMessage(message) {
+            const messageDiv = document.getElementById('message');
+            if (messageDiv) {
+                messageDiv.textContent = message;
+                messageDiv.className = 'message error';
+                messageDiv.style.display = 'block';
+                
+                // Auto-hide after 5 seconds
+                setTimeout(() => {
+                    messageDiv.style.display = 'none';
+                    messageDiv.className = 'message';
+                }, 5000);
+            }
+        }
+        
+        // Clear field error
+        function clearFieldError(fieldName) {
+            const errorElement = document.getElementById(`loginFieldError-${fieldName}`);
+            const fieldElement = document.getElementById(fieldName);
+            
+            if (errorElement) {
+                errorElement.textContent = '';
+                errorElement.classList.remove('show');
+            }
+            
+            if (fieldElement) {
+                fieldElement.classList.remove('field-invalid');
+            }
+        }
+        
+        // Enhanced login handling with proper validation
         document.addEventListener('DOMContentLoaded', function() {
             // Password toggle
             const togglePassword = document.getElementById('togglePassword');
@@ -649,298 +802,197 @@
                 });
             }
 
-            // OTP handling
-            let userEmail = '';
-            
-            // Simple, reliable login handler
-            function handleLogin(e) {
-                if (e) {
+            // Setup enhanced validation with real-time feedback
+            if (document.getElementById('loginForm')) {
+                setupRealTimeValidation();
+            }
+
+            // Enhanced form submission with AJAX
+            const loginForm = document.getElementById('loginForm');
+            if (loginForm) {
+                loginForm.addEventListener('submit', async function(e) {
                     e.preventDefault();
                     e.stopPropagation();
-                }
-                
-                const emailInput = document.getElementById('email');
-                const passwordInput = document.getElementById('password');
-                const messageDiv = document.getElementById('message');
-                const submitBtn = document.querySelector('button[type="submit"]');
-                
-                if (!emailInput || !passwordInput) {
-                    if (messageDiv) {
-                        messageDiv.textContent = 'Form error. Please refresh the page.';
-                        messageDiv.className = 'message error';
-                    }
-                    return false;
-                }
-                
-                const email = emailInput.value.trim();
-                const password = passwordInput.value;
-                
-                if (typeof clearLoginFieldErrors === 'function') clearLoginFieldErrors();
-                if (!email) {
-                    if (typeof setLoginFieldError === 'function') setLoginFieldError('email', 'Email address is required.');
-                    return false;
-                }
-                if (!password) {
-                    if (typeof setLoginFieldError === 'function') setLoginFieldError('password', 'Password is required.');
-                    return false;
-                }
-                
-                // Disable submit button
-                const originalBtnText = submitBtn ? submitBtn.textContent : 'Sign In';
-                if (submitBtn) {
-                    submitBtn.disabled = true;
-                    submitBtn.textContent = 'Signing In...';
-                }
-                
-                // Clear previous messages
-                if (messageDiv) {
-                    messageDiv.textContent = '';
-                    messageDiv.className = 'message';
-                }
-                
-                fetch('/api/auth/login/', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({ email, password })
-                })
-                .then(async function(response) {
-                    var data = {};
-                    try { data = await response.json(); } catch (e) { data = {}; }
-                    // Re-enable submit button
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = originalBtnText;
+                    
+                    const email = document.getElementById('email').value.trim();
+                    const password = document.getElementById('password').value;
+                    
+                    console.log('Login attempt:', { email, password: '***' });
+                    
+                    // Enhanced client-side validation with real-time feedback
+                    const isEmailValid = validateEmailField(email);
+                    const isPasswordValid = validatePasswordField(password);
+                    
+                    if (!isEmailValid || !isPasswordValid) {
+                        console.log('Validation failed');
+                        return false;
                     }
                     
-                    if (!response.ok) {
-                        if (typeof clearLoginFieldErrors === 'function') clearLoginFieldErrors();
-                        var errMsg = data.error || data.message || 'Invalid email or password.';
-                        if (typeof setLoginFieldError === 'function') {
-                            setLoginFieldError('general', errMsg);
-                            var em = document.getElementById('email');
-                            var pw = document.getElementById('password');
-                            if (em) em.classList.add('field-invalid');
-                            if (pw) pw.classList.add('field-invalid');
-                        } else if (messageDiv) {
-                            messageDiv.textContent = errMsg;
-                            messageDiv.className = 'message error';
+                    const submitBtn = loginForm.querySelector('button[type="submit"]');
+                    const originalText = submitBtn ? submitBtn.textContent : 'Sign In';
+                    
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
+                    }
+                    
+                    try {
+                        console.log('Sending request to /api/auth/login/');
+                        const response = await fetch('/api/auth/login/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                email: email,
+                                password: password
+                            })
+                        });
+                        
+                        console.log('Response status:', response.status);
+                        const data = await response.json();
+                        console.log('Response data:', data);
+                        
+                        if (response.ok) {
+                            // Check if OTP is required
+                            if (data.requires_otp) {
+                                showSuccessMessage('OTP sent to your email. Please check your inbox.');
+                                // Show OTP step
+                                document.getElementById('loginStep').style.display = 'none';
+                                document.getElementById('otpStep').style.display = 'block';
+                                document.getElementById('otpEmail').textContent = data.email;
+                                
+                                // Show OTP in development mode
+                                if (data.otp_code) {
+                                    document.getElementById('displayOtpCode').textContent = data.otp_code;
+                                    document.getElementById('otpDisplay').style.display = 'block';
+                                }
+                            } else {
+                                // Direct login successful (no OTP required)
+                                showSuccessMessage('Login successful! Redirecting...');
+                                setTimeout(() => {
+                                    window.location.href = data.redirect_url || '/dashboard/';
+                                }, 1000);
+                            }
+                        } else {
+                            const errorData = data;
+                            showErrorMessage(errorData.error || errorData.message || 'Login failed. Please check your credentials and try again.');
                         }
+                    } catch (error) {
+                        console.error('Login error:', error);
+                        showErrorMessage('Network error. Please check your connection and try again.');
+                    } finally {
+                        if (submitBtn) {
+                            submitBtn.disabled = false;
+                            submitBtn.textContent = originalText;
+                        }
+                    }
+                    
+                    return false;
+                });
+            }
+            // OTP verification handler
+            const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+            if (verifyOtpBtn) {
+                verifyOtpBtn.addEventListener('click', async function() {
+                    const otp = document.getElementById('otp').value.trim();
+                    
+                    if (!otp) {
+                        showFieldError('otp', 'Please enter the OTP code.');
                         return;
                     }
                     
-                    if (data.redirect_url) {
-                        // Direct login successful (OTP disabled)
-                        if (messageDiv) {
-                            messageDiv.textContent = 'Login successful! Redirecting...';
-                            messageDiv.className = 'message success';
-                        }
-                        setTimeout(() => {
-                            window.location.href = data.redirect_url;
-                        }, 300);
-                    } else if (data.requires_otp) {
-                        if (typeof clearLoginFieldErrors === 'function') clearLoginFieldErrors();
-                        // Show OTP step
-                        userEmail = data.email;
-                        const loginStep = document.getElementById('loginStep');
-                        const otpStep = document.getElementById('otpStep');
-                        const otpEmail = document.getElementById('otpEmail');
+                    if (otp.length !== 6) {
+                        showFieldError('otp', 'OTP must be 6 digits.');
+                        return;
+                    }
+                    
+                    const originalText = verifyOtpBtn.textContent;
+                    verifyOtpBtn.disabled = true;
+                    verifyOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+                    
+                    try {
+                        const response = await fetch('/api/auth/verify-otp/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                email: document.getElementById('otpEmail').textContent,
+                                otp: otp,
+                                purpose: 'login'
+                            })
+                        });
                         
-                        if (loginStep) loginStep.style.display = 'none';
-                        if (otpStep) otpStep.style.display = 'block';
-                        if (otpEmail) otpEmail.textContent = userEmail;
+                        const data = await response.json();
                         
-                        // Success message: OTP sent to user's email
-                        let otpMessage = '✅ OTP sent to <strong>' + userEmail + '</strong>. Check your inbox (and spam folder) for the code.';
-                        if (data.otp_code) {
-                            const otpDisplay = document.getElementById('otpDisplay');
-                            const displayOtpCode = document.getElementById('displayOtpCode');
-                            if (otpDisplay) otpDisplay.style.display = 'block';
-                            if (displayOtpCode) displayOtpCode.textContent = data.otp_code;
+                        if (response.ok) {
+                            showSuccessMessage('Login successful! Redirecting...');
+                            setTimeout(() => {
+                                window.location.href = data.redirect_url || '/dashboard/';
+                            }, 1000);
+                        } else {
+                            showErrorMessage(data.error || 'Invalid OTP. Please try again.');
                         }
-                        if (messageDiv) {
-                            messageDiv.innerHTML = otpMessage;
-                            messageDiv.className = 'message success';
-                        }
+                    } catch (error) {
+                        showErrorMessage('Network error. Please try again.');
+                    } finally {
+                        verifyOtpBtn.disabled = false;
+                        verifyOtpBtn.textContent = originalText;
+                    }
+                });
+            }
+            
+            // Back to login handler
+            const backToLoginBtn = document.getElementById('backToLogin');
+            if (backToLoginBtn) {
+                backToLoginBtn.addEventListener('click', function() {
+                    document.getElementById('otpStep').style.display = 'none';
+                    document.getElementById('loginStep').style.display = 'block';
+                    clearFieldError('otp');
+                });
+            }
+            
+            // Resend OTP handler
+            const resendOtpLink = document.getElementById('resendOtp');
+            if (resendOtpLink) {
+                resendOtpLink.addEventListener('click', async function(e) {
+                    e.preventDefault();
+                    
+                    const email = document.getElementById('otpEmail').textContent;
+                    
+                    try {
+                        const response = await fetch('/api/auth/resend-otp/', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: JSON.stringify({
+                                email: email,
+                                purpose: 'login'
+                            })
+                        });
                         
-                        setTimeout(() => {
-                            const otpInput = document.getElementById('otp');
-                            if (otpInput) otpInput.focus();
-                        }, 100);
-                    } else {
-                        // Fallback redirect
-                        window.location.href = '/dashboard/';
-                    }
-                })
-                .catch(error => {
-                    if (submitBtn) {
-                        submitBtn.disabled = false;
-                        submitBtn.textContent = originalBtnText;
-                    }
-                    if (typeof clearLoginFieldErrors === 'function') clearLoginFieldErrors();
-                    if (typeof setLoginFieldError === 'function') {
-                        setLoginFieldError('general', 'Login failed. Please check your connection and try again.');
-                    } else if (messageDiv) {
-                        messageDiv.textContent = 'Login failed. Please check your credentials and try again.';
-                        messageDiv.className = 'message error';
-                    }
-                    console.error('Login error:', error);
-                });
-                
-                return false;
-            }
-            
-            // Attach login handler
-            const loginForm = document.getElementById('loginForm');
-            if (loginForm) {
-                loginForm.onsubmit = handleLogin;
-                
-                // Also attach to button click as backup
-                const submitBtn = loginForm.querySelector('button[type="submit"]');
-                if (submitBtn) {
-                    submitBtn.onclick = function(e) {
-                        e.preventDefault();
-                        handleLogin(e);
-                        return false;
-                    };
-                }
-            }
-                
-                // Verify OTP
-                const verifyOtpBtn = document.getElementById('verifyOtpBtn');
-                if (verifyOtpBtn) {
-                    verifyOtpBtn.addEventListener('click', async function() {
-            const otpInput = document.getElementById('otp');
-            const otp = otpInput ? otpInput.value.replace(/\D/g, '') : '';
-            const messageDiv = document.getElementById('message');
-            
-            if (typeof clearLoginFieldErrors === 'function') clearLoginFieldErrors();
-            if (otp.length !== 6) {
-                if (typeof setLoginFieldError === 'function') setLoginFieldError('otp', 'Please enter the 6-digit code.');
-                else if (messageDiv) {
-                    messageDiv.textContent = 'Please enter a valid 6-digit OTP.';
-                    messageDiv.className = 'message error';
-                }
-                return;
-            }
-            
-            try {
-                const response = await fetch('/api/auth/verify-otp/', {
-                    method: 'POST',
-                    credentials: 'same-origin',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({ email: userEmail, otp })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    messageDiv.textContent = 'OTP verified successfully! Redirecting...';
-                    messageDiv.className = 'message success';
-                    setTimeout(() => {
-                        window.location.href = data.redirect_url || '/dashboard/';
-                    }, 1000);
-                } else {
-                    if (typeof setLoginFieldError === 'function') setLoginFieldError('otp', data.error || 'Invalid OTP. Please try again.');
-                    else if (messageDiv) {
-                        messageDiv.textContent = data.error || 'Invalid OTP. Please try again.';
-                        messageDiv.className = 'message error';
-                    }
-                }
-            } catch (error) {
-                if (typeof setLoginFieldError === 'function') setLoginFieldError('otp', 'An error occurred. Please try again.');
-                else if (messageDiv) {
-                    messageDiv.textContent = 'An error occurred. Please try again.';
-                    messageDiv.className = 'message error';
-                }
-                console.error('OTP verification error:', error);
-            }
-                    });
-                }
-                
-                // Resend OTP
-                const resendOtp = document.getElementById('resendOtp');
-                if (resendOtp) {
-                    resendOtp.addEventListener('click', async function(e) {
-            e.preventDefault();
-            const messageDiv = document.getElementById('message');
-            
-            try {
-                const response = await fetch('/api/auth/resend-otp/', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({ email: userEmail })
-                });
-                
-                const data = await response.json();
-                
-                if (response.ok) {
-                    messageDiv.innerHTML = '✅ OTP resent to <strong>' + userEmail + '</strong>. Check your inbox for the new code.';
-                    messageDiv.className = 'message success';
-                } else {
-                    messageDiv.textContent = data.error || 'Failed to resend OTP. Please try again.';
-                    messageDiv.className = 'message error';
-                }
-            } catch (error) {
-                messageDiv.textContent = 'An error occurred. Please try again.';
-                messageDiv.className = 'message error';
-                console.error('Resend OTP error:', error);
-            }
-                    });
-                }
-                
-                // Back to login
-                const backToLogin = document.getElementById('backToLogin');
-                if (backToLogin) {
-                    backToLogin.addEventListener('click', function() {
-                        document.getElementById('loginStep').style.display = 'block';
-                        document.getElementById('otpStep').style.display = 'none';
-                        const otpInput = document.getElementById('otp');
-                        if (otpInput) otpInput.value = '';
-                        if (typeof clearLoginFieldErrors === 'function') clearLoginFieldErrors();
-                        const msgDiv = document.getElementById('message');
-                        if (msgDiv) {
-                            msgDiv.textContent = '';
-                            msgDiv.className = 'message';
+                        const data = await response.json();
+                        
+                        if (response.ok) {
+                            showSuccessMessage('OTP resent to your email.');
+                            if (data.otp_code) {
+                                document.getElementById('displayOtpCode').textContent = data.otp_code;
+                                document.getElementById('otpDisplay').style.display = 'block';
+                            }
+                        } else {
+                            showErrorMessage(data.error || 'Failed to resend OTP.');
                         }
-                    });
-                }
-                
-                // OTP input - only allow numbers
-                const otpInput = document.getElementById('otp');
-                if (otpInput) {
-                    otpInput.addEventListener('input', function(e) {
-                        e.target.value = e.target.value.replace(/[^0-9]/g, '');
-                    });
-                }
-
-                // Check for registration success
-                const urlParams = new URLSearchParams(window.location.search);
-                const registered = urlParams.get('registered');
-                if (registered === 'true') {
-                    const messageDiv = document.getElementById('message');
-                    if (messageDiv) {
-                        messageDiv.textContent = 'Registration successful! Please login to continue.';
-                        messageDiv.className = 'message success';
-                        window.history.replaceState({}, document.title, window.location.pathname);
+                    } catch (error) {
+                        showErrorMessage('Network error. Please try again.');
                     }
-                }
-
-                // Check if already logged in
-                const isLoggedIn = localStorage.getItem('isLoggedIn');
-                if (isLoggedIn === 'true') {
-                    window.location.href = '/dashboard/';
-                }
-            });
+                });
+            }
+        });
     </script>
 </body>
 </html>

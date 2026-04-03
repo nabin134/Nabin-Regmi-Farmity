@@ -6,6 +6,7 @@
     <title>Create Account - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="/static/css/form-validation.css">
     <style>
         * {
             margin: 0;
@@ -1061,205 +1062,230 @@
     </div>
 
     <script src="/static/js/main.js"></script>
+    <script src="/static/js/form-validation.js"></script>
     <script>
-        // Role selection mapping
-        const roleLabels = {
-            'farmer': 'Farmer',
-            'buyer': 'Buyer',
-            'vendor': 'Vendor',
-            'agricultural_expert': 'Agricultural Expert'
-        };
-
-        const roleDescriptions = {
-            'farmer': 'Sell your produce to buyers and vendors',
-            'buyer': 'Purchase fresh agricultural products',
-            'vendor': 'Supply tools and equipment to farmers',
-            'agricultural_expert': 'Provide expert advice and consultation'
-        };
-
-        const roleIcons = {
-            'farmer': 'fa-tractor',
-            'buyer': 'fa-shopping-cart',
-            'vendor': 'fa-store',
-            'agricultural_expert': 'fa-user-graduate'
-        };
-
-            // Auto-select role from URL parameter
+        // Enhanced registration handling with proper validation
         document.addEventListener('DOMContentLoaded', function() {
-            const urlParams = new URLSearchParams(window.location.search);
-            let roleParam = urlParams.get('role') || '';
+            // Role configuration for badge display
+            const roleIcons = {
+                'farmer': 'fa-tractor',
+                'buyer': 'fa-shopping-cart',
+                'vendor': 'fa-store',
+                'agricultural_expert': 'fa-user-graduate'
+            };
             
-            // Get role from hidden input if URL doesn't have it
-            const hiddenRoleInput = document.getElementById('role');
-            if (!roleParam && hiddenRoleInput && hiddenRoleInput.value) {
-                roleParam = hiddenRoleInput.value;
+            const roleLabels = {
+                'farmer': 'Farmer',
+                'buyer': 'Buyer',
+                'vendor': 'Vendor',
+                'agricultural_expert': 'Agricultural Expert'
+            };
+            
+            const roleDescriptions = {
+                'farmer': 'Sell your produce to buyers and vendors',
+                'buyer': 'Purchase fresh agricultural products',
+                'vendor': 'Supply tools and equipment to farmers',
+                'agricultural_expert': 'Provide expert advice and consultation'
+            };
+
+            const form = document.getElementById('registerForm');
+            if (!form) return;
+
+            const fields = ['fullName', 'email', 'phone', 'location', 'password', 'confirmPassword', 'userRole'];
+
+            fields.forEach(fieldName => {
+                const field = document.getElementById(fieldName);
+                if (field) {
+                    field.addEventListener('input', function() {
+                        validateField(fieldName, this.value);
+                    });
+
+                    field.addEventListener('focus', function() {
+                        clearFieldError(fieldName);
+                    });
+                }
+            });
+
+            form.addEventListener('submit', async function(e) {
+                e.preventDefault();
+
+                const submitBtn = document.getElementById('submitBtn');
+                const originalText = submitBtn ? submitBtn.textContent : 'Create Account';
+
+                let isValid = true;
+                const errors = {};
+
+                fields.forEach(fieldName => {
+                    const field = document.getElementById(fieldName);
+                    if (field) {
+                        const result = validateField(fieldName, field.value);
+                        if (!result.valid) {
+                            isValid = false;
+                            errors[fieldName] = result.message;
+                        }
+                    }
+                });
+
+                if (!isValid) {
+                    const firstError = Object.keys(errors)[0];
+                    if (firstError) {
+                        showError(errors[firstError]);
+                        setFieldError(firstError, errors[firstError]);
+                    }
+                    return;
+                }
+
+                if (submitBtn) {
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
+                }
+
+                try {
+                    const formData = new FormData(form);
+                    const response = await fetch('/accounts/register/', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    });
+
+                    if (response.ok) {
+                        const data = await response.json();
+                        if (data.success) {
+                            showSuccess('Account created successfully! Redirecting...');
+                            setTimeout(() => {
+                                window.location.href = data.redirect || '/login/';
+                            }, 1000);
+                        } else {
+                            showError(data.message || 'Registration failed. Please try again.');
+                        }
+                    } else {
+                        showError('Registration failed. Please try again.');
+                    }
+                } catch (error) {
+                    showError('Network error. Please check your connection.');
+                } finally {
+                    if (submitBtn) {
+                        submitBtn.disabled = false;
+                        submitBtn.textContent = originalText;
+                    }
+                }
+            });
+
+            function validateField(fieldName, value) {
+                const trimmedValue = value.trim();
+
+                switch(fieldName) {
+                    case 'fullName':
+                        return {
+                            valid: trimmedValue.length >= 2,
+                            message: trimmedValue.length >= 2 ? '' : 'Full name must be at least 2 characters.'
+                        };
+
+                    case 'email':
+                        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+                        return {
+                            valid: emailRegex.test(trimmedValue),
+                            message: emailRegex.test(trimmedValue) ? '' : 'Please enter a valid email address.'
+                        };
+
+                    case 'phone':
+                        return {
+                            valid: trimmedValue.length >= 8,
+                            message: trimmedValue.length >= 8 ? '' : 'Phone number must be at least 8 characters long.'
+                        };
+
+                    case 'location':
+                        return {
+                            valid: trimmedValue.length >= 2,
+                            message: trimmedValue.length >= 2 ? '' : 'Location must be at least 2 characters.'
+                        };
+
+                    case 'password':
+                        return {
+                            valid: trimmedValue.length >= 8,
+                            message: trimmedValue.length >= 8 ? '' : 'Password must be at least 8 characters long.'
+                        };
+
+                    case 'confirmPassword':
+                        const password = document.getElementById('password')?.value || '';
+                        return {
+                            valid: trimmedValue === password,
+                            message: trimmedValue === password ? '' : 'Passwords do not match.'
+                        };
+
+                    case 'userRole':
+                        return {
+                            valid: trimmedValue !== '',
+                            message: trimmedValue !== '' ? '' : 'Please select your role.'
+                        };
+
+                    default:
+                        return { valid: true, message: '' };
+                }
             }
-            
-            // Clean up role parameter - remove any null/None values
-            if (roleParam === 'None' || roleParam === 'null' || roleParam === 'undefined' || roleParam === '') {
-                roleParam = '';
+
+            function setFieldError(fieldName, message) {
+                const errorElement = document.getElementById(`registerFieldError-${fieldName}`);
+                const field = document.getElementById(fieldName);
+
+                if (errorElement) {
+                    errorElement.textContent = message;
+                    errorElement.classList.add('show');
+                }
+
+                if (field) {
+                    field.classList.add('field-invalid');
+                    field.classList.remove('field-valid');
+                }
             }
-            
-            const roleSelect = document.getElementById('userRole');
+
+            function clearFieldError(fieldName) {
+                const errorElement = document.getElementById(`registerFieldError-${fieldName}`);
+                const field = document.getElementById(fieldName);
+
+                if (errorElement) {
+                    errorElement.textContent = '';
+                    errorElement.classList.remove('show');
+                }
+
+                if (field) {
+                    field.classList.remove('field-invalid', 'field-valid');
+                }
+            }
+
+            const userRole = document.getElementById('userRole');
             const roleSelectionGroup = document.getElementById('roleSelectionGroup');
             const roleBadgeGroup = document.getElementById('roleBadgeGroup');
-            
-            // If role is pre-selected from role selection page - ALWAYS show badge
-            if (roleParam && roleParam !== '' && roleParam !== 'None' && roleParam !== 'null' && roleParam !== 'undefined') {
-                // Hide the role selection dropdown
-                if (roleSelectionGroup) {
-                    roleSelectionGroup.style.display = 'none';
-                }
-                
-                // Show the role badge - ALWAYS show when role exists
-                if (roleBadgeGroup) {
-                    roleBadgeGroup.style.display = 'block';
-                    
-                    // Set badge content
-                    const roleBadgeIcon = document.getElementById('roleBadgeIcon');
-                    const roleBadgeTitle = document.getElementById('roleBadgeTitle');
-                    const roleBadgeSubtitle = document.getElementById('roleBadgeSubtitle');
-                    
-                    if (roleBadgeIcon) {
-                        const iconClass = roleIcons[roleParam] || 'fa-user';
-                        roleBadgeIcon.className = `fas ${iconClass}`;
-                    }
-                    if (roleBadgeTitle) {
-                        const titleText = roleLabels[roleParam] || roleParam.charAt(0).toUpperCase() + roleParam.slice(1).replace('_', ' ');
-                        roleBadgeTitle.textContent = titleText;
-                    }
-                    if (roleBadgeSubtitle) {
-                        const descText = roleDescriptions[roleParam] || '';
-                        roleBadgeSubtitle.textContent = descText;
-                    }
-                }
-                
-                // Set hidden input and select value - ensure role is always set (NO NULL VALUES)
-                const hiddenRoleInput = document.getElementById('role');
-                if (hiddenRoleInput) {
-                    hiddenRoleInput.value = roleParam; // Always set the role value
-                }
-                if (roleSelect) {
-                    roleSelect.value = roleParam;
-                    roleSelect.removeAttribute('required'); // Not required if pre-selected
-                }
-            } else {
-                // No role pre-selected, show the dropdown
-                if (roleSelectionGroup) {
-                    roleSelectionGroup.style.display = 'block';
-                }
-                if (roleBadgeGroup) {
-                    roleBadgeGroup.style.display = 'none';
-                }
-                if (roleSelect) {
-                    roleSelect.setAttribute('required', 'required');
-                }
-                // Set default to buyer if no role
-                if (hiddenRoleInput) {
-                    if (!hiddenRoleInput.value || hiddenRoleInput.value === 'None' || hiddenRoleInput.value === 'null') {
-                        hiddenRoleInput.value = 'buyer';
-                    }
-                }
-            }
-            
-            // Update hidden input when role changes manually (if dropdown is visible)
-            if (roleSelect) {
-                roleSelect.addEventListener('change', function() {
+            const hiddenRoleInput = document.getElementById('role');
+
+            if (userRole && roleSelectionGroup && roleBadgeGroup && hiddenRoleInput) {
+                userRole.addEventListener('change', function() {
                     const value = this.value;
-                    const hiddenRoleInput = document.getElementById('role');
-                    
+
                     if (value && value !== '' && value !== 'None' && value !== 'null') {
-                        // Always set the role value - no null values
-                        if (hiddenRoleInput) {
-                            hiddenRoleInput.value = value;
-                        }
-                        // Show badge when role is manually selected
-                        if (roleBadgeGroup && roleSelectionGroup) {
-                            roleSelectionGroup.style.display = 'none';
-                            roleBadgeGroup.style.display = 'block';
-                            
-                            const roleBadgeIcon = document.getElementById('roleBadgeIcon');
-                            const roleBadgeTitle = document.getElementById('roleBadgeTitle');
-                            const roleBadgeSubtitle = document.getElementById('roleBadgeSubtitle');
-                            
-                            if (roleBadgeIcon) {
-                                const iconClass = roleIcons[value] || 'fa-user';
-                                roleBadgeIcon.className = `fas ${iconClass}`;
-                            }
-                            if (roleBadgeTitle) {
-                                const titleText = roleLabels[value] || value.charAt(0).toUpperCase() + value.slice(1).replace('_', ' ');
-                                roleBadgeTitle.textContent = titleText;
-                            }
-                            if (roleBadgeSubtitle) {
-                                const descText = roleDescriptions[value] || '';
-                                roleBadgeSubtitle.textContent = descText;
-                            }
-                        }
-                    }
-                });
-            }
+                        hiddenRoleInput.value = value;
 
-            // Ensure role is set before form submission - NO NULL VALUES
-            const registerForm = document.getElementById('registerForm');
-            if (registerForm) {
-                registerForm.addEventListener('submit', function(e) {
-                    const hiddenRoleInput = document.getElementById('role');
-                    const roleSelect = document.getElementById('userRole');
-                    const roleValue = hiddenRoleInput ? hiddenRoleInput.value : (roleSelect ? roleSelect.value : '');
-                    
-                    // Clean up role value - ensure no null/None values
-                    let cleanRole = roleValue;
-                    if (cleanRole === 'None' || cleanRole === 'null' || cleanRole === 'undefined' || !cleanRole || cleanRole === '') {
-                        cleanRole = '';
-                    }
-                    
-                    if (!cleanRole || cleanRole === '') {
-                        e.preventDefault();
-                        if (typeof setSignupFieldError === 'function') {
-                            setSignupFieldError(registerForm, 'role', 'Please select your role to continue.');
-                        }
-                        const roleSelectionGroup = document.getElementById('roleSelectionGroup');
-                        const roleBadgeGroup = document.getElementById('roleBadgeGroup');
-                        if (roleSelectionGroup) {
-                            roleSelectionGroup.style.display = 'block';
-                        }
-                        if (roleBadgeGroup) {
-                            roleBadgeGroup.style.display = 'none';
-                        }
-                        return false;
-                    } else {
-                        // Ensure hidden input has the correct value - NEVER NULL
-                        if (hiddenRoleInput) {
-                            hiddenRoleInput.value = cleanRole;
-                        }
-                    }
-                });
-            }
+                        roleSelectionGroup.style.display = 'none';
+                        roleBadgeGroup.style.display = 'block';
 
-            // Password confirmation validation
-            const password = document.getElementById('password');
-            const confirmPassword = document.getElementById('confirmPassword');
-            
-            if (confirmPassword && password) {
-                confirmPassword.addEventListener('input', function() {
-                    if (this.value && this.value !== password.value) {
-                        this.setCustomValidity('Passwords do not match');
-                        this.classList.add('field-invalid');
-                    } else {
-                        this.setCustomValidity('');
-                        this.classList.remove('field-invalid');
-                    }
-                });
+                        const roleBadgeIcon = document.getElementById('roleBadgeIcon');
+                        const roleBadgeTitle = document.getElementById('roleBadgeTitle');
+                        const roleBadgeSubtitle = document.getElementById('roleBadgeSubtitle');
 
-                password.addEventListener('input', function() {
-                    if (confirmPassword.value && this.value !== confirmPassword.value) {
-                        confirmPassword.setCustomValidity('Passwords do not match');
-                        confirmPassword.classList.add('field-invalid');
-                        this.classList.add('field-invalid');
-                    } else {
-                        confirmPassword.setCustomValidity('');
-                        confirmPassword.classList.remove('field-invalid');
-                        this.classList.remove('field-invalid');
+                        if (roleBadgeIcon) {
+                            const iconClass = roleIcons[value] || 'fa-user';
+                            roleBadgeIcon.className = `fas ${iconClass}`;
+                        }
+                        if (roleBadgeTitle) {
+                            const titleText = roleLabels[value] || value.charAt(0).toUpperCase() + value.slice(1).replace('_', ' ');
+                            roleBadgeTitle.textContent = titleText;
+                        }
+                        if (roleBadgeSubtitle) {
+                            const descText = roleDescriptions[value] || '';
+                            roleBadgeSubtitle.textContent = descText;
+                        }
                     }
                 });
             }

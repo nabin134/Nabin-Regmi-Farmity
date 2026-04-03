@@ -7,6 +7,9 @@
     <link rel="stylesheet" href="/static/css/style.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="/static/js/main.js"></script>
+    <script src="/static/js/form-validation.js"></script>
     <style>
         * {
             margin: 0;
@@ -1006,27 +1009,14 @@
         .dashboard-section:first-of-type {
             display: block !important;
         }
-        
-        #dashboard-section {
-            display: block !important;
-            padding: 2rem;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
-        
-        #dashboard-section .stats-grid {
-            display: grid !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-        }
     </style>
 </head>
 <body>
     <!-- Sidebar Navigation -->
-    <aside class="sidebar" id="sidebar">
+    <aside class="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">
-                <img src="/static/images/Farmity%20logo.png" alt="Farmity" class="sidebar-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                <img src="/static/images/Farmity%20logo.png" alt="Farmity" class="sidebar-logo-img" onerror="this.style.display='none'; this.parentElement.innerHTML='🌾';">
                 <span class="sidebar-logo-fallback" style="display: none;">🌾</span>
             </div>
             <div class="sidebar-title">Farmity</div>
@@ -2443,12 +2433,160 @@
                                 beginAtZero: true
                             }
                         }
+        });
+        console.log('DOMContentLoaded: All stat cards visible');
+    }
+    }
+    
+    // Verify all sections exist
+    const sections = ['dashboard', 'content', 'appointments', 'availability', 'chat', 'profile', 'settings'];
+    sections.forEach(sectionId => {
+        const section = document.getElementById(sectionId + '-section');
+        if (!section) {
+            console.warn('Section not found:', sectionId + '-section');
+        }
+    });
+    
+    // Set active nav item (only when not restoring section from URL)
+    if (!sectionFromUrl) {
+        const dashboardNav = document.querySelector('.nav-item[href="#dashboard"]');
+        if (dashboardNav) {
+            document.querySelectorAll('.nav-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            dashboardNav.classList.add('active');
+        }
+    }
+    
+    // Set min date/month for availability form
+    const todayStr = new Date().toISOString().split('T')[0];
+    const availDate = document.getElementById('availability_date');
+    const availWeekStart = document.getElementById('availability_week_start');
+    if (availDate) availDate.setAttribute('min', todayStr);
+    if (availWeekStart) availWeekStart.setAttribute('min', todayStr);
+
+    // Charts
+    const appointmentsData = {{ appointments_data|safe }};
+    const contentData = {{ content_data|safe }};
+    
+    // Appointments Chart
+    const appointmentsCtx = document.getElementById('appointmentsChart');
+    if (appointmentsCtx) {
+        new Chart(appointmentsCtx, {
+            type: 'line',
+            data: {
+                labels: appointmentsData.map(d => d.month || 'N/A'),
+                datasets: [{
+                    label: 'Total Appointments',
+                    data: appointmentsData.map(d => d.total_appointments || 0),
+                    borderColor: 'rgb(53, 141, 88)',
+                    backgroundColor: 'rgba(53, 141, 88, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }, {
+                    label: 'Accepted Appointments',
+                    data: appointmentsData.map(d => d.accepted_count || 0),
+                    borderColor: 'rgb(40, 167, 69)',
+                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
+                    tension: 0.4,
+                    fill: true
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true
                     }
-                });
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+                    }
+                }
             }
         });
-    </script>
-    {% include 'support_widget.html' %}
-    {% include 'includes/user_dashboard_scroll.html' %}
+    }
+
+    // Content Chart
+    const contentCtx = document.getElementById('contentChart');
+    if (contentCtx) {
+        new Chart(contentCtx, {
+            type: 'bar',
+            data: {
+                labels: contentData.map(d => d.month || 'N/A'),
+                datasets: [{
+                    label: 'Total Content',
+                    data: contentData.map(d => d.total_content || 0),
+                    backgroundColor: 'rgba(53, 141, 88, 0.8)',
+                    borderColor: 'rgb(53, 141, 88)',
+                    borderWidth: 1
+                }, {
+                    label: 'Published Content',
+                    data: contentData.map(d => d.published_count || 0),
+                    backgroundColor: 'rgba(40, 167, 69, 0.8)',
+                    borderColor: 'rgb(40, 167, 69)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        display: true
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true
+});
+
+// Confirmation dialog functions
+function confirmDialog(message, callback) {
+    const dialog = document.createElement('div');
+    dialog.innerHTML = `
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Confirmation</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>${message}</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="confirm-btn">Confirm</button>
+                </div>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(dialog);
+    const confirmBtn = dialog.querySelector('#confirm-btn');
+    confirmBtn.addEventListener('click', callback);
+    dialog.querySelector('.close').addEventListener('click', () => dialog.remove());
+    dialog.querySelector('.btn-secondary').addEventListener('click', () => dialog.remove());
+}
+
+function confirmDelete(message, callback) {
+    confirmDialog(message, () => {
+        callback();
+        document.querySelector('.modal-dialog').remove();
+    });
+}
+
+function confirmAction(message, callback) {
+    confirmDialog(message, () => {
+        callback();
+        document.querySelector('.modal-dialog').remove();
+    });
+}
+</script>
+{% include 'support_widget.html' %}
+{% include 'includes/user_dashboard_scroll.html' %}
 </body>
 </html>

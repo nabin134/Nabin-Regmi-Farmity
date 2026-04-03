@@ -1,0 +1,389 @@
+/* Enhanced Form Validation Styles */
+:root {
+    --error-color: #dc3545;
+    --error-bg: #f8d7da;
+    --error-border: #dc3545;
+    --success-color: #155724;
+    --success-bg: #d4edda;
+    --success-border: #28a745;
+    --warning-color: #856404;
+    --warning-bg: #fff3cd;
+    --warning-border: #ffc107;
+    --info-color: #0c5460;
+    --info-bg: #d1ecf1;
+    --info-border: #17a2b8;
+}
+
+/* Base form styles */
+.form-group {
+    margin-bottom: 1.5rem;
+    position: relative;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.5rem;
+    color: #374151;
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.input-wrapper {
+    position: relative;
+    margin-bottom: 0.25rem;
+}
+
+.input-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 1.1rem;
+    z-index: 1;
+    color: #6b7280;
+    transition: color 0.3s ease;
+}
+
+.form-control {
+    width: 100%;
+    padding: 0.9375rem 1rem 0.9375rem 2.75rem;
+    border: 2px solid #e5e7eb;
+    border-radius: 10px;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    background: white;
+    color: #1a1a1a;
+    box-sizing: border-box;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #3C894B;
+    box-shadow: 0 0 0 3px rgba(60, 137, 75, 0.1);
+}
+
+/* Error states */
+.form-control.field-invalid {
+    border-color: var(--error-border) !important;
+    background: rgba(220, 53, 69, 0.05) !important;
+    box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.1) !important;
+}
+
+.form-control.field-valid {
+    border-color: var(--success-border) !important;
+    background: rgba(40, 167, 69, 0.05) !important;
+}
+
+.field-error {
+    display: none;
+    margin: 0.5rem 0 0 0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--error-color);
+    line-height: 1.4;
+    border-radius: 6px;
+    background: var(--error-bg);
+    border-left: 3px solid var(--error-border);
+    animation: slideIn 0.3s ease;
+}
+
+.field-error.show {
+    display: block;
+}
+
+.field-success {
+    display: none;
+    margin: 0.5rem 0 0 0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 500;
+    color: var(--success-color);
+    line-height: 1.4;
+    border-radius: 6px;
+    background: var(--success-bg);
+    border-left: 3px solid var(--success-border);
+    animation: slideIn 0.3s ease;
+}
+
+.field-success.show {
+    display: block;
+}
+
+/* Input icon states */
+.input-wrapper.has-error .input-icon {
+    color: var(--error-color);
+}
+
+.input-wrapper.has-success .input-icon {
+    color: var(--success-color);
+}
+
+/* Password toggle */
+.toggle-password {
+    position: absolute;
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    color: #9ca3af;
+    font-size: 1.1rem;
+    z-index: 1;
+    transition: color 0.3s ease;
+}
+
+.toggle-password:hover {
+    color: #3C894B;
+}
+
+/* Button states */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    min-height: 44px;
+    box-sizing: border-box;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+.btn-primary {
+    background: #3C894B;
+    color: white;
+    border: 2px solid #3C894B;
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: #2d6b3d;
+    border-color: #2d6b3d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(60, 137, 75, 0.3);
+}
+
+.btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: 2px solid #6c757d;
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: #5a6268;
+    border-color: #5a6268;
+}
+
+/* Toast notifications */
+.toast-container {
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-width: 400px;
+}
+
+.toast {
+    padding: 1rem 1.25rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    animation: slideInRight 0.3s ease;
+    border-left: 4px solid;
+    font-size: 0.9rem;
+    line-height: 1.4;
+}
+
+.toast.success {
+    background: var(--success-bg);
+    color: var(--success-color);
+    border-left-color: var(--success-border);
+}
+
+.toast.error {
+    background: var(--error-bg);
+    color: var(--error-color);
+    border-left-color: var(--error-border);
+}
+
+.toast.warning {
+    background: var(--warning-bg);
+    color: var(--warning-color);
+    border-left-color: var(--warning-border);
+}
+
+.toast.info {
+    background: var(--info-bg);
+    color: var(--info-color);
+    border-left-color: var(--info-border);
+}
+
+.toast.hiding {
+    animation: slideOutRight 0.3s ease forwards;
+}
+
+/* Confirmation modal */
+.confirmation-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: fadeIn 0.3s ease;
+}
+
+.confirmation-content {
+    background: white;
+    border-radius: 12px;
+    padding: 2rem;
+    max-width: 400px;
+    width: 90%;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    animation: scaleIn 0.3s ease;
+}
+
+.confirmation-header {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.confirmation-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+}
+
+.confirmation-icon.warning {
+    background: rgba(255, 193, 7, 0.1);
+    color: #ffc107;
+}
+
+.confirmation-icon.danger {
+    background: rgba(220, 53, 69, 0.1);
+    color: #dc3545;
+}
+
+.confirmation-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1a1a1a;
+    margin-bottom: 0.5rem;
+}
+
+.confirmation-message {
+    color: #6b7280;
+    line-height: 1.5;
+    margin-bottom: 1.5rem;
+}
+
+.confirmation-buttons {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+}
+
+/* Animations */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes scaleIn {
+    from {
+        opacity: 0;
+        transform: scale(0.9);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .toast-container {
+        top: 0.5rem;
+        right: 0.5rem;
+        left: 0.5rem;
+        max-width: none;
+    }
+    
+    .toast {
+        padding: 0.75rem 1rem;
+        font-size: 0.85rem;
+    }
+    
+    .confirmation-content {
+        padding: 1.5rem;
+        margin: 1rem;
+    }
+    
+    .confirmation-buttons {
+        flex-direction: column;
+    }
+    
+    .btn {
+        width: 100%;
+        justify-content: center;
+    }
+}
