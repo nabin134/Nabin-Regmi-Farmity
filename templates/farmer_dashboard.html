@@ -3532,6 +3532,20 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="/static/js/main.js"></script>
     <script>
+        // Chat interface function for notification handling
+        function openChatInterface(threadId) {
+            // Navigate to chat section
+            showSection('chat-section');
+            
+            // Load chat thread
+            if (typeof loadChatThread === 'function') {
+                loadChatThread(threadId);
+            } else {
+                // Fallback: redirect to chat page
+                window.location.href = '/chat/thread/' + threadId + '/';
+            }
+        }
+        
         // Navigation
         function showSection(sectionId, evt) {
             // Prevent default if event is provided

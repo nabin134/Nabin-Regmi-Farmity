@@ -81,12 +81,16 @@ class ChatConsumer(AsyncWebsocketConsumer):
                             ExpertChatThread.objects.get
                         )(id=self.thread_id)
                         
+                        # Get sender profile image
+                        sender_profile_image = await self.get_sender_profile_image()
+                        
                         message = await database_sync_to_async(
                             ExpertChatMessage.objects.create
                         )(
                             thread=thread,
                             sender=self.user,
-                            message=message_text
+                            message=message_text,
+                            sender_profile_image=sender_profile_image
                         )
                         
                         # Update thread timestamp
@@ -101,16 +105,41 @@ class ChatConsumer(AsyncWebsocketConsumer):
                                 'message': message_text,
                                 'sender': self.user.email,
                                 'sender_id': self.user.id,
+                                'sender_name': await self.get_sender_name(),
+                                'sender_profile_image': sender_profile_image,
                                 'timestamp': message.created_at.isoformat(),
-                                'message_id': message.id
+                                'message_id': message.id,
+                                'delivered_at': message.created_at.isoformat()
                             }
                         )
+                        
+                        # Mark message as delivered for other user
+                        await self.mark_message_delivered(message.id)
                         
                     except Exception as e:
                         await self.send(text_data=json.dumps({
                             'type': 'error',
                             'message': f'Failed to send message: {str(e)}'
                         }))
+                        
+            elif message_type == 'typing':
+                # Handle typing indicators
+                await self.channel_layer.group_send(
+                    self.chat_group_name,
+                    {
+                        'type': 'typing_indicator',
+                        'user_id': self.user.id,
+                        'user_email': self.user.email,
+                        'is_typing': data.get('is_typing', False)
+                    }
+                )
+                
+            elif message_type == 'message_seen':
+                # Handle message seen status
+                message_id = data.get('message_id')
+                if message_id:
+                    await self.mark_message_seen(message_id)
+                    
             else:
                 await self.send(text_data=json.dumps({
                     'type': 'error',
@@ -122,6 +151,72 @@ class ChatConsumer(AsyncWebsocketConsumer):
                 'type': 'error',
                 'message': 'Invalid JSON format'
             }))
+    
+    async def get_sender_profile_image(self):
+        """Get sender profile image URL."""
+        try:
+            if hasattr(self.user, 'expertprofile'):
+                profile = await database_sync_to_async(lambda: self.user.expertprofile)()
+                if profile and profile.photo:
+                    return profile.photo.url
+            elif hasattr(self.user, 'farmerprofile'):
+                profile = await database_sync_to_async(lambda: self.user.farmerprofile)()
+                if profile and profile.photo:
+                    return profile.photo.url
+            elif hasattr(self.user, 'userprofile'):
+                profile = await database_sync_to_async(lambda: self.user.userprofile)()
+                if profile and profile.photo:
+                    return profile.photo.url
+        except:
+            pass
+        return '/static/images/default-avatar.png'
+    
+    async def get_sender_name(self):
+        """Get sender display name."""
+        try:
+            if hasattr(self.user, 'expertprofile'):
+                profile = await database_sync_to_async(lambda: self.user.expertprofile)()
+                return profile.name if profile and profile.name else self.user.email
+            elif hasattr(self.user, 'farmerprofile'):
+                profile = await database_sync_to_async(lambda: self.user.farmerprofile)()
+                return profile.name if profile and profile.name else self.user.email
+            elif hasattr(self.user, 'userprofile'):
+                profile = await database_sync_to_async(lambda: self.user.userprofile)()
+                return profile.name if profile and profile.name else self.user.email
+        except:
+            pass
+        return self.user.email
+    
+    async def mark_message_delivered(self, message_id):
+        """Mark message as delivered."""
+        try:
+            message = await database_sync_to_async(ExpertChatMessage.objects.get)(id=message_id)
+            if not message.delivered_at:
+                message.delivered_at = timezone.now()
+                await database_sync_to_async(message.save)()
+        except:
+            pass
+    
+    async def mark_message_seen(self, message_id):
+        """Mark message as seen and broadcast to sender."""
+        try:
+            message = await database_sync_to_async(ExpertChatMessage.objects.get)(id=message_id)
+            if not message.seen_at:
+                message.seen_at = timezone.now()
+                await database_sync_to_async(message.save)()
+                
+                # Broadcast seen status to chat group
+                await self.channel_layer.group_send(
+                    self.chat_group_name,
+                    {
+                        'type': 'message_seen_status',
+                        'message_id': message_id,
+                        'seen_at': message.seen_at.isoformat(),
+                        'seen_by': self.user.id
+                    }
+                )
+        except:
+            pass
 
 
 class AppointmentConsumer(AsyncWebsocketConsumer):

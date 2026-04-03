@@ -67,10 +67,31 @@ from .notifications import create_notification, get_admin_email_recipients, send
 
 
 def _chat_notification_link(recipient, thread_id):
-    """For experts: link to expert dashboard chat section with thread. Others: link to standalone chat thread."""
+    """For experts: link to expert dashboard chat section with thread. Others: link to current page with chat parameters."""
     if getattr(recipient, 'role', None) == 'agricultural_expert':
         return reverse('expert_dashboard') + '?section=chat&thread_id=' + str(thread_id)
-    return reverse('chat_thread', kwargs={'thread_id': thread_id})
+    # For non-experts, return to current page with chat parameters
+    return f'?open_chat=true&thread_id={thread_id}'
+
+
+def get_user_profile_image(user):
+    """Get user profile image URL based on user role."""
+    try:
+        if hasattr(user, 'expertprofile'):
+            profile = user.expertprofile
+            if profile and profile.photo:
+                return profile.photo.url
+        elif hasattr(user, 'farmerprofile'):
+            profile = user.farmerprofile
+            if profile and profile.photo:
+                return profile.photo.url
+        elif hasattr(user, 'userprofile'):
+            profile = user.userprofile
+            if profile and profile.photo:
+                return profile.photo.url
+    except:
+        pass
+    return '/static/images/default-avatar.png'
 
 
 # Password reset tokens storage (in production, use Redis or database)
@@ -2028,6 +2049,14 @@ def profile_page(request):
                 profile.crop_types = request.POST.get('crop_types', profile.crop_types)
                 profile.livestock_details = request.POST.get('livestock_details', profile.livestock_details)
                 profile.save()
+                
+                # Update user email if provided
+                new_email = request.POST.get('email', '').strip()
+                if new_email and new_email != user.email:
+                    user.email = new_email
+                    user.save()
+                    messages.success(request, 'Email updated successfully!')
+                
                 messages.success(request, 'Profile updated successfully!')
                 return redirect('profile')
         context['profile'] = profile
@@ -2055,6 +2084,14 @@ def profile_page(request):
                 profile.business_type = (request.POST.get('business_type') or profile.business_type or '').strip() or profile.business_type
                 profile.description = (request.POST.get('description') or profile.description or '').strip() or profile.description
                 profile.save()
+                
+                # Update user email if provided
+                new_email = request.POST.get('email', '').strip()
+                if new_email and new_email != user.email:
+                    user.email = new_email
+                    user.save()
+                    messages.success(request, 'Email updated successfully!')
+                
                 messages.success(request, 'Profile updated successfully!')
                 return redirect('profile')
         from .models import VendorTool
@@ -2079,6 +2116,14 @@ def profile_page(request):
                 profile.experience = request.POST.get('experience', profile.experience)
                 profile.qualification = request.POST.get('qualifications', profile.qualification)
                 profile.save()
+                
+                # Update user email if provided
+                new_email = request.POST.get('email', '').strip()
+                if new_email and new_email != user.email:
+                    user.email = new_email
+                    user.save()
+                    messages.success(request, 'Email updated successfully!')
+                
                 messages.success(request, 'Profile updated successfully!')
                 return redirect('profile')
         context['profile'] = profile
@@ -2100,6 +2145,14 @@ def profile_page(request):
                 profile.phone = request.POST.get('contact', profile.phone)
                 profile.address = request.POST.get('location', profile.address)
                 profile.save()
+                
+                # Update user email if provided
+                new_email = request.POST.get('email', '').strip()
+                if new_email and new_email != user.email:
+                    user.email = new_email
+                    user.save()
+                    messages.success(request, 'Email updated successfully!')
+                
                 messages.success(request, 'Profile updated successfully!')
                 return redirect('profile')
         context['profile'] = profile
@@ -2121,6 +2174,14 @@ def profile_page(request):
                 profile.phone = request.POST.get('contact', profile.phone)
                 profile.address = request.POST.get('location', profile.address)
                 profile.save()
+                
+                # Update user email if provided
+                new_email = request.POST.get('email', '').strip()
+                if new_email and new_email != user.email:
+                    user.email = new_email
+                    user.save()
+                    messages.success(request, 'Email updated successfully!')
+                
                 messages.success(request, 'Profile updated successfully!')
                 return redirect('profile')
         context['profile'] = profile
@@ -5609,9 +5670,14 @@ def chat_thread_detail(request, thread_id):
             return redirect('chat_thread', thread_id=thread_id)
     
     messages_list = ExpertChatMessage.objects.filter(thread=thread).select_related('sender').order_by('created_at')
+    
+    # Add profile images to messages
+    for msg in messages_list:
+        msg.sender_profile_image = get_user_profile_image(msg.sender)
+    
     context = {
         'thread': thread,
-        'messages': messages_list,
+        'messages_list': messages_list,
     }
     return render(request, 'chat_thread_detail.html', context)
 
@@ -6151,6 +6217,28 @@ def _notification_link_for_user(request, link, notification_type='', title='', m
     # Security: reject dangerous pseudo URLs.
     if link.lower().startswith('javascript:') or link.lower().startswith('data:'):
         return fallback_link
+    
+    # Handle relative URLs (current page redirection)
+    if link.startswith('?'):
+        # Return current URL with additional query parameters
+        current_url = request.get_full_path()
+        current_params = request.GET.dict()
+        
+        # Merge with new parameters
+        new_params = current_params.copy()
+        link_params = {}
+        for param in link[1:].split('&'):
+            if '=' in param:
+                key, value = param.split('=', 1)
+                link_params[key] = value
+        
+        new_params.update(link_params)
+        
+        # Build new URL
+        from urllib.parse import urlencode
+        query_string = urlencode(new_params)
+        return f"{current_url}?{query_string}" if query_string else current_url
+    
     # Rewrite old generic /dashboard/?section=... to role-specific dashboard so redirect lands in the right place
     if link.startswith('/dashboard/') or (link.startswith('/dashboard') and '?' in link):
         qs = link.split('?', 1)[-1] if '?' in link else ''
@@ -6170,7 +6258,7 @@ def _notification_link_for_user(request, link, notification_type='', title='', m
     if link.startswith('https://'):
         return link
     # Ensure internal paths start with / so frontend can navigate from any page
-    if link and not link.startswith('/') and not link.startswith('http'):
+    if link and not link.startswith('/') and not link.startswith('http') and not link.startswith('?'):
         return '/' + link.lstrip('?')
     return link or fallback_link
 

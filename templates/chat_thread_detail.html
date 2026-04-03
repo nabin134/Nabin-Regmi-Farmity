@@ -17,14 +17,23 @@
         .chat-header h2 { margin: 0; font-size: 1.1rem; color: #1a1a1a; }
         .chat-header p { margin: 0.25rem 0 0 0; font-size: 0.85rem; color: #666; }
         .chat-messages { flex: 1; overflow-y: auto; padding: 1.5rem; max-height: 450px; }
-        .msg { margin-bottom: 1rem; display: flex; }
+        .msg { margin-bottom: 1rem; display: flex; align-items: flex-start; gap: 0.5rem; }
         .msg.sent { flex-direction: row-reverse; }
         .msg.received { flex-direction: row; }
-        .msg-bubble { max-width: 75%; padding: 0.75rem 1rem; border-radius: 12px; position: relative; }
+        .msg-avatar { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0; }
+        .msg-content { max-width: 75%; }
+        .msg-bubble { padding: 0.75rem 1rem; border-radius: 12px; position: relative; }
         .msg.sent .msg-bubble { background: #358D58; color: white; margin-left: auto; }
         .msg.received .msg-bubble { background: #f0f0f0; color: #333; }
-        .msg-meta { font-size: 0.75rem; color: #999; margin-top: 0.25rem; }
-        .msg.sent .msg-meta { text-align: right; }
+        .msg-meta { font-size: 0.75rem; color: #999; margin-top: 0.25rem; display: flex; align-items: center; gap: 0.5rem; }
+        .msg.sent .msg-meta { justify-content: flex-end; }
+        .msg-status { display: flex; align-items: center; gap: 0.25rem; }
+        .msg-status i { font-size: 0.7rem; }
+        .status-delivered { color: #4CAF50; }
+        .status-seen { color: #2196F3; }
+        .typing-indicator { padding: 0.5rem 1rem; font-style: italic; color: #666; font-size: 0.9rem; }
+        .typing-indicator i { animation: pulse 1.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
         .chat-form { padding: 1rem 1.5rem; border-top: 2px solid #f0f0f0; background: white; }
         .chat-form form { display: flex; gap: 0.75rem; }
         .chat-form input { flex: 1; padding: 0.75rem 1rem; border: 2px solid #e5e7eb; border-radius: 10px; font-size: 1rem; }
@@ -84,14 +93,35 @@
                 <p>{{ thread.expert.specialization|default:"Agricultural Expert" }}</p>
             </div>
 
-            <div class="chat-messages" id="chat-messages" data-thread-id="{{ thread.id }}">
+            <div class="chat-messages" id="chat-messages" data-thread-id="{{ thread.id }}" data-current-user="{{ request.user.id }}">
                 {% if messages_list %}
                     {% for msg in messages_list %}
-                    <div class="msg {% if msg.sender_id == request.user.id %}sent{% else %}received{% endif %}">
-                        <div class="msg-bubble">
-                            {{ msg.message|linebreaksbr }}
-                            <div class="msg-meta">{{ msg.created_at|date:"M d, h:i A" }} • {{ msg.sender.email }}</div>
+                    <div class="msg {% if msg.sender_id == request.user.id %}sent{% else %}received{% endif %}" data-message-id="{{ msg.id }}">
+                        {% if msg.sender_id != request.user.id %}
+                        <img src="{{ msg.sender_profile_image|default:'/static/images/default-avatar.png' }}" alt="{{ msg.sender.email }}" class="msg-avatar" onerror="this.src='/static/images/default-avatar.png'">
+                        {% endif %}
+                        <div class="msg-content">
+                            <div class="msg-bubble">
+                                {{ msg.message|linebreaksbr }}
+                                <div class="msg-meta">
+                                    <span>{{ msg.created_at|date:"M d, h:i A" }}</span>
+                                    {% if msg.sender_id == request.user.id %}
+                                    <div class="msg-status">
+                                        {% if msg.seen_at %}
+                                            <i class="fas fa-check-double status-seen" title="Seen"></i>
+                                        {% elif msg.delivered_at %}
+                                            <i class="fas fa-check status-delivered" title="Delivered"></i>
+                                        {% else %}
+                                            <i class="fas fa-clock" title="Sent"></i>
+                                        {% endif %}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
                         </div>
+                        {% if msg.sender_id == request.user.id %}
+                        <img src="{{ msg.sender_profile_image|default:'/static/images/default-avatar.png' }}" alt="{{ msg.sender.email }}" class="msg-avatar" onerror="this.src='/static/images/default-avatar.png'">
+                        {% endif %}
                     </div>
                     {% endfor %}
                 {% else %}
@@ -100,6 +130,9 @@
                         No messages yet. Say hello!
                     </div>
                 {% endif %}
+                <div id="typing-indicator" class="typing-indicator" style="display: none;">
+                    <i class="fas fa-ellipsis-h"></i> Someone is typing...
+                </div>
             </div>
 
             <div class="chat-form">
@@ -114,12 +147,32 @@
     {% include 'support_widget.html' %}
     {% include 'includes/user_dashboard_scroll.html' %}
     <script>
+    let typingTimer;
+    let isTyping = false;
+    
     // Initialize WebSocket chat when page loads
     document.addEventListener('DOMContentLoaded', function() {
         if (window.realTimeChat && window.wsManager) {
             window.realTimeChat.init({
                 onMessage: function(data) {
                     console.log('New message received via WebSocket:', data);
+                    addMessageToChat(data);
+                    markMessageAsSeen(data.message_id);
+                },
+                onTyping: function(data) {
+                    handleTypingIndicator(data);
+                },
+                onMessageSeen: function(data) {
+                    updateMessageStatus(data.message_id, 'seen');
+                }
+            });
+            
+            // Setup typing indicator
+            const messageInput = document.getElementById('message-input');
+            messageInput.addEventListener('input', handleTyping);
+            messageInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendChatMessage();
                 }
             });
         }
@@ -133,8 +186,148 @@
         if (message && window.realTimeChat) {
             window.realTimeChat.sendMessage(message);
             messageInput.value = '';
+            stopTyping();
         }
     }
+    
+    // Add new message to chat display
+    function addMessageToChat(data) {
+        const messagesContainer = document.getElementById('chat-messages');
+        const typingIndicator = document.getElementById('typing-indicator');
+        
+        // Hide typing indicator
+        typingIndicator.style.display = 'none';
+        
+        // Create message element
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `msg ${data.sender_id == getCurrentUserId() ? 'sent' : 'received'}`;
+        messageDiv.setAttribute('data-message-id', data.message_id);
+        
+        const profileImage = data.sender_profile_image || '/static/images/default-avatar.png';
+        const senderName = data.sender_name || data.sender;
+        
+        messageDiv.innerHTML = `
+            ${data.sender_id != getCurrentUserId() ? `<img src="${profileImage}" alt="${senderName}" class="msg-avatar" onerror="this.src='/static/images/default-avatar.png'">` : ''}
+            <div class="msg-content">
+                <div class="msg-bubble">
+                    ${data.message.replace(/\n/g, '<br>')}
+                    <div class="msg-meta">
+                        <span>${formatTime(data.timestamp)}</span>
+                        ${data.sender_id == getCurrentUserId() ? `
+                            <div class="msg-status">
+                                <i class="fas fa-check status-delivered" title="Delivered"></i>
+                            </div>
+                        ` : ''}
+                    </div>
+                </div>
+            </div>
+            ${data.sender_id == getCurrentUserId() ? `<img src="${profileImage}" alt="${senderName}" class="msg-avatar" onerror="this.src='/static/images/default-avatar.png'">` : ''}
+        `;
+        
+        messagesContainer.appendChild(messageDiv);
+        scrollToBottom();
+    }
+    
+    // Handle typing indicator
+    function handleTyping() {
+        if (!isTyping) {
+            isTyping = true;
+            sendTypingStatus(true);
+        }
+        
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => {
+            stopTyping();
+        }, 1000);
+    }
+    
+    function stopTyping() {
+        if (isTyping) {
+            isTyping = false;
+            sendTypingStatus(false);
+        }
+    }
+    
+    function sendTypingStatus(isTypingStatus) {
+        if (window.realTimeChat && window.realTimeChat.socket) {
+            window.realTimeChat.socket.send(JSON.stringify({
+                type: 'typing',
+                is_typing: isTypingStatus
+            }));
+        }
+    }
+    
+    function handleTypingIndicator(data) {
+        const typingIndicator = document.getElementById('typing-indicator');
+        const currentUserId = getCurrentUserId();
+        
+        if (data.user_id != currentUserId) {
+            if (data.is_typing) {
+                typingIndicator.textContent = `${data.user_email} is typing...`;
+                typingIndicator.style.display = 'block';
+            } else {
+                typingIndicator.style.display = 'none';
+            }
+        }
+    }
+    
+    // Mark message as seen
+    function markMessageAsSeen(messageId) {
+        if (window.realTimeChat && window.realTimeChat.socket) {
+            window.realTimeChat.socket.send(JSON.stringify({
+                type: 'message_seen',
+                message_id: messageId
+            }));
+        }
+    }
+    
+    // Update message status display
+    function updateMessageStatus(messageId, status) {
+        const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+        if (messageElement) {
+            const statusElement = messageElement.querySelector('.msg-status');
+            if (statusElement) {
+                if (status === 'seen') {
+                    statusElement.innerHTML = '<i class="fas fa-check-double status-seen" title="Seen"></i>';
+                } else if (status === 'delivered') {
+                    statusElement.innerHTML = '<i class="fas fa-check status-delivered" title="Delivered"></i>';
+                }
+            }
+        }
+    }
+    
+    // Utility functions
+    function getCurrentUserId() {
+        const chatContainer = document.getElementById('chat-messages');
+        return chatContainer ? parseInt(chatContainer.getAttribute('data-current-user')) : null;
+    }
+    
+    function formatTime(timestamp) {
+        const date = new Date(timestamp);
+        return date.toLocaleString('en-US', { 
+            month: 'short', 
+            day: 'numeric', 
+            hour: 'numeric', 
+            minute: '2-digit',
+            hour12: true 
+        });
+    }
+    
+    function scrollToBottom() {
+        const messagesContainer = document.getElementById('chat-messages');
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+    
+    // Mark existing messages as seen when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        setTimeout(() => {
+            const messages = document.querySelectorAll('.msg.received[data-message-id]');
+            messages.forEach(msg => {
+                const messageId = msg.getAttribute('data-message-id');
+                markMessageAsSeen(messageId);
+            });
+        }, 1000);
+    });
     </script>
 </body>
 </html>

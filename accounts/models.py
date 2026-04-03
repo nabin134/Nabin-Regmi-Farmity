@@ -344,6 +344,9 @@ class ExpertChatMessage(models.Model):
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_messages')
     message = models.TextField()
     created_at = models.DateTimeField(auto_now_add=True)
+    delivered_at = models.DateTimeField(null=True, blank=True, help_text="When message was delivered to recipient")
+    seen_at = models.DateTimeField(null=True, blank=True, help_text="When message was seen by recipient")
+    sender_profile_image = models.URLField(max_length=500, blank=True, null=True, help_text="Cached sender profile image URL")
 
     class Meta:
         ordering = ('created_at',)

@@ -490,9 +490,19 @@
             <div id="profileViewMode" class="profile-form-section" style="{% if request.user.role != 'farmer' and request.user.role != 'agricultural_expert' and request.user.role != 'buyer' %}display: none;{% endif %}">
                 {% if request.user.role == 'farmer' %}
                 <div class="profile-info-grid">
-                    <div class="info-card">
+                    <div class="info-card info-card-editable">
                         <span class="profile-info-label">Email Address</span>
-                        <div class="profile-info-value"><i class="fas fa-envelope"></i> {{ request.user.email|default:"Not set" }}</div>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-envelope"></i> <span class="profile-value-text">{{ request.user.email|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
                     </div>
                     <div class="info-card info-card-editable">
                         <span class="profile-info-label">Name</span>
@@ -557,9 +567,19 @@
                 </div>
                 {% elif request.user.role == 'agricultural_expert' %}
                 <div class="profile-info-grid">
-                    <div class="info-card">
+                    <div class="info-card info-card-editable">
                         <span class="profile-info-label">Email Address</span>
-                        <div class="profile-info-value"><i class="fas fa-envelope"></i> {{ request.user.email|default:"Not set" }}</div>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-envelope"></i> <span class="profile-value-text">{{ request.user.email|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
                     </div>
                     <div class="info-card info-card-editable">
                         <span class="profile-info-label">Name</span>
@@ -624,9 +644,19 @@
                 </div>
                 {% elif request.user.role == 'buyer' %}
                 <div class="profile-info-grid">
-                    <div class="info-card">
+                    <div class="info-card info-card-editable">
                         <span class="profile-info-label">Email Address</span>
-                        <div class="profile-info-value"><i class="fas fa-envelope"></i> {{ request.user.email|default:"Not set" }}</div>
+                        <div class="profile-value-row profile-info-value">
+                            <span><i class="fas fa-envelope"></i> <span class="profile-value-text">{{ request.user.email|default:"Not set" }}</span></span>
+                            <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
+                        </div>
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                            {% csrf_token %}
+                            <input type="hidden" name="update_profile" value="true">
+                            <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address">
+                            <button type="submit" class="btn-save-inline">Save</button>
+                            <button type="button" class="btn-cancel-inline" onclick="hideProfileInlineEdit(this)">Cancel</button>
+                        </form>
                     </div>
                     <div class="info-card info-card-editable">
                         <span class="profile-info-label">Name</span>
@@ -686,7 +716,7 @@
                     {% if request.user.role == 'farmer' %}
                     <div class="edit-card form-group">
                         <span class="profile-info-label">Email Address</span>
-                        <div class="read-only-field"><i class="fas fa-envelope" style="color: var(--sea-green);"></i> {{ request.user.email }}</div>
+                        <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address">
                     </div>
                     <div class="edit-card form-group">
                         <span class="profile-info-label">Name</span>
@@ -717,6 +747,10 @@
                         <input type="text" name="livestock_details" class="form-control" value="{{ profile.livestock_details|default:'' }}" placeholder="e.g., 10 cows, 20 chickens">
                     </div>
                     {% elif request.user.role == 'vendor' %}
+                    <div class="form-group">
+                        <label>Email Address</label>
+                        <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address">
+                    </div>
                     <div class="form-group">
                         <label>Company Name</label>
                         <input type="text" name="company_name" class="form-control" value="{{ profile.company_name|default:'' }}" placeholder="Company or business name">
@@ -753,7 +787,7 @@
                     {% elif request.user.role == 'agricultural_expert' %}
                     <div class="edit-card form-group">
                         <span class="profile-info-label">Email Address</span>
-                        <div class="read-only-field"><i class="fas fa-envelope" style="color: var(--sea-green);"></i> {{ request.user.email }}</div>
+                        <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address">
                     </div>
                     <div class="edit-card form-group">
                         <span class="profile-info-label">Name</span>
@@ -899,7 +933,7 @@
         var form = card.querySelector('.inline-edit-form');
         if (form) {
             form.style.display = 'flex';
-            var input = form.querySelector('input[type="text"]');
+            var input = form.querySelector('input[type="text"], input[type="email"]');
             if (input) { input.focus(); input.select(); }
         }
     }

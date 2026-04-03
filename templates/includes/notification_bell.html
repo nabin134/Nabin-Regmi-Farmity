@@ -472,7 +472,13 @@
         if (!link) return '#';
         if (link.startsWith('http')) return link;
         if (link.startsWith('#')) return window.location.pathname + window.location.search + link;
-        if (link.startsWith('?')) return window.location.pathname + link;
+        if (link.startsWith('?')) {
+            // Handle chat opening on current page
+            if (link.includes('open_chat=true')) {
+                return '#'; // Stay on current page, let JS handle chat opening
+            }
+            return window.location.pathname + link;
+        }
         if (link.startsWith('/')) return window.location.origin + link;
         return window.location.origin + window.location.pathname + (link.startsWith('?') ? link : '?' + link);
     }
@@ -572,9 +578,47 @@
         if (href && href !== '#') {
             var id = notifItem.getAttribute('data-id');
             if (id) markRead(id);
+            
+            // Handle chat opening on current page
+            if (href.includes('open_chat=true')) {
+                openChatOnCurrentPage(href);
+                return;
+            }
+            
             window.location.href = href;
         }
     }
+    
+    function openChatOnCurrentPage(chatUrl) {
+        // Parse thread_id from URL parameters
+        var urlParams = new URLSearchParams(chatUrl.replace('?', ''));
+        var threadId = urlParams.get('thread_id');
+        
+        if (threadId) {
+            // Try to open chat on current page
+            if (typeof openChatInterface === 'function') {
+                openChatInterface(threadId);
+            } else if (typeof window.openChat === 'function') {
+                window.openChat(threadId);
+            } else {
+                // Fallback: redirect to chat page
+                window.location.href = '/chat/thread/' + threadId + '/';
+            }
+        }
+    }
+    
+    // Check for chat parameters on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        var urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('open_chat') === 'true') {
+            var threadId = urlParams.get('thread_id');
+            if (threadId) {
+                setTimeout(function() {
+                    openChatOnCurrentPage('?open_chat=true&thread_id=' + threadId);
+                }, 500);
+            }
+        }
+    });
 
     if (listEl) {
         listEl.addEventListener('click', function(e) {
