@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Profile Details - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/form-validation.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         body {
@@ -454,10 +455,10 @@
                             </div>
                         {% endif %}
                     {% endif %}
-                    <form id="photoForm" method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="change-photo-form">
+                    <form id="photoForm" method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="change-photo-form" data-farmity-ajax="1" data-farmity-photo-target=".profile-img-large">
                         {% csrf_token %}
                         <input type="hidden" name="update_photo" value="true">
-                        <input type="file" name="photo" id="photoInput" accept="image/*" onchange="this.form.submit()" style="display:none;">
+                        <input type="file" name="photo" id="photoInput" accept="image/*" onchange="if(this.files.length){ this.form.requestSubmit ? this.form.requestSubmit() : this.form.dispatchEvent(new Event('submit', {bubbles:true,cancelable:true})); }" style="display:none;">
                         <button type="button" class="btn-change-photo" onclick="document.getElementById('photoInput').click()">
                             <i class="fas fa-camera"></i> {% if request.user.role == 'vendor' %}Change logo{% else %}Change profile picture{% endif %}
                         </button>
@@ -493,7 +494,7 @@
                     <div class="info-card info-card-editable">
                         <span class="profile-info-label">Email Address</span>
                         <div class="profile-value-row profile-info-value">
-                            <span><i class="fas fa-envelope"></i> <span class="profile-value-text">{{ request.user.email|default:"Not set" }}</span></span>
+                            <span><i class="fas fa-envelope"></i> <span class="profile-value-text profile-value-text-email" data-profile-email-display>{{ request.user.email|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
                         <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
@@ -570,7 +571,7 @@
                     <div class="info-card info-card-editable">
                         <span class="profile-info-label">Email Address</span>
                         <div class="profile-value-row profile-info-value">
-                            <span><i class="fas fa-envelope"></i> <span class="profile-value-text">{{ request.user.email|default:"Not set" }}</span></span>
+                            <span><i class="fas fa-envelope"></i> <span class="profile-value-text profile-value-text-email" data-profile-email-display>{{ request.user.email|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
                         <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
@@ -647,7 +648,7 @@
                     <div class="info-card info-card-editable">
                         <span class="profile-info-label">Email Address</span>
                         <div class="profile-value-row profile-info-value">
-                            <span><i class="fas fa-envelope"></i> <span class="profile-value-text">{{ request.user.email|default:"Not set" }}</span></span>
+                            <span><i class="fas fa-envelope"></i> <span class="profile-value-text profile-value-text-email" data-profile-email-display>{{ request.user.email|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
                         <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
@@ -708,7 +709,7 @@
                 {% endif %}
             </div>
 
-            <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="profile-form-section" id="profileForm" style="{% if request.user.role == 'farmer' or request.user.role == 'agricultural_expert' or request.user.role == 'buyer' %}display: none;{% endif %}">
+            <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="profile-form-section" id="profileForm" style="{% if request.user.role == 'farmer' or request.user.role == 'agricultural_expert' or request.user.role == 'buyer' %}display: none;{% endif %}" data-farmity-ajax="1" data-farmity-confirm="1">
                 {% csrf_token %}
                 <input type="hidden" name="update_profile" value="true">
 
@@ -716,7 +717,8 @@
                     {% if request.user.role == 'farmer' %}
                     <div class="edit-card form-group">
                         <span class="profile-info-label">Email Address</span>
-                        <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address">
+                        <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address" autocomplete="email">
+                        <p class="farmity-field-error" id="profileFormFieldError-email" role="alert" style="display:none;margin-top:0.35rem;font-size:0.8125rem;color:#dc3545;"></p>
                     </div>
                     <div class="edit-card form-group">
                         <span class="profile-info-label">Name</span>
@@ -749,7 +751,8 @@
                     {% elif request.user.role == 'vendor' %}
                     <div class="form-group">
                         <label>Email Address</label>
-                        <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address">
+                        <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address" autocomplete="email">
+                        <p class="farmity-field-error" id="profileFormFieldError-email" role="alert" style="display:none;margin-top:0.35rem;font-size:0.8125rem;color:#dc3545;"></p>
                     </div>
                     <div class="form-group">
                         <label>Company Name</label>
@@ -787,7 +790,8 @@
                     {% elif request.user.role == 'agricultural_expert' %}
                     <div class="edit-card form-group">
                         <span class="profile-info-label">Email Address</span>
-                        <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address">
+                        <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address" autocomplete="email">
+                        <p class="farmity-field-error" id="profileFormFieldError-email" role="alert" style="display:none;margin-top:0.35rem;font-size:0.8125rem;color:#dc3545;"></p>
                     </div>
                     <div class="edit-card form-group">
                         <span class="profile-info-label">Name</span>
@@ -812,7 +816,8 @@
                     {% elif request.user.role == 'buyer' %}
                     <div class="edit-card form-group">
                         <span class="profile-info-label">Email Address</span>
-                        <div class="read-only-field"><i class="fas fa-envelope" style="color: var(--sea-green);"></i> {{ request.user.email }}</div>
+                        <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address" autocomplete="email">
+                        <p class="farmity-field-error" id="profileFormFieldError-email" role="alert" style="display:none;margin-top:0.35rem;font-size:0.8125rem;color:#dc3545;"></p>
                     </div>
                     <div class="edit-card form-group">
                         <span class="profile-info-label">Name</span>
@@ -833,7 +838,8 @@
                     {% else %}
                     <div class="edit-card form-group">
                         <span class="profile-info-label">Email Address</span>
-                        <div class="read-only-field"><i class="fas fa-envelope" style="color: var(--sea-green);"></i> {{ request.user.email }}</div>
+                        <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address" autocomplete="email">
+                        <p class="farmity-field-error" id="profileFormFieldError-email" role="alert" style="display:none;margin-top:0.35rem;font-size:0.8125rem;color:#dc3545;"></p>
                     </div>
                     <div class="edit-card form-group">
                         <span class="profile-info-label">Name</span>
@@ -948,6 +954,7 @@
         }
     }
     </script>
+    {% include 'includes/farmity_ux_scripts.html' %}
     {% include 'includes/user_dashboard_scroll.html' %}
 </body>
 </html>

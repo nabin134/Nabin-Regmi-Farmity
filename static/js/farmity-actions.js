@@ -1,0 +1,187 @@
+/**
+ * Farmity: AJAX form posts, optional confirm (Yes/Cancel), toast feedback, DOM updates.
+ * Depends on form-validation.js (showConfirmation, showToast / showSuccess / showError).
+ */
+(function () {
+    'use strict';
+
+    function getCookie(name) {
+        const m = document.cookie.match(new RegExp('(^|; )' + name.replace(/([.$?*|{}()[\]\\/+^])/g, '\\$1') + '=([^;]*)'));
+        return m ? decodeURIComponent(m[2]) : '';
+    }
+
+    function getCsrfToken() {
+        const el = document.querySelector('[name=csrfmiddlewaretoken]');
+        if (el && el.value) return el.value;
+        return getCookie('csrftoken');
+    }
+
+    function farmityConfirm() {
+        const dlg = typeof showConfirmation === 'function' ? showConfirmation : null;
+        if (dlg) {
+            return dlg({
+                title: 'Confirm',
+                message: 'Are you sure you want to perform this action?',
+                confirmText: 'Yes',
+                cancelText: 'Cancel',
+                type: 'warning',
+            });
+        }
+        return Promise.resolve(window.confirm('Are you sure you want to perform this action?'));
+    }
+
+    function applyFieldErrors(form, fieldErrors) {
+        if (!form || !fieldErrors || typeof fieldErrors !== 'object') return;
+        Object.keys(fieldErrors).forEach(function (name) {
+            const msg = fieldErrors[name];
+            const field = form.querySelector('[name="' + name + '"]');
+            let holder = document.getElementById(form.id ? form.id + 'FieldError-' + name : '');
+            if (!holder && field) {
+                holder = field.closest('.form-group')?.querySelector('.farmity-field-error');
+            }
+            if (!holder && field) {
+                holder = document.createElement('p');
+                holder.className = 'farmity-field-error';
+                holder.setAttribute('role', 'alert');
+                field.closest('.form-group')?.appendChild(holder) || field.parentElement.appendChild(holder);
+            }
+            if (holder) {
+                holder.textContent = msg;
+                holder.style.display = 'block';
+                holder.style.color = '#dc3545';
+                holder.style.fontSize = '0.8125rem';
+                holder.style.marginTop = '0.35rem';
+            }
+            if (field) field.classList.add('field-invalid');
+        });
+    }
+
+    function clearFarmityFieldErrors(form) {
+        if (!form) return;
+        form.querySelectorAll('.farmity-field-error').forEach(function (el) {
+            el.textContent = '';
+            el.style.display = 'none';
+        });
+        form.querySelectorAll('.field-invalid').forEach(function (el) {
+            el.classList.remove('field-invalid');
+        });
+    }
+
+    async function submitFarmityForm(form) {
+        const url = form.getAttribute('action') || window.location.pathname + window.location.search;
+        const useConfirm = form.getAttribute('data-farmity-confirm') === '1';
+        if (useConfirm) {
+            const ok = await farmityConfirm();
+            if (!ok) return;
+        }
+
+        clearFarmityFieldErrors(form);
+        const fd = new FormData(form);
+        fd.set('ajax', '1');
+
+        const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+        const prevText = submitBtn ? submitBtn.innerHTML : '';
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        }
+
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                body: fd,
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    Accept: 'application/json',
+                    'X-CSRFToken': getCsrfToken(),
+                },
+            });
+            let data = {};
+            const ct = res.headers.get('content-type') || '';
+            if (ct.indexOf('application/json') !== -1) {
+                data = await res.json();
+            } else {
+                const text = await res.text();
+                if (typeof showError === 'function') {
+                    showError('Unexpected response from server.');
+                }
+                if (submitBtn) {
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = prevText;
+                }
+                return;
+            }
+
+            if (data.field_errors) {
+                applyFieldErrors(form, data.field_errors);
+            }
+
+            if (data.ok) {
+                if (typeof showSuccess === 'function') {
+                    showSuccess(data.message || 'Saved successfully.');
+                }
+                const removeSel = form.getAttribute('data-farmity-remove-selector');
+                if (removeSel) {
+                    const el = document.querySelector(removeSel);
+                    if (el) el.remove();
+                }
+                if (data.removed_tip_id != null) {
+                    const row = document.querySelector('[data-tip-row="' + data.removed_tip_id + '"]');
+                    if (row) row.remove();
+                }
+                if (data.photo_url) {
+                    const img = document.querySelector(form.getAttribute('data-farmity-photo-target') || '.profile-img-large');
+                    if (img && img.tagName === 'IMG') img.src = data.photo_url;
+                }
+                if (data.email) {
+                    document.querySelectorAll('.profile-value-text-email, [data-profile-email-display]').forEach(function (el) {
+                        el.textContent = data.email;
+                    });
+                    form.querySelectorAll('input[name="email"]').forEach(function (inp) {
+                        inp.value = data.email;
+                    });
+                }
+                if (data.tip_status && data.tip_status.id != null) {
+                    const card = document.querySelector('[data-tip-row="' + data.tip_status.id + '"]');
+                    if (card) {
+                        const badge = card.querySelector('.status-badge');
+                        if (badge && data.tip_status.approval_status) {
+                            const st = data.tip_status.approval_status;
+                            badge.className = 'status-badge ' + (st === 'approved' ? 'approved' : st === 'pending' ? 'pending' : 'rejected');
+                            badge.textContent = st === 'approved' ? 'Approved' : st === 'pending' ? 'Pending approval' : 'Rejected';
+                        }
+                    }
+                }
+                const resetForm = form.getAttribute('data-farmity-reset-on-success') === '1';
+                if (resetForm) form.reset();
+                const closeModal = form.getAttribute('data-farmity-close-modal');
+                if (closeModal) {
+                    const m = document.getElementById(closeModal);
+                    if (m) m.classList.remove('active');
+                }
+            } else {
+                if (typeof showError === 'function') {
+                    showError(data.message || 'Something went wrong.');
+                }
+            }
+        } catch (e) {
+            if (typeof showError === 'function') {
+                showError('Network error. Please try again.');
+            }
+        } finally {
+            if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = prevText;
+            }
+        }
+    }
+
+    document.addEventListener('submit', function (ev) {
+        const form = ev.target;
+        if (!form || form.tagName !== 'FORM') return;
+        if (form.getAttribute('data-farmity-ajax') !== '1') return;
+        ev.preventDefault();
+        submitFarmityForm(form);
+    });
+})();

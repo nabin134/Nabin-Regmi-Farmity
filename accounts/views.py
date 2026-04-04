@@ -218,6 +218,59 @@ def _redirect_same_page(request, view_name, section_param='return_section'):
     return redirect(url)
 
 
+def _farmity_wants_ajax(request):
+    """True when the client expects a JSON body (Fetch/XHR) instead of a redirect."""
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return True
+    if str(request.POST.get('ajax', '')).strip() == '1':
+        return True
+    accept = request.headers.get('Accept') or ''
+    return 'application/json' in accept
+
+
+def _farmity_json_response(ok, message='', **extra):
+    data = {'ok': bool(ok), 'message': message or ''}
+    data.update(extra)
+    return JsonResponse(data)
+
+
+def _validate_profile_email_change(user, raw_email):
+    """
+    Returns (email_to_store, None) on success, or (None, error_message).
+    """
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+
+    User = get_user_model()
+    candidate = (raw_email or '').strip()
+    if not candidate:
+        return None, 'Email is required.'
+    try:
+        validate_email(candidate)
+    except ValidationError:
+        return None, 'Please enter a valid email address.'
+    normalized = User.normalize_email(candidate)
+    if normalized.lower() == (user.email or '').lower():
+        return user.email, None
+    if User.objects.filter(email__iexact=normalized).exclude(pk=user.pk).exists():
+        return None, 'This email is already in use by another account.'
+    return normalized, None
+
+
+def _profile_finish(request, ok, message, extra_json=None):
+    """JSON for AJAX posts; otherwise Django messages + redirect to profile."""
+    if _farmity_wants_ajax(request):
+        payload = {'ok': ok, 'message': message}
+        if extra_json:
+            payload.update(extra_json)
+        return JsonResponse(payload)
+    if ok:
+        messages.success(request, message)
+    else:
+        messages.error(request, message)
+    return redirect('profile')
+
+
 def _redirect_same_admin_page(request, view_name):
     """
     Redirect back to the same admin page preserving all current GET parameters
@@ -2037,11 +2090,16 @@ def profile_page(request):
                 if photo_file:
                     profile.photo = photo_file
                     profile.save()
-                    messages.success(request, 'Profile picture updated successfully!')
-                else:
-                    messages.error(request, 'Please select an image file.')
-                return redirect('profile')
+                    extra = {}
+                    if profile.photo:
+                        extra['photo_url'] = profile.photo.url
+                    return _profile_finish(request, True, 'Profile picture updated successfully!', extra)
+                return _profile_finish(request, False, 'Please select an image file.')
             elif 'update_profile' in request.POST:
+                new_email = request.POST.get('email', '').strip()
+                norm_email, email_err = _validate_profile_email_change(user, new_email)
+                if email_err:
+                    return _profile_finish(request, False, email_err, {'field_errors': {'email': email_err}})
                 profile.name = request.POST.get('name', profile.name)
                 profile.location = request.POST.get('location', profile.location)
                 profile.contact = request.POST.get('contact', profile.contact)
@@ -2049,16 +2107,13 @@ def profile_page(request):
                 profile.crop_types = request.POST.get('crop_types', profile.crop_types)
                 profile.livestock_details = request.POST.get('livestock_details', profile.livestock_details)
                 profile.save()
-                
-                # Update user email if provided
-                new_email = request.POST.get('email', '').strip()
-                if new_email and new_email != user.email:
-                    user.email = new_email
+                if norm_email != user.email:
+                    user.email = norm_email
                     user.save()
-                    messages.success(request, 'Email updated successfully!')
-                
-                messages.success(request, 'Profile updated successfully!')
-                return redirect('profile')
+                return _profile_finish(
+                    request, True, 'Profile updated successfully.',
+                    {'email': user.email},
+                )
         context['profile'] = profile
         
     elif user.role == 'vendor':
@@ -2069,11 +2124,16 @@ def profile_page(request):
                 if photo_file:
                     profile.logo = photo_file
                     profile.save()
-                    messages.success(request, 'Profile picture updated successfully!')
-                else:
-                    messages.error(request, 'Please select an image file.')
-                return redirect('profile')
+                    extra = {}
+                    if profile.logo:
+                        extra['photo_url'] = profile.logo.url
+                    return _profile_finish(request, True, 'Profile picture updated successfully!', extra)
+                return _profile_finish(request, False, 'Please select an image file.')
             elif 'update_profile' in request.POST:
+                new_email = request.POST.get('email', '').strip()
+                norm_email, email_err = _validate_profile_email_change(user, new_email)
+                if email_err:
+                    return _profile_finish(request, False, email_err, {'field_errors': {'email': email_err}})
                 website = (request.POST.get('website') or '').strip() or None
                 if website and not (website.startswith('http://') or website.startswith('https://')):
                     website = 'https://' + website
@@ -2084,16 +2144,13 @@ def profile_page(request):
                 profile.business_type = (request.POST.get('business_type') or profile.business_type or '').strip() or profile.business_type
                 profile.description = (request.POST.get('description') or profile.description or '').strip() or profile.description
                 profile.save()
-                
-                # Update user email if provided
-                new_email = request.POST.get('email', '').strip()
-                if new_email and new_email != user.email:
-                    user.email = new_email
+                if norm_email != user.email:
+                    user.email = norm_email
                     user.save()
-                    messages.success(request, 'Email updated successfully!')
-                
-                messages.success(request, 'Profile updated successfully!')
-                return redirect('profile')
+                return _profile_finish(
+                    request, True, 'Profile updated successfully.',
+                    {'email': user.email},
+                )
         from .models import VendorTool
         context['profile'] = profile
         context['tools_count'] = VendorTool.objects.filter(vendor=profile).count()
@@ -2106,26 +2163,28 @@ def profile_page(request):
                 if photo_file:
                     profile.photo = photo_file
                     profile.save()
-                    messages.success(request, 'Profile picture updated successfully!')
-                else:
-                    messages.error(request, 'Please select an image file.')
-                return redirect('profile')
+                    extra = {}
+                    if profile.photo:
+                        extra['photo_url'] = profile.photo.url
+                    return _profile_finish(request, True, 'Profile picture updated successfully!', extra)
+                return _profile_finish(request, False, 'Please select an image file.')
             elif 'update_profile' in request.POST:
+                new_email = request.POST.get('email', '').strip()
+                norm_email, email_err = _validate_profile_email_change(user, new_email)
+                if email_err:
+                    return _profile_finish(request, False, email_err, {'field_errors': {'email': email_err}})
                 profile.name = request.POST.get('name', profile.name)
                 profile.specialization = request.POST.get('specialization', profile.specialization)
                 profile.experience = request.POST.get('experience', profile.experience)
                 profile.qualification = request.POST.get('qualifications', profile.qualification)
                 profile.save()
-                
-                # Update user email if provided
-                new_email = request.POST.get('email', '').strip()
-                if new_email and new_email != user.email:
-                    user.email = new_email
+                if norm_email != user.email:
+                    user.email = norm_email
                     user.save()
-                    messages.success(request, 'Email updated successfully!')
-                
-                messages.success(request, 'Profile updated successfully!')
-                return redirect('profile')
+                return _profile_finish(
+                    request, True, 'Profile updated successfully.',
+                    {'email': user.email},
+                )
         context['profile'] = profile
         
     elif user.role == 'buyer':
@@ -2136,25 +2195,27 @@ def profile_page(request):
                 if photo_file:
                     profile.photo = photo_file
                     profile.save()
-                    messages.success(request, 'Profile picture updated successfully!')
-                else:
-                    messages.error(request, 'Please select an image file.')
-                return redirect('profile')
+                    extra = {}
+                    if profile.photo:
+                        extra['photo_url'] = profile.photo.url
+                    return _profile_finish(request, True, 'Profile picture updated successfully!', extra)
+                return _profile_finish(request, False, 'Please select an image file.')
             elif 'update_profile' in request.POST:
+                new_email = request.POST.get('email', '').strip()
+                norm_email, email_err = _validate_profile_email_change(user, new_email)
+                if email_err:
+                    return _profile_finish(request, False, email_err, {'field_errors': {'email': email_err}})
                 profile.name = request.POST.get('name', profile.name)
                 profile.phone = request.POST.get('contact', profile.phone)
                 profile.address = request.POST.get('location', profile.address)
                 profile.save()
-                
-                # Update user email if provided
-                new_email = request.POST.get('email', '').strip()
-                if new_email and new_email != user.email:
-                    user.email = new_email
+                if norm_email != user.email:
+                    user.email = norm_email
                     user.save()
-                    messages.success(request, 'Email updated successfully!')
-                
-                messages.success(request, 'Profile updated successfully!')
-                return redirect('profile')
+                return _profile_finish(
+                    request, True, 'Profile updated successfully.',
+                    {'email': user.email},
+                )
         context['profile'] = profile
     else:
         # Admin or unknown role: use UserProfile so profile is always editable
@@ -2165,25 +2226,27 @@ def profile_page(request):
                 if photo_file:
                     profile.photo = photo_file
                     profile.save()
-                    messages.success(request, 'Profile picture updated successfully!')
-                else:
-                    messages.error(request, 'Please select an image file.')
-                return redirect('profile')
+                    extra = {}
+                    if profile.photo:
+                        extra['photo_url'] = profile.photo.url
+                    return _profile_finish(request, True, 'Profile picture updated successfully!', extra)
+                return _profile_finish(request, False, 'Please select an image file.')
             elif 'update_profile' in request.POST:
+                new_email = request.POST.get('email', '').strip()
+                norm_email, email_err = _validate_profile_email_change(user, new_email)
+                if email_err:
+                    return _profile_finish(request, False, email_err, {'field_errors': {'email': email_err}})
                 profile.name = request.POST.get('name', profile.name)
                 profile.phone = request.POST.get('contact', profile.phone)
                 profile.address = request.POST.get('location', profile.address)
                 profile.save()
-                
-                # Update user email if provided
-                new_email = request.POST.get('email', '').strip()
-                if new_email and new_email != user.email:
-                    user.email = new_email
+                if norm_email != user.email:
+                    user.email = norm_email
                     user.save()
-                    messages.success(request, 'Email updated successfully!')
-                
-                messages.success(request, 'Profile updated successfully!')
-                return redirect('profile')
+                return _profile_finish(
+                    request, True, 'Profile updated successfully.',
+                    {'email': user.email},
+                )
         context['profile'] = profile
 
     context['role_display'] = (user.role or '').replace('_', ' ').title()
@@ -2202,31 +2265,37 @@ def change_password(request):
         current_password = request.POST.get('current_password')
         new_password = request.POST.get('new_password')
         confirm_password = request.POST.get('confirm_password')
-        
+
+        def _finish(ok, msg, field_errors=None):
+            if _farmity_wants_ajax(request):
+                data = {'ok': ok, 'message': msg}
+                if field_errors:
+                    data['field_errors'] = field_errors
+                return JsonResponse(data)
+            if ok:
+                messages.success(request, msg)
+            else:
+                messages.error(request, msg)
+            return redirect('settings')
+
         if not current_password or not new_password or not confirm_password:
-            messages.error(request, 'All fields are required!')
-            return redirect('settings')
-        
+            return _finish(False, 'All fields are required!', {'current_password': 'Required.', 'new_password': 'Required.', 'confirm_password': 'Required.'})
+
         if not user.check_password(current_password):
-            messages.error(request, 'Current password is incorrect!')
-            return redirect('settings')
-        
+            return _finish(False, 'Current password is incorrect!', {'current_password': 'Current password is incorrect.'})
+
         if new_password != confirm_password:
-            messages.error(request, 'New passwords do not match!')
-            return redirect('settings')
-        
+            return _finish(False, 'New passwords do not match!', {'confirm_password': 'Passwords do not match.'})
+
         if len(new_password) < 8:
-            messages.error(request, 'Password must be at least 8 characters long!')
-            return redirect('settings')
-        
+            return _finish(False, 'Password must be at least 8 characters long!', {'new_password': 'Password must be at least 8 characters long.'})
+
         user.set_password(new_password)
         user.save()
-        # Re-authenticate user after password change
         user = authenticate(username=user.email, password=new_password)
         if user:
             _login_user(request, user)
-        messages.success(request, 'Password updated successfully!')
-        return redirect('settings')
+        return _finish(True, 'Password updated successfully!')
     return redirect('settings')
 
 
@@ -3258,16 +3327,27 @@ def expert_dashboard(request):
     # Handle Delete Tip - Require KYC approval
     if request.method == 'POST' and 'delete_tip' in request.POST:
         if kyc_status != 'approved':
-            messages.error(request, 'KYC verification is required to delete content. Please complete your KYC verification first.')
+            msg = 'KYC verification is required to delete content. Please complete your KYC verification first.'
+            if _farmity_wants_ajax(request):
+                return _farmity_json_response(False, msg)
+            messages.error(request, msg)
             return _redirect_same_page(request, 'expert_dashboard')
-        
+
         tip_id = request.POST.get('tip_id')
+        removed_id = None
         try:
             tip = FarmingTip.objects.get(id=tip_id, expert=profile)
+            removed_id = tip.id
             tip.delete()
-            messages.success(request, 'Content deleted successfully!')
-        except FarmingTip.DoesNotExist:
-            messages.error(request, 'Content not found!')
+            msg = 'Content deleted successfully!'
+            if _farmity_wants_ajax(request):
+                return _farmity_json_response(True, msg, removed_tip_id=removed_id)
+            messages.success(request, msg)
+        except (FarmingTip.DoesNotExist, ValueError, TypeError):
+            msg = 'Content not found!'
+            if _farmity_wants_ajax(request):
+                return _farmity_json_response(False, msg)
+            messages.error(request, msg)
         return _redirect_same_page(request, 'expert_dashboard')
     
     # Handle Add Availability (single date with optional time, or one week)
@@ -4824,14 +4904,19 @@ def admin_content_management(request):
     # Handle POST requests for CRUD operations
     if request.method == 'POST':
         action = request.POST.get('action')
-        
+        ajax = _farmity_wants_ajax(request)
+        result_ok = False
+        result_msg = 'No action was performed.'
+        removed_tip_id = None
+        tip_status_update = None  # {id, approval_status, label} for live badge update
+
         if action == 'edit_tip':
             tip_id = request.POST.get('tip_id')
             try:
                 tip = FarmingTip.objects.get(id=tip_id)
-                # Admin cannot edit approved content
                 if tip.approval_status == FarmingTip.APPROVAL_APPROVED:
-                    messages.error(request, 'Approved content cannot be edited. It is locked once approved.')
+                    result_ok = False
+                    result_msg = 'Approved content cannot be edited. It is locked once approved.'
                 else:
                     tip.title = request.POST.get('title', tip.title)
                     tip.content = request.POST.get('content', tip.content)
@@ -4842,19 +4927,29 @@ def admin_content_management(request):
                     if request.FILES.get('image'):
                         tip.image = request.FILES.get('image')
                     tip.save()
-                    messages.success(request, 'Content updated successfully!')
+                    result_ok = True
+                    result_msg = 'Content updated successfully!'
+                    tip_status_update = {
+                        'id': tip.id,
+                        'approval_status': tip.approval_status,
+                        'is_published': tip.is_published,
+                    }
             except FarmingTip.DoesNotExist:
-                messages.error(request, 'Content not found!')
-        
+                result_ok = False
+                result_msg = 'Content not found!'
+
         elif action == 'delete_tip':
             tip_id = request.POST.get('tip_id')
             try:
                 tip = FarmingTip.objects.get(id=tip_id)
+                removed_tip_id = tip.id
                 tip.delete()
-                messages.success(request, 'Content deleted successfully!')
+                result_ok = True
+                result_msg = 'Content deleted successfully!'
             except FarmingTip.DoesNotExist:
-                messages.error(request, 'Content not found!')
-        
+                result_ok = False
+                result_msg = 'Content not found!'
+
         elif action == 'approve_tip':
             tip_id = request.POST.get('tip_id')
             try:
@@ -4862,10 +4957,17 @@ def admin_content_management(request):
                 tip.approval_status = FarmingTip.APPROVAL_APPROVED
                 tip.is_published = True
                 tip.save()
-                messages.success(request, f'"{tip.title}" approved and now visible to users.')
+                result_ok = True
+                result_msg = f'"{tip.title}" approved and now visible to users.'
+                tip_status_update = {
+                    'id': tip.id,
+                    'approval_status': tip.approval_status,
+                    'is_published': tip.is_published,
+                }
             except FarmingTip.DoesNotExist:
-                messages.error(request, 'Content not found!')
-        
+                result_ok = False
+                result_msg = 'Content not found!'
+
         elif action == 'reject_tip':
             tip_id = request.POST.get('tip_id')
             try:
@@ -4873,10 +4975,29 @@ def admin_content_management(request):
                 tip.approval_status = FarmingTip.APPROVAL_REJECTED
                 tip.is_published = False
                 tip.save()
-                messages.success(request, f'"{tip.title}" rejected.')
+                result_ok = True
+                result_msg = f'"{tip.title}" rejected.'
+                tip_status_update = {
+                    'id': tip.id,
+                    'approval_status': tip.approval_status,
+                    'is_published': tip.is_published,
+                }
             except FarmingTip.DoesNotExist:
-                messages.error(request, 'Content not found!')
-        
+                result_ok = False
+                result_msg = 'Content not found!'
+
+        if ajax:
+            payload = {'ok': result_ok, 'message': result_msg, 'action': action or ''}
+            if removed_tip_id is not None:
+                payload['removed_tip_id'] = removed_tip_id
+            if tip_status_update is not None:
+                payload['tip_status'] = tip_status_update
+            return JsonResponse(payload)
+
+        if result_ok:
+            messages.success(request, result_msg)
+        else:
+            messages.error(request, result_msg)
         return _redirect_same_admin_page(request, 'admin_content_management')
     
     # Get filter parameters

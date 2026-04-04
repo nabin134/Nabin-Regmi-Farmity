@@ -967,7 +967,7 @@
                             <option value="agricultural_expert" {% if role == 'agricultural_expert' %}selected{% endif %}>Agricultural Expert</option>
                         </select>
                     </div>
-                    <p class="register-field-error" id="registerFieldError-role" role="alert" aria-live="polite"></p>
+                    <p class="register-field-error" id="registerFieldError-userRole" role="alert" aria-live="polite"></p>
                 </div>
 
                 <!-- Role Badge - Shown when role is pre-selected from role page (CSS .signup-role-selected also forces show) -->
@@ -1106,6 +1106,18 @@
                 }
             });
 
+            form.querySelectorAll('input[name="gender"]').forEach(function (radio) {
+                radio.addEventListener('change', function () {
+                    clearFieldError('gender');
+                });
+            });
+            const termsBox = document.getElementById('terms');
+            if (termsBox) {
+                termsBox.addEventListener('change', function () {
+                    clearFieldError('terms');
+                });
+            }
+
             form.addEventListener('submit', async function(e) {
                 e.preventDefault();
 
@@ -1126,11 +1138,45 @@
                     }
                 });
 
+                const genderOk = !!form.querySelector('input[name="gender"]:checked');
+                if (!genderOk) {
+                    isValid = false;
+                    errors['gender'] = 'Please select your gender.';
+                    setFieldError('gender', errors['gender']);
+                } else {
+                    clearFieldError('gender');
+                }
+
+                const termsEl = document.getElementById('terms');
+                if (!termsEl || !termsEl.checked) {
+                    isValid = false;
+                    errors['terms'] = 'You must agree to the Terms of Service and Privacy Policy.';
+                    setFieldError('terms', errors['terms']);
+                } else {
+                    clearFieldError('terms');
+                }
+
+                const hiddenRole = (document.getElementById('role') && document.getElementById('role').value || '').trim();
+                if (!hiddenRole) {
+                    const ur = document.getElementById('userRole');
+                    const urv = ur ? ur.value.trim() : '';
+                    if (!urv) {
+                        isValid = false;
+                        errors['userRole'] = 'Please select your role.';
+                        setFieldError('userRole', errors['userRole']);
+                    } else {
+                        clearFieldError('userRole');
+                    }
+                } else {
+                    clearFieldError('userRole');
+                }
+
                 if (!isValid) {
                     const firstError = Object.keys(errors)[0];
                     if (firstError) {
-                        showError(errors[firstError]);
                         setFieldError(firstError, errors[firstError]);
+                        const el = document.getElementById(firstError) || document.querySelector('[name="' + firstError + '"]');
+                        if (el && typeof el.focus === 'function') el.focus();
                     }
                     return;
                 }
@@ -1215,11 +1261,14 @@
                             message: trimmedValue === password ? '' : 'Passwords do not match.'
                         };
 
-                    case 'userRole':
+                    case 'userRole': {
+                        const hr = (document.getElementById('role') && document.getElementById('role').value || '').trim();
+                        if (hr) return { valid: true, message: '' };
                         return {
                             valid: trimmedValue !== '',
                             message: trimmedValue !== '' ? '' : 'Please select your role.'
                         };
+                    }
 
                     default:
                         return { valid: true, message: '' };

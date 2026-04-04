@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Content Management - Admin Dashboard</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/form-validation.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
@@ -549,7 +550,7 @@
             <!-- Content Grid -->
             <div class="content-grid">
                 {% for tip in tips %}
-                <div class="content-card">
+                <div class="content-card" data-tip-row="{{ tip.id }}">
                     {% if tip.image %}
                     <img src="{{ tip.image.url }}" alt="{{ tip.title }}" class="content-image">
                     {% endif %}
@@ -576,13 +577,13 @@
                     <div class="content-preview">{{ tip.content|truncatewords:30 }}</div>
                     <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;">
                         {% if tip.approval_status == 'pending' %}
-                        <form method="POST" action="{% url 'admin_content_management' %}" style="display: inline;">
+                        <form method="POST" action="{% url 'admin_content_management' %}" style="display: inline;" data-farmity-ajax="1" data-farmity-confirm="1">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="approve_tip">
                             <input type="hidden" name="tip_id" value="{{ tip.id }}">
                             <button type="submit" class="btn btn-approve"><i class="fas fa-check"></i> Approve</button>
                         </form>
-                        <form method="POST" action="{% url 'admin_content_management' %}" style="display: inline;">
+                        <form method="POST" action="{% url 'admin_content_management' %}" style="display: inline;" data-farmity-ajax="1" data-farmity-confirm="1">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="reject_tip">
                             <input type="hidden" name="tip_id" value="{{ tip.id }}">
@@ -617,7 +618,7 @@
                 <h3 class="modal-title">Edit Content</h3>
                 <button class="close-modal" onclick="closeEditTipModal()">&times;</button>
             </div>
-            <form method="POST" action="{% url 'admin_content_management' %}" enctype="multipart/form-data">
+            <form method="POST" action="{% url 'admin_content_management' %}" enctype="multipart/form-data" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-close-modal="editTipModal">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="edit_tip">
                 <input type="hidden" name="tip_id" id="tipId">
@@ -655,7 +656,7 @@
                 <button class="close-modal" onclick="closeDeleteModal()">&times;</button>
             </div>
             <p id="deleteMessage"></p>
-            <form method="POST" action="{% url 'admin_content_management' %}">
+            <form method="POST" action="{% url 'admin_content_management' %}" data-farmity-ajax="1" data-farmity-close-modal="deleteModal">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="delete_tip">
                 <input type="hidden" name="tip_id" id="deleteTipId">
@@ -700,6 +701,7 @@
             });
         }
     </script>
+    {% include 'includes/farmity_ux_scripts.html' %}
     {% include 'includes/farmity_logout_modal_script.html' %}
     <script src="/static/js/admin_state.js"></script>
 </body>

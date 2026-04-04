@@ -398,7 +398,7 @@
             display: block;
         }
 
-        /* Inline field errors (ONLY below text boxes, remove right-side positioning) */
+        /* Inline field errors (match signup: red border + light pink fill) */
         .login-field-error {
             display: none;
             margin: 0.4rem 0 0 0;
@@ -407,9 +407,6 @@
             font-weight: 500;
             color: #b91c1c;
             line-height: 1.4;
-            text-align: left;
-            width: 100%;
-            clear: both;
         }
         .login-field-error.show {
             display: block;
@@ -418,28 +415,6 @@
             border: 1px solid #dc2626 !important;
             background: rgba(254, 226, 226, 0.45) !important;
             box-shadow: none !important;
-        }
-        
-        /* Remove any right-side or absolute positioning for ALL error elements */
-        .input-wrapper {
-            position: relative;
-        }
-        .login-field-error {
-            position: static !important;
-            right: auto !important;
-            top: auto !important;
-            left: auto !important;
-            bottom: auto !important;
-            width: 100% !important;
-            margin: 0.4rem 0 0 0 !important;
-            clear: both !important;
-        }
-        
-        /* Also fix Django messages positioning */
-        .message-alert {
-            position: static !important;
-            width: 100% !important;
-            margin: 0.5rem 0 !important;
         }
 
         @media (max-width: 968px) {
@@ -649,6 +624,7 @@
     </div>
 
     <script src="/static/js/main.js"></script>
+    <script src="/static/js/form-validation.js"></script>
     <script>
         // Real-time validation setup
         function setupRealTimeValidation() {
@@ -699,18 +675,12 @@
             return true;
         }
         
-        // Password validation function
+        // Password validation (sign-in: required only; length is not validated client-side)
         function validatePasswordField(password) {
             if (!password) {
                 showFieldError('password', 'Password is required.');
                 return false;
             }
-            
-            if (password.length < 8) {
-                showFieldError('password', 'Password must be at least 8 characters long.');
-                return false;
-            }
-            
             clearFieldError('password');
             return true;
         }
@@ -732,29 +702,32 @@
         
         // Show success message
         function showSuccessMessage(message) {
+            if (typeof showSuccess === 'function') {
+                showSuccess(message);
+                return;
+            }
             const messageDiv = document.getElementById('message');
             if (messageDiv) {
                 messageDiv.textContent = message;
                 messageDiv.className = 'message success';
                 messageDiv.style.display = 'block';
-                
-                // Auto-hide after 3 seconds
                 setTimeout(() => {
                     messageDiv.style.display = 'none';
                     messageDiv.className = 'message';
                 }, 3000);
             }
         }
-        
-        // Show error message
+
         function showErrorMessage(message) {
+            if (typeof showError === 'function') {
+                showError(message);
+                return;
+            }
             const messageDiv = document.getElementById('message');
             if (messageDiv) {
                 messageDiv.textContent = message;
                 messageDiv.className = 'message error';
                 messageDiv.style.display = 'block';
-                
-                // Auto-hide after 5 seconds
                 setTimeout(() => {
                     messageDiv.style.display = 'none';
                     messageDiv.className = 'message';
@@ -876,8 +849,8 @@
                                 }, 1000);
                             }
                         } else {
-                            const errorData = data;
-                            showErrorMessage(errorData.error || errorData.message || 'Login failed. Please check your credentials and try again.');
+                            const errText = (data && (data.error || data.message)) || 'Login failed. Please check your credentials and try again.';
+                            showFieldError('password', errText);
                         }
                     } catch (error) {
                         console.error('Login error:', error);

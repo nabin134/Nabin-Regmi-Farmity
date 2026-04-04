@@ -47,26 +47,49 @@ class FormValidator {
         this.validators[fieldName] = validator;
     }
 
+    _fieldValue(field) {
+        if (!field) return '';
+        if (field.type === 'checkbox') {
+            return field.checked ? '1' : '';
+        }
+        if (field.type === 'radio') {
+            const form = field.form || this.form;
+            const sel = form && form.querySelector(`input[name="${field.name}"]:checked`);
+            return sel ? sel.value : '';
+        }
+        return (field.value || '').trim();
+    }
+
     validateField(field) {
         if (!field || !field.name) return true;
-        
+
         const fieldName = field.name;
-        const value = field.value.trim();
+        const value = this._fieldValue(field);
         const validator = this.validators[fieldName];
-        
+
         if (!validator) return true;
-        
-        // Debounce validation
+
         if (this.debounceTimers[fieldName]) {
             clearTimeout(this.debounceTimers[fieldName]);
         }
-        
+
         this.debounceTimers[fieldName] = setTimeout(() => {
             const result = validator(value, field);
             this.setFieldValidation(fieldName, result);
         }, this.options.debounceMs);
-        
+
         return true;
+    }
+
+    validateFieldSync(field) {
+        if (!field || !field.name) return { valid: true, message: '' };
+        const fieldName = field.name;
+        const validator = this.validators[fieldName];
+        if (!validator) return { valid: true, message: '' };
+        const value = this._fieldValue(field);
+        const result = validator(value, field);
+        this.setFieldValidation(fieldName, result);
+        return result;
     }
 
     setFieldValidation(fieldName, result) {
@@ -85,22 +108,34 @@ class FormValidator {
 
     setFieldError(fieldName, message) {
         const field = this.form.querySelector(`[name="${fieldName}"]`);
-        const errorElement = document.getElementById(`${this.form.id}FieldError-${fieldName}`);
-        
+        let errorElement = this.form.id
+            ? document.getElementById(`${this.form.id}FieldError-${fieldName}`)
+            : null;
+        if (!errorElement && field) {
+            const fg = field.closest('.form-group');
+            if (fg) {
+                errorElement = fg.querySelector('.register-field-error, .login-field-error, .field-error');
+            }
+        }
+
         if (field) {
             field.classList.add('field-invalid');
             field.classList.remove('field-valid');
-            
+
             const wrapper = field.closest('.input-wrapper');
             if (wrapper) {
                 wrapper.classList.add('has-error');
                 wrapper.classList.remove('has-success');
             }
+            const fg = field.closest('.form-group');
+            if (fg) fg.classList.add('has-error');
         }
-        
+
         if (errorElement) {
             errorElement.textContent = message;
             errorElement.classList.add('show');
+            errorElement.style.display = 'block';
+            errorElement.style.color = '#dc3545';
         }
     }
 
@@ -127,22 +162,36 @@ class FormValidator {
 
     clearFieldError(fieldName) {
         const field = this.form.querySelector(`[name="${fieldName}"]`);
-        const errorElement = document.getElementById(`${this.form.id}FieldError-${fieldName}`);
-        const successElement = document.getElementById(`${this.form.id}FieldSuccess-${fieldName}`);
-        
+        let errorElement = this.form.id
+            ? document.getElementById(`${this.form.id}FieldError-${fieldName}`)
+            : null;
+        if (!errorElement && field) {
+            const fg = field.closest('.form-group');
+            if (fg) {
+                errorElement = fg.querySelector('.register-field-error, .login-field-error, .field-error');
+            }
+        }
+        const successElement = this.form.id
+            ? document.getElementById(`${this.form.id}FieldSuccess-${fieldName}`)
+            : null;
+
         if (field) {
             field.classList.remove('field-invalid', 'field-valid');
-            
+
             const wrapper = field.closest('.input-wrapper');
             if (wrapper) {
                 wrapper.classList.remove('has-error', 'has-success');
             }
+            const fg = field.closest('.form-group');
+            if (fg) fg.classList.remove('has-error');
         }
-        
+
         if (errorElement) {
+            errorElement.textContent = '';
             errorElement.classList.remove('show');
+            errorElement.style.display = '';
         }
-        
+
         if (successElement) {
             successElement.classList.remove('show');
         }
@@ -158,26 +207,45 @@ class FormValidator {
     }
 
     validateAll() {
+        return this.validateAllSync();
+    }
+
+    validateAllSync() {
         let isValid = true;
+        const seenRadio = new Set();
         const fields = this.form.querySelectorAll('input, select, textarea');
-        
+
         fields.forEach(field => {
-            if (field.name && field.type !== 'hidden') {
-                const result = this.validateField(field);
-                if (!result.valid) {
-                    isValid = false;
-                }
+            if (!field.name || field.type === 'hidden' || field.type === 'submit' || field.type === 'button') {
+                return;
+            }
+            if (field.type === 'radio') {
+                if (seenRadio.has(field.name)) return;
+                seenRadio.add(field.name);
+            }
+            const result = this.validateFieldSync(field);
+            if (!result.valid) {
+                isValid = false;
             }
         });
-        
+
         return isValid;
     }
 
     handleSubmit(e) {
         e.preventDefault();
-        
-        if (!this.validateAll()) {
-            this.showFormError('Please fix the errors below before submitting.');
+
+        const generalEl = document.getElementById(`${this.form.id}Error-general`);
+        if (generalEl) {
+            generalEl.textContent = '';
+            generalEl.classList.remove('show');
+        }
+
+        if (!this.validateAllSync()) {
+            const firstInvalid = this.form.querySelector('.field-invalid');
+            if (firstInvalid && typeof firstInvalid.focus === 'function') {
+                firstInvalid.focus();
+            }
             return false;
         }
         
@@ -254,10 +322,15 @@ const Validators = {
         };
     },
     
-    passwordMatch: (compareField, message = 'Passwords do not match.') => (value) => ({
-        valid: value === document.getElementById(compareField)?.value,
-        message: message
-    }),
+    passwordMatch: (compareFieldName, message = 'Passwords do not match.') => (value, field) => {
+        const form = field?.form || document.getElementById('registerForm') || document.getElementById('signupForm');
+        const other = form?.querySelector(`[name="${compareFieldName}"]`);
+        const ov = other ? other.value : '';
+        return {
+            valid: value === ov,
+            message: message
+        };
+    },
     
     phone: (message = 'Please enter a valid phone number.') => (value) => {
         const phoneRegex = /^[\d\s\-\+\(\)]+$/;
@@ -291,16 +364,18 @@ class ToastManager {
 
     show(message, type = 'info', duration = 5000) {
         if (!this.container) this.init();
-        
+
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
-        
-        const icon = this.getIcon(type);
-        toast.innerHTML = `
-            <i class="fas ${icon}"></i>
-            <span>${message}</span>
-        `;
-        
+
+        const icon = document.createElement('i');
+        icon.className = 'fas ' + this.getIcon(type);
+        const span = document.createElement('span');
+        span.textContent = message || '';
+
+        toast.appendChild(icon);
+        toast.appendChild(span);
+
         this.container.appendChild(toast);
         
         // Auto remove
@@ -349,10 +424,10 @@ class ConfirmationDialog {
 
     show(options) {
         const {
-            title = 'Confirm Action',
+            title = 'Confirm',
             message = 'Are you sure you want to perform this action?',
             type = 'warning',
-            confirmText = 'Confirm',
+            confirmText = 'Yes',
             cancelText = 'Cancel',
             onConfirm = null,
             onCancel = null
@@ -386,12 +461,13 @@ class ConfirmationDialog {
                 }
             });
             
-            // Close on Escape key
-            document.addEventListener('keydown', (e) => {
+            const onKey = (e) => {
                 if (e.key === 'Escape') {
+                    document.removeEventListener('keydown', onKey);
                     handleCancel();
                 }
-            });
+            };
+            document.addEventListener('keydown', onKey);
         });
     }
 
@@ -461,103 +537,33 @@ function showInfo(message, duration) {
 }
 
 // Form validation setup for common forms
+function chainValidators() {
+    const parts = Array.prototype.slice.call(arguments);
+    return function (value, field) {
+        for (let i = 0; i < parts.length; i++) {
+            const fn = parts[i];
+            const r = fn(value, field);
+            if (!r || !r.valid) {
+                return r || { valid: false, message: 'Invalid value.' };
+            }
+        }
+        return { valid: true, message: '' };
+    };
+}
+
 function setupLoginForm() {
     const validator = new FormValidator('loginForm', {
-        onSubmit: (e, formValidator) => {
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            
-            // Client-side validation
-            if (!email) {
-                formValidator.setFieldError('email', 'Email address is required.');
-                return false;
-            }
-            
-            if (!Validators.email().valid(email)) {
-                formValidator.setFieldError('email', 'Please enter a valid email address.');
-                return false;
-            }
-            
-            if (!password) {
-                formValidator.setFieldError('password', 'Password is required.');
-                return false;
-            }
-            
-            // Submit via AJAX or form
+        showRealTimeValidation: true,
+        onSubmit: function (e, formValidator) {
             formValidator.submitForm();
-        }
+        },
     });
-    
-    // Add validators
-    validator.addValidator('email', Validators.required('Email address is required.').and(Validators.email()));
+
+    validator.addValidator(
+        'email',
+        chainValidators(Validators.required('Email address is required.'), Validators.email())
+    );
     validator.addValidator('password', Validators.required('Password is required.'));
 }
 
-function setupSignupForm() {
-    const validator = new FormValidator('signupForm', {
-        onSubmit: (e, formValidator) => {
-            // Client-side validation
-            const requiredFields = ['first_name', 'last_name', 'email', 'password', 'confirm_password', 'role'];
-            
-            for (const field of requiredFields) {
-                const element = document.getElementById(field);
-                if (!element || !element.value.trim()) {
-                    formValidator.setFieldError(field, `${field.replace('_', ' ')} is required.`);
-                    return false;
-                }
-            }
-            
-            const email = document.getElementById('email').value.trim();
-            const password = document.getElementById('password').value;
-            const confirmPassword = document.getElementById('confirm_password').value;
-            
-            if (!Validators.email().valid(email)) {
-                formValidator.setFieldError('email', 'Please enter a valid email address.');
-                return false;
-            }
-            
-            if (!Validators.password().valid(password)) {
-                formValidator.setFieldError('password', 'Password must be at least 8 characters long.');
-                return false;
-            }
-            
-            if (password !== confirmPassword) {
-                formValidator.setFieldError('confirm_password', 'Passwords do not match.');
-                return false;
-            }
-            
-            // Submit via AJAX or form
-            formValidator.submitForm();
-        }
-    });
-    
-    // Add validators
-    validator.addValidator('first_name', Validators.required('First name is required.'));
-    validator.addValidator('last_name', Validators.required('Last name is required.'));
-    validator.addValidator('email', Validators.required('Email is required.').and(Validators.email()));
-    validator.addValidator('password', Validators.required('Password is required.').and(Validators.minLength(8)));
-    validator.addValidator('confirm_password', Validators.required('Please confirm your password.').and(Validators.passwordMatch('password')));
-}
-
-// Helper for chaining validators
-Validators.required.prototype.and = function(otherValidator) {
-    const originalValidator = this;
-    return (value) => {
-        const result1 = originalValidator(value);
-        if (!result1.valid) return result1;
-        const result2 = otherValidator(value);
-        return result2;
-    };
-};
-
-// Initialize when DOM is ready
-document.addEventListener('DOMContentLoaded', function() {
-    // Setup forms if they exist
-    if (document.getElementById('loginForm')) {
-        setupLoginForm();
-    }
-    
-    if (document.getElementById('signupForm')) {
-        setupSignupForm();
-    }
-});
+/* Login page uses its own Fetch-based flow in login.html; do not auto-bind FormValidator there. */

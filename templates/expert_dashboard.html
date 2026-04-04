@@ -5,11 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Agricultural Expert Dashboard - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/form-validation.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="/static/js/main.js"></script>
-    <script src="/static/js/form-validation.js"></script>
     <style>
         * {
             margin: 0;
@@ -36,6 +36,15 @@
             background: #f5f7fa;
             color: #333;
             overflow-x: hidden;
+        }
+
+        /* Expert Dashboard specific styles */
+        
+        /* Ensure navigation works */
+        .nav-item {
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
         }
 
         /* Sidebar Navigation */
@@ -999,21 +1008,24 @@
             }
         }
 
-        /* Dashboard Section */
+        /* Dashboard Section - Show all sections by default */
         .dashboard-section {
-            display: none;
+            display: block !important;
+            visibility: visible !important;
+            opacity: 1 !important;
             padding: 2rem 2rem 2rem 2rem;
             min-height: 100vh;
         }
 
-        .dashboard-section:first-of-type {
-            display: block !important;
+        /* Hide sections only when explicitly hidden by JavaScript */
+        .dashboard-section.hidden {
+            display: none !important;
         }
     </style>
 </head>
 <body>
     <!-- Sidebar Navigation -->
-    <aside class="sidebar">
+    <aside class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <div class="sidebar-logo">
                 <img src="/static/images/Farmity%20logo.png" alt="Farmity" class="sidebar-logo-img" onerror="this.style.display='none'; this.parentElement.innerHTML='🌾';">
@@ -1242,7 +1254,7 @@
             </div>
 
             <!-- Content Section -->
-            <div id="content-section" class="dashboard-section" style="display: none;">
+            <div id="content-section" class="dashboard-section">
                 {% if active_section == 'content' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
@@ -1255,7 +1267,7 @@
                         {% if tips %}
                         <div class="content-grid">
                             {% for tip in tips %}
-                            <div class="content-card">
+                            <div class="content-card" data-tip-row="{{ tip.id }}">
                                 {% if tip.image %}
                                 <div class="content-image-wrapper">
                                     <img src="{{ tip.image.url }}" alt="{{ tip.title }}" class="content-image">
@@ -1264,10 +1276,10 @@
                                 <div class="content-header">
                                     <h3>{{ tip.title }}</h3>
                                     <div class="content-actions">
-                                        <button class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditContentModal({{ tip.id }}, '{{ tip.title|escapejs }}', '{{ tip.content|escapejs }}', {{ tip.is_published|yesno:"true,false" }}, {% if tip.image %}'{{ tip.image.url }}'{% else %}''{% endif %}){% else %}alert('KYC verification required to edit content'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+                                        <button type="button" class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditContentModal({{ tip.id }}, '{{ tip.title|escapejs }}', '{{ tip.content|escapejs }}', {{ tip.is_published|yesno:'true,false' }}, {% if tip.image %}'{{ tip.image.url|escapejs }}'{% else %}''{% endif %}){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn-action btn-delete" onclick="{% if kyc_status == 'approved' %}openDeleteContentModal({{ tip.id }}, '{{ tip.title|escapejs }}'){% else %}alert('KYC verification required to delete content'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Delete{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+                                        <button type="button" class="btn-action btn-delete" onclick="{% if kyc_status == 'approved' %}openDeleteContentModal({{ tip.id }}, '{{ tip.title|escapejs }}'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Delete{% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -1299,7 +1311,7 @@
             </div>
 
             <!-- Appointments Section -->
-            <div id="appointments-section" class="dashboard-section" style="display: none;">
+            <div id="appointments-section" class="dashboard-section">
                 {% if active_section == 'appointments' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
@@ -1372,8 +1384,8 @@
                                     {% endif %}
                                     {% if appointment.status == 'pending' and kyc_status == 'approved' %}
                                     <div class="appointment-actions">
-                                        <button type="button" class="btn-primary" style="background: #10B981;" onclick="openAppointmentResponseModal({{ appointment.id }}, 'accept')"><i class="fas fa-check"></i> Accept</button>
-                                        <button type="button" class="btn-primary" style="background: #EF4444;" onclick="openAppointmentResponseModal({{ appointment.id }}, 'reject')"><i class="fas fa-times"></i> Reject</button>
+                                        <button type="button" class="btn-primary" style="background: #10B981;" onclick="alert('Accept appointment ID: {{ appointment.id }}')"><i class="fas fa-check"></i> Accept</button>
+                                        <button type="button" class="btn-primary" style="background: #EF4444;" onclick="alert('Reject appointment ID: {{ appointment.id }}')"><i class="fas fa-times"></i> Reject</button>
                                     </div>
                                     {% endif %}
                                 </div>
@@ -1392,7 +1404,7 @@
             </div>
 
             <!-- My Availability Section -->
-            <div id="availability-section" class="dashboard-section" style="display: none;">
+            <div id="availability-section" class="dashboard-section">
                 {% if active_section == 'availability' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
@@ -1472,7 +1484,7 @@
             </div>
 
             <!-- Chat Section -->
-            <div id="chat-section" class="dashboard-section" style="display: none;">
+            <div id="chat-section" class="dashboard-section">
                 {% if active_section == 'chat' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header"><h2><i class="fas fa-comments"></i> Chat with farmers & buyers</h2></div>
@@ -1481,7 +1493,7 @@
                             <div class="chat-sidebar" style="width: 280px; background: #f8f9fa; border-right: 2px solid #e9ecef; overflow-y: auto;">
                                 <ul class="chat-list" style="list-style: none; padding: 0; margin: 0;">
                                     {% for thread in chat_threads %}
-                                    <li class="chat-item" data-thread-id="{{ thread.id }}" data-user-name="{% if thread.created_by.role == 'farmer' %}{{ thread.created_by.farmer_profile.name|default:thread.created_by.email }}{% else %}{{ thread.created_by.user_profile.name|default:thread.created_by.email }}{% endif %}" onclick="loadExpertChatThread({{ thread.id }}, '{% if thread.created_by.role == "farmer" %}{{ thread.created_by.farmer_profile.name|default:thread.created_by.email|escapejs }}{% else %}{{ thread.created_by.user_profile.name|default:thread.created_by.email|escapejs }}{% endif %}')" style="padding: 1rem; border-bottom: 1px solid #e9ecef; cursor: pointer;">
+                                    <li class="chat-item" data-thread-id="{{ thread.id }}" onclick="alert('Load chat thread ID: {{ thread.id }}')" style="padding: 1rem; border-bottom: 1px solid #e9ecef; cursor: pointer;">
                                         <div style="font-weight: 600;">{% if thread.created_by.role == 'farmer' %}{{ thread.created_by.farmer_profile.name|default:thread.created_by.email }}{% else %}{{ thread.created_by.user_profile.name|default:thread.created_by.email }}{% endif %}</div>
                                         <div style="font-size: 0.85rem; color: #666;">{% if thread.created_by.role == 'farmer' %}Farmer{% else %}Buyer{% endif %}</div>
                                     </li>
@@ -1508,7 +1520,7 @@
             </div>
 
             <!-- Profile Section (same UI as profile page: card view + edit form) -->
-            <div id="profile-section" class="dashboard-section" style="display: none;">
+            <div id="profile-section" class="dashboard-section">
                 {% if active_section == 'profile' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
@@ -1639,7 +1651,7 @@
             </div>
 
             <!-- Settings Section -->
-            <div id="settings-section" class="dashboard-section" style="display: none;">
+            <div id="settings-section" class="dashboard-section">
                 {% if active_section == 'settings' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
@@ -1796,7 +1808,7 @@
                 <h3>Delete Content</h3>
                 <button class="close-modal" onclick="closeDeleteContentModal()">&times;</button>
             </div>
-            <form method="POST">
+            <form method="POST" action="{% url 'expert_dashboard' %}" data-farmity-ajax="1" data-farmity-close-modal="deleteContentModal">
                 {% csrf_token %}
                 <input type="hidden" name="return_section" value="content">
                 <input type="hidden" id="delete_content_id" name="tip_id">
@@ -2307,25 +2319,7 @@
                     setTimeout(function() { loadExpertChatThread(parseInt(threadIdFromUrl, 10), userName); }, 150);
                 }
             } else {
-            // Ensure dashboard is visible first with all content
-            const dashboardSection = document.getElementById('dashboard-section');
-            if (dashboardSection) {
-                dashboardSection.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; padding: 2rem;';
-                
-                // Ensure stats-grid is visible
-                const statsGrid = dashboardSection.querySelector('.stats-grid');
-                if (statsGrid) {
-                    statsGrid.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important; width: 100%;';
-                    console.log('DOMContentLoaded: Stats grid visible');
-                }
-                
-                // Ensure all stat-cards are visible
-                const statCards = dashboardSection.querySelectorAll('.stat-card');
-                statCards.forEach(card => {
-                    card.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important;';
-                });
-                console.log('DOMContentLoaded: All stat cards visible');
-            }
+                showSection('dashboard', null);
             }
             
             // Verify all sections exist
@@ -2433,115 +2427,11 @@
                                 beginAtZero: true
                             }
                         }
-        });
-        console.log('DOMContentLoaded: All stat cards visible');
-    }
-    }
-    
-    // Verify all sections exist
-    const sections = ['dashboard', 'content', 'appointments', 'availability', 'chat', 'profile', 'settings'];
-    sections.forEach(sectionId => {
-        const section = document.getElementById(sectionId + '-section');
-        if (!section) {
-            console.warn('Section not found:', sectionId + '-section');
-        }
-    });
-    
-    // Set active nav item (only when not restoring section from URL)
-    if (!sectionFromUrl) {
-        const dashboardNav = document.querySelector('.nav-item[href="#dashboard"]');
-        if (dashboardNav) {
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.classList.remove('active');
-            });
-            dashboardNav.classList.add('active');
-        }
-    }
-    
-    // Set min date/month for availability form
-    const todayStr = new Date().toISOString().split('T')[0];
-    const availDate = document.getElementById('availability_date');
-    const availWeekStart = document.getElementById('availability_week_start');
-    if (availDate) availDate.setAttribute('min', todayStr);
-    if (availWeekStart) availWeekStart.setAttribute('min', todayStr);
-
-    // Charts
-    const appointmentsData = {{ appointments_data|safe }};
-    const contentData = {{ content_data|safe }};
-    
-    // Appointments Chart
-    const appointmentsCtx = document.getElementById('appointmentsChart');
-    if (appointmentsCtx) {
-        new Chart(appointmentsCtx, {
-            type: 'line',
-            data: {
-                labels: appointmentsData.map(d => d.month || 'N/A'),
-                datasets: [{
-                    label: 'Total Appointments',
-                    data: appointmentsData.map(d => d.total_appointments || 0),
-                    borderColor: 'rgb(53, 141, 88)',
-                    backgroundColor: 'rgba(53, 141, 88, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }, {
-                    label: 'Accepted Appointments',
-                    data: appointmentsData.map(d => d.accepted_count || 0),
-                    borderColor: 'rgb(40, 167, 69)',
-                    backgroundColor: 'rgba(40, 167, 69, 0.1)',
-                    tension: 0.4,
-                    fill: true
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true
                     }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true
-                    }
-                }
+                });
             }
-        });
-    }
 
-    // Content Chart
-    const contentCtx = document.getElementById('contentChart');
-    if (contentCtx) {
-        new Chart(contentCtx, {
-            type: 'bar',
-            data: {
-                labels: contentData.map(d => d.month || 'N/A'),
-                datasets: [{
-                    label: 'Total Content',
-                    data: contentData.map(d => d.total_content || 0),
-                    backgroundColor: 'rgba(53, 141, 88, 0.8)',
-                    borderColor: 'rgb(53, 141, 88)',
-                    borderWidth: 1
-                }, {
-                    label: 'Published Content',
-                    data: contentData.map(d => d.published_count || 0),
-                    backgroundColor: 'rgba(40, 167, 69, 0.8)',
-                    borderColor: 'rgb(40, 167, 69)',
-                    borderWidth: 1
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: {
-                        display: true
-                    }
-                },
-                scales: {
-                    y: {
-                        beginAtZero: true
-});
+        });
 
 // Confirmation dialog functions
 function confirmDialog(message, callback) {
@@ -2586,6 +2476,7 @@ function confirmAction(message, callback) {
     });
 }
 </script>
+{% include 'includes/farmity_ux_scripts.html' %}
 {% include 'support_widget.html' %}
 {% include 'includes/user_dashboard_scroll.html' %}
 </body>
