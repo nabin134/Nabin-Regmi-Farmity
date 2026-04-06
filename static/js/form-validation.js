@@ -475,8 +475,21 @@ class ConfirmationDialog {
         this.modal = document.createElement('div');
         this.modal.className = 'confirmation-modal';
         
-        const iconClass = options.type === 'danger' ? 'danger' : 'warning';
-        const icon = options.type === 'danger' ? 'fa-exclamation-triangle' : 'fa-question-circle';
+        let iconClass, icon, confirmButtonClass;
+        
+        if (options.type === 'danger') {
+            iconClass = 'danger';
+            icon = 'fa-exclamation-triangle';
+            confirmButtonClass = 'btn-danger';
+        } else if (options.type === 'success') {
+            iconClass = 'success';
+            icon = 'fa-check-circle';
+            confirmButtonClass = 'btn-primary';
+        } else {
+            iconClass = 'warning';
+            icon = 'fa-question-circle';
+            confirmButtonClass = 'btn-primary';
+        }
         
         this.modal.innerHTML = `
             <div class="confirmation-content">
@@ -490,8 +503,8 @@ class ConfirmationDialog {
                 </div>
                 <div class="confirmation-message">${options.message}</div>
                 <div class="confirmation-buttons">
-                    <button type="button" class="btn btn-secondary btn-cancel">${options.cancelText}</button>
-                    <button type="button" class="btn btn-primary btn-confirm">${options.confirmText}</button>
+                    <button type="button" class="btn btn-cancel">${options.cancelText}</button>
+                    <button type="button" class="btn ${confirmButtonClass} btn-confirm">${options.confirmText}</button>
                 </div>
             </div>
         `;

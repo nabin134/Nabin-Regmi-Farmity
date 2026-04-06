@@ -1701,15 +1701,198 @@ body {
     box-shadow: 0 2px 8px rgba(53, 141, 88, 0.2);
 }
 
-.btn-primary {
-    background: var(--sea-green);
-    color: var(--white);
+/* Comprehensive Button System */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 0.625rem 1.25rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-sizing: border-box;
+    min-height: 44px;
+    line-height: 1;
+    white-space: nowrap;
 }
 
-.btn-primary:hover {
-    background: var(--sushi);
+.btn:focus {
+    outline: 2px solid currentColor;
+    outline-offset: 2px;
+}
+
+.btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none !important;
+}
+
+/* Primary Buttons (Green - for save/update/confirm actions) */
+.btn-primary,
+.btn-success,
+.btn-save {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    border: 2px solid transparent;
+    box-shadow: 0 2px 8px rgba(34, 197, 94, 0.25);
+}
+
+.btn-primary:hover,
+.btn-success:hover,
+.btn-save:hover {
+    background: linear-gradient(135deg, #16a34a, #15803d);
     transform: translateY(-1px);
-    box-shadow: 0 4px 12px rgba(53, 141, 88, 0.3);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.35);
+}
+
+.btn-primary:active,
+.btn-success:active,
+.btn-save:active {
+    transform: translateY(0);
+}
+
+/* Danger Buttons (Red - for delete/remove actions) */
+.btn-danger,
+.btn-delete,
+.btn-remove {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    border: 2px solid transparent;
+    box-shadow: 0 2px 8px rgba(220, 53, 69, 0.25);
+}
+
+.btn-danger:hover,
+.btn-delete:hover,
+.btn-remove:hover {
+    background: linear-gradient(135deg, #c82333, #a71e2a);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.35);
+}
+
+.btn-danger:active,
+.btn-delete:active,
+.btn-remove:active {
+    transform: translateY(0);
+}
+
+/* Secondary Buttons (Grey/Outline - for cancel/neutral actions) */
+.btn-secondary,
+.btn-cancel,
+.btn-outline {
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 2px solid #e5e7eb;
+}
+
+.btn-secondary:hover,
+.btn-cancel:hover,
+.btn-outline:hover {
+    background: #e5e7eb;
+    color: #4b5563;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+}
+
+.btn-secondary:active,
+.btn-cancel:active,
+.btn-outline:active {
+    transform: translateY(0);
+}
+
+/* Brand Buttons (Using existing brand colors) */
+.btn-brand {
+    background: linear-gradient(135deg, var(--sea-green), #2a6f45);
+    color: white;
+    border: 2px solid transparent;
+    box-shadow: 0 2px 8px rgba(53, 141, 88, 0.25);
+}
+
+.btn-brand:hover {
+    background: linear-gradient(135deg, #2a6f45, #1e5631);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(53, 141, 88, 0.35);
+}
+
+/* Button Sizes */
+.btn-sm {
+    padding: 0.375rem 0.875rem;
+    font-size: 0.85rem;
+    min-height: 36px;
+}
+
+.btn-lg {
+    padding: 0.875rem 1.75rem;
+    font-size: 1rem;
+    min-height: 52px;
+}
+
+.btn-xl {
+    padding: 1rem 2rem;
+    font-size: 1.125rem;
+    min-height: 60px;
+}
+
+/* Full Width Button */
+.btn-full {
+    width: 100%;
+}
+
+/* Icon-only buttons */
+.btn-icon {
+    padding: 0.625rem;
+    aspect-ratio: 1;
+}
+
+.btn-icon-sm {
+    padding: 0.375rem;
+    aspect-ratio: 1;
+}
+
+.btn-icon-lg {
+    padding: 0.875rem;
+    aspect-ratio: 1;
+}
+
+/* Button Groups */
+.btn-group {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+}
+
+.btn-group-vertical {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+/* Loading State */
+.btn.loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 1rem;
+    height: 1rem;
+    margin: -0.5rem 0 0 -0.5rem;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    border-top-color: transparent;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
 }
 
 .divider {

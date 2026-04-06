@@ -185,6 +185,32 @@
     border-color: #5a6268;
 }
 
+.btn-success {
+    background: #16a34a;
+    color: white;
+    border: 2px solid #16a34a;
+}
+
+.btn-success:hover:not(:disabled) {
+    background: #15803d;
+    border-color: #15803d;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.28);
+}
+
+.btn-danger {
+    background: #dc2626;
+    color: white;
+    border: 2px solid #dc2626;
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: #b91c1c;
+    border-color: #b91c1c;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.26);
+}
+
 /* Toast notifications */
 .toast-container {
     position: fixed;
@@ -245,7 +271,8 @@
     left: 0;
     right: 0;
     bottom: 0;
-    background: rgba(0, 0, 0, 0.5);
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
     z-index: 99999;
     display: flex;
     align-items: center;
@@ -255,58 +282,125 @@
 
 .confirmation-content {
     background: white;
-    border-radius: 12px;
+    border-radius: 16px;
     padding: 2rem;
-    max-width: 400px;
+    max-width: 450px;
     width: 90%;
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
     animation: scaleIn 0.3s ease;
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .confirmation-header {
     display: flex;
     align-items: center;
     gap: 1rem;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
 }
 
 .confirmation-icon {
-    width: 48px;
-    height: 48px;
+    width: 56px;
+    height: 56px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
     font-size: 1.5rem;
+    flex-shrink: 0;
 }
 
 .confirmation-icon.warning {
-    background: rgba(255, 193, 7, 0.1);
-    color: #ffc107;
+    background: linear-gradient(135deg, rgba(255, 193, 7, 0.15), rgba(255, 193, 7, 0.05));
+    color: #f59e0b;
+    border: 2px solid rgba(245, 158, 11, 0.2);
 }
 
 .confirmation-icon.danger {
-    background: rgba(220, 53, 69, 0.1);
+    background: linear-gradient(135deg, rgba(220, 53, 69, 0.15), rgba(220, 53, 69, 0.05));
     color: #dc3545;
+    border: 2px solid rgba(220, 53, 69, 0.2);
+}
+
+.confirmation-icon.success {
+    background: linear-gradient(135deg, rgba(34, 197, 94, 0.15), rgba(34, 197, 94, 0.05));
+    color: #22c55e;
+    border: 2px solid rgba(34, 197, 94, 0.2);
 }
 
 .confirmation-title {
-    font-size: 1.25rem;
+    font-size: 1.375rem;
     font-weight: 700;
     color: #1a1a1a;
-    margin-bottom: 0.5rem;
+    margin-bottom: 0.25rem;
+    line-height: 1.3;
 }
 
 .confirmation-message {
     color: #6b7280;
-    line-height: 1.5;
-    margin-bottom: 1.5rem;
+    line-height: 1.6;
+    margin-bottom: 2rem;
+    font-size: 0.95rem;
 }
 
 .confirmation-buttons {
     display: flex;
-    gap: 0.75rem;
+    gap: 0.875rem;
     justify-content: flex-end;
+}
+
+/* Enhanced button styles for confirmation modal */
+.confirmation-buttons .btn {
+    padding: 0.625rem 1.25rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    min-width: 100px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.confirmation-buttons .btn-cancel {
+    background: #f3f4f6;
+    color: #6b7280;
+    border: 2px solid #e5e7eb;
+}
+
+.confirmation-buttons .btn-cancel:hover {
+    background: #e5e7eb;
+    color: #4b5563;
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+}
+
+.confirmation-buttons .btn-confirm.btn-primary {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    border: 2px solid transparent;
+    box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+}
+
+.confirmation-buttons .btn-confirm.btn-primary:hover {
+    background: linear-gradient(135deg, #16a34a, #15803d);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(34, 197, 94, 0.35);
+}
+
+.confirmation-buttons .btn-confirm.btn-danger {
+    background: linear-gradient(135deg, #dc3545, #c82333);
+    color: white;
+    border: 2px solid transparent;
+    box-shadow: 0 4px 12px rgba(220, 53, 69, 0.25);
+}
+
+.confirmation-buttons .btn-confirm.btn-danger:hover {
+    background: linear-gradient(135deg, #c82333, #a71e2a);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(220, 53, 69, 0.35);
 }
 
 /* Animations */

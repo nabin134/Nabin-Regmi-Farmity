@@ -2245,12 +2245,12 @@
                                         data-expert-spec="{{ thread.expert.specialization|default:'Expert' }}"
                                         data-expert-qual="{{ thread.expert.qualification|default:'' }}"
                                         data-expert-exp="{{ thread.expert.experience|default:'' }}"
-                                        onclick="loadChatThread({{ thread.id }}, '{{ thread.expert.name|default:thread.expert.user.email|escapejs }}', '{{ thread.expert.qualification|escapejs }}', '{{ thread.expert.specialization|escapejs }}', '{{ thread.expert.experience|escapejs }}')">
+                                        onclick="loadChatThread({{ thread.id }}, '{{ thread.expert.name|default:"Expert"|escapejs }}', '{{ thread.expert.qualification|escapejs }}', '{{ thread.expert.specialization|escapejs }}', '{{ thread.expert.experience|escapejs }}')">
                                         <div class="chat-item-avatar">
                                             <i class="fas fa-user-graduate"></i>
                                         </div>
                                         <div class="chat-item-body">
-                                            <div class="chat-item-name">{{ thread.expert.name|default:thread.expert.user.email }}</div>
+                                            <div class="chat-item-name">{{ thread.expert.name|default:"Expert" }}</div>
                                             <div class="chat-item-meta">
                                                 {{ thread.expert.specialization|default:"Expert" }}{% if thread.expert.qualification %} • {{ thread.expert.qualification }}{% endif %}{% if thread.expert.experience %} • {{ thread.expert.experience }}{% endif %}
                                             </div>
@@ -2765,11 +2765,11 @@
                             <div class="profile-info-grid">
                                 <div class="info-card">
                                     <span class="profile-info-label">Email Address</span>
-                                    <div class="profile-info-value"><i class="fas fa-envelope"></i> {{ user.email|default:"Not set" }}</div>
+                                    <div class="profile-info-value" data-profile-email-display><i class="fas fa-envelope"></i> {{ user.email|default:"Not set" }}</div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Name</span>
-                                    <div class="profile-info-value"><i class="fas fa-user"></i> {{ profile.name|default:"Not set" }}</div>
+                                    <div class="profile-info-value" data-profile-name-display><i class="fas fa-user"></i> {{ profile.name|default:"Not set" }}</div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Contact</span>
@@ -2804,14 +2804,14 @@
                                     <span style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border-radius: 16px; font-weight: 600; font-size: 0.8rem;">{{ role_display|default:"Farmer" }}</span>
                                 </div>
                             </div>
-                            <form method="POST" id="farmerProfileForm">
+                            <form method="POST" id="farmerProfileForm" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update your profile information?">
                                 {% csrf_token %}
                                 <input type="hidden" name="update_profile" value="1">
                                 <input type="hidden" name="return_section" value="profile">
                                 <div class="profile-edit-grid" id="farmerProfileFields">
                                     <div class="edit-card form-group">
                                         <span class="profile-info-label">Email Address</span>
-                                        <div style="font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-envelope" style="color: var(--primary);"></i> {{ user.email }}</div>
+                                        <input type="email" name="email" id="farmerEmail" class="form-control" value="{{ user.email|default:'' }}" placeholder="Email address">
                                     </div>
                                     <div class="edit-card form-group">
                                         <span class="profile-info-label" data-translate="profile.fullName">Name</span>
@@ -3554,6 +3554,9 @@
                 evt.preventDefault();
             }
             
+            // Save current section to localStorage
+            localStorage.setItem('activeSection', sectionId);
+            
             // Hide all sections with !important override
             document.querySelectorAll('.dashboard-section').forEach(section => {
                 section.style.cssText = 'display: none !important;';
@@ -4294,9 +4297,12 @@
             messagesDiv.innerHTML = messages.map(m => {
                 const cls = m.is_mine ? 'sent' : 'received';
                 const avatarIcon = m.is_mine ? 'fa-user' : 'fa-user-graduate';
+                const senderName = m.is_mine ? 'You' : (m.sender_name || 'Expert');
                 return '<div class="message ' + cls + '">' +
                        '<div class="message-avatar"><i class="fas ' + avatarIcon + '"></i></div>' +
-                       '<div class="message-bubble"><div class="message-text">' + escapeHtml(m.message) + '</div>' +
+                       '<div class="message-bubble">' +
+                       '<div class="message-sender">' + senderName + '</div>' +
+                       '<div class="message-text">' + escapeHtml(m.message) + '</div>' +
                        '<div class="message-time">' + (m.created_at || '') + '</div></div></div>';
             }).join('');
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -4319,7 +4325,9 @@
             placeholder.className = 'message sent';
             placeholder.innerHTML =
                 '<div class="message-avatar"><i class="fas fa-user"></i></div>' +
-                '<div class="message-bubble"><div class="message-text">' + escapeHtml(msg) +
+                '<div class="message-bubble">' +
+                '<div class="message-sender">You</div>' +
+                '<div class="message-text">' + escapeHtml(msg) +
                 '</div><div class="message-time">Sending...</div></div>';
             messagesDiv.appendChild(placeholder);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -4768,6 +4776,18 @@
                 }
             });
         }
+
+        // Initialize section state from localStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedSection = localStorage.getItem('activeSection');
+            if (savedSection) {
+                // Show saved section
+                showSection(savedSection, null);
+            } else {
+                // Default to dashboard section if no saved section
+                showSection('dashboard', null);
+            }
+        });
 
         // Sync language selector in settings with header
         const settingsLangSelect = document.getElementById('settingsLanguageSelect');

@@ -94,6 +94,30 @@ def get_user_profile_image(user):
     return '/static/images/default-avatar.png'
 
 
+def get_user_display_name(user):
+    """Best-effort display name for chat/UI."""
+    try:
+        if hasattr(user, 'expertprofile'):
+            p = user.expertprofile
+            if p and getattr(p, 'name', None):
+                return p.name
+        if hasattr(user, 'farmerprofile'):
+            p = user.farmerprofile
+            if p and getattr(p, 'name', None):
+                return p.name
+        if hasattr(user, 'vendorprofile'):
+            p = user.vendorprofile
+            if p and getattr(p, 'company_name', None):
+                return p.company_name
+        if hasattr(user, 'userprofile'):
+            p = user.userprofile
+            if p and getattr(p, 'name', None):
+                return p.name
+    except Exception:
+        pass
+    return (getattr(user, 'email', '') or 'User')
+
+
 # Password reset tokens storage (in production, use Redis or database)
 password_reset_tokens = {}
 otp_storage = {}  # Store OTPs: {email: {'otp': '123456', 'token': '...', 'created_at': ...}}
@@ -3371,45 +3395,75 @@ def expert_dashboard(request):
     # Handle Add Availability (single date with optional time, or one week)
     if request.method == 'POST' and 'add_availability' in request.POST:
         if kyc_status != 'approved':
+            if _farmity_wants_ajax(request):
+                return _farmity_json_response(False, 'KYC verification is required to set availability. Please complete your KYC verification first.')
             messages.error(request, 'KYC verification is required to set availability. Please complete your KYC verification first.')
             return _redirect_same_page(request, 'expert_dashboard')
+        
         add_type = (request.POST.get('availability_type') or 'date').strip()
         notes = (request.POST.get('availability_notes') or '').strip() or None
         start_t = _parse_time_str(request.POST.get('availability_start_time') or '')
         end_t = _parse_time_str(request.POST.get('availability_end_time') or '')
-        # Whole day: both None. If only one set, treat as invalid and ignore times.
-        if (start_t and not end_t) or (end_t and not start_t):
-            start_t, end_t = None, None
-        if start_t and end_t and start_t >= end_t:
+        # NEW rule: start/end time are mandatory for both single-day and week ranges.
+        if not start_t or not end_t:
+            if _farmity_wants_ajax(request):
+                return _farmity_json_response(False, 'Start time and end time are required.')
+            messages.error(request, 'Start time and end time are required.')
+            return _redirect_same_page(request, 'expert_dashboard')
+        if start_t >= end_t:
+            if _farmity_wants_ajax(request):
+                return _farmity_json_response(False, 'End time must be after start time.')
             messages.error(request, 'End time must be after start time.')
             return _redirect_same_page(request, 'expert_dashboard')
 
-        def _add_one_day_whole_or_slot(d, st, et, note):
-            if st and et:
-                ExpertAvailability.objects.create(expert=profile, date=d, start_time=st, end_time=et, notes=note)
-                return True
-            if ExpertAvailability.objects.filter(expert=profile, date=d, start_time__isnull=True, end_time__isnull=True).exists():
-                return False
-            ExpertAvailability.objects.create(expert=profile, date=d, notes=note)
-            return True
+        def _add_one_day_slot(d, st, et, note):
+            avail = ExpertAvailability.objects.create(expert=profile, date=d, start_time=st, end_time=et, notes=note)
+            return True, avail
 
         if add_type == 'week':
             week_start_str = (request.POST.get('availability_week_start') or '').strip()
-            if not week_start_str:
-                messages.error(request, 'Please select the start date of the week.')
+            week_end_str = (request.POST.get('availability_week_end') or '').strip()
+            if not week_start_str or not week_end_str:
+                if _farmity_wants_ajax(request):
+                    return _farmity_json_response(False, 'Please select both the week start and week end dates.')
+                messages.error(request, 'Please select both the week start and week end dates.')
                 return _redirect_same_page(request, 'expert_dashboard')
             try:
                 start_d = date.fromisoformat(week_start_str)
+                end_d = date.fromisoformat(week_end_str)
+                if end_d < start_d:
+                    if _farmity_wants_ajax(request):
+                        return _farmity_json_response(False, 'Week end date must be on or after the start date.')
+                    messages.error(request, 'Week end date must be on or after the start date.')
+                    return _redirect_same_page(request, 'expert_dashboard')
                 if start_d < timezone.now().date():
+                    if _farmity_wants_ajax(request):
+                        return _farmity_json_response(False, 'Week start date cannot be in the past.')
                     messages.error(request, 'Week start date cannot be in the past.')
                     return _redirect_same_page(request, 'expert_dashboard')
                 added = 0
-                for i in range(7):
-                    d = start_d + timedelta(days=i)
-                    if _add_one_day_whole_or_slot(d, start_t, end_t, notes):
-                        added += 1
-                messages.success(request, f'Added {added} day(s) for the week starting {week_start_str}.')
+                new_availabilities = []
+                d = start_d
+                while d <= end_d:
+                    if d >= timezone.now().date():
+                        success, avail = _add_one_day_slot(d, start_t, end_t, notes)
+                        if success and avail:
+                            added += 1
+                            new_availabilities.append({
+                                'id': avail.id,
+                                'date': avail.date.isoformat(),
+                                'start_time': avail.start_time.strftime('%H:%M') if avail.start_time else None,
+                                'end_time': avail.end_time.strftime('%H:%M') if avail.end_time else None,
+                                'notes': avail.notes or ''
+                            })
+                    d = d + timedelta(days=1)
+                msg = f'Added {added} day(s) from {week_start_str} to {week_end_str}.'
+                if _farmity_wants_ajax(request):
+                    return _farmity_json_response(True, msg, new_availabilities=new_availabilities)
+                messages.success(request, msg)
             except (ValueError, TypeError):
+                if _farmity_wants_ajax(request):
+                    return _farmity_json_response(False, 'Invalid date. Use YYYY-MM-DD.')
                 messages.error(request, 'Invalid date. Use YYYY-MM-DD.')
         else:
             date_str = (request.POST.get('availability_date') or '').strip()
@@ -3417,15 +3471,37 @@ def expert_dashboard(request):
                 try:
                     d = date.fromisoformat(date_str)
                     if d >= timezone.now().date():
-                        if _add_one_day_whole_or_slot(d, start_t, end_t, notes):
-                            messages.success(request, f'Date {date_str}' + (f' {start_t.strftime("%H:%M")}-{end_t.strftime("%H:%M")}' if start_t and end_t else '') + ' added to your availability.')
+                        success, avail = _add_one_day_slot(d, start_t, end_t, notes)
+                        if success:
+                            msg = f'Date {date_str} {start_t.strftime("%H:%M")}-{end_t.strftime("%H:%M")} added to your availability.'
+                            if _farmity_wants_ajax(request):
+                                new_avail = None
+                                if avail:
+                                    new_avail = {
+                                        'id': avail.id,
+                                        'date': avail.date.isoformat(),
+                                        'start_time': avail.start_time.strftime('%H:%M') if avail.start_time else None,
+                                        'end_time': avail.end_time.strftime('%H:%M') if avail.end_time else None,
+                                        'notes': avail.notes or ''
+                                    }
+                                return _farmity_json_response(True, msg, new_availability=new_avail)
+                            messages.success(request, msg)
                         else:
-                            messages.info(request, f'Date {date_str} was already in your availability (whole day).')
+                            msg = f'Date {date_str} is already in your availability.'
+                            if _farmity_wants_ajax(request):
+                                return _farmity_json_response(False, msg)
+                            messages.error(request, msg)
                     else:
+                        if _farmity_wants_ajax(request):
+                            return _farmity_json_response(False, 'Cannot add past dates.')
                         messages.error(request, 'Cannot add past dates.')
                 except (ValueError, TypeError):
+                    if _farmity_wants_ajax(request):
+                        return _farmity_json_response(False, 'Invalid date format. Use YYYY-MM-DD.')
                     messages.error(request, 'Invalid date format. Use YYYY-MM-DD.')
             else:
+                if _farmity_wants_ajax(request):
+                    return _farmity_json_response(False, 'Please select a date.')
                 messages.error(request, 'Please select a date.')
         return _redirect_same_page(request, 'expert_dashboard')
 
@@ -3436,8 +3512,9 @@ def expert_dashboard(request):
         avail_id = request.POST.get('availability_id')
         try:
             avail = ExpertAvailability.objects.get(id=avail_id, expert=profile)
+            removed_id = avail.id
             avail.delete()
-            return _expert_finish(True, 'Date removed from your availability.')
+            return _expert_finish(True, 'Date removed from your availability.', removed_availability_id=removed_id)
         except (ExpertAvailability.DoesNotExist, ValueError):
             return _expert_finish(False, 'Availability entry not found.')
 
@@ -3461,7 +3538,8 @@ def expert_dashboard(request):
                     reverse('user_dashboard') + '?section=appointments',
                     UserNotification.TYPE_APPOINTMENT
                 )
-                return _expert_finish(True, 'Appointment accepted! The requester will see your response.')
+                return _expert_finish(True, 'Appointment accepted! The requester will see your response.', 
+                              appointment_status={'id': appointment.id, 'status': appointment.status, 'response_message': appointment.response_message})
             elif 'reject_appointment' in request.POST:
                 if not response_message:
                     return _expert_finish(False, 'Please provide a valid reason for rejecting the appointment.')
@@ -3475,7 +3553,8 @@ def expert_dashboard(request):
                     reverse('user_dashboard') + '?section=appointments',
                     UserNotification.TYPE_APPOINTMENT
                 )
-                return _expert_finish(True, 'Appointment rejected. The requester will see your reason.')
+                return _expert_finish(True, 'Appointment rejected. The requester will see your reason.',
+                              appointment_status={'id': appointment.id, 'status': appointment.status, 'response_message': appointment.response_message})
         except ExpertAppointment.DoesNotExist:
             return _expert_finish(False, 'Appointment not found!')
     
@@ -3526,6 +3605,15 @@ def expert_dashboard(request):
     chat_threads = ExpertChatThread.objects.filter(expert=profile).select_related(
         'created_by', 'created_by__farmer_profile', 'created_by__user_profile'
     ).order_by('-updated_at')
+
+    # Attach display name + avatar for chat list UI (thread sidebar)
+    for t in chat_threads:
+        try:
+            t.created_by_display_name = get_user_display_name(t.created_by)
+            t.created_by_avatar = get_user_profile_image(t.created_by)
+        except Exception:
+            t.created_by_display_name = (getattr(getattr(t, 'created_by', None), 'email', '') or 'User')
+            t.created_by_avatar = '/static/images/default-avatar.png'
     
     # Get all chat threads for statistics (not limited)
     all_chat_threads = ExpertChatThread.objects.filter(expert=profile).select_related('created_by')
@@ -5880,8 +5968,10 @@ def api_chat_messages(request, thread_id):
     data = [{
         'id': m.id,
         'message': m.message,
+        'sender_name': get_user_display_name(m.sender),
         'sender_email': m.sender.email,
         'sender_id': m.sender_id,
+        'sender_profile_image': get_user_profile_image(m.sender),
         'created_at': m.created_at.strftime('%b %d, %I:%M %p'),
         'is_mine': m.sender_id == request.user.id,
     } for m in msgs]
@@ -5922,8 +6012,10 @@ def api_chat_send(request, thread_id):
     return JsonResponse({
         'id': msg.id,
         'message': msg.message,
+        'sender_name': get_user_display_name(msg.sender),
         'sender_email': msg.sender.email,
         'sender_id': msg.sender_id,
+        'sender_profile_image': get_user_profile_image(msg.sender),
         'created_at': msg.created_at.strftime('%b %d, %I:%M %p'),
         'is_mine': True,
     })

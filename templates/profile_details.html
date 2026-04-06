@@ -709,7 +709,7 @@
                 {% endif %}
             </div>
 
-            <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="profile-form-section" id="profileForm" style="{% if request.user.role == 'farmer' or request.user.role == 'agricultural_expert' or request.user.role == 'buyer' %}display: none;{% endif %}" data-farmity-ajax="1" data-farmity-confirm="1">
+    <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="profile-form-section" id="profileForm" style="{% if request.user.role == 'farmer' or request.user.role == 'agricultural_expert' or request.user.role == 'buyer' %}display: none;{% endif %}" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update your profile?" data-farmity-success-call="toggleProfileEdit">
                 {% csrf_token %}
                 <input type="hidden" name="update_profile" value="true">
 

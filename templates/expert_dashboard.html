@@ -752,6 +752,42 @@
             font-size: 0.9rem;
         }
 
+        /* Expert chat messages: modern bubbles + avatars */
+        #expertChatMessages { scroll-behavior: smooth; }
+        .expert-chat-scroll { display: flex; flex-direction: column; gap: 0.75rem; min-height: 100%; }
+        .expert-chat-row { display: flex; align-items: flex-end; gap: 0.6rem; }
+        .expert-chat-row.mine { justify-content: flex-end; }
+        .expert-chat-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            object-fit: cover;
+            border: 2px solid rgba(17, 24, 39, 0.08);
+            background: #f3f4f6;
+            flex-shrink: 0;
+        }
+        .expert-chat-row.mine .expert-chat-avatar { order: 2; }
+        .expert-chat-bubble {
+            max-width: min(70%, 540px);
+            padding: 0.75rem 0.9rem;
+            border-radius: 14px;
+            line-height: 1.35;
+            font-size: 0.92rem;
+            box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+            border: 1px solid rgba(17, 24, 39, 0.06);
+            background: #f8fafc;
+            color: #111827;
+        }
+        .expert-chat-row.mine .expert-chat-bubble {
+            background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%);
+            color: #fff;
+            border-color: rgba(255,255,255,0.18);
+        }
+        .expert-chat-name { font-weight: 800; font-size: 0.78rem; opacity: 0.92; margin-bottom: 0.25rem; }
+        .expert-chat-row.mine .expert-chat-name { display: none; }
+        .expert-chat-meta { display: flex; justify-content: flex-end; margin-top: 0.35rem; font-size: 0.75rem; opacity: 0.85; }
+        .expert-chat-time { white-space: nowrap; opacity: 0.9; }
+
         /* Buttons */
         .btn-primary {
             background: var(--primary);
@@ -1322,7 +1358,7 @@
                         {% if appointments %}
                         <div class="appointments-list">
                             {% for appointment in appointments %}
-                            <div class="appointment-item status-{% if appointment.status == 'accepted' and appointment.visit_status == 'visited' %}closed{% else %}{{ appointment.status }}{% endif %}-card">
+                            <div class="appointment-item status-{% if appointment.status == 'accepted' and appointment.visit_status == 'visited' %}closed{% else %}{{ appointment.status }}{% endif %}-card" data-appointment-row="{{ appointment.id }}">
                                 <div class="appointment-info">
                                     <h4><i class="fas fa-user"></i> {{ appointment.requester.farmer_profile.name|default:appointment.requester.email }}</h4>
                                     <div class="appointment-meta">
@@ -1338,7 +1374,7 @@
                                     <div class="appointment-message-box"><strong>Farmer query:</strong> {{ appointment.message }}</div>
                                     {% endif %}
                                     {% if appointment.response_message %}
-                                    <div class="appointment-response-box {% if appointment.status == 'rejected' %}rejected{% endif %}">
+                                    <div class="appointment-response-box {% if appointment.status == 'rejected' %}rejected{% endif %} appointment-response-message">
                                         <strong>{% if appointment.status == 'rejected' %}Reason:{% else %}Your response:{% endif %}</strong> {{ appointment.response_message }}
                                     </div>
                                     {% endif %}
@@ -1346,9 +1382,9 @@
                                 </div>
                                 <div class="appointment-right">
                                     {% if appointment.status == 'accepted' and appointment.visit_status == 'visited' %}
-                                    <span class="appointment-status status-closed">Closed</span>
+                                    <span class="appointment-status-badge status-closed">Closed</span>
                                     {% else %}
-                                    <span class="appointment-status status-{{ appointment.status }}">{{ appointment.get_status_display }}</span>
+                                    <span class="appointment-status-badge status-{{ appointment.status }}">{{ appointment.get_status_display }}</span>
                                     {% endif %}
                                     <button type="button"
                                             class="btn-primary"
@@ -1384,8 +1420,8 @@
                                     {% endif %}
                                     {% if appointment.status == 'pending' and kyc_status == 'approved' %}
                                     <div class="appointment-actions">
-                                        <button type="button" class="btn-primary" style="background: #10B981;" onclick="alert('Accept appointment ID: {{ appointment.id }}')"><i class="fas fa-check"></i> Accept</button>
-                                        <button type="button" class="btn-primary" style="background: #EF4444;" onclick="alert('Reject appointment ID: {{ appointment.id }}')"><i class="fas fa-times"></i> Reject</button>
+                                        <button type="button" class="btn btn-success btn-sm" onclick="openAppointmentResponseModal({{ appointment.id }}, 'accept')"><i class="fas fa-check"></i> Accept</button>
+                                        <button type="button" class="btn btn-danger btn-sm" onclick="openAppointmentResponseModal({{ appointment.id }}, 'reject')"><i class="fas fa-times"></i> Reject</button>
                                     </div>
                                     {% endif %}
                                 </div>
@@ -1411,63 +1447,74 @@
                         <h2><i class="fas fa-calendar-alt"></i> My Availability</h2>
                         <span style="color: #6b7280; font-size: 0.9rem; font-weight: 400;">Set dates when you're available for appointments</span>
                     </div>
-                    <div class="section-body">
+                                <div class="section-body">
                         <div class="availability-add-card">
-                            <form method="POST">
+                            <form method="POST" data-farmity-ajax="1">
                                 {% csrf_token %}
                                 <input type="hidden" name="add_availability" value="1">
                                 <input type="hidden" name="return_section" value="availability">
                                 <div class="availability-add-row">
                                     <div class="field">
-                                        <span class="availability-label">Add a single day</span>
+                                        <span class="availability-label"><i class="fas fa-calendar-day"></i> Add a single day</span>
                                         <input type="date" name="availability_date" id="availability_date" class="form-control" style="min-width: 160px;">
                                     </div>
                                     <div class="field">
-                                        <span class="availability-label">Start time (optional)</span>
-                                        <input type="time" name="availability_start_time" id="availability_start_time" class="form-control" style="min-width: 100px;" title="Start time">
+                                        <span class="availability-label"><i class="fas fa-clock"></i> Start time *</span>
+                                        <input type="time" name="availability_start_time" id="availability_start_time" class="form-control" style="min-width: 110px;" title="Start time" required>
                                     </div>
                                     <div class="field">
-                                        <span class="availability-label">End time (optional)</span>
-                                        <input type="time" name="availability_end_time" id="availability_end_time" class="form-control" style="min-width: 100px;" title="End time">
+                                        <span class="availability-label"><i class="fas fa-clock"></i> End time *</span>
+                                        <input type="time" name="availability_end_time" id="availability_end_time" class="form-control" style="min-width: 110px;" title="End time" required>
                                     </div>
                                     <div class="field">
                                         <span class="availability-label">Notes (optional)</span>
                                         <input type="text" name="availability_notes" class="form-control" placeholder="e.g. Morning only" style="min-width: 140px;">
                                     </div>
-                                    <button type="submit" class="btn-primary btn-sm" name="availability_type" value="date">
+                                    <button type="submit" class="btn btn-primary btn-sm" name="availability_type" value="date">
                                         <i class="fas fa-plus"></i> Add day
                                     </button>
                                 </div>
                                 <div class="availability-divider"></div>
                                 <div class="availability-add-row">
                                     <div class="field">
-                                        <span class="availability-label">Add a full week from start date</span>
+                                        <span class="availability-label"><i class="fas fa-calendar-week"></i> Add a full week from start date</span>
                                         <input type="date" name="availability_week_start" id="availability_week_start" class="form-control" style="min-width: 160px;">
                                     </div>
-                                    <button type="submit" class="btn-primary btn-sm btn-accent" name="availability_type" value="week">
+                                    <div class="field">
+                                        <span class="availability-label"><i class="fas fa-clock"></i> Start time (optional)</span>
+                                        <input type="time" name="availability_week_start_time" id="availability_week_start_time" class="form-control" style="min-width: 100px;" title="Start time for all days">
+                                    </div>
+                                    <div class="field">
+                                        <span class="availability-label"><i class="fas fa-clock"></i> End time (optional)</span>
+                                        <input type="time" name="availability_week_end_time" id="availability_week_end_time" class="form-control" style="min-width: 100px;" title="End time for all days">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-sm" name="availability_type" value="week">
                                         <i class="fas fa-calendar-week"></i> Add week
                                     </button>
                                 </div>
-                                <p style="margin: 0.75rem 0 0 0; font-size: 0.8rem; color: #6b7280;">Time range applies to both options when set. Leave empty for whole day.</p>
+                                <p style="margin: 0.75rem 0 0 0; font-size: 0.8rem; color: #64748b; font-style: italic;">
+                                    <i class="fas fa-info-circle"></i> Time range applies to both options when set. Leave empty for whole day.
+                                </p>
                             </form>
                         </div>
+                        
                         {% if availability %}
                         <h3 class="availability-list-title"><i class="fas fa-list"></i> Your available dates ({{ availability|length }})</h3>
                         <div class="availability-grid">
                             {% for avail in availability %}
-                            <div class="availability-date-card {% if avail.date < today %}past{% endif %}">
+                            <div class="availability-date-card {% if avail.date < today %}past{% endif %}" data-availability-row="{{ avail.id }}">
                                 <div class="date-main">
                                     <strong>{{ avail.date|date:"M d, Y" }}</strong>
                                     {% if avail.start_time and avail.end_time %}<div class="date-time">{{ avail.start_time|time:"H:i" }} – {{ avail.end_time|time:"H:i" }}</div>{% endif %}
                                     {% if avail.notes %}<div class="date-notes">{{ avail.notes }}</div>{% endif %}
                                     {% if avail.date < today %}<span class="date-notes">(past)</span>{% endif %}
                                 </div>
-                                <form method="POST" style="margin: 0;" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to remove this availability date?">
+                                <form method="POST" style="margin: 0;" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-type="danger" data-farmity-confirm-message="Are you sure you want to remove this availability date?" data-farmity-remove-selector="[data-availability-row='{{ avail.id }}']">
                                     {% csrf_token %}
                                     <input type="hidden" name="return_section" value="availability">
                                     <input type="hidden" name="remove_availability" value="1">
                                     <input type="hidden" name="availability_id" value="{{ avail.id }}">
-                                    <button type="submit" class="btn-remove-avail" title="Remove"><i class="fas fa-trash-alt"></i></button>
+                                    <button type="submit" class="btn btn-danger btn-icon-sm" title="Remove"><i class="fas fa-trash-alt"></i></button>
                                 </form>
                             </div>
                             {% endfor %}
@@ -1493,9 +1540,18 @@
                             <div class="chat-sidebar" style="width: 280px; background: #f8f9fa; border-right: 2px solid #e9ecef; overflow-y: auto;">
                                 <ul class="chat-list" style="list-style: none; padding: 0; margin: 0;">
                                     {% for thread in chat_threads %}
-                                    <li class="chat-item" data-thread-id="{{ thread.id }}" data-user-name="{% if thread.created_by.role == 'farmer' %}{{ thread.created_by.farmer_profile.name|default:thread.created_by.email|escapejs }}{% else %}{{ thread.created_by.user_profile.name|default:thread.created_by.email|escapejs }}{% endif %}" onclick="loadExpertChatThread({{ thread.id }}, this.getAttribute('data-user-name') || 'User')" style="padding: 1rem; border-bottom: 1px solid #e9ecef; cursor: pointer;">
-                                        <div style="font-weight: 600;">{% if thread.created_by.role == 'farmer' %}{{ thread.created_by.farmer_profile.name|default:thread.created_by.email }}{% else %}{{ thread.created_by.user_profile.name|default:thread.created_by.email }}{% endif %}</div>
-                                        <div style="font-size: 0.85rem; color: #666;">{% if thread.created_by.role == 'farmer' %}Farmer{% else %}Buyer{% endif %}</div>
+                                    <li class="chat-item"
+                                        data-thread-id="{{ thread.id }}"
+                                        data-user-name="{{ thread.created_by_display_name|default:thread.created_by.email|escapejs }}"
+                                        onclick="loadExpertChatThread({{ thread.id }}, this.getAttribute('data-user-name') || 'User')"
+                                        style="padding: 1rem; border-bottom: 1px solid #e9ecef; cursor: pointer;">
+                                        <div style="display:flex; align-items:center; gap:0.75rem;">
+                                            <img src="{{ thread.created_by_avatar|default:'/static/images/default-avatar.png' }}" alt="User" style="width:36px;height:36px;border-radius:999px;object-fit:cover;border:2px solid rgba(17,24,39,0.08);background:#f3f4f6;">
+                                            <div style="min-width:0;">
+                                                <div style="font-weight: 700; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ thread.created_by_display_name|default:thread.created_by.email }}</div>
+                                                <div style="font-size: 0.82rem; color: #6b7280;">{% if thread.created_by.role == 'farmer' %}Farmer{% else %}Buyer{% endif %}</div>
+                                            </div>
+                                        </div>
                                     </li>
                                     {% empty %}
                                     <li style="padding: 1rem; text-align: center; color: #999;">No chat threads yet</li>
@@ -1548,7 +1604,7 @@
                                     </form>
                                 </div>
                                 <div style="flex: 1; min-width: 200px;">
-                                    <h3 style="margin: 0 0 0.75rem 0; font-size: 1.75rem; font-weight: 700; color: #1a1a1a;">{{ profile.name|default:user.email }}</h3>
+                                    <h3 style="margin: 0 0 0.75rem 0; font-size: 1.75rem; font-weight: 700; color: #1a1a1a;" data-profile-main-name-display>{{ profile.name|default:user.email }}</h3>
                                     <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                                         <span style="padding: 0.5rem 1rem; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border-radius: 20px; font-weight: 600;">{{ role_display|default:"Agricultural Expert" }}</span>
                                         {% if user.is_verified or kyc_status == 'approved' %}
@@ -1566,23 +1622,23 @@
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Name</span>
-                                    <div class="profile-info-value"><i class="fas fa-user"></i> {{ profile.name|default:"Not set" }}</div>
+                                    <div class="profile-info-value"><i class="fas fa-user"></i> <span data-profile-name-display>{{ profile.name|default:"Not set" }}</span></div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Specialization</span>
-                                    <div class="profile-info-value"><i class="fas fa-graduation-cap"></i> {{ profile.specialization|default:"Not set" }}</div>
+                                    <div class="profile-info-value"><i class="fas fa-graduation-cap"></i> <span data-profile-specialization-display>{{ profile.specialization|default:"Not set" }}</span></div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Experience</span>
-                                    <div class="profile-info-value"><i class="fas fa-briefcase"></i> {{ profile.experience|default:"Not set" }}</div>
+                                    <div class="profile-info-value"><i class="fas fa-briefcase"></i> <span data-profile-experience-display>{{ profile.experience|default:"Not set" }}</span></div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Qualification</span>
-                                    <div class="profile-info-value"><i class="fas fa-graduation-cap"></i> {{ profile.qualification|default:"Not set" }}</div>
+                                    <div class="profile-info-value"><i class="fas fa-graduation-cap"></i> <span data-profile-qualification-display>{{ profile.qualification|default:"Not set" }}</span></div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Consultation fee</span>
-                                    <div class="profile-info-value"><i class="fas fa-rupee-sign"></i> {% if profile.consultation_fee and profile.consultation_fee > 0 %}Rs. {{ profile.consultation_fee }} per session{% else %}Free{% endif %}</div>
+                                    <div class="profile-info-value"><i class="fas fa-rupee-sign"></i> <span data-profile-fee-display>{% if profile.consultation_fee and profile.consultation_fee > 0 %}Rs. {{ profile.consultation_fee }} per session{% else %}Free{% endif %}</span></div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Member Since</span>
@@ -1642,8 +1698,8 @@
                                     </div>
                                 </div>
                                 <div style="margin-top: 1.25rem; display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap;">
-                                    <button type="button" class="btn-secondary btn-sm" onclick="toggleExpertEditMode()"><i class="fas fa-times"></i> Cancel</button>
-                                    <button type="submit" class="btn-edit-profile btn-sm"><i class="fas fa-save"></i> Save</button>
+                                    <button type="button" class="btn btn-secondary btn-sm" onclick="toggleExpertEditMode()"><i class="fas fa-times"></i> Cancel</button>
+                                    <button type="submit" class="btn btn-success btn-sm"><i class="fas fa-save"></i> Save Changes</button>
                                 </div>
                             </form>
                         </div>
@@ -1741,7 +1797,7 @@
                                         <label>Confirm New Password</label>
                                         <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your new password" required>
                                     </div>
-                                    <button type="submit" class="btn-primary">
+                                    <button type="submit" class="btn btn-primary">
                                         <i class="fas fa-key"></i> Update Password
                                     </button>
                                 </form>
@@ -1795,8 +1851,8 @@
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn-secondary btn-sm" onclick="closeContentModal()">Cancel</button>
-                    <button type="submit" class="btn-primary btn-sm">Share Content</button>
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="closeContentModal()">Cancel</button>
+                    <button type="submit" class="btn btn-primary btn-sm">Share Content</button>
                 </div>
             </form>
         </div>
@@ -1817,7 +1873,7 @@
                 <p>Are you sure you want to delete <strong id="delete_content_title"></strong>? This action cannot be undone.</p>
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary btn-sm" onclick="closeDeleteContentModal()">Cancel</button>
-                    <button type="submit" class="btn-primary btn-sm" style="background: var(--danger);">Delete</button>
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
                 </div>
             </form>
         </div>
@@ -1841,8 +1897,8 @@
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-secondary btn-sm" onclick="closeAppointmentResponseModal()">Cancel</button>
-                    <button type="submit" name="accept_appointment" id="btnAcceptAppointment" class="btn-primary btn-sm" style="background: #28a745;"><i class="fas fa-check"></i> Accept</button>
-                    <button type="submit" name="reject_appointment" id="btnRejectAppointment" class="btn-primary btn-sm" style="background: #dc3545;"><i class="fas fa-times"></i> Reject</button>
+                    <button type="submit" name="accept_appointment" id="btnAcceptAppointment" class="btn btn-success btn-sm"><i class="fas fa-check"></i> Accept</button>
+                    <button type="submit" name="reject_appointment" id="btnRejectAppointment" class="btn btn-danger btn-sm"><i class="fas fa-times"></i> Reject</button>
                 </div>
             </form>
         </div>
@@ -1998,6 +2054,9 @@
                 evt.preventDefault();
             }
             
+            // Save current section to localStorage
+            localStorage.setItem('activeSection', sectionId);
+            
             // Hide all sections with !important override
             document.querySelectorAll('.dashboard-section').forEach(section => {
                 section.style.cssText = 'display: none !important;';
@@ -2070,6 +2129,7 @@
         }
 
         var expertChatThreadId = null;
+        var expertMyAvatar = "{% if profile.photo %}{{ profile.photo.url }}{% else %}/static/images/default-avatar.png{% endif %}";
         function getExpertCsrfToken() {
             return document.querySelector('[name=csrfmiddlewaretoken]')?.value || document.cookie.replace(/(?:(?:^|.*;\s*)csrftoken\s*=\s*([^;]*).*$)|^.*$/, '$1');
         }
@@ -2078,18 +2138,49 @@
             document.getElementById('expertChatHeader').textContent = 'Chat with ' + userName;
             document.getElementById('expertChatInputArea').style.display = 'block';
             const el = document.getElementById('expertChatMessages');
-            el.innerHTML = '<div style="text-align: center; color: #999; padding: 2rem;">Loading messages...</div>';
+            el.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 2rem;">Loading messages...</div>';
             fetch('/api/chat/thread/' + threadId + '/messages/').then(r => r.json()).then(data => {
                 if (data.error) { el.innerHTML = '<div style="text-align: center; color: #dc3545;">' + data.error + '</div>'; return; }
                 if (!data.messages || data.messages.length === 0) {
-                    el.innerHTML = '<div style="text-align: center; color: #999; padding: 2rem;">No messages yet. Say hello!</div>';
+                    el.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 2rem;">No messages yet. Say hello!</div>';
                     return;
                 }
-                el.innerHTML = data.messages.map(m => {
-                    const align = m.is_mine ? 'flex-end' : 'flex-start';
-                    return '<div style="margin-bottom: 1rem; display: flex; justify-content: ' + align + ';"><div style="max-width: 70%; padding: 0.75rem 1rem; border-radius: 12px; background: ' + (m.is_mine ? 'var(--primary)' : '#f0f0f0') + '; color: ' + (m.is_mine ? 'white' : '#333') + ';">' + (m.message.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>')) + '<div style="font-size:0.75rem;opacity:0.8;margin-top:0.25rem;">' + m.created_at + '</div></div></div>';
-                }).join('');
-                el.scrollTop = el.scrollHeight;
+                const wrap = document.createElement('div');
+                wrap.className = 'expert-chat-scroll';
+                data.messages.forEach(function(m){
+                    const row = document.createElement('div');
+                    row.className = 'expert-chat-row' + (m.is_mine ? ' mine' : '');
+
+                    const avatar = document.createElement('img');
+                    avatar.className = 'expert-chat-avatar';
+                    avatar.alt = (m.sender_name || m.sender_email || 'User') + ' avatar';
+                    avatar.src = m.is_mine ? expertMyAvatar : (m.sender_profile_image || '/static/images/default-avatar.png');
+
+                    const bubble = document.createElement('div');
+                    bubble.className = 'expert-chat-bubble';
+
+                    const name = document.createElement('div');
+                    name.className = 'expert-chat-name';
+                    name.textContent = m.sender_name || m.sender_email || 'User';
+
+                    const body = document.createElement('div');
+                    body.innerHTML = (m.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+
+                    const meta = document.createElement('div');
+                    meta.className = 'expert-chat-meta';
+                    meta.innerHTML = '<span class="expert-chat-time">' + (m.created_at || '') + '</span>';
+
+                    bubble.appendChild(name);
+                    bubble.appendChild(body);
+                    bubble.appendChild(meta);
+
+                    row.appendChild(avatar);
+                    row.appendChild(bubble);
+                    wrap.appendChild(row);
+                });
+                el.innerHTML = '';
+                el.appendChild(wrap);
+                requestAnimationFrame(function(){ el.scrollTop = el.scrollHeight; });
             }).catch(() => { el.innerHTML = '<div style="text-align: center; color: #dc3545;">Failed to load messages.</div>'; });
         }
         function sendExpertMessage() {
@@ -2098,18 +2189,49 @@
             if (!msg || !expertChatThreadId) return;
             input.value = '';
             const el = document.getElementById('expertChatMessages');
-            const placeholder = document.createElement('div');
-            placeholder.style.cssText = 'margin-bottom: 1rem; display: flex; justify-content: flex-end;';
-            placeholder.innerHTML = '<div style="max-width: 70%; padding: 0.75rem 1rem; border-radius: 12px; background: var(--primary); color: white;">' + msg.replace(/</g,'&lt;') + ' <span style="font-size:0.75rem;">Sending...</span></div>';
-            el.appendChild(placeholder);
+            let wrap = el.querySelector('.expert-chat-scroll');
+            if (!wrap) {
+                wrap = document.createElement('div');
+                wrap.className = 'expert-chat-scroll';
+                el.innerHTML = '';
+                el.appendChild(wrap);
+            }
+
+            const row = document.createElement('div');
+            row.className = 'expert-chat-row mine';
+
+            const avatar = document.createElement('img');
+            avatar.className = 'expert-chat-avatar';
+            avatar.alt = 'My avatar';
+            avatar.src = expertMyAvatar;
+
+            const bubble = document.createElement('div');
+            bubble.className = 'expert-chat-bubble';
+
+            const body = document.createElement('div');
+            body.innerHTML = msg.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+
+            const meta = document.createElement('div');
+            meta.className = 'expert-chat-meta';
+            meta.innerHTML = '<span class="expert-chat-time">Sending…</span>';
+
+            bubble.appendChild(body);
+            bubble.appendChild(meta);
+
+            row.appendChild(avatar);
+            row.appendChild(bubble);
+            wrap.appendChild(row);
             el.scrollTop = el.scrollHeight;
             const fd = new FormData();
             fd.append('message', msg);
             fd.append('csrfmiddlewaretoken', getExpertCsrfToken());
             fetch('/api/chat/thread/' + expertChatThreadId + '/send/', { method: 'POST', body: fd, headers: { 'X-CSRFToken': getExpertCsrfToken() } }).then(r => r.json()).then(data => {
-                if (data.error) { placeholder.querySelector('div').innerHTML = msg + ' <span style="color:#fff3cd;">(Failed)</span>'; return; }
-                placeholder.querySelector('div').innerHTML = data.message.replace(/</g,'&lt;') + '<div style="font-size:0.75rem;opacity:0.8;margin-top:0.25rem;">' + data.created_at + '</div>';
-            }).catch(() => { placeholder.querySelector('div').innerHTML = msg + ' <span style="color:#fff3cd;">(Failed)</span>'; });
+                if (data.error) {
+                    meta.querySelector('.expert-chat-time').textContent = 'Failed';
+                    return;
+                }
+                meta.querySelector('.expert-chat-time').textContent = data.created_at || 'Sent';
+            }).catch(() => { meta.querySelector('.expert-chat-time').textContent = 'Failed'; });
         }
         document.getElementById('expertChatInput')?.addEventListener('keypress', function(e) { if (e.key === 'Enter') sendExpertMessage(); });
 
@@ -2172,6 +2294,18 @@
         function closeDeleteContentModal() {
             document.getElementById('deleteContentModal').classList.remove('active');
         }
+
+        // Initialize section state from localStorage
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedSection = localStorage.getItem('activeSection');
+            if (savedSection) {
+                // Show the saved section
+                showSection(savedSection, null);
+            } else {
+                // Default to dashboard section if no saved section
+                showSection('dashboard', null);
+            }
+        });
 
         // Close modal when clicking outside
         window.onclick = function(event) {

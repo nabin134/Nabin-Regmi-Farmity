@@ -1611,27 +1611,27 @@
                             <div class="profile-info-grid">
                                 <div class="info-card">
                                     <span class="profile-info-label">Email Address</span>
-                                    <div class="profile-info-value"><i class="fas fa-envelope"></i> {{ user.email|default:"Not set" }}</div>
+                                    <div class="profile-info-value"><i class="fas fa-envelope"></i> <span data-profile-email-display>{{ user.email|default:"Not set" }}</span></div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Company Name</span>
-                                    <div class="profile-info-value"><i class="fas fa-building"></i> {{ profile.company_name|default:"Not set" }}</div>
+                                    <div class="profile-info-value"><i class="fas fa-building"></i> <span data-profile-company-display>{{ profile.company_name|default:"Not set" }}</span></div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Contact</span>
-                                    <div class="profile-info-value"><i class="fas fa-phone"></i> {{ profile.contact|default:"Not set" }}</div>
+                                    <div class="profile-info-value"><i class="fas fa-phone"></i> <span data-profile-contact-display>{{ profile.contact|default:"Not set" }}</span></div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Address</span>
-                                    <div class="profile-info-value"><i class="fas fa-map-marker-alt"></i> {{ profile.address|default:"Not set" }}</div>
+                                    <div class="profile-info-value"><i class="fas fa-map-marker-alt"></i> <span data-profile-address-display>{{ profile.address|default:"Not set" }}</span></div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Website</span>
-                                    <div class="profile-info-value"><i class="fas fa-globe"></i> {{ profile.website|default:"Not set" }}</div>
+                                    <div class="profile-info-value"><i class="fas fa-globe"></i> <span data-profile-website-display>{{ profile.website|default:"Not set" }}</span></div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Business Type</span>
-                                    <div class="profile-info-value"><i class="fas fa-briefcase"></i> {{ profile.business_type|default:"Not set" }}</div>
+                                    <div class="profile-info-value"><i class="fas fa-briefcase"></i> <span data-profile-business-type-display>{{ profile.business_type|default:"Not set" }}</span></div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Member Since</span>
@@ -1654,14 +1654,14 @@
                                     <span style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border-radius: 16px; font-weight: 600; font-size: 0.8rem;">Vendor</span>
                                 </div>
                             </div>
-                            <form method="POST" id="vendorProfileForm" enctype="multipart/form-data">
+                            <form method="POST" id="vendorProfileForm" enctype="multipart/form-data" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update your profile information?">
                                 {% csrf_token %}
                                 <input type="hidden" name="update_profile" value="1">
                                 <input type="hidden" name="return_section" value="profile">
                                 <div class="profile-edit-grid" id="vendorProfileFields">
                                     <div class="edit-card form-group">
                                         <span class="profile-info-label">Email Address</span>
-                                        <div style="font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-envelope" style="color: var(--primary);"></i> {{ user.email }}</div>
+                                        <input type="email" name="email" id="vendorEmail" class="form-control" value="{{ user.email|default:'' }}" placeholder="Email address" autocomplete="email">
                                     </div>
                                     <div class="edit-card form-group">
                                         <span class="profile-info-label">Company Name</span>
