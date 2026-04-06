@@ -1449,14 +1449,14 @@
                     </div>
                                 <div class="section-body">
                         <div class="availability-add-card">
-                            <form method="POST" data-farmity-ajax="1">
+                            <form method="POST" data-farmity-ajax="1" id="availabilityForm">
                                 {% csrf_token %}
                                 <input type="hidden" name="add_availability" value="1">
                                 <input type="hidden" name="return_section" value="availability">
                                 <div class="availability-add-row">
                                     <div class="field">
                                         <span class="availability-label"><i class="fas fa-calendar-day"></i> Add a single day</span>
-                                        <input type="date" name="availability_date" id="availability_date" class="form-control" style="min-width: 160px;">
+                                        <input type="date" name="availability_date" id="availability_date" class="form-control" style="min-width: 160px;" required>
                                     </div>
                                     <div class="field">
                                         <span class="availability-label"><i class="fas fa-clock"></i> Start time *</span>
@@ -1478,22 +1478,22 @@
                                 <div class="availability-add-row">
                                     <div class="field">
                                         <span class="availability-label"><i class="fas fa-calendar-week"></i> Add a full week from start date</span>
-                                        <input type="date" name="availability_week_start" id="availability_week_start" class="form-control" style="min-width: 160px;">
+                                        <input type="date" name="availability_week_start" id="availability_week_start" class="form-control" style="min-width: 160px;" required>
                                     </div>
                                     <div class="field">
-                                        <span class="availability-label"><i class="fas fa-clock"></i> Start time (optional)</span>
-                                        <input type="time" name="availability_week_start_time" id="availability_week_start_time" class="form-control" style="min-width: 100px;" title="Start time for all days">
+                                        <span class="availability-label"><i class="fas fa-clock"></i> Start time *</span>
+                                        <input type="time" name="availability_week_start_time" id="availability_week_start_time" class="form-control" style="min-width: 100px;" title="Start time for all days" required>
                                     </div>
                                     <div class="field">
-                                        <span class="availability-label"><i class="fas fa-clock"></i> End time (optional)</span>
-                                        <input type="time" name="availability_week_end_time" id="availability_week_end_time" class="form-control" style="min-width: 100px;" title="End time for all days">
+                                        <span class="availability-label"><i class="fas fa-clock"></i> End time *</span>
+                                        <input type="time" name="availability_week_end_time" id="availability_week_end_time" class="form-control" style="min-width: 100px;" title="End time for all days" required>
                                     </div>
                                     <button type="submit" class="btn btn-primary btn-sm" name="availability_type" value="week">
                                         <i class="fas fa-calendar-week"></i> Add week
                                     </button>
                                 </div>
                                 <p style="margin: 0.75rem 0 0 0; font-size: 0.8rem; color: #64748b; font-style: italic;">
-                                    <i class="fas fa-info-circle"></i> Time range applies to both options when set. Leave empty for whole day.
+                                    <i class="fas fa-info-circle"></i> Time slots are required for both single day and week availability.
                                 </p>
                             </form>
                         </div>
@@ -2589,6 +2589,114 @@ function confirmAction(message, callback) {
         document.querySelector('.modal-dialog').remove();
     });
 }
+
+// Availability Form Validation
+function validateAvailabilityForm(form) {
+    const availabilityType = form.dataset.availabilityType || '';
+    
+    // Clear previous errors
+    const existingErrors = form.querySelectorAll('.availability-error');
+    existingErrors.forEach(error => error.remove());
+    
+    let isValid = true;
+    let errorMessage = '';
+    
+    if (availabilityType === 'date') {
+        // Validate single day availability
+        const dateField = form.querySelector('[name="availability_date"]');
+        const startTimeField = form.querySelector('[name="availability_start_time"]');
+        const endTimeField = form.querySelector('[name="availability_end_time"]');
+        
+        if (!dateField.value) {
+            errorMessage = 'Please select a date for single day availability';
+            isValid = false;
+        } else if (!startTimeField.value) {
+            errorMessage = 'Please select a start time';
+            isValid = false;
+        } else if (!endTimeField.value) {
+            errorMessage = 'Please select an end time';
+            isValid = false;
+        } else if (startTimeField.value >= endTimeField.value) {
+            errorMessage = 'End time must be after start time';
+            isValid = false;
+        }
+    } else if (availabilityType === 'week') {
+        // Validate week availability
+        const weekStartField = form.querySelector('[name="availability_week_start"]');
+        const weekStartTimeField = form.querySelector('[name="availability_week_start_time"]');
+        const weekEndTimeField = form.querySelector('[name="availability_week_end_time"]');
+        
+        if (!weekStartField.value) {
+            errorMessage = 'Please select a start date for the week';
+            isValid = false;
+        } else if (!weekStartTimeField.value) {
+            errorMessage = 'Please select a start time for the week';
+            isValid = false;
+        } else if (!weekEndTimeField.value) {
+            errorMessage = 'Please select an end time for the week';
+            isValid = false;
+        } else if (weekStartTimeField.value >= weekEndTimeField.value) {
+            errorMessage = 'End time must be after start time';
+            isValid = false;
+        }
+    } else {
+        errorMessage = 'Please choose whether to add a single day or a week';
+        isValid = false;
+    }
+    
+    // Show error if validation fails
+    if (!isValid) {
+        const errorDiv = document.createElement('div');
+        errorDiv.className = 'availability-error';
+        errorDiv.style.cssText = 'color: #dc3545; font-size: 0.875rem; margin-top: 0.5rem; padding: 0.5rem; background: #f8d7da; border: 1px solid #f5c6cb; border-radius: 4px;';
+        errorDiv.innerHTML = `<i class="fas fa-exclamation-circle"></i> ${errorMessage}`;
+        
+        // Insert error after the form
+        form.parentNode.insertBefore(errorDiv, form.nextSibling);
+        
+        // Scroll to error
+        errorDiv.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        
+        // Remove error after 5 seconds
+        setTimeout(() => {
+            if (errorDiv.parentNode) {
+                errorDiv.remove();
+            }
+        }, 5000);
+    }
+    
+    return isValid;
+}
+
+// Add validation to availability form
+document.addEventListener('DOMContentLoaded', function() {
+    const availabilityForm = document.getElementById('availabilityForm');
+    if (availabilityForm) {
+        availabilityForm.addEventListener('submit', function(e) {
+            if (!validateAvailabilityForm(this)) {
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        });
+        
+        // Add click handlers to submit buttons to set the type
+        const submitButtons = availabilityForm.querySelectorAll('button[type="submit"]');
+        submitButtons.forEach(button => {
+            button.addEventListener('click', function(e) {
+                // Store the availability type for validation
+                this.form.dataset.availabilityType = this.value;
+                
+                // Trigger validation on click
+                if (!validateAvailabilityForm(this.form)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+            });
+        });
+    }
+});
 </script>
 {% include 'includes/farmity_ux_scripts.html' %}
 {% include 'support_widget.html' %}
