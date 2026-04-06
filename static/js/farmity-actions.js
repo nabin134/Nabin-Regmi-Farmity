@@ -16,18 +16,19 @@
         return getCookie('csrftoken');
     }
 
-    function farmityConfirm() {
+    function farmityConfirm(message) {
         const dlg = typeof showConfirmation === 'function' ? showConfirmation : null;
+        const prompt = (message || '').trim() || 'Are you sure you want to proceed?';
         if (dlg) {
             return dlg({
                 title: 'Confirm',
-                message: 'Are you sure you want to perform this action?',
+                message: prompt,
                 confirmText: 'Yes',
                 cancelText: 'Cancel',
                 type: 'warning',
             });
         }
-        return Promise.resolve(window.confirm('Are you sure you want to perform this action?'));
+        return Promise.resolve(window.confirm(prompt));
     }
 
     function applyFieldErrors(form, fieldErrors) {
@@ -67,15 +68,49 @@
         });
     }
 
+    function normalizeResponse(data) {
+        if (!data || typeof data !== 'object') return { ok: false, message: 'Something went wrong.' };
+        if (Object.prototype.hasOwnProperty.call(data, 'ok')) return data;
+        if (Object.prototype.hasOwnProperty.call(data, 'success')) {
+            const payload = data.data && typeof data.data === 'object' ? data.data : {};
+            return Object.assign({}, payload, {
+                ok: !!data.success,
+                message: data.message || '',
+                field_errors: payload.field_errors || data.field_errors || null,
+            });
+        }
+        return data;
+    }
+
+    function applyNativeValidationHints(form) {
+        if (!form) return true;
+        const dateField = form.querySelector('[name="requested_date"]');
+        if (dateField) {
+            const value = (dateField.value || '').trim();
+            dateField.setCustomValidity(value ? '' : 'Please select an appointment date.');
+        }
+        const timeField = form.querySelector('[name="requested_time"]');
+        if (timeField) {
+            const value = (timeField.value || '').trim();
+            timeField.setCustomValidity(value ? '' : 'Please select an appointment time.');
+        }
+        if (typeof form.checkValidity === 'function' && !form.checkValidity()) {
+            if (typeof form.reportValidity === 'function') form.reportValidity();
+            return false;
+        }
+        return true;
+    }
+
     async function submitFarmityForm(form) {
         const url = form.getAttribute('action') || window.location.pathname + window.location.search;
         const useConfirm = form.getAttribute('data-farmity-confirm') === '1';
         if (useConfirm) {
-            const ok = await farmityConfirm();
+            const ok = await farmityConfirm(form.getAttribute('data-farmity-confirm-message'));
             if (!ok) return;
         }
 
         clearFarmityFieldErrors(form);
+        if (!applyNativeValidationHints(form)) return;
         const fd = new FormData(form);
         fd.set('ajax', '1');
 
@@ -100,7 +135,7 @@
             let data = {};
             const ct = res.headers.get('content-type') || '';
             if (ct.indexOf('application/json') !== -1) {
-                data = await res.json();
+                data = normalizeResponse(await res.json());
             } else {
                 const text = await res.text();
                 if (typeof showError === 'function') {

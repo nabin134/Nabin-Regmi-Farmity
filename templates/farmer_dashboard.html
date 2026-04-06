@@ -3897,10 +3897,14 @@
             var expertId = document.getElementById('apptExpertId').value;
             var dates = expertAvailability[expertId];
             var sel = document.getElementById('apptRequestedDate').value;
+            var time = document.getElementById('apptRequestedTime').value;
+            if (!sel) { alert('Please select an appointment date.'); return false; }
+            if (!time) { alert('Please select an appointment time.'); return false; }
             if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
                 alert('Appointment not available at this date. Please choose a highlighted available date.');
                 return false;
             }
+            if (!window.confirm('Are you sure you want to submit this appointment request?')) return false;
             var form = this;
             ajaxSubmitForm(form, {
                 onSuccess: function (payload) {
@@ -3969,10 +3973,14 @@
             var expertId = document.getElementById('changeApptExpertId').value;
             var dates = expertAvailability[expertId];
             var sel = document.getElementById('changeApptDate').value;
+            var time = document.getElementById('changeApptTime').value;
+            if (!sel) { alert('Please select a new appointment date.'); return false; }
+            if (!time) { alert('Please select a new appointment time.'); return false; }
             if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
                 alert('Appointment not available at this date. Please choose an available date from the list above.');
                 return false;
             }
+            if (!window.confirm('Are you sure you want to update this appointment?')) return false;
             var form = this;
             ajaxSubmitForm(form, {
                 onSuccess: function (payload) {
@@ -3999,10 +4007,14 @@
             var expertId = document.getElementById('reapplyApptExpertId').value;
             var dates = expertAvailability[expertId];
             var sel = document.getElementById('reapplyApptDate').value;
+            var time = document.getElementById('reapplyApptTime').value;
+            if (!sel) { alert('Please select a new appointment date.'); return false; }
+            if (!time) { alert('Please select a new appointment time.'); return false; }
             if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
                 alert('Appointment not available at this date. Please choose an available date from the list above.');
                 return false;
             }
+            if (!window.confirm('Are you sure you want to resubmit this appointment?')) return false;
             var form = this;
             ajaxSubmitForm(form, {
                 onSuccess: function (payload) {

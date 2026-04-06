@@ -2547,7 +2547,7 @@
                 <h3><i class="fas fa-calendar-plus"></i> Book appointment</h3>
                 <button class="close-modal" onclick="closeModal('appointmentModal')" aria-label="Close">&times;</button>
             </div>
-            <form method="POST" action="{% url 'appointment_request' %}" id="appointmentBookForm" class="appointment-form">
+            <form method="POST" action="{% url 'appointment_request' %}" id="appointmentBookForm" class="appointment-form" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to submit this appointment request?" data-farmity-close-modal="appointmentModal">
                 {% csrf_token %}
                 <input type="hidden" name="expert_id" id="apptExpertId">
                 <div class="form-group">
@@ -2561,10 +2561,12 @@
                         <div class="form-group appointment-form-field">
                             <label>Date</label>
                             <input type="text" name="requested_date" id="apptRequestedDate" class="form-control" placeholder="YYYY-MM-DD" required readonly>
+                            <p class="farmity-field-error" id="appointmentBookFormFieldError-requested_date" role="alert" style="display:none;"></p>
                         </div>
                         <div class="form-group appointment-form-field">
                             <label>Time</label>
                             <input type="time" name="requested_time" id="apptRequestedTime" class="form-control" required>
+                            <p class="farmity-field-error" id="appointmentBookFormFieldError-requested_time" role="alert" style="display:none;"></p>
                         </div>
                     </div>
                 </div>
@@ -2586,7 +2588,7 @@
                 <h3><i class="fas fa-edit"></i> Change date & time</h3>
                 <button class="close-modal" onclick="closeModal('changeAppointmentModal')" aria-label="Close">&times;</button>
             </div>
-            <form method="POST" action="{% url 'user_dashboard' %}" id="changeAppointmentForm" class="appointment-form">
+            <form method="POST" action="{% url 'user_dashboard' %}" id="changeAppointmentForm" class="appointment-form" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update this appointment?" data-farmity-close-modal="changeAppointmentModal">
                 {% csrf_token %}
                 <input type="hidden" name="update_appointment" value="1">
                 <input type="hidden" name="return_section" value="appointments">
@@ -2599,10 +2601,12 @@
                         <div class="form-group appointment-form-field">
                             <label>Date</label>
                             <input type="text" name="requested_date" id="changeApptDate" class="form-control" placeholder="YYYY-MM-DD" required readonly>
+                            <p class="farmity-field-error" id="changeAppointmentFormFieldError-requested_date" role="alert" style="display:none;"></p>
                         </div>
                         <div class="form-group appointment-form-field">
                             <label>Time</label>
                             <input type="time" name="requested_time" id="changeApptTime" class="form-control" required>
+                            <p class="farmity-field-error" id="changeAppointmentFormFieldError-requested_time" role="alert" style="display:none;"></p>
                         </div>
                     </div>
                 </div>
@@ -2618,7 +2622,7 @@
                 <h3><i class="fas fa-redo"></i> Edit and apply again</h3>
                 <button class="close-modal" onclick="closeModal('reapplyAppointmentModal')" aria-label="Close">&times;</button>
             </div>
-            <form method="POST" action="{% url 'user_dashboard' %}" id="reapplyAppointmentForm" class="appointment-form">
+            <form method="POST" action="{% url 'user_dashboard' %}" id="reapplyAppointmentForm" class="appointment-form" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to resubmit this appointment?" data-farmity-close-modal="reapplyAppointmentModal">
                 {% csrf_token %}
                 <input type="hidden" name="reapply_appointment" value="1">
                 <input type="hidden" name="return_section" value="appointments">
@@ -2631,10 +2635,12 @@
                         <div class="form-group appointment-form-field">
                             <label>Date</label>
                             <input type="text" name="requested_date" id="reapplyApptDate" class="form-control" placeholder="YYYY-MM-DD" required readonly>
+                            <p class="farmity-field-error" id="reapplyAppointmentFormFieldError-requested_date" role="alert" style="display:none;"></p>
                         </div>
                         <div class="form-group appointment-form-field">
                             <label>Time</label>
                             <input type="time" name="requested_time" id="reapplyApptTime" class="form-control" required>
+                            <p class="farmity-field-error" id="reapplyAppointmentFormFieldError-requested_time" role="alert" style="display:none;"></p>
                         </div>
                     </div>
                 </div>
@@ -3165,6 +3171,17 @@
             var expertId = document.getElementById('apptExpertId').value;
             var dates = expertAvailability[expertId];
             var sel = document.getElementById('apptRequestedDate').value;
+            var time = document.getElementById('apptRequestedTime').value;
+            if (!sel) {
+                e.preventDefault();
+                alert('Please select an appointment date.');
+                return false;
+            }
+            if (!time) {
+                e.preventDefault();
+                alert('Please select an appointment time.');
+                return false;
+            }
             if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
                 e.preventDefault();
                 alert('Appointment not available at this date. Please choose a highlighted available date.');
@@ -3175,6 +3192,17 @@
             var expertId = document.getElementById('changeApptExpertId').value;
             var dates = expertAvailability[expertId];
             var sel = document.getElementById('changeApptDate').value;
+            var time = document.getElementById('changeApptTime').value;
+            if (!sel) {
+                e.preventDefault();
+                alert('Please select a new appointment date.');
+                return false;
+            }
+            if (!time) {
+                e.preventDefault();
+                alert('Please select a new appointment time.');
+                return false;
+            }
             if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
                 e.preventDefault();
                 alert('Appointment not available at this date. Please choose an available date from the list above.');
@@ -3185,6 +3213,17 @@
             var expertId = document.getElementById('reapplyApptExpertId').value;
             var dates = expertAvailability[expertId];
             var sel = document.getElementById('reapplyApptDate').value;
+            var time = document.getElementById('reapplyApptTime').value;
+            if (!sel) {
+                e.preventDefault();
+                alert('Please select a new appointment date.');
+                return false;
+            }
+            if (!time) {
+                e.preventDefault();
+                alert('Please select a new appointment time.');
+                return false;
+            }
             if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
                 e.preventDefault();
                 alert('Appointment not available at this date. Please choose an available date from the list above.');

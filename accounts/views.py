@@ -249,7 +249,7 @@ def _validate_profile_email_change(user, raw_email):
         validate_email(candidate)
     except ValidationError:
         return None, 'Please enter a valid email address.'
-    normalized = User.normalize_email(candidate)
+    normalized = User.objects.normalize_email(candidate)
     if normalized.lower() == (user.email or '').lower():
         return user.email, None
     if User.objects.filter(email__iexact=normalized).exclude(pk=user.pk).exists():
@@ -3240,6 +3240,17 @@ def expert_dashboard(request):
     if request.session.pop('show_login_success', None):
         messages.success(request, 'Welcome back! You have been logged in successfully.')
     
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1'
+
+    def _expert_finish(ok, msg, **extra):
+        if is_ajax:
+            return _farmity_json_response(ok, msg, **extra)
+        if ok:
+            messages.success(request, msg)
+        else:
+            messages.error(request, msg)
+        return _redirect_same_page(request, 'expert_dashboard')
+
     # Ensure profile exists
     profile, created = ExpertProfile.objects.get_or_create(user=request.user)
     
@@ -3253,13 +3264,18 @@ def expert_dashboard(request):
         if photo_file:
             profile.photo = photo_file
             profile.save()
-            messages.success(request, 'Profile picture updated successfully!')
-        else:
-            messages.error(request, 'Please select an image file.')
-        return _redirect_same_page(request, 'expert_dashboard')
+            extra = {}
+            if profile.photo:
+                extra['photo_url'] = profile.photo.url
+            return _expert_finish(True, 'Profile picture updated successfully!', **extra)
+        return _expert_finish(False, 'Please select an image file.')
 
     # Handle Profile Update (details only; photo is changed separately)
     if request.method == 'POST' and 'update_profile' in request.POST:
+        new_email = (request.POST.get('email') or '').strip()
+        norm_email, email_err = _validate_profile_email_change(request.user, new_email)
+        if email_err:
+            return _expert_finish(False, email_err, field_errors={'email': email_err})
         profile.name = request.POST.get('name', profile.name)
         profile.qualification = request.POST.get('qualification', profile.qualification)
         profile.specialization = request.POST.get('specialization', profile.specialization)
@@ -3272,8 +3288,10 @@ def expert_dashboard(request):
         except (ValueError, TypeError, InvalidOperation):
             profile.consultation_fee = Decimal('0')
         profile.save()
-        messages.success(request, 'Profile updated successfully!')
-        return _redirect_same_page(request, 'expert_dashboard')
+        if norm_email != request.user.email:
+            request.user.email = norm_email
+            request.user.save(update_fields=['email'])
+        return _expert_finish(True, 'Profile updated successfully!', email=request.user.email)
     
     # Handle Add Tip/Content - Require KYC approval
     if request.method == 'POST' and 'add_tip' in request.POST:
@@ -3414,22 +3432,19 @@ def expert_dashboard(request):
     # Handle Remove Availability
     if request.method == 'POST' and 'remove_availability' in request.POST:
         if kyc_status != 'approved':
-            messages.error(request, 'KYC verification is required to manage availability.')
-            return _redirect_same_page(request, 'expert_dashboard')
+            return _expert_finish(False, 'KYC verification is required to manage availability.')
         avail_id = request.POST.get('availability_id')
         try:
             avail = ExpertAvailability.objects.get(id=avail_id, expert=profile)
             avail.delete()
-            messages.success(request, 'Date removed from your availability.')
+            return _expert_finish(True, 'Date removed from your availability.')
         except (ExpertAvailability.DoesNotExist, ValueError):
-            messages.error(request, 'Availability entry not found.')
-        return _redirect_same_page(request, 'expert_dashboard')
+            return _expert_finish(False, 'Availability entry not found.')
 
     # Handle Accept/Reject Appointment (with valid reason for reject)
     if request.method == 'POST' and ('accept_appointment' in request.POST or 'reject_appointment' in request.POST):
         if kyc_status != 'approved':
-            messages.error(request, 'KYC verification is required to manage appointments. Please complete your KYC verification first.')
-            return _redirect_same_page(request, 'expert_dashboard')
+            return _expert_finish(False, 'KYC verification is required to manage appointments. Please complete your KYC verification first.')
         
         appointment_id = request.POST.get('appointment_id')
         response_message = (request.POST.get('response_message') or '').strip() or None
@@ -3446,11 +3461,10 @@ def expert_dashboard(request):
                     reverse('user_dashboard') + '?section=appointments',
                     UserNotification.TYPE_APPOINTMENT
                 )
-                messages.success(request, 'Appointment accepted! The requester will see your response.')
+                return _expert_finish(True, 'Appointment accepted! The requester will see your response.')
             elif 'reject_appointment' in request.POST:
                 if not response_message:
-                    messages.error(request, 'Please provide a valid reason for rejecting the appointment.')
-                    return _redirect_same_page(request, 'expert_dashboard')
+                    return _expert_finish(False, 'Please provide a valid reason for rejecting the appointment.')
                 appointment.status = ExpertAppointment.STATUS_REJECTED
                 appointment.response_message = response_message
                 appointment.save()
@@ -3461,10 +3475,9 @@ def expert_dashboard(request):
                     reverse('user_dashboard') + '?section=appointments',
                     UserNotification.TYPE_APPOINTMENT
                 )
-                messages.success(request, 'Appointment rejected. The requester will see your reason.')
+                return _expert_finish(True, 'Appointment rejected. The requester will see your reason.')
         except ExpertAppointment.DoesNotExist:
-            messages.error(request, 'Appointment not found!')
-        return _redirect_same_page(request, 'expert_dashboard')
+            return _expert_finish(False, 'Appointment not found!')
     
     # Handle update visit status (for accepted appointments only)
     if request.method == 'POST' and 'update_visit_status' in request.POST:
@@ -3512,7 +3525,7 @@ def expert_dashboard(request):
     # Get chat threads (for display - limited)
     chat_threads = ExpertChatThread.objects.filter(expert=profile).select_related(
         'created_by', 'created_by__farmer_profile', 'created_by__user_profile'
-    ).order_by('-updated_at')[:10]
+    ).order_by('-updated_at')
     
     # Get all chat threads for statistics (not limited)
     all_chat_threads = ExpertChatThread.objects.filter(expert=profile).select_related('created_by')
@@ -3646,6 +3659,7 @@ def expert_dashboard(request):
 def user_dashboard(request):
     if request.user.role != 'buyer':
         return _redirect_to_role_home_response(request.user)
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1'
     if request.session.pop('show_login_success', None):
         messages.success(request, 'Welcome back! You have been logged in successfully.')
     
@@ -4006,6 +4020,9 @@ def user_dashboard(request):
         appointment_id = request.POST.get('appointment_id')
         requested_date = (request.POST.get('requested_date') or '').strip()
         requested_time = (request.POST.get('requested_time') or '').strip()
+        success = False
+        payload = {}
+        out_message = ''
         if appointment_id and requested_date and requested_time:
             try:
                 req_date = date.fromisoformat(requested_date)
@@ -4014,20 +4031,35 @@ def user_dashboard(request):
             try:
                 appointment = ExpertAppointment.objects.get(id=appointment_id, requester=request.user)
                 if appointment.status != ExpertAppointment.STATUS_PENDING:
-                    messages.error(request, 'Only pending appointments can be rescheduled. Accepted appointments cannot be changed.')
+                    out_message = 'Only pending appointments can be rescheduled. Accepted appointments cannot be changed.'
                 elif not req_date:
-                    messages.error(request, 'Invalid date format.')
+                    out_message = 'Invalid date format.'
                 elif not ExpertAvailability.objects.filter(expert=appointment.expert, date=req_date).exists():
-                    messages.error(request, 'Appointment not available at this date. Please choose an available date.')
+                    out_message = 'Appointment not available at this date. Please choose an available date.'
                 else:
                     appointment.requested_date = requested_date
                     appointment.requested_time = requested_time
                     appointment.save()
-                    messages.success(request, 'Appointment date/time updated successfully.')
+                    success = True
+                    out_message = 'Appointment date/time updated successfully.'
+                    payload = {
+                        'appointment_id': appointment.id,
+                        'requested_date_display': req_date.strftime('%b %d, %Y') if req_date else requested_date,
+                        'requested_time_display': appointment.requested_time.strftime('%I:%M %p') if appointment.requested_time else requested_time,
+                        'status': appointment.status,
+                        'status_display': appointment.get_status_display(),
+                    }
             except ExpertAppointment.DoesNotExist:
-                messages.error(request, 'Appointment not found.')
+                out_message = 'Appointment not found.'
         else:
-            messages.error(request, 'Please provide date and time.')
+            out_message = 'Please provide date and time.'
+        if is_ajax:
+            code = 200 if success else 400
+            return JsonResponse({'success': success, 'message': out_message, 'data': payload}, status=code)
+        if success:
+            messages.success(request, out_message)
+        else:
+            messages.error(request, out_message)
         return _redirect_same_page(request, 'user_dashboard')
     
     # Handle reapply (rejected appointment: edit and apply again)
@@ -4035,6 +4067,9 @@ def user_dashboard(request):
         appointment_id = request.POST.get('appointment_id')
         requested_date = (request.POST.get('requested_date') or '').strip()
         requested_time = (request.POST.get('requested_time') or '').strip()
+        success = False
+        payload = {}
+        out_message = ''
         if appointment_id and requested_date and requested_time:
             try:
                 req_date = date.fromisoformat(requested_date)
@@ -4043,22 +4078,37 @@ def user_dashboard(request):
             try:
                 appointment = ExpertAppointment.objects.get(id=appointment_id, requester=request.user)
                 if appointment.status != ExpertAppointment.STATUS_REJECTED:
-                    messages.error(request, 'Only rejected appointments can be reapplied.')
+                    out_message = 'Only rejected appointments can be reapplied.'
                 elif not req_date:
-                    messages.error(request, 'Invalid date format.')
+                    out_message = 'Invalid date format.'
                 elif not ExpertAvailability.objects.filter(expert=appointment.expert, date=req_date).exists():
-                    messages.error(request, 'Appointment not available at this date. Please choose an available date.')
+                    out_message = 'Appointment not available at this date. Please choose an available date.'
                 else:
                     appointment.requested_date = requested_date
                     appointment.requested_time = requested_time
                     appointment.status = ExpertAppointment.STATUS_PENDING
                     appointment.response_message = None
                     appointment.save()
-                    messages.success(request, 'Appointment updated and resubmitted. The doctor will review your new request.')
+                    success = True
+                    out_message = 'Appointment updated and resubmitted. The doctor will review your new request.'
+                    payload = {
+                        'appointment_id': appointment.id,
+                        'requested_date_display': req_date.strftime('%b %d, %Y') if req_date else requested_date,
+                        'requested_time_display': appointment.requested_time.strftime('%I:%M %p') if appointment.requested_time else requested_time,
+                        'status': appointment.status,
+                        'status_display': appointment.get_status_display(),
+                    }
             except ExpertAppointment.DoesNotExist:
-                messages.error(request, 'Appointment not found.')
+                out_message = 'Appointment not found.'
         else:
-            messages.error(request, 'Please provide date and time.')
+            out_message = 'Please provide date and time.'
+        if is_ajax:
+            code = 200 if success else 400
+            return JsonResponse({'success': success, 'message': out_message, 'data': payload}, status=code)
+        if success:
+            messages.success(request, out_message)
+        else:
+            messages.error(request, out_message)
         return _redirect_same_page(request, 'user_dashboard')
     
     # Get or create user profile

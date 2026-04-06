@@ -1462,7 +1462,7 @@
                                     {% if avail.notes %}<div class="date-notes">{{ avail.notes }}</div>{% endif %}
                                     {% if avail.date < today %}<span class="date-notes">(past)</span>{% endif %}
                                 </div>
-                                <form method="POST" style="margin: 0;" onsubmit="return confirm('Remove this date from your availability?');">
+                                <form method="POST" style="margin: 0;" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to remove this availability date?">
                                     {% csrf_token %}
                                     <input type="hidden" name="return_section" value="availability">
                                     <input type="hidden" name="remove_availability" value="1">
@@ -1493,7 +1493,7 @@
                             <div class="chat-sidebar" style="width: 280px; background: #f8f9fa; border-right: 2px solid #e9ecef; overflow-y: auto;">
                                 <ul class="chat-list" style="list-style: none; padding: 0; margin: 0;">
                                     {% for thread in chat_threads %}
-                                    <li class="chat-item" data-thread-id="{{ thread.id }}" onclick="alert('Load chat thread ID: {{ thread.id }}')" style="padding: 1rem; border-bottom: 1px solid #e9ecef; cursor: pointer;">
+                                    <li class="chat-item" data-thread-id="{{ thread.id }}" data-user-name="{% if thread.created_by.role == 'farmer' %}{{ thread.created_by.farmer_profile.name|default:thread.created_by.email|escapejs }}{% else %}{{ thread.created_by.user_profile.name|default:thread.created_by.email|escapejs }}{% endif %}" onclick="loadExpertChatThread({{ thread.id }}, this.getAttribute('data-user-name') || 'User')" style="padding: 1rem; border-bottom: 1px solid #e9ecef; cursor: pointer;">
                                         <div style="font-weight: 600;">{% if thread.created_by.role == 'farmer' %}{{ thread.created_by.farmer_profile.name|default:thread.created_by.email }}{% else %}{{ thread.created_by.user_profile.name|default:thread.created_by.email }}{% endif %}</div>
                                         <div style="font-size: 0.85rem; color: #666;">{% if thread.created_by.role == 'farmer' %}Farmer{% else %}Buyer{% endif %}</div>
                                     </li>
@@ -1562,7 +1562,7 @@
                             <div class="profile-info-grid">
                                 <div class="info-card">
                                     <span class="profile-info-label">Email Address</span>
-                                    <div class="profile-info-value"><i class="fas fa-envelope"></i> {{ user.email|default:"Not set" }}</div>
+                                    <div class="profile-info-value"><i class="fas fa-envelope"></i> <span data-profile-email-display>{{ user.email|default:"Not set" }}</span></div>
                                 </div>
                                 <div class="info-card">
                                     <span class="profile-info-label">Name</span>
@@ -1605,14 +1605,15 @@
                                     <span style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border-radius: 16px; font-weight: 600; font-size: 0.8rem;">{{ role_display|default:"Agricultural Expert" }}</span>
                                 </div>
                             </div>
-                            <form method="POST" id="expertProfileForm">
+                            <form method="POST" id="expertProfileForm" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update your profile information?">
                                 {% csrf_token %}
                                 <input type="hidden" name="update_profile" value="1">
                                 <input type="hidden" name="return_section" value="profile">
                                 <div class="profile-edit-grid" id="expertProfileFields">
                                     <div class="edit-card form-group">
                                         <span class="profile-info-label">Email Address</span>
-                                        <div style="font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-envelope" style="color: var(--primary);"></i> {{ user.email }}</div>
+                                        <input type="email" name="email" id="expertEmail" class="form-control" value="{{ user.email|default:'' }}" placeholder="Email address" autocomplete="email">
+                                        <p class="farmity-field-error" id="expertProfileFormFieldError-email" role="alert" style="display:none;margin-top:0.35rem;font-size:0.8125rem;color:#dc3545;"></p>
                                     </div>
                                     <div class="edit-card form-group">
                                         <span class="profile-info-label">Name</span>
@@ -1759,7 +1760,7 @@
                 <h3 id="contentModalTitle">Share New Content</h3>
                 <button class="close-modal" onclick="closeContentModal()">&times;</button>
             </div>
-            <form id="contentForm" method="POST" enctype="multipart/form-data">
+            <form id="contentForm" method="POST" enctype="multipart/form-data" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to submit this content?">
                 {% csrf_token %}
                 <input type="hidden" name="return_section" value="content">
                 <input type="hidden" id="content_id" name="tip_id">
@@ -1829,7 +1830,7 @@
                 <h3 id="appointmentResponseModalTitle">Respond to Appointment</h3>
                 <button class="close-modal" onclick="closeAppointmentResponseModal()">&times;</button>
             </div>
-            <form method="POST" id="appointmentResponseForm">
+            <form method="POST" id="appointmentResponseForm" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to proceed with this appointment response?" data-farmity-close-modal="appointmentResponseModal">
                 {% csrf_token %}
                 <input type="hidden" name="return_section" value="appointments">
                 <input type="hidden" name="appointment_id" id="appointmentResponseId">
@@ -1966,11 +1967,25 @@
         }
         document.getElementById('appointmentResponseForm').addEventListener('submit', function(e) {
             var btn = e.submitter;
+            var form = e.target;
+            form.querySelectorAll('input[data-appt-response-action="1"]').forEach(function(el){ el.remove(); });
+            if (btn && btn.name) {
+                var actionInput = document.createElement('input');
+                actionInput.type = 'hidden';
+                actionInput.name = btn.name;
+                actionInput.value = '1';
+                actionInput.setAttribute('data-appt-response-action', '1');
+                form.appendChild(actionInput);
+            }
             if (btn && btn.name === 'reject_appointment') {
                 var msg = document.getElementById('appointmentResponseMessage').value.trim();
                 if (!msg) {
                     e.preventDefault();
-                    alert('Please provide a valid reason for rejecting the appointment.');
+                    if (typeof showError === 'function') {
+                        showError('Please provide a valid reason for rejecting the appointment.');
+                    } else {
+                        alert('Please provide a valid reason for rejecting the appointment.');
+                    }
                     return false;
                 }
             }
@@ -2272,41 +2287,6 @@
             });
         });
 
-        // Force dashboard visibility immediately when script loads
-        (function() {
-            function forceDashboardVisible() {
-                const dashboardSection = document.getElementById('dashboard-section');
-                if (dashboardSection) {
-                    dashboardSection.style.cssText = 'display: block !important; visibility: visible !important; opacity: 1 !important; padding: 2rem;';
-                    
-                    // Force stats-grid visibility
-                    const statsGrid = dashboardSection.querySelector('.stats-grid');
-                    if (statsGrid) {
-                        statsGrid.style.cssText = 'display: grid !important; visibility: visible !important; opacity: 1 !important; width: 100%;';
-                        console.log('Stats grid forced visible');
-                    }
-                    
-                    // Force all stat-cards visibility
-                    const statCards = dashboardSection.querySelectorAll('.stat-card');
-                    statCards.forEach((card, index) => {
-                        card.style.cssText = 'display: flex !important; visibility: visible !important; opacity: 1 !important;';
-                    });
-                    console.log('Forced', statCards.length, 'stat cards visible');
-                }
-            }
-            
-            // Try immediately
-            if (document.readyState === 'loading') {
-                document.addEventListener('DOMContentLoaded', forceDashboardVisible);
-            } else {
-                forceDashboardVisible();
-            }
-            
-            // Also try after a short delay
-            setTimeout(forceDashboardVisible, 100);
-            setTimeout(forceDashboardVisible, 500);
-        })();
-        
         document.addEventListener('DOMContentLoaded', function() {
             var params = new URLSearchParams(window.location.search);
             var sectionFromUrl = params.get('section');
