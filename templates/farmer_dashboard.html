@@ -3784,8 +3784,42 @@
             }
         }
         
+        const FARMER_SECTION_STORAGE_KEY = 'farmer_dashboard_active_section';
+
+        function normalizeSectionId(sectionId) {
+            if (!sectionId) return '';
+            return String(sectionId).replace(/-section$/, '');
+        }
+
+        function persistFarmerSection(sectionId) {
+            var normalized = normalizeSectionId(sectionId);
+            if (!normalized) return;
+            try {
+                localStorage.setItem(FARMER_SECTION_STORAGE_KEY, normalized);
+            } catch (e) {}
+            try {
+                var url = new URL(window.location.href);
+                url.searchParams.set('section', normalized);
+                window.history.replaceState({}, '', url.toString());
+            } catch (e) {}
+        }
+
+        function resolveInitialFarmerSection() {
+            var fromUrl = normalizeSectionId(new URLSearchParams(window.location.search).get('section'));
+            if (fromUrl && document.getElementById(fromUrl + '-section')) return fromUrl;
+            var fromStorage = '';
+            try {
+                fromStorage = normalizeSectionId(localStorage.getItem(FARMER_SECTION_STORAGE_KEY));
+            } catch (e) {}
+            if (fromStorage && document.getElementById(fromStorage + '-section')) return fromStorage;
+            var fromServer = normalizeSectionId('{{ active_section|default:"dashboard" }}');
+            if (fromServer && document.getElementById(fromServer + '-section')) return fromServer;
+            return 'dashboard';
+        }
+
         // Navigation
         function showSection(sectionId, evt) {
+            sectionId = normalizeSectionId(sectionId);
             // Prevent default if event is provided
             if (evt) {
                 evt.preventDefault();
@@ -3831,6 +3865,8 @@
             if (clickedItem) {
                 clickedItem.classList.add('active');
             }
+
+            persistFarmerSection(sectionId);
             
             // Scroll to top of main content
             const mainContent = document.querySelector('.main-content');
@@ -3927,9 +3963,9 @@
 
         // Initialize dashboard visibility
         document.addEventListener('DOMContentLoaded', function() {
-            var sectionFromUrl = new URLSearchParams(window.location.search).get('section');
-            if (sectionFromUrl && document.getElementById(sectionFromUrl + '-section')) {
-                showSection(sectionFromUrl, null);
+            var initialSection = resolveInitialFarmerSection();
+            if (initialSection && document.getElementById(initialSection + '-section')) {
+                showSection(initialSection, null);
             } else {
                 // Ensure dashboard is visible first with all content
                 const dashboardSection = document.getElementById('dashboard-section');
@@ -4290,6 +4326,7 @@
         var currentChatThreadId = null;
         var currentChatExpertName = '';
         var currentChatExpertPhoto = '';
+        var currentChatMyPhoto = "{% if profile.photo %}{{ profile.photo.url }}{% else %}/static/images/default-avatar.png{% endif %}";
 
         function getCsrfToken() {
             var csrfEl = document.querySelector('[name=csrfmiddlewaretoken]');
@@ -4554,7 +4591,7 @@
             messagesDiv.innerHTML = messages.map(m => {
                 const cls = m.is_mine ? 'sent' : 'received';
                 const avatarHtml = m.is_mine
-                    ? '<i class="fas fa-user"></i>'
+                    ? buildChatAvatarHtml('Me', currentChatMyPhoto || '')
                     : buildChatAvatarHtml(currentChatExpertName || 'Expert', currentChatExpertPhoto || '');
                 return '<div class="message ' + cls + '">' +
                        '<div class="message-avatar">' + avatarHtml + '</div>' +
@@ -4580,7 +4617,7 @@
             const placeholder = document.createElement('div');
             placeholder.className = 'message sent';
             placeholder.innerHTML =
-                '<div class="message-avatar"><i class="fas fa-user"></i></div>' +
+                '<div class="message-avatar">' + buildChatAvatarHtml('Me', currentChatMyPhoto || '') + '</div>' +
                 '<div class="message-bubble"><div class="message-text">' + escapeHtml(msg) +
                 '</div><div class="message-time">Sending...</div></div>';
             messagesDiv.appendChild(placeholder);

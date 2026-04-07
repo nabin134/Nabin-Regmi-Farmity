@@ -175,7 +175,7 @@
                         Created by {{ ticket.user.email }} on {{ ticket.created_at|date:"M d, Y H:i" }}
                         {% if ticket.assigned_to %} • Assigned to {{ ticket.assigned_to.email }}{% endif %}
                     </div>
-                    <span class="ticket-status {{ ticket.status }}">{{ ticket.get_status_display }}</span>
+                    <span id="supTicketStatusBadge" class="ticket-status {{ ticket.status }}">{{ ticket.get_status_display }}</span>
                     <div class="staff-actions">
                         {% if not ticket.assigned_to or ticket.assigned_to_id == request.user.id %}
                         <form method="POST" action="{% url 'support_ticket' ticket.id %}" style="display: inline;">
@@ -196,10 +196,10 @@
                     </div>
                 </div>
 
-                <div class="messages-box">
+                <div id="supMessages" class="messages-box">
                     {% if messages_list %}
                         {% for msg in messages_list %}
-                        <div class="msg {% if msg.sender_id == request.user.id %}sent{% else %}received{% endif %}">
+                        <div class="msg {% if msg.sender_id == request.user.id %}sent{% else %}received{% endif %}" data-message-id="{{ msg.id }}">
                             <div class="msg-bubble">
                                 {{ msg.message|linebreaksbr }}
                                 <div class="msg-meta">{{ msg.created_at|date:"M d, h:i A" }} • {{ msg.sender.email }}</div>
@@ -207,7 +207,7 @@
                         </div>
                         {% endfor %}
                     {% else %}
-                        <div class="empty-msg">No messages yet.</div>
+                        <div id="supEmptyMsg" class="empty-msg">No messages yet.</div>
                     {% endif %}
                 </div>
 
@@ -217,7 +217,7 @@
                 </div>
                 {% else %}
                 <div class="reply-form">
-                    <form method="POST" action="{% url 'support_ticket' ticket.id %}">
+                    <form id="supReplyForm" method="POST" action="{% url 'support_ticket' ticket.id %}">
                         {% csrf_token %}
                         <input type="hidden" name="action" value="reply">
                         <textarea name="message" placeholder="Type your reply..." required></textarea>
@@ -232,5 +232,85 @@
     </div>
     {% include 'includes/farmity_logout_modal_script.html' %}
     <script src="/static/js/admin_state.js"></script>
+    <script>
+        (function () {
+            var ticketId = {{ ticket.id }};
+            var currentUserId = {{ request.user.id }};
+            var messagesEl = document.getElementById('supMessages');
+            var emptyEl = document.getElementById('supEmptyMsg');
+            var statusBadge = document.getElementById('supTicketStatusBadge');
+            var seen = new Set(Array.from(document.querySelectorAll('[data-message-id]')).map(function (n) { return String(n.getAttribute('data-message-id')); }));
+
+            function esc(text) {
+                var d = document.createElement('div');
+                d.textContent = text == null ? '' : String(text);
+                return d.innerHTML;
+            }
+            function nl(text) {
+                return esc(text).replace(/\n/g, '<br>');
+            }
+            function appendMessage(msg) {
+                if (!msg || !msg.id) return;
+                var idStr = String(msg.id);
+                if (seen.has(idStr)) return;
+                seen.add(idStr);
+                if (emptyEl && emptyEl.parentNode) emptyEl.parentNode.removeChild(emptyEl);
+                var mine = Number(msg.sender_id) === Number(currentUserId);
+                var row = document.createElement('div');
+                row.className = 'msg ' + (mine ? 'sent' : 'received');
+                row.setAttribute('data-message-id', idStr);
+                row.innerHTML = '<div class="msg-bubble">' + nl(msg.message || '') +
+                    '<div class="msg-meta">' + esc(msg.created_at || '') + ' • ' + esc(msg.sender_email || '') + '</div></div>';
+                messagesEl.appendChild(row);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
+            function updateStatus(code, label) {
+                if (!statusBadge || !code) return;
+                statusBadge.className = 'ticket-status ' + code;
+                statusBadge.textContent = label || code;
+            }
+
+            var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+            var ws = new WebSocket(protocol + '//' + window.location.host + '/ws/support/' + ticketId + '/');
+            ws.onmessage = function (event) {
+                try {
+                    var data = JSON.parse(event.data || '{}');
+                    if (data.type === 'support.message' && data.message) {
+                        appendMessage(data.message);
+                        updateStatus(data.ticket_status, data.ticket_status_display);
+                    } else if (data.type === 'support.status') {
+                        updateStatus(data.ticket_status, data.ticket_status_display);
+                    }
+                } catch (e) {}
+            };
+
+            var form = document.getElementById('supReplyForm');
+            if (!form) return;
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                var textarea = form.querySelector('textarea[name="message"]');
+                var btn = form.querySelector('button[type="submit"]');
+                var text = textarea ? textarea.value.trim() : '';
+                if (!text) return;
+                var fd = new FormData();
+                fd.append('message', text);
+                fd.append('csrfmiddlewaretoken', form.querySelector('[name=csrfmiddlewaretoken]').value);
+                if (btn) btn.disabled = true;
+                fetch('/api/support/tickets/' + ticketId + '/reply/', { method: 'POST', body: fd, headers: { 'X-CSRFToken': form.querySelector('[name=csrfmiddlewaretoken]').value } })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (data && data.ok && data.message) {
+                            appendMessage(data.message);
+                            updateStatus(data.ticket_status, data.ticket_status_display);
+                            textarea.value = '';
+                        } else {
+                            alert((data && data.error) || 'Failed to send reply.');
+                        }
+                    })
+                    .catch(function () { alert('Failed to send reply.'); })
+                    .finally(function () { if (btn) btn.disabled = false; });
+            });
+        })();
+    </script>
 </body>
 </html>

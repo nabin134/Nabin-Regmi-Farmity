@@ -25,6 +25,8 @@ import smtplib
 from datetime import timedelta, datetime, date
 from decimal import Decimal, InvalidOperation
 import calendar
+from channels.layers import get_channel_layer
+from asgiref.sync import async_to_sync
 
 
 def _parse_time_str(s):
@@ -6125,6 +6127,30 @@ def _is_support_staff(user):
     return SupportStaffProfile.objects.filter(user=user).exists()
 
 
+def _support_msg_to_json(message):
+    return {
+        'id': message.id,
+        'message': message.message,
+        'sender_email': message.sender.email,
+        'sender_id': message.sender_id,
+        'created_at': message.created_at.strftime('%b %d, %H:%M'),
+    }
+
+
+def _broadcast_support_event(ticket, payload):
+    """Push support ticket events to connected clients."""
+    try:
+        channel_layer = get_channel_layer()
+        if not channel_layer:
+            return
+        async_to_sync(channel_layer.group_send)(
+            f"support_ticket_{ticket.id}",
+            {"type": "support_event", "payload": payload},
+        )
+    except Exception:
+        logging.getLogger(__name__).exception("Failed to broadcast support websocket event")
+
+
 def support_hub(request):
     """Public support page: anonymous users see FAQ + contact; logged-in users see full hub. Support staff → Admin desk."""
     # Logged-in support staff see the admin desk instead
@@ -6231,7 +6257,7 @@ def support_ticket_detail(request, ticket_id):
                 )
             msg_text = (request.POST.get('message') or '').strip()
             if msg_text:
-                SupportMessage.objects.create(
+                new_msg = SupportMessage.objects.create(
                     ticket=ticket,
                     sender=request.user,
                     message=msg_text
@@ -6240,6 +6266,13 @@ def support_ticket_detail(request, ticket_id):
                 if is_staff and ticket.status == SupportTicket.STATUS_OPEN:
                     ticket.status = SupportTicket.STATUS_IN_PROGRESS
                 ticket.save()
+                _broadcast_support_event(ticket, {
+                    'type': 'support.message',
+                    'ticket_id': ticket.id,
+                    'ticket_status': ticket.status,
+                    'ticket_status_display': ticket.get_status_display(),
+                    'message': _support_msg_to_json(new_msg),
+                })
                 messages.success(request, 'Message sent.')
                 return _redirect_with_posted_ui_state(
                     request, reverse('support_ticket', kwargs={'ticket_id': ticket_id})
@@ -6249,6 +6282,12 @@ def support_ticket_detail(request, ticket_id):
             ticket.status = SupportTicket.STATUS_IN_PROGRESS
             ticket.updated_at = timezone.now()
             ticket.save()
+            _broadcast_support_event(ticket, {
+                'type': 'support.status',
+                'ticket_id': ticket.id,
+                'ticket_status': ticket.status,
+                'ticket_status_display': ticket.get_status_display(),
+            })
             messages.success(request, 'Ticket assigned to you.')
             return _redirect_with_posted_ui_state(
                 request, reverse('support_ticket', kwargs={'ticket_id': ticket_id})
@@ -6259,6 +6298,12 @@ def support_ticket_detail(request, ticket_id):
                 ticket.status = new_status
                 ticket.updated_at = timezone.now()
                 ticket.save()
+                _broadcast_support_event(ticket, {
+                    'type': 'support.status',
+                    'ticket_id': ticket.id,
+                    'ticket_status': ticket.status,
+                    'ticket_status_display': ticket.get_status_display(),
+                })
                 messages.success(request, 'Status updated.')
                 return _redirect_with_posted_ui_state(
                     request, reverse('support_ticket', kwargs={'ticket_id': ticket_id})
@@ -6362,14 +6407,11 @@ def api_support_ticket_detail(request, ticket_id):
     if ticket.user_id != request.user.id and not is_staff:
         return JsonResponse({'error': 'Forbidden'}, status=403)
     messages_list = SupportMessage.objects.filter(ticket=ticket).select_related('sender').order_by('created_at')
-    msgs = [{
-        'id': m.id,
-        'message': m.message,
-        'sender_email': m.sender.email,
-        'sender_id': m.sender_id,
-        'created_at': m.created_at.strftime('%b %d, %H:%M'),
-        'is_mine': m.sender_id == request.user.id,
-    } for m in messages_list]
+    msgs = []
+    for m in messages_list:
+        item = _support_msg_to_json(m)
+        item['is_mine'] = m.sender_id == request.user.id
+        msgs.append(item)
     return JsonResponse({
         'ticket': _api_support_ticket_to_json(ticket),
         'messages': msgs,
@@ -6393,7 +6435,7 @@ def api_support_reply(request, ticket_id):
     message = (request.POST.get('message') or '').strip()
     if not message:
         return JsonResponse({'error': 'Message required'}, status=400)
-    SupportMessage.objects.create(ticket=ticket, sender=request.user, message=message)
+    new_msg = SupportMessage.objects.create(ticket=ticket, sender=request.user, message=message)
     ticket.updated_at = timezone.now()
     if is_staff and ticket.status == SupportTicket.STATUS_OPEN:
         ticket.status = SupportTicket.STATUS_IN_PROGRESS
@@ -6406,7 +6448,19 @@ def api_support_reply(request, ticket_id):
             reverse('support_ticket', args=[ticket.id]),
             UserNotification.TYPE_SUPPORT
         )
-    return JsonResponse({'ok': True})
+    _broadcast_support_event(ticket, {
+        'type': 'support.message',
+        'ticket_id': ticket.id,
+        'ticket_status': ticket.status,
+        'ticket_status_display': ticket.get_status_display(),
+        'message': _support_msg_to_json(new_msg),
+    })
+    return JsonResponse({
+        'ok': True,
+        'message': _support_msg_to_json(new_msg),
+        'ticket_status': ticket.status,
+        'ticket_status_display': ticket.get_status_display(),
+    })
 
 
 @login_required

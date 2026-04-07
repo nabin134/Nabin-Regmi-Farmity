@@ -9,7 +9,7 @@ from django.contrib.auth.models import AnonymousUser
 from channels.auth import login
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
-from accounts.models import ExpertChatThread, ExpertChatMessage, ExpertAppointment
+from accounts.models import ExpertChatThread, ExpertChatMessage, ExpertAppointment, SupportTicket
 from django.utils import timezone
 from datetime import timedelta
 
@@ -428,3 +428,54 @@ class NotificationConsumer(AsyncWebsocketConsumer):
                 'type': 'error',
                 'message': f'Failed to mark notification as read: {str(e)}'
             }))
+
+
+class SupportTicketConsumer(AsyncWebsocketConsumer):
+    """Real-time support ticket updates for owner/staff."""
+
+    async def connect(self):
+        self.user = self.scope["user"]
+        if not self.user or getattr(self.user, "is_anonymous", True):
+            await self.close()
+            return
+
+        self.ticket_id = self.scope["url_route"]["kwargs"]["ticket_id"]
+        allowed = await self._can_access_ticket()
+        if not allowed:
+            await self.close()
+            return
+
+        self.group_name = f"support_ticket_{self.ticket_id}"
+        await self.channel_layer.group_add(self.group_name, self.channel_name)
+        await self.accept()
+
+    async def disconnect(self, close_code):
+        if hasattr(self, "group_name"):
+            await self.channel_layer.group_discard(self.group_name, self.channel_name)
+
+    async def receive(self, text_data):
+        # Keep-alive support for clients; no client-side command handling required.
+        try:
+            data = json.loads(text_data or "{}")
+        except json.JSONDecodeError:
+            return
+        if data.get("type") == "ping":
+            await self.send(text_data=json.dumps({"type": "pong"}))
+
+    async def support_event(self, event):
+        payload = event.get("payload") or {}
+        await self.send(text_data=json.dumps(payload))
+
+    @database_sync_to_async
+    def _can_access_ticket(self):
+        try:
+            ticket = SupportTicket.objects.select_related("user").get(id=self.ticket_id)
+        except SupportTicket.DoesNotExist:
+            return False
+        if ticket.user_id == self.user.id:
+            return True
+        # Same support-staff policy as views: admin role or support_staff_profile.
+        role = getattr(self.user, "role", None)
+        if role == "admin":
+            return True
+        return hasattr(self.user, "support_staff_profile")

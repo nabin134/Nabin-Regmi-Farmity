@@ -1536,7 +1536,8 @@
                                     <li class="chat-item"
                                         data-thread-id="{{ thread.id }}"
                                         data-user-name="{{ thread.created_by_display_name|default:thread.created_by.email|escapejs }}"
-                                        onclick="loadExpertChatThread({{ thread.id }}, this.getAttribute('data-user-name') || 'User')"
+                                        data-user-avatar="{{ thread.created_by_avatar|default:'/static/images/default-avatar.png' }}"
+                                        onclick="loadExpertChatThread({{ thread.id }}, this.getAttribute('data-user-name') || 'User', this.getAttribute('data-user-avatar') || '/static/images/default-avatar.png')"
                                         style="padding: 1rem; border-bottom: 1px solid #e9ecef; cursor: pointer;">
                                         <div style="display:flex; align-items:center; gap:0.75rem;">
                                             <img src="{{ thread.created_by_avatar|default:'/static/images/default-avatar.png' }}" alt="User" style="width:36px;height:36px;border-radius:999px;object-fit:cover;border:2px solid rgba(17,24,39,0.08);background:#f3f4f6;">
@@ -1552,7 +1553,12 @@
                                 </ul>
                             </div>
                             <div class="chat-main" style="flex: 1; display: flex; flex-direction: column;">
-                                <div class="chat-header" id="expertChatHeader" style="padding: 1rem 1.5rem; background: var(--primary); color: white; font-weight: 600;">Select a chat</div>
+                                <div class="chat-header" id="expertChatHeader" style="padding: 1rem 1.5rem; background: var(--primary); color: white; font-weight: 600;">
+                                    <div style="display:flex;align-items:center;gap:0.65rem;">
+                                        <span style="width:34px;height:34px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.35);"><i class="fas fa-comments"></i></span>
+                                        <span>Select a chat</span>
+                                    </div>
+                                </div>
                                 <div class="chat-messages" id="expertChatMessages" style="flex: 1; padding: 1.5rem; overflow-y: auto; background: white;">
                                     <div style="text-align: center; color: #999; padding: 2rem;">Select a chat from the sidebar</div>
                                 </div>
@@ -2120,12 +2126,25 @@
 
         var expertChatThreadId = null;
         var expertMyAvatar = "{% if profile.photo %}{{ profile.photo.url }}{% else %}/static/images/default-avatar.png{% endif %}";
+        var expertOtherAvatar = '/static/images/default-avatar.png';
         function getExpertCsrfToken() {
             return document.querySelector('[name=csrfmiddlewaretoken]')?.value || document.cookie.replace(/(?:(?:^|.*;\s*)csrftoken\s*=\s*([^;]*).*$)|^.*$/, '$1');
         }
-        function loadExpertChatThread(threadId, userName) {
+        function setExpertChatHeader(userName, avatarUrl) {
+            var header = document.getElementById('expertChatHeader');
+            if (!header) return;
+            header.innerHTML =
+                '<div style="display:flex;align-items:center;gap:0.65rem;">' +
+                    '<span style="width:34px;height:34px;border-radius:999px;display:inline-flex;align-items:center;justify-content:center;overflow:hidden;background:rgba(255,255,255,0.2);border:1px solid rgba(255,255,255,0.35);">' +
+                        '<img src="' + (avatarUrl || '/static/images/default-avatar.png') + '" alt="User" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">' +
+                    '</span>' +
+                    '<span>Chat with ' + (userName || 'User') + '</span>' +
+                '</div>';
+        }
+        function loadExpertChatThread(threadId, userName, userAvatar) {
             expertChatThreadId = threadId;
-            document.getElementById('expertChatHeader').textContent = 'Chat with ' + userName;
+            expertOtherAvatar = userAvatar || '/static/images/default-avatar.png';
+            setExpertChatHeader(userName, expertOtherAvatar);
             document.getElementById('expertChatInputArea').style.display = 'block';
             const el = document.getElementById('expertChatMessages');
             el.innerHTML = '<div style="text-align: center; color: #6b7280; padding: 2rem;">Loading messages...</div>';
@@ -2408,7 +2427,8 @@
                 if (sectionFromUrl === 'chat' && threadIdFromUrl) {
                     var chatItem = document.querySelector('.chat-item[data-thread-id="' + threadIdFromUrl + '"]');
                     var userName = chatItem ? (chatItem.getAttribute('data-user-name') || 'User') : 'User';
-                    setTimeout(function() { loadExpertChatThread(parseInt(threadIdFromUrl, 10), userName); }, 150);
+                    var userAvatar = chatItem ? (chatItem.getAttribute('data-user-avatar') || '/static/images/default-avatar.png') : '/static/images/default-avatar.png';
+                    setTimeout(function() { loadExpertChatThread(parseInt(threadIdFromUrl, 10), userName, userAvatar); }, 150);
                 }
             } else {
                 showSection('dashboard', null);

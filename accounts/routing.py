@@ -13,4 +13,7 @@ websocket_urlpatterns = [
     
     # Notifications WebSocket routing
     re_path(r'ws/notifications/$', consumers.NotificationConsumer.as_asgi()),
+
+    # Support ticket real-time updates
+    re_path(r'ws/support/(?P<ticket_id>\d+)/$', consumers.SupportTicketConsumer.as_asgi()),
 ]

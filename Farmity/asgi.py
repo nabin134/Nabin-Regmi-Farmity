@@ -1,20 +1,24 @@
-"""
-ASGI config for Farmity project with WebSocket support.
-"""
+"""ASGI config for Farmity project with HTTP + WebSocket routing."""
 import os
-import django
-from channels.routing import get_default_application
+
 from channels.auth import AuthMiddlewareStack
+from channels.routing import ProtocolTypeRouter, URLRouter
 from channels.security.websocket import AllowedHostsOriginValidator
+from django.core.asgi import get_asgi_application
+
+from accounts.routing import websocket_urlpatterns
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'Farmity.settings')
-django.setup()
 
-# Get Channels-enabled application
-application = get_default_application()
+django_asgi_app = get_asgi_application()
 
-# Add WebSocket security middleware
-application = AuthMiddlewareStack(
-    application,
-    AllowedHostsOriginValidator(['localhost', '127.0.0.1', '0.0.0.0'])
+application = ProtocolTypeRouter(
+    {
+        "http": django_asgi_app,
+        "websocket": AllowedHostsOriginValidator(
+            AuthMiddlewareStack(
+                URLRouter(websocket_urlpatterns)
+            )
+        ),
+    }
 )
