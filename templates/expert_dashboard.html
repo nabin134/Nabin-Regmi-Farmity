@@ -682,11 +682,41 @@
         }
         .availability-add-card .availability-label { font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.06em; color: #6b7280; font-weight: 600; margin-bottom: 0.35rem; display: block; }
         .availability-add-card .form-control { border-radius: 8px; padding: 0.5rem 0.75rem; border: 1px solid #d1d5db; font-size: 0.9rem; }
+        .availability-add-card .form-control.input-invalid { border-color: #dc2626; box-shadow: 0 0 0 2px rgba(220,38,38,0.1); }
         .availability-add-row { display: flex; flex-wrap: wrap; gap: 1rem; align-items: flex-end; }
         .availability-add-row .field { display: flex; flex-direction: column; }
         .availability-add-row .btn-primary { padding: 0.5rem 0.9rem; font-size: 0.82rem; border-radius: 8px; }
+        .availability-form-title {
+            font-size: 0.92rem;
+            font-weight: 700;
+            color: #1f2937;
+            margin: 0 0 0.65rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+        .availability-inline-error {
+            margin-top: 0.5rem;
+            font-size: 0.82rem;
+            color: #b91c1c;
+            display: none;
+        }
+        .availability-inline-error.show { display: block; }
         .availability-divider { margin: 1rem 0; padding-top: 1rem; border-top: 1px dashed #d1d5db; }
         .availability-list-title { font-size: 1rem; font-weight: 600; color: #374151; margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; }
+        .availability-summary {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            margin-bottom: 0.85rem;
+            padding: 0.4rem 0.75rem;
+            border-radius: 999px;
+            background: #ecfdf5;
+            color: #166534;
+            font-size: 0.82rem;
+            font-weight: 600;
+            border: 1px solid #bbf7d0;
+        }
         .availability-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; }
         .availability-date-card {
             display: flex;
@@ -1044,18 +1074,14 @@
             }
         }
 
-        /* Dashboard Section - Show all sections by default */
+        /* Sections are switched by showSection() */
         .dashboard-section {
-            display: block !important;
-            visibility: visible !important;
-            opacity: 1 !important;
-            padding: 2rem 2rem 2rem 2rem;
+            display: none;
+            padding: 2rem;
             min-height: 100vh;
         }
-
-        /* Hide sections only when explicitly hidden by JavaScript */
-        .dashboard-section.hidden {
-            display: none !important;
+        #dashboard-section {
+            display: block;
         }
     </style>
 </head>
@@ -1163,7 +1189,7 @@
             {% include 'includes/messages_block.html' %}
 
             <!-- Dashboard Section -->
-            <div id="dashboard-section" class="dashboard-section" style="display: block;">
+            <div id="dashboard-section" class="dashboard-section">
                 {% if active_section == 'dashboard' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <!-- Summary Cards -->
                 <div class="stats-grid" style="display: grid !important; visibility: visible !important;">
@@ -1449,10 +1475,12 @@
                     </div>
                     <div class="section-body">
                         <div class="availability-add-card">
-                            <form method="POST" data-farmity-ajax="1">
+                            <form method="POST" data-farmity-ajax="1" id="availabilityDayForm" novalidate>
                                 {% csrf_token %}
                                 <input type="hidden" name="add_availability" value="1">
                                 <input type="hidden" name="return_section" value="availability">
+                                <input type="hidden" name="availability_type" value="date">
+                                <p class="availability-form-title"><i class="fas fa-calendar-day"></i> Add Day</p>
                                 <div class="availability-add-row">
                                     <div class="field">
                                         <span class="availability-label">Add a single day</span>
@@ -1460,40 +1488,58 @@
                                     </div>
                                     <div class="field">
                                         <span class="availability-label">Start time *</span>
-                                        <input type="time" name="availability_start_time" id="availability_start_time" class="form-control" style="min-width: 110px;" title="Start time" required>
+                                        <input type="time" name="availability_start_time" id="availability_start_time" class="form-control" style="min-width: 110px;" title="Start time">
                                     </div>
                                     <div class="field">
                                         <span class="availability-label">End time *</span>
-                                        <input type="time" name="availability_end_time" id="availability_end_time" class="form-control" style="min-width: 110px;" title="End time" required>
+                                        <input type="time" name="availability_end_time" id="availability_end_time" class="form-control" style="min-width: 110px;" title="End time">
                                     </div>
                                     <div class="field">
                                         <span class="availability-label">Notes (optional)</span>
                                         <input type="text" name="availability_notes" class="form-control" placeholder="e.g. Morning only" style="min-width: 140px;">
                                     </div>
-                                    <button type="submit" class="btn btn-primary btn-sm" name="availability_type" value="date">
+                                    <button type="submit" class="btn btn-primary btn-sm">
                                         <i class="fas fa-plus"></i> Add day
                                     </button>
                                 </div>
-                                <div class="availability-divider"></div>
+                                <div class="availability-inline-error" id="availabilityDayError"></div>
+                            </form>
+                            <div class="availability-divider"></div>
+                            <form method="POST" data-farmity-ajax="1" id="availabilityWeekForm" novalidate>
+                                {% csrf_token %}
+                                <input type="hidden" name="add_availability" value="1">
+                                <input type="hidden" name="return_section" value="availability">
+                                <input type="hidden" name="availability_type" value="week">
+                                <p class="availability-form-title"><i class="fas fa-calendar-week"></i> Add Week</p>
                                 <div class="availability-add-row">
                                     <div class="field">
                                         <span class="availability-label">Add a full week from start date</span>
-                                        <input type="date" name="availability_week_start" id="availability_week_start" class="form-control" style="min-width: 160px;" required>
+                                        <input type="date" name="availability_week_start" id="availability_week_start" class="form-control" style="min-width: 160px;">
                                     </div>
                                     <div class="field">
                                         <span class="availability-label">Week end date *</span>
-                                        <input type="date" name="availability_week_end" id="availability_week_end" class="form-control" style="min-width: 160px;" required>
+                                        <input type="date" name="availability_week_end" id="availability_week_end" class="form-control" style="min-width: 160px;">
                                     </div>
-                                    <button type="submit" class="btn btn-primary btn-sm" name="availability_type" value="week">
+                                    <div class="field">
+                                        <span class="availability-label">Start time *</span>
+                                        <input type="time" name="availability_start_time" class="form-control" style="min-width: 110px;">
+                                    </div>
+                                    <div class="field">
+                                        <span class="availability-label">End time *</span>
+                                        <input type="time" name="availability_end_time" class="form-control" style="min-width: 110px;">
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-sm">
                                         <i class="fas fa-calendar-week"></i> Add week
                                     </button>
                                 </div>
-                                <p style="margin: 0.75rem 0 0 0; font-size: 0.8rem; color: #6b7280;">For both single-day and week range, start/end time are required. Notes are optional.</p>
+                                <div class="availability-inline-error" id="availabilityWeekError"></div>
                             </form>
+                            <p style="margin: 0.75rem 0 0 0; font-size: 0.8rem; color: #6b7280;">Single day and weekly range are separate. Remove dates instantly from cards below.</p>
                         </div>
                         {% if availability %}
-                        <h3 class="availability-list-title"><i class="fas fa-list"></i> Your available dates ({{ availability|length }})</h3>
-                        <div class="availability-grid">
+                        <div class="availability-summary"><i class="fas fa-calendar-check"></i> Total available dates: <span id="availabilityCount">{{ availability|length }}</span></div>
+                        <h3 class="availability-list-title" id="availabilityListTitle"><i class="fas fa-list"></i> Your available dates (<span id="availabilityCountInline">{{ availability|length }}</span>)</h3>
+                        <div class="availability-grid" id="availabilityGrid">
                             {% for avail in availability %}
                             <div class="availability-date-card {% if avail.date < today %}past{% endif %}" data-availability-row="{{ avail.id }}">
                                 <div class="date-main">
@@ -1502,12 +1548,12 @@
                                     {% if avail.notes %}<div class="date-notes">{{ avail.notes }}</div>{% endif %}
                                     {% if avail.date < today %}<span class="date-notes">(past)</span>{% endif %}
                                 </div>
-                                <form method="POST" style="margin: 0;" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-type="danger" data-farmity-confirm-message="Are you sure you want to remove this availability date?" data-farmity-remove-selector="[data-availability-row='{{ avail.id }}']">
+                                <form method="POST" style="margin: 0;" class="availability-remove-form">
                                     {% csrf_token %}
                                     <input type="hidden" name="return_section" value="availability">
                                     <input type="hidden" name="remove_availability" value="1">
                                     <input type="hidden" name="availability_id" value="{{ avail.id }}">
-                                    <button type="submit" class="btn btn-danger btn-icon-sm" title="Remove"><i class="fas fa-trash-alt"></i></button>
+                                    <button type="submit" class="btn-remove-avail" title="Remove"><i class="fas fa-trash-alt"></i></button>
                                 </form>
                             </div>
                             {% endfor %}
@@ -1535,14 +1581,14 @@
                                     {% for thread in chat_threads %}
                                     <li class="chat-item"
                                         data-thread-id="{{ thread.id }}"
-                                        data-user-name="{{ thread.created_by_display_name|default:thread.created_by.email|escapejs }}"
+                                        data-user-name="{{ thread.created_by_display_name|default:'User'|escapejs }}"
                                         data-user-avatar="{{ thread.created_by_avatar|default:'/static/images/default-avatar.png' }}"
                                         onclick="loadExpertChatThread({{ thread.id }}, this.getAttribute('data-user-name') || 'User', this.getAttribute('data-user-avatar') || '/static/images/default-avatar.png')"
                                         style="padding: 1rem; border-bottom: 1px solid #e9ecef; cursor: pointer;">
                                         <div style="display:flex; align-items:center; gap:0.75rem;">
                                             <img src="{{ thread.created_by_avatar|default:'/static/images/default-avatar.png' }}" alt="User" style="width:36px;height:36px;border-radius:999px;object-fit:cover;border:2px solid rgba(17,24,39,0.08);background:#f3f4f6;">
                                             <div style="min-width:0;">
-                                                <div style="font-weight: 700; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ thread.created_by_display_name|default:thread.created_by.email }}</div>
+                                                <div style="font-weight: 700; color:#111827; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ thread.created_by_display_name|default:"User" }}</div>
                                                 <div style="font-size: 0.82rem; color: #6b7280;">{% if thread.created_by.role == 'farmer' %}Farmer{% else %}Buyer{% endif %}</div>
                                             </div>
                                         </div>
@@ -2046,8 +2092,35 @@
             }
         });
 
+        const EXPERT_SECTION_STORAGE_KEY = 'expert_dashboard_active_section';
+        function normalizeExpertSectionId(sectionId) {
+            if (!sectionId) return '';
+            return String(sectionId).replace(/-section$/, '');
+        }
+        function persistExpertSection(sectionId) {
+            var normalized = normalizeExpertSectionId(sectionId);
+            if (!normalized) return;
+            try { localStorage.setItem(EXPERT_SECTION_STORAGE_KEY, normalized); } catch (e) {}
+            try {
+                var url = new URL(window.location.href);
+                url.searchParams.set('section', normalized);
+                window.history.replaceState({}, '', url.toString());
+            } catch (e) {}
+        }
+        function resolveInitialExpertSection() {
+            var fromUrl = normalizeExpertSectionId(new URLSearchParams(window.location.search).get('section'));
+            if (fromUrl && document.getElementById(fromUrl + '-section')) return fromUrl;
+            var fromStorage = '';
+            try { fromStorage = normalizeExpertSectionId(localStorage.getItem(EXPERT_SECTION_STORAGE_KEY)); } catch (e) {}
+            if (fromStorage && document.getElementById(fromStorage + '-section')) return fromStorage;
+            var fromServer = normalizeExpertSectionId('{{ active_section|default:"dashboard" }}');
+            if (fromServer && document.getElementById(fromServer + '-section')) return fromServer;
+            return 'dashboard';
+        }
+
         // Navigation
         function showSection(sectionId, evt) {
+            sectionId = normalizeExpertSectionId(sectionId);
             // Prevent default if event is provided
             if (evt) {
                 evt.preventDefault();
@@ -2093,6 +2166,7 @@
             if (clickedItem) {
                 clickedItem.classList.add('active');
             }
+            persistExpertSection(sectionId);
             
             // Scroll to top of main content
             const mainContent = document.querySelector('.main-content');
@@ -2162,7 +2236,7 @@
 
                     const avatar = document.createElement('img');
                     avatar.className = 'expert-chat-avatar';
-                    avatar.alt = (m.sender_name || m.sender_email || 'User') + ' avatar';
+                    avatar.alt = (m.sender_name || 'User') + ' avatar';
                     avatar.src = m.is_mine ? expertMyAvatar : (m.sender_profile_image || '/static/images/default-avatar.png');
 
                     const bubble = document.createElement('div');
@@ -2170,7 +2244,7 @@
 
                     const name = document.createElement('div');
                     name.className = 'expert-chat-name';
-                    name.textContent = m.sender_name || m.sender_email || 'User';
+                    name.textContent = m.sender_name || 'User';
 
                     const body = document.createElement('div');
                     body.innerHTML = (m.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
@@ -2420,7 +2494,7 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             var params = new URLSearchParams(window.location.search);
-            var sectionFromUrl = params.get('section');
+            var sectionFromUrl = resolveInitialExpertSection();
             var threadIdFromUrl = params.get('thread_id');
             if (sectionFromUrl && document.getElementById(sectionFromUrl + '-section')) {
                 showSection(sectionFromUrl, null);
@@ -2443,7 +2517,7 @@
                 }
             });
             
-            // Set active nav item (only when not restoring section from URL)
+            // Set active nav item fallback
             if (!sectionFromUrl) {
                 const dashboardNav = document.querySelector('.nav-item[href="#dashboard"]');
                 if (dashboardNav) {
@@ -2458,8 +2532,151 @@
             const todayStr = new Date().toISOString().split('T')[0];
             const availDate = document.getElementById('availability_date');
             const availWeekStart = document.getElementById('availability_week_start');
+            const availWeekEnd = document.getElementById('availability_week_end');
             if (availDate) availDate.setAttribute('min', todayStr);
             if (availWeekStart) availWeekStart.setAttribute('min', todayStr);
+            if (availWeekEnd) availWeekEnd.setAttribute('min', todayStr);
+            if (availWeekStart && availWeekEnd) {
+                availWeekStart.addEventListener('change', function () {
+                    if (this.value) {
+                        availWeekEnd.setAttribute('min', this.value);
+                        if (availWeekEnd.value && availWeekEnd.value < this.value) {
+                            availWeekEnd.value = this.value;
+                        }
+                    }
+                });
+            }
+
+            function setFieldError(el, hasError) {
+                if (!el) return;
+                el.classList.toggle('input-invalid', !!hasError);
+            }
+            function showInlineError(el, message) {
+                if (!el) return;
+                if (message) {
+                    el.textContent = message;
+                    el.classList.add('show');
+                } else {
+                    el.textContent = '';
+                    el.classList.remove('show');
+                }
+            }
+            function parseTimeToMinutes(v) {
+                if (!v || String(v).indexOf(':') === -1) return null;
+                var parts = String(v).split(':');
+                return (parseInt(parts[0], 10) * 60) + parseInt(parts[1], 10);
+            }
+
+            var dayForm = document.getElementById('availabilityDayForm');
+            var weekForm = document.getElementById('availabilityWeekForm');
+            var dayErrorEl = document.getElementById('availabilityDayError');
+            var weekErrorEl = document.getElementById('availabilityWeekError');
+
+            function validateDayForm() {
+                if (!dayForm) return true;
+                var dateEl = dayForm.querySelector('input[name="availability_date"]');
+                var startEl = dayForm.querySelector('input[name="availability_start_time"]');
+                var endEl = dayForm.querySelector('input[name="availability_end_time"]');
+                var ok = true;
+                var msg = '';
+
+                var s = parseTimeToMinutes(startEl && startEl.value);
+                var e = parseTimeToMinutes(endEl && endEl.value);
+                if (!dateEl || !dateEl.value) { ok = false; msg = 'Please select a date for Add Day.'; }
+                else if (s == null || e == null) { ok = false; msg = 'Start time and end time are required.'; }
+                else if (e <= s) { ok = false; msg = 'End time must be later than start time.'; }
+
+                setFieldError(dateEl, !dateEl || !dateEl.value);
+                setFieldError(startEl, s == null || (s != null && e != null && e <= s));
+                setFieldError(endEl, e == null || (s != null && e != null && e <= s));
+                showInlineError(dayErrorEl, ok ? '' : msg);
+                return ok;
+            }
+
+            function validateWeekForm() {
+                if (!weekForm) return true;
+                var wsEl = weekForm.querySelector('input[name="availability_week_start"]');
+                var weEl = weekForm.querySelector('input[name="availability_week_end"]');
+                var startEl = weekForm.querySelector('input[name="availability_start_time"]');
+                var endEl = weekForm.querySelector('input[name="availability_end_time"]');
+                var ok = true;
+                var msg = '';
+
+                var s = parseTimeToMinutes(startEl && startEl.value);
+                var e = parseTimeToMinutes(endEl && endEl.value);
+                var ws = wsEl && wsEl.value ? wsEl.value : '';
+                var we = weEl && weEl.value ? weEl.value : '';
+                if (!ws || !we) { ok = false; msg = 'Week start and week end dates are required.'; }
+                else if (we < ws) { ok = false; msg = 'Week end date cannot be before week start date.'; }
+                else if (s == null || e == null) { ok = false; msg = 'Start time and end time are required.'; }
+                else if (e <= s) { ok = false; msg = 'End time must be later than start time.'; }
+
+                setFieldError(wsEl, !ws || (!!we && we < ws));
+                setFieldError(weEl, !we || (!!ws && we < ws));
+                setFieldError(startEl, s == null || (s != null && e != null && e <= s));
+                setFieldError(endEl, e == null || (s != null && e != null && e <= s));
+                showInlineError(weekErrorEl, ok ? '' : msg);
+                return ok;
+            }
+
+            if (dayForm) {
+                dayForm.addEventListener('input', validateDayForm);
+                dayForm.addEventListener('change', validateDayForm);
+                dayForm.addEventListener('submit', function (e) {
+                    if (!validateDayForm()) e.preventDefault();
+                });
+            }
+            if (weekForm) {
+                weekForm.addEventListener('input', validateWeekForm);
+                weekForm.addEventListener('change', validateWeekForm);
+                weekForm.addEventListener('submit', function (e) {
+                    if (!validateWeekForm()) e.preventDefault();
+                });
+            }
+
+            // Availability delete: remove card + update count instantly without refresh.
+            document.addEventListener('submit', function (e) {
+                var form = e.target;
+                if (!form || !form.matches('form')) return;
+                var removeFlag = form.querySelector('input[name="remove_availability"]');
+                if (!removeFlag) return;
+                if (!window.confirm('Are you sure you want to delete this availability date?')) return;
+                e.preventDefault();
+
+                var csrfEl = form.querySelector('[name=csrfmiddlewaretoken]');
+                var csrf = csrfEl ? csrfEl.value : '';
+                var fd = new FormData(form);
+
+                fetch(window.location.href, {
+                    method: 'POST',
+                    body: fd,
+                    headers: csrf ? { 'X-CSRFToken': csrf } : {}
+                }).then(function (res) {
+                    if (!res.ok) throw new Error('Request failed');
+                    var card = form.closest('[data-availability-row]');
+                    if (card) card.remove();
+
+                    var grid = document.getElementById('availabilityGrid');
+                    var countEl = document.getElementById('availabilityCount');
+                    var countInlineEl = document.getElementById('availabilityCountInline');
+                    var count = grid ? grid.querySelectorAll('[data-availability-row]').length : 0;
+                    if (countEl) countEl.textContent = String(count);
+                    if (countInlineEl) countInlineEl.textContent = String(count);
+
+                    if (count === 0 && grid) {
+                        var title = document.getElementById('availabilityListTitle');
+                        var summary = document.querySelector('.availability-summary');
+                        if (title) title.style.display = 'none';
+                        if (summary) summary.style.display = 'none';
+                        var empty = document.createElement('div');
+                        empty.className = 'empty-state';
+                        empty.innerHTML = '<i class="fas fa-calendar-alt" style="color: #d1d5db;"></i><h3>No availability set</h3><p>Add a day or a week above so farmers and buyers know when you\'re available.</p>';
+                        grid.replaceWith(empty);
+                    }
+                }).catch(function () {
+                    alert('Could not remove availability. Please try again.');
+                });
+            });
 
             // Charts
             const appointmentsData = {{ appointments_data|safe }};
