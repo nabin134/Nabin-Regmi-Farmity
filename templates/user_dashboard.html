@@ -2367,15 +2367,15 @@
                             </div>
                             <div class="info-card">
                                 <span class="profile-info-label">Name</span>
-                                <div class="profile-info-value"><i class="fas fa-user"></i> <span data-profile-name-display>{{ profile.name|default:"Not set" }}</span></div>
+                                <div class="profile-info-value"><i class="fas fa-user"></i> {{ profile.name|default:"Not set" }}</div>
                             </div>
                             <div class="info-card">
                                 <span class="profile-info-label">Contact</span>
-                                <div class="profile-info-value"><i class="fas fa-phone"></i> <span data-profile-contact-display>{{ profile.phone|default:"Not set" }}</span></div>
+                                <div class="profile-info-value"><i class="fas fa-phone"></i> {{ profile.phone|default:"Not set" }}</div>
                             </div>
                             <div class="info-card">
                                 <span class="profile-info-label">Address</span>
-                                <div class="profile-info-value"><i class="fas fa-map-marker-alt"></i> <span data-profile-address-display>{{ profile.address|default:"Not set" }}</span></div>
+                                <div class="profile-info-value"><i class="fas fa-map-marker-alt"></i> {{ profile.address|default:"Not set" }}</div>
                             </div>
                             <div class="info-card">
                                 <span class="profile-info-label">Member Since</span>
@@ -2398,7 +2398,7 @@
                                 <span style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border-radius: 16px; font-weight: 600; font-size: 0.8rem;">{{ role_display|default:"Buyer" }}</span>
                             </div>
                         </div>
-                        <form method="POST" action="{% url 'user_dashboard' %}" id="profileForm" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update your profile information?">
+                        <form method="POST" action="{% url 'user_dashboard' %}" id="profileForm" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update your profile?" data-farmity-success-call="toggleEditMode">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="1">
                             <input type="hidden" name="return_section" value="profile">
@@ -2406,6 +2406,7 @@
                                 <div class="edit-card form-group">
                                     <span class="profile-info-label">Email Address</span>
                                     <input type="email" name="email" id="profileEmail" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address" autocomplete="email" style="border-radius: 10px; padding: 0.75rem 1rem;">
+                                    <p class="farmity-field-error" id="profileFormFieldError-email" role="alert" style="display:none;margin-top:0.35rem;font-size:0.8125rem;color:#dc3545;"></p>
                                 </div>
                                 <div class="edit-card form-group">
                                     <span class="profile-info-label">Name</span>

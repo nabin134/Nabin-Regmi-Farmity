@@ -1,1013 +1,1942 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Sign In - Farmity</title>
+
     <link rel="stylesheet" href="/static/css/style.css">
+
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
     <link rel="stylesheet" href="/static/css/form-validation.css">
+
     <style>
+
         * {
+
             margin: 0;
+
             padding: 0;
+
             box-sizing: border-box;
+
         }
+
+
 
         body {
+
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
             background: #f5f7fa;
+
             min-height: 100vh;
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             padding: 2rem;
+
         }
+
+
 
         .login-container {
+
             display: grid;
+
             grid-template-columns: 1fr 1fr;
+
             max-width: 1100px;
+
             width: 100%;
+
             background: white;
+
             border-radius: 16px;
+
             box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+
             overflow: hidden;
+
             min-height: 650px;
+
         }
+
+
 
         /* Left Panel - Green Background */
+
         .login-left {
+
             background: linear-gradient(135deg, #3C894B 0%, #2d6b3d 100%);
+
             color: white;
+
             padding: 3.5rem;
+
             display: flex;
+
             flex-direction: column;
+
             justify-content: space-between;
+
             position: relative;
+
             overflow: hidden;
+
         }
+
+
 
         .login-left::before {
+
             content: '';
+
             position: absolute;
+
             top: -100px;
+
             right: -100px;
+
             width: 300px;
+
             height: 300px;
+
             background: rgba(255, 255, 255, 0.05);
+
             border-radius: 50%;
+
         }
+
+
 
         .login-left::after {
+
             content: '';
+
             position: absolute;
+
             bottom: -80px;
+
             left: -80px;
+
             width: 250px;
+
             height: 250px;
+
             background: rgba(255, 255, 255, 0.05);
+
             border-radius: 50%;
+
         }
+
+
 
         .login-left-content {
+
             position: relative;
+
             z-index: 1;
+
         }
+
+
 
         .logo-placeholder {
+
             width: 50px;
+
             height: 50px;
+
             background: white;
+
             border-radius: 8px;
+
             margin-bottom: 2.5rem;
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             font-size: 1.5rem;
+
         }
+
+
 
         .login-left h1 {
+
             font-size: 2.75rem;
+
             font-weight: 700;
+
             margin-bottom: 1rem;
+
             line-height: 1.2;
+
         }
+
+
 
         .login-left p {
+
             font-size: 1.05rem;
+
             line-height: 1.7;
+
             opacity: 0.95;
+
             margin-bottom: 2.5rem;
+
         }
+
+
 
         .features-list {
+
             list-style: none;
+
             margin: 0;
+
             padding: 0;
+
         }
+
+
 
         .feature-item {
+
             display: flex;
+
             align-items: center;
+
             gap: 1rem;
+
             margin-bottom: 1.25rem;
+
         }
+
+
 
         .feature-item i {
+
             width: 24px;
+
             height: 24px;
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             font-size: 1rem;
+
         }
+
+
 
         .copyright {
+
             position: relative;
+
             z-index: 1;
+
             font-size: 0.85rem;
+
             opacity: 0.9;
+
             margin-top: 2rem;
+
         }
+
+
 
         /* Right Panel - White Form */
+
         .login-right {
+
             padding: 3.5rem;
+
             display: flex;
+
             flex-direction: column;
+
             justify-content: center;
+
         }
+
+
 
         .form-header h2 {
+
             font-size: 2.25rem;
+
             font-weight: 700;
+
             color: #1a1a1a;
+
             margin-bottom: 0.5rem;
+
         }
+
+
 
         .form-header p {
+
             color: #6b7280;
+
             font-size: 0.95rem;
+
             margin-bottom: 2.5rem;
+
         }
+
+
 
         .form-group {
+
             margin-bottom: 1.5rem;
+
         }
+
+
 
         .form-group label {
+
             display: block;
+
             margin-bottom: 0.5rem;
+
             color: #374151;
+
             font-weight: 600;
+
             font-size: 0.9rem;
+
         }
+
+
 
         .input-wrapper {
+
             position: relative;
+
         }
+
+
 
         .input-icon {
+
             position: absolute;
+
             left: 1rem;
+
             top: 50%;
+
             transform: translateY(-50%);
+
             font-size: 1.1rem;
+
             z-index: 1;
+
         }
+
+
 
         .input-icon.email-icon {
+
             color: #9333ea;
+
         }
+
+
 
         .input-icon.password-icon {
+
             color: #f97316;
+
         }
+
+
 
         .form-control {
+
             width: 100%;
-            padding: 0.75rem 1rem 0.75rem 3rem;
+
+            padding: 0.9375rem 1rem 0.9375rem 2.75rem;
+
             border: 2px solid #e5e7eb;
-            border-radius: 8px;
-            font-size: 1rem;
+
+            border-radius: 10px;
+
+            font-size: 0.95rem;
+
             transition: all 0.3s ease;
-            background: #ffffff;
+
+            background: white;
+
+            color: #1a1a1a;
+
         }
 
-        .password-wrapper .form-control {
-            padding-right: 3.5rem; /* Extra space for the toggle */
-        }
+
 
         .form-control:focus {
+
             outline: none;
+
             border-color: #3C894B;
+
             box-shadow: 0 0 0 3px rgba(60, 137, 75, 0.1);
+
         }
+
+
 
         .password-wrapper {
+
             position: relative;
+
         }
+
+
 
         .toggle-password {
+
             position: absolute;
+
             right: 1rem;
+
             top: 50%;
+
             transform: translateY(-50%);
+
             cursor: pointer;
+
             color: #9ca3af;
+
             font-size: 1.1rem;
-            z-index: 10;
-            background: transparent;
-            border: none;
-            padding: 0.5rem;
-            border-radius: 4px;
-            transition: all 0.2s ease;
-            user-select: none;
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
+
+            z-index: 1;
+
         }
+
+
 
         .toggle-password:hover {
+
             color: #3C894B;
-            background: rgba(60, 137, 75, 0.1);
+
         }
 
-        .toggle-password:active {
-            transform: translateY(-50%) scale(0.95);
-        }
+
 
         .form-options {
+
             display: flex;
+
             justify-content: space-between;
+
             align-items: center;
+
             margin-bottom: 1.5rem;
+
         }
+
+
 
         .checkbox-wrapper {
+
             display: flex;
+
             align-items: center;
+
             gap: 0.5rem;
+
         }
+
+
 
         .checkbox-wrapper input[type="checkbox"] {
+
             width: 18px;
+
             height: 18px;
+
             cursor: pointer;
+
             accent-color: #3C894B;
+
         }
+
+
 
         .checkbox-wrapper label {
+
             color: #374151;
+
             font-size: 0.9rem;
+
             cursor: pointer;
+
             margin: 0;
+
         }
+
+
 
         .forgot-link {
+
             color: #3C894B;
+
             text-decoration: none;
+
             font-size: 0.9rem;
+
             font-weight: 600;
+
         }
+
+
 
         .forgot-link:hover {
+
             text-decoration: underline;
+
         }
+
+
 
         .btn-signin {
+
             width: 100%;
+
             padding: 1rem;
+
             background: #3C894B;
+
             color: white;
+
             border: none;
+
             border-radius: 10px;
+
             font-size: 1rem;
+
             font-weight: 600;
+
             cursor: pointer;
+
             transition: all 0.3s ease;
+
             margin-bottom: 1.5rem;
+
         }
+
+
 
         .btn-signin:hover {
+
             background: #2d6b3d;
+
             transform: translateY(-1px);
+
             box-shadow: 0 4px 12px rgba(60, 137, 75, 0.3);
+
         }
+
+
 
         .divider {
+
             text-align: center;
+
             margin: 2rem 0;
+
             position: relative;
+
         }
+
+
 
         .divider::before {
+
             content: '';
+
             position: absolute;
+
             top: 50%;
+
             left: 0;
+
             right: 0;
+
             height: 1px;
+
             background: #e5e7eb;
+
         }
+
+
 
         .divider span {
+
             background: white;
+
             padding: 0 1rem;
+
             color: #9ca3af;
+
             font-size: 0.75rem;
+
             text-transform: uppercase;
+
             letter-spacing: 1.5px;
+
             font-weight: 600;
+
             position: relative;
+
         }
+
+
 
         .social-buttons {
+
             display: grid;
+
             grid-template-columns: 1fr 1fr;
+
             gap: 0.75rem;
+
             margin-bottom: 1.5rem;
+
         }
+
+
 
         .social-btn {
+
             padding: 0.875rem;
+
             border: 2px solid #e5e7eb;
+
             background: white;
+
             border-radius: 10px;
+
             cursor: pointer;
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             gap: 0.75rem;
+
             font-weight: 600;
+
             color: #374151;
+
             transition: all 0.3s ease;
+
             font-size: 0.9rem;
+
             text-decoration: none;
+
         }
+
+
 
         .social-btn.google {
+
             border-color: #dc2626;
+
         }
+
+
 
         .social-btn.google:hover {
+
             background: #fef2f2;
+
             border-color: #dc2626;
+
         }
+
+
 
         .social-btn.facebook {
+
             border-color: #2563eb;
+
         }
+
+
 
         .social-btn.facebook:hover {
+
             background: #eff6ff;
+
             border-color: #2563eb;
+
         }
+
+
 
         .social-icon {
+
             font-size: 1.2rem;
+
         }
+
+
 
         .social-btn.google .social-icon {
+
             color: #4285F4;
+
         }
+
+
 
         .social-btn.facebook .social-icon {
+
             color: #1877F2;
+
         }
+
+
 
         .signup-link {
+
             text-align: center;
+
             color: #6b7280;
+
             font-size: 0.9rem;
+
         }
+
+
 
         .signup-link a {
+
             color: #3C894B;
+
             text-decoration: none;
+
             font-weight: 600;
+
         }
+
+
 
         .signup-link a:hover {
+
             text-decoration: underline;
+
         }
+
+
 
         .message {
+
             padding: 1rem;
+
             border-radius: 10px;
+
             margin-bottom: 1rem;
+
             font-size: 0.9rem;
+
             display: none;
+
         }
+
+
 
         .message.success {
+
             background: #d1fae5;
+
             color: #065f46;
+
             border: 1px solid #a7f3d0;
+
             display: block;
+
         }
+
+
 
         .message.error {
+
             background: #fee2e2;
+
             color: #991b1b;
+
             border: 1px solid #fca5a5;
+
             display: block;
+
         }
+
+
 
         /* Inline field errors (match signup: red border + light pink fill) */
+
         .login-field-error {
+
             display: none;
+
             margin: 0.4rem 0 0 0;
+
             padding: 0;
+
             font-size: 0.8125rem;
+
             font-weight: 500;
+
             color: #b91c1c;
+
             line-height: 1.4;
+
         }
+
         .login-field-error.show {
+
             display: block;
+
         }
+
         #loginForm .form-control.field-invalid {
+
             border: 1px solid #dc2626 !important;
+
             background: rgba(254, 226, 226, 0.45) !important;
+
             box-shadow: none !important;
+
         }
+
+
 
         @media (max-width: 968px) {
+
             .login-container {
+
                 grid-template-columns: 1fr;
+
                 max-width: 500px;
+
             }
+
+
 
             .login-left {
+
                 display: none;
+
             }
 
+
+
             .login-right {
+
                 padding: 2.5rem 2rem;
+
             }
+
         }
+
+
 
         @media (max-width: 480px) {
+
             body {
+
                 padding: 1rem;
+
             }
+
+
 
             .login-right {
+
                 padding: 2rem 1.5rem;
+
             }
+
+
 
             .form-header h2 {
+
                 font-size: 1.75rem;
+
             }
+
+
 
             .social-buttons {
+
                 grid-template-columns: 1fr;
+
             }
+
         }
+
+
 
         /* OTP Step Styles */
+
         .login-step, .otp-step {
+
             transition: opacity 0.3s ease;
+
         }
+
+
 
         .otp-step {
+
             animation: fadeIn 0.3s ease;
+
         }
+
+
 
         @keyframes fadeIn {
+
             from { opacity: 0; }
+
             to { opacity: 1; }
+
         }
+
+
 
         #otp {
+
             text-align: center;
+
             font-size: 1.5rem;
+
             letter-spacing: 0.5rem;
+
             font-weight: 600;
+
         }
+
     </style>
+
 </head>
+
 <body>
+
     <div class="login-container">
+
         <!-- Left Panel - Green Background -->
+
         <div class="login-left">
+
             <div class="login-left-content">
+
                 <div class="logo-placeholder">
+
                     <img src="/static/images/Farmity%20logo.png" alt="Farmity" style="width: 100%; height: 100%; object-fit: contain; border-radius: 8px;" onerror="this.style.display='none'; this.parentElement.innerHTML='🌾';">
+
                 </div>
+
                 <h1>Welcome Back!</h1>
+
                 <p>Sign in to access your farming dashboard, connect with vendors, and get expert agricultural advice.</p>
+
                 <ul class="features-list">
+
                     <li class="feature-item">
+
                         <i class="fas fa-check-circle"></i>
+
                         <span>Access live market prices</span>
+
                     </li>
+
                     <li class="feature-item">
+
                         <i class="fas fa-check-circle"></i>
+
                         <span>Connect with verified vendors</span>
+
                     </li>
+
                     <li class="feature-item">
+
                         <i class="fas fa-check-circle"></i>
+
                         <span>Expert consultation</span>
+
                     </li>
+
                 </ul>
+
             </div>
+
             <div class="copyright">© 2025 Farmity. All rights reserved.</div>
+
         </div>
+
+
 
         <!-- Right Panel - White Form -->
+
         <div class="login-right">
+
             <div class="form-header">
+
                 <h2>Sign In</h2>
+
                 <p>Enter your credentials to access your account.</p>
+
             </div>
+
+
 
             {% if messages %}
+
             <div class="login-page-messages messages-auto-dismiss" data-dismiss-ms="3000" style="position: fixed; top: 0; left: 0; right: 0; z-index: 99999; padding: 0.75rem 1.5rem; margin: 0; box-shadow: 0 2px 12px rgba(0,0,0,0.12); transition: opacity 0.3s ease;">
+
                 {% for message in messages %}
+
                 <div class="message-alert {{ message.tags }}" role="alert" style="max-width: 480px; margin: 0 auto 0.5rem; padding: 0.75rem 1.25rem; border-radius: 10px; border-left: 4px solid #28a745; background: #D4EDDA; color: #155724;">{{ message }}</div>
+
                 {% endfor %}
+
             </div>
+
             <style>.login-page-messages.messages-hidden { opacity: 0; pointer-events: none; } .login-page-messages .message-alert:last-child { margin-bottom: 0 !important; } .login-page-messages .message-alert.error { background: #F8D7DA; color: #721C24; border-left-color: #dc3545; } .login-page-messages .message-alert.warning { background: #FFF3CD; color: #856404; border-left-color: #ffc107; } .login-page-messages .message-alert.info { background: #D1ECF1; color: #0C5460; border-left-color: #17a2b8; }</style>
+
             <script>(function(){ var el = document.querySelector('.login-page-messages.messages-auto-dismiss'); if (el) { var ms = parseInt(el.getAttribute('data-dismiss-ms')||'3000',10); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
+
             {% endif %}
 
+
+
             <form id="loginForm" novalidate>
+
                 {% csrf_token %}
+
                 <div id="message" class="message"></div>
+
                 <p class="login-field-error" id="loginFieldError-general" role="alert" aria-live="polite"></p>
 
+
+
                 <!-- Step 1: Email and Password -->
+
                 <div id="loginStep" class="login-step">
-                    <div class="form-group">
-                        <label for="email">Email Address</label>
-                        <div class="input-wrapper">
-                            <i class="fas fa-envelope input-icon email-icon"></i>
-                            <input type="email" id="email" name="email" class="form-control" placeholder="your@email.com" autocomplete="email">
-                        </div>
-                        <p class="login-field-error" id="loginFieldError-email" role="alert" aria-live="polite"></p>
-                    </div>
 
                     <div class="form-group">
-                        <label for="password">Password</label>
-                        <div class="input-wrapper password-wrapper">
-                            <i class="fas fa-lock input-icon password-icon"></i>
-                            <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" autocomplete="current-password">
-                            <span class="toggle-password" id="togglePassword">
-                                <i class="far fa-eye"></i>
-                            </span>
+
+                        <label for="email">Email Address</label>
+
+                        <div class="input-wrapper">
+
+                            <i class="fas fa-envelope input-icon email-icon"></i>
+
+                            <input type="email" id="email" name="email" class="form-control" placeholder="your@email.com" autocomplete="email">
+
                         </div>
-                        <p class="login-field-error" id="loginFieldError-password" role="alert" aria-live="polite"></p>
+
+                        <p class="login-field-error" id="loginFieldError-email" role="alert" aria-live="polite"></p>
+
                     </div>
+
+
+
+                    <div class="form-group">
+
+                        <label for="password">Password</label>
+
+                        <div class="input-wrapper password-wrapper">
+
+                            <i class="fas fa-lock input-icon password-icon"></i>
+
+                            <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" autocomplete="current-password">
+
+                            <span class="toggle-password" id="togglePassword">
+
+                                <i class="far fa-eye"></i>
+
+                            </span>
+
+                        </div>
+
+                        <p class="login-field-error" id="loginFieldError-password" role="alert" aria-live="polite"></p>
+
+                    </div>
+
+
 
                     <div class="form-options">
+
                         <div class="checkbox-wrapper">
+
                             <input type="checkbox" id="remember" name="remember">
+
                             <label for="remember">Remember me</label>
+
                         </div>
+
                         <a href="/forgot-password/" class="forgot-link">Forgot Password?</a>
+
                     </div>
+
+
 
                     <button type="submit" class="btn-signin">Sign In</button>
+
                 </div>
+
+
 
                 <!-- Step 2: OTP Verification -->
+
                 <div id="otpStep" class="otp-step" style="display: none;">
+
                     <div class="form-group">
+
                         <label for="otp">Enter OTP</label>
+
                         <p style="color: #666; font-size: 14px; margin-bottom: 10px;">
+
                             We've sent a 6-digit OTP to your email:
+
                         </p>
+
                         <p style="margin-bottom: 15px; font-size: 15px;">
+
                             <strong id="otpEmail" style="color: #1a1a1a;"></strong>
+
                         </p>
+
                         <p style="color: #666; font-size: 13px; margin-bottom: 15px;">
+
                             Please check your inbox (and spam folder) for the code and enter it below.
+
                         </p>
+
                         <div id="otpDisplay" style="display: none; background: #e7f3ff; border: 1px solid #0066cc; border-radius: 8px; padding: 12px; margin-bottom: 15px; font-size: 13px; color: #004085;">
+
                             <strong>Dev only:</strong> OTP shown below (email not configured). In production, OTP is sent only to your email.
+
                             <div style="font-size: 24px; font-weight: bold; color: #0066cc; letter-spacing: 0.3rem; margin-top: 8px;" id="displayOtpCode"></div>
+
                         </div>
+
                         <div class="input-wrapper">
+
                             <i class="fas fa-key input-icon"></i>
+
                             <input type="text" id="otp" name="otp" class="form-control" placeholder="000000" maxlength="6" pattern="[0-9]{6}" autocomplete="one-time-code">
+
                         </div>
+
                         <p class="login-field-error" id="loginFieldError-otp" role="alert" aria-live="polite"></p>
+
                     </div>
+
+
 
                     <div class="form-options" style="justify-content: center; margin-bottom: 20px;">
+
                         <a href="#" id="resendOtp" class="forgot-link">Resend OTP</a>
+
                     </div>
+
+
 
                     <button type="button" id="verifyOtpBtn" class="btn-signin">Verify OTP</button>
+
                     <button type="button" id="backToLogin" class="btn-signin" style="background: #6c757d; margin-top: 10px;">Back to Login</button>
+
                 </div>
+
+
 
                 <div class="divider">
+
                     <span>OR CONTINUE WITH</span>
+
                 </div>
+
+
 
                 <div class="social-buttons">
+
                     {% if google_oauth_enabled %}
+
                     <a href="/accounts/google/login/?process=login" class="social-btn google" title="Sign in with Google">
+
                         <i class="fab fa-google social-icon"></i>
+
                         <span>Continue with Google</span>
+
                     </a>
+
                     {% else %}
+
                     <div class="social-btn google" style="opacity: 0.6; cursor: not-allowed;" title="Google OAuth not configured">
+
                         <i class="fab fa-google social-icon"></i>
+
                         <span>Continue with Google (Not Available)</span>
+
                     </div>
+
                     {% if google_oauth_error %}
+
                     <small style="display: block; color: #dc3545; margin-top: 8px; font-size: 12px;">{{ google_oauth_error }}</small>
+
                     {% if google_redirect_uri %}
+
                     <small style="display: block; color: #666; margin-top: 4px; font-size: 11px;">Add this to Google Console → Authorized redirect URIs:<br><code style="word-break: break-all;">{{ google_redirect_uri }}</code></small>
+
                     {% endif %}
+
                     {% endif %}
+
                     {% endif %}
+
                     <a href="/accounts/facebook/login/?process=login" class="social-btn facebook" onclick="event.preventDefault(); alert('Facebook login coming soon!'); return false;" title="Sign in with Facebook">
+
                         <i class="fab fa-facebook-f social-icon"></i>
+
                         <span>Continue with Facebook</span>
+
                     </a>
+
                 </div>
+
+
 
                 <div class="signup-link">
+
                     Don't have an account? <a href="/role-selection/">Sign Up</a>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
 
+
+
     <script src="/static/js/main.js"></script>
+
     <script src="/static/js/form-validation.js"></script>
+
     <script>
+
         // Real-time validation setup
+
         function setupRealTimeValidation() {
+
             const emailField = document.getElementById('email');
+
             const passwordField = document.getElementById('password');
+
             
+
             // Email field real-time validation
+
             if (emailField) {
+
                 emailField.addEventListener('input', function() {
+
                     validateEmailField(this.value.trim());
+
                 });
+
                 
+
                 emailField.addEventListener('blur', function() {
+
                     validateEmailField(this.value.trim());
+
                 });
+
             }
+
             
+
             // Password field real-time validation
+
             if (passwordField) {
+
                 passwordField.addEventListener('input', function() {
+
                     validatePasswordField(this.value);
+
                 });
+
                 
+
                 passwordField.addEventListener('blur', function() {
+
                     validatePasswordField(this.value);
+
                 });
+
             }
+
         }
+
         
+
         // Email validation function
+
         function validateEmailField(email) {
+
             const emailError = document.getElementById('loginFieldError-email');
+
             const emailInput = document.getElementById('email');
+
             
+
             if (!email) {
+
                 showFieldError('email', 'Email address is required.');
+
                 return false;
+
             }
+
             
+
             // Simple email validation regex
+
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
             if (!emailRegex.test(email)) {
+
                 showFieldError('email', 'Please enter a valid email address.');
+
                 return false;
+
             }
+
             
+
             clearFieldError('email');
+
             return true;
+
         }
+
         
+
         // Password validation (sign-in: required only; length is not validated client-side)
+
         function validatePasswordField(password) {
+
             if (!password) {
+
                 showFieldError('password', 'Password is required.');
+
                 return false;
+
             }
+
             clearFieldError('password');
+
             return true;
+
         }
+
         
+
         // Show field error
+
         function showFieldError(fieldName, message) {
+
             const errorElement = document.getElementById(`loginFieldError-${fieldName}`);
+
             const fieldElement = document.getElementById(fieldName);
+
             
+
             if (errorElement) {
+
                 errorElement.textContent = message;
+
                 errorElement.classList.add('show');
+
             }
+
             
+
             if (fieldElement) {
+
                 fieldElement.classList.add('field-invalid');
+
             }
+
         }
+
         
+
         // Show success message
+
         function showSuccessMessage(message) {
+
             if (typeof showSuccess === 'function') {
+
                 showSuccess(message);
+
                 return;
+
             }
+
             const messageDiv = document.getElementById('message');
+
             if (messageDiv) {
+
                 messageDiv.textContent = message;
+
                 messageDiv.className = 'message success';
+
                 messageDiv.style.display = 'block';
+
                 setTimeout(() => {
+
                     messageDiv.style.display = 'none';
+
                     messageDiv.className = 'message';
+
                 }, 3000);
+
             }
+
         }
+
+
 
         function showErrorMessage(message) {
+
             if (typeof showError === 'function') {
+
                 showError(message);
+
                 return;
+
             }
+
             const messageDiv = document.getElementById('message');
+
             if (messageDiv) {
+
                 messageDiv.textContent = message;
+
                 messageDiv.className = 'message error';
+
                 messageDiv.style.display = 'block';
+
                 setTimeout(() => {
+
                     messageDiv.style.display = 'none';
+
                     messageDiv.className = 'message';
+
                 }, 5000);
+
             }
+
         }
+
         
+
         // Clear field error
+
         function clearFieldError(fieldName) {
+
             const errorElement = document.getElementById(`loginFieldError-${fieldName}`);
+
             const fieldElement = document.getElementById(fieldName);
+
             
+
             if (errorElement) {
+
                 errorElement.textContent = '';
+
                 errorElement.classList.remove('show');
+
             }
+
             
+
             if (fieldElement) {
+
                 fieldElement.classList.remove('field-invalid');
+
             }
+
         }
+
         
+
         // Enhanced login handling with proper validation
+
         document.addEventListener('DOMContentLoaded', function() {
-            // Password toggle - Enhanced with better event handling
+
+            // Password toggle
+
             const togglePassword = document.getElementById('togglePassword');
-            const passwordInput = document.getElementById('password');
-            
-            if (togglePassword && passwordInput) {
-                console.log('Password toggle elements found');
-                
-                togglePassword.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    console.log('Password toggle clicked');
-                    
+
+            if (togglePassword) {
+
+                togglePassword.addEventListener('click', function() {
+
+                    const passwordInput = document.getElementById('password');
+
                     const icon = this.querySelector('i');
+
                     
-                    if (passwordInput.type === 'password') {
+
+                    if (passwordInput && passwordInput.type === 'password') {
+
                         passwordInput.type = 'text';
+
                         if (icon) {
+
                             icon.classList.remove('fa-eye');
+
                             icon.classList.add('fa-eye-slash');
+
                         }
-                        console.log('Password revealed');
-                    } else {
+
+                    } else if (passwordInput) {
+
                         passwordInput.type = 'password';
+
                         if (icon) {
+
                             icon.classList.remove('fa-eye-slash');
+
                             icon.classList.add('fa-eye');
+
                         }
-                        console.log('Password hidden');
+
                     }
+
                 });
-                
-                // Also add mousedown/mouseup as backup
-                togglePassword.addEventListener('mousedown', function(e) {
-                    e.preventDefault();
-                    this.click();
-                });
-                
-                // Ensure it's not being blocked by other elements
-                togglePassword.style.pointerEvents = 'auto';
-                togglePassword.style.touchAction = 'manipulation';
-            } else {
-                console.error('Password toggle elements not found', {
-                    toggle: !!togglePassword,
-                    input: !!passwordInput
-                });
+
             }
+
+
 
             // Setup enhanced validation with real-time feedback
+
             if (document.getElementById('loginForm')) {
+
                 setupRealTimeValidation();
+
             }
 
+
+
             // Enhanced form submission with AJAX
+
             const loginForm = document.getElementById('loginForm');
+
             if (loginForm) {
+
                 loginForm.addEventListener('submit', async function(e) {
+
                     e.preventDefault();
+
                     e.stopPropagation();
+
                     
+
                     const email = document.getElementById('email').value.trim();
+
                     const password = document.getElementById('password').value;
+
                     
+
                     console.log('Login attempt:', { email, password: '***' });
+
                     
+
                     // Enhanced client-side validation with real-time feedback
+
                     const isEmailValid = validateEmailField(email);
+
                     const isPasswordValid = validatePasswordField(password);
+
                     
+
                     if (!isEmailValid || !isPasswordValid) {
+
                         console.log('Validation failed');
+
                         return false;
+
                     }
+
                     
+
                     const submitBtn = loginForm.querySelector('button[type="submit"]');
+
                     const originalText = submitBtn ? submitBtn.textContent : 'Sign In';
+
                     
+
                     if (submitBtn) {
+
                         submitBtn.disabled = true;
+
                         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Signing In...';
+
                     }
+
                     
+
                     try {
+
                         console.log('Sending request to /api/auth/login/');
+
                         const response = await fetch('/api/auth/login/', {
+
                             method: 'POST',
+
                             headers: {
+
                                 'Content-Type': 'application/json',
+
                                 'X-Requested-With': 'XMLHttpRequest'
+
                             },
+
                             body: JSON.stringify({
+
                                 email: email,
+
                                 password: password
+
                             })
+
                         });
+
                         
+
                         console.log('Response status:', response.status);
+
                         const data = await response.json();
+
                         console.log('Response data:', data);
+
                         
+
                         if (response.ok) {
+
                             // Check if OTP is required
+
                             if (data.requires_otp) {
+
                                 showSuccessMessage('OTP sent to your email. Please check your inbox.');
+
                                 // Show OTP step
+
                                 document.getElementById('loginStep').style.display = 'none';
+
                                 document.getElementById('otpStep').style.display = 'block';
+
                                 document.getElementById('otpEmail').textContent = data.email;
+
                                 
+
                                 // Show OTP in development mode
+
                                 if (data.otp_code) {
+
                                     document.getElementById('displayOtpCode').textContent = data.otp_code;
+
                                     document.getElementById('otpDisplay').style.display = 'block';
+
                                 }
+
                             } else {
+
                                 // Direct login successful (no OTP required)
+
                                 showSuccessMessage('Login successful! Redirecting...');
+
                                 setTimeout(() => {
+
                                     window.location.href = data.redirect_url || '/dashboard/';
+
                                 }, 1000);
+
                             }
+
                         } else {
+
                             const errText = (data && (data.error || data.message)) || 'Login failed. Please check your credentials and try again.';
+
                             showFieldError('password', errText);
+
                         }
+
                     } catch (error) {
+
                         console.error('Login error:', error);
+
                         showErrorMessage('Network error. Please check your connection and try again.');
+
                     } finally {
+
                         if (submitBtn) {
+
                             submitBtn.disabled = false;
+
                             submitBtn.textContent = originalText;
+
                         }
+
                     }
+
                     
+
                     return false;
+
                 });
+
             }
+
             // OTP verification handler
+
             const verifyOtpBtn = document.getElementById('verifyOtpBtn');
+
             if (verifyOtpBtn) {
+
                 verifyOtpBtn.addEventListener('click', async function() {
+
                     const otp = document.getElementById('otp').value.trim();
+
                     
+
                     if (!otp) {
+
                         showFieldError('otp', 'Please enter the OTP code.');
+
                         return;
+
                     }
+
                     
+
                     if (otp.length !== 6) {
+
                         showFieldError('otp', 'OTP must be 6 digits.');
+
                         return;
+
                     }
+
                     
+
                     const originalText = verifyOtpBtn.textContent;
+
                     verifyOtpBtn.disabled = true;
+
                     verifyOtpBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+
                     
+
                     try {
+
                         const response = await fetch('/api/auth/verify-otp/', {
+
                             method: 'POST',
+
                             headers: {
+
                                 'Content-Type': 'application/json',
+
                                 'X-Requested-With': 'XMLHttpRequest'
+
                             },
+
                             body: JSON.stringify({
+
                                 email: document.getElementById('otpEmail').textContent,
+
                                 otp: otp,
+
                                 purpose: 'login'
+
                             })
+
                         });
+
                         
+
                         const data = await response.json();
+
                         
+
                         if (response.ok) {
+
                             showSuccessMessage('Login successful! Redirecting...');
+
                             setTimeout(() => {
+
                                 window.location.href = data.redirect_url || '/dashboard/';
+
                             }, 1000);
+
                         } else {
+
                             showErrorMessage(data.error || 'Invalid OTP. Please try again.');
+
                         }
+
                     } catch (error) {
+
                         showErrorMessage('Network error. Please try again.');
+
                     } finally {
+
                         verifyOtpBtn.disabled = false;
+
                         verifyOtpBtn.textContent = originalText;
+
                     }
+
                 });
+
             }
+
             
+
             // Back to login handler
+
             const backToLoginBtn = document.getElementById('backToLogin');
+
             if (backToLoginBtn) {
+
                 backToLoginBtn.addEventListener('click', function() {
+
                     document.getElementById('otpStep').style.display = 'none';
+
                     document.getElementById('loginStep').style.display = 'block';
+
                     clearFieldError('otp');
+
                 });
+
             }
+
             
+
             // Resend OTP handler
+
             const resendOtpLink = document.getElementById('resendOtp');
+
             if (resendOtpLink) {
+
                 resendOtpLink.addEventListener('click', async function(e) {
+
                     e.preventDefault();
+
                     
+
                     const email = document.getElementById('otpEmail').textContent;
+
                     
+
                     try {
+
                         const response = await fetch('/api/auth/resend-otp/', {
+
                             method: 'POST',
+
                             headers: {
+
                                 'Content-Type': 'application/json',
+
                                 'X-Requested-With': 'XMLHttpRequest'
+
                             },
+
                             body: JSON.stringify({
+
                                 email: email,
+
                                 purpose: 'login'
+
                             })
+
                         });
+
                         
+
                         const data = await response.json();
+
                         
+
                         if (response.ok) {
+
                             showSuccessMessage('OTP resent to your email.');
+
                             if (data.otp_code) {
+
                                 document.getElementById('displayOtpCode').textContent = data.otp_code;
+
                                 document.getElementById('otpDisplay').style.display = 'block';
+
                             }
+
                         } else {
+
                             showErrorMessage(data.error || 'Failed to resend OTP.');
+
                         }
+
                     } catch (error) {
+
                         showErrorMessage('Network error. Please try again.');
+
                     }
+
                 });
+
             }
+
         });
+
     </script>
+
 </body>
+
 </html>
+

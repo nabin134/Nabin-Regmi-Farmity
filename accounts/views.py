@@ -2356,6 +2356,13 @@ def farmer_dashboard(request):
 
     # Handle Profile Update (details only; photo is changed separately)
     if request.method == 'POST' and 'update_profile' in request.POST:
+        new_email = (request.POST.get('email') or '').strip()
+        norm_email, email_err = _validate_profile_email_change(request.user, new_email)
+        if email_err:
+            if is_ajax:
+                return _farmity_json_response(False, email_err, field_errors={'email': email_err})
+            messages.error(request, email_err)
+            return _redirect_same_page(request, 'farmer_dashboard')
         if 'name' in request.POST:
             profile.name = request.POST.get('name', profile.name) or profile.name
         if 'location' in request.POST:
@@ -2369,6 +2376,11 @@ def farmer_dashboard(request):
         if 'livestock_details' in request.POST:
             profile.livestock_details = request.POST.get('livestock_details', profile.livestock_details) or profile.livestock_details
         profile.save()
+        if norm_email != request.user.email:
+            request.user.email = norm_email
+            request.user.save(update_fields=['email'])
+        if is_ajax:
+            return _farmity_json_response(True, 'Profile updated successfully!', email=request.user.email)
         messages.success(request, 'Profile updated successfully!')
         return _redirect_same_page(request, 'farmer_dashboard')
 
@@ -2988,6 +3000,7 @@ def farmer_dashboard(request):
 def vendor_dashboard(request):
     if request.user.role != 'vendor':
         return _redirect_to_role_home_response(request.user)
+    is_ajax = request.headers.get('x-requested-with') == 'XMLHttpRequest' or request.POST.get('ajax') == '1'
     if request.session.pop('show_login_success', None):
         messages.success(request, 'Welcome back! You have been logged in successfully.')
     
@@ -3009,6 +3022,13 @@ def vendor_dashboard(request):
     
     # Handle Profile Update
     if request.method == 'POST' and 'update_profile' in request.POST:
+        new_email = (request.POST.get('email') or '').strip()
+        norm_email, email_err = _validate_profile_email_change(request.user, new_email)
+        if email_err:
+            if is_ajax:
+                return _farmity_json_response(False, email_err, field_errors={'email': email_err})
+            messages.error(request, email_err)
+            return _redirect_same_page(request, 'vendor_dashboard')
         profile.company_name = (request.POST.get('company_name') or '').strip() or profile.company_name
         profile.address = (request.POST.get('address') or '').strip() or profile.address
         profile.contact = (request.POST.get('contact') or '').strip() or profile.contact
@@ -3020,6 +3040,11 @@ def vendor_dashboard(request):
         if request.FILES.get('photo'):
             profile.logo = request.FILES.get('photo')
         profile.save()
+        if norm_email != request.user.email:
+            request.user.email = norm_email
+            request.user.save(update_fields=['email'])
+        if is_ajax:
+            return _farmity_json_response(True, 'Profile updated successfully!', email=request.user.email)
         messages.success(request, 'Profile updated successfully!')
         return _redirect_same_page(request, 'vendor_dashboard')
     
@@ -4215,6 +4240,13 @@ def user_dashboard(request):
 
     # Handle Profile Update (details only; photo is changed separately)
     if request.method == 'POST' and 'update_profile' in request.POST:
+        new_email = (request.POST.get('email') or '').strip()
+        norm_email, email_err = _validate_profile_email_change(request.user, new_email)
+        if email_err:
+            if is_ajax:
+                return _farmity_json_response(False, email_err, field_errors={'email': email_err})
+            messages.error(request, email_err)
+            return _redirect_same_page(request, 'user_dashboard')
         name = (request.POST.get('name') or '').strip()
         contact = (request.POST.get('contact') or '').strip()
         location = (request.POST.get('location') or '').strip()
@@ -4226,8 +4258,15 @@ def user_dashboard(request):
             profile.address = location or profile.address
         try:
             profile.save()
+            if norm_email != request.user.email:
+                request.user.email = norm_email
+                request.user.save(update_fields=['email'])
+            if is_ajax:
+                return _farmity_json_response(True, 'Profile updated successfully.', email=request.user.email)
             messages.success(request, 'Profile updated successfully.')
         except Exception as e:
+            if is_ajax:
+                return _farmity_json_response(False, f'Could not save profile: {str(e)}')
             messages.error(request, f'Could not save profile: {str(e)}')
         return _redirect_same_page(request, 'user_dashboard')
     

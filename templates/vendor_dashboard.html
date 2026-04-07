@@ -1,2119 +1,4239 @@
 {% load static %}
+
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
     <meta charset="UTF-8">
+
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <title>Vendor Dashboard - Farmity</title>
+
     <link rel="stylesheet" href="/static/css/style.css">
+
     <link rel="stylesheet" href="/static/css/form-validation.css">
+
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
+
     <style>
+
         * {
+
             margin: 0;
+
             padding: 0;
+
             box-sizing: border-box;
+
         }
+
+
 
         :root {
+
             --primary: #358D58;
+
             --primary-dark: #2a6f45;
+
             --secondary: #F29900;
+
             --success: #28a745;
+
             --danger: #dc3545;
+
             --warning: #ffc107;
+
             --info: #17a2b8;
+
             --light: #f8f9fa;
+
             --dark: #343a40;
+
             --sidebar-width: 280px;
+
             --header-height: 70px;
+
         }
+
+
 
         body {
+
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
             background: #f5f7fa;
+
             color: #333;
+
             overflow-x: hidden;
+
         }
+
+
 
         /* Sidebar Navigation */
+
         .sidebar {
+
             position: fixed;
+
             left: 0;
+
             top: 0;
+
             width: var(--sidebar-width);
+
             height: 100vh;
+
             background: linear-gradient(180deg, var(--primary) 0%, var(--primary-dark) 100%);
+
             color: white;
+
             z-index: 1000;
+
             overflow-y: auto;
+
             transition: transform 0.3s ease;
+
             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+
         }
+
+
 
         .sidebar-header {
+
             padding: 1.5rem;
+
             border-bottom: 1px solid rgba(255,255,255,0.1);
+
             display: flex;
+
             align-items: center;
+
             gap: 0.75rem;
+
         }
+
+
 
         .sidebar-logo {
+
             width: 40px;
+
             height: 40px;
+
             border-radius: 8px;
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             font-size: 1.5rem;
+
             overflow: hidden;
+
             flex-shrink: 0;
+
         }
+
         .sidebar-logo .sidebar-logo-img {
+
             width: 100%;
+
             height: 100%;
+
             object-fit: contain;
+
         }
+
         .sidebar-logo .sidebar-logo-fallback {
+
             display: none;
+
             width: 100%;
+
             height: 100%;
+
             align-items: center;
+
             justify-content: center;
+
             background: white;
+
         }
+
+
 
         .sidebar-title {
+
             font-size: 1.25rem;
+
             font-weight: 700;
+
         }
+
+
 
         .sidebar-nav {
+
             padding: 1rem 0;
+
         }
+
+
 
         .nav-item {
+
             display: block;
+
             padding: 1rem 1.5rem;
+
             color: rgba(255,255,255,0.9);
+
             text-decoration: none;
+
             transition: all 0.3s;
+
             border-left: 3px solid transparent;
+
             display: flex;
+
             align-items: center;
+
             gap: 0.75rem;
+
         }
+
+
 
         .nav-item:hover, .nav-item.active {
+
             background: rgba(255,255,255,0.1);
+
             border-left-color: white;
+
             color: white;
+
         }
+
+
 
         .nav-item i {
+
             width: 20px;
+
             font-size: 1.1rem;
+
         }
+
+
 
         /* Main Content Area */
+
         .main-content {
+
             margin-left: var(--sidebar-width);
+
             min-height: 100vh;
+
             transition: margin-left 0.3s ease;
+
         }
+
+
 
         /* Top Header */
+
         .top-header {
+
             background: white;
+
             height: var(--header-height);
+
             padding: 0 2rem;
+
             display: flex;
+
             align-items: center;
+
             justify-content: space-between;
+
             box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+
             position: sticky;
+
             top: 0;
+
             z-index: 100;
+
         }
+
+
 
         .header-left {
+
             display: flex;
+
             align-items: center;
+
             gap: 1rem;
+
         }
+
+
 
         .mobile-menu-btn {
+
             display: none;
+
             background: none;
+
             border: none;
+
             font-size: 1.5rem;
+
             color: var(--primary);
+
             cursor: pointer;
+
         }
+
+
 
         .header-right {
+
             display: flex;
+
             align-items: center;
+
             gap: 1.5rem;
+
         }
+
+
 
         .user-profile {
+
             display: flex;
+
             align-items: center;
+
             gap: 0.75rem;
+
             cursor: pointer;
+
             padding: 0.5rem 1rem;
+
             border-radius: 8px;
+
             transition: background 0.3s;
+
         }
+
+
 
         .user-profile:hover {
+
             background: var(--light);
+
         }
+
+
 
         .user-avatar {
+
             width: 40px;
+
             height: 40px;
+
             border-radius: 50%;
+
             background: var(--primary);
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             color: white;
+
             font-weight: 600;
+
         }
+
+
 
         /* Dashboard Content */
+
         .dashboard-content {
+
             padding: 2rem;
+
         }
+
+
 
         /* KYC Alert */
+
         .kyc-alert {
+
             background: linear-gradient(135deg, #FFF3CD 0%, #FFE69C 100%);
+
             border-left: 4px solid var(--warning);
+
             padding: 1.5rem;
+
             border-radius: 12px;
+
             margin-bottom: 2rem;
+
             display: flex;
+
             justify-content: space-between;
+
             align-items: center;
+
             flex-wrap: wrap;
+
             gap: 1rem;
+
         }
+
+
 
         .kyc-alert.rejected {
+
             background: linear-gradient(135deg, #F8D7DA 0%, #F5C6CB 100%);
+
             border-left-color: var(--danger);
+
         }
+
+
 
         .kyc-alert.pending {
+
             background: linear-gradient(135deg, #D1ECF1 0%, #BEE5EB 100%);
+
             border-left-color: var(--info);
+
         }
+
+
 
         .kyc-text h3 {
+
             margin: 0 0 0.5rem 0;
+
             color: #856404;
+
             font-size: 1.1rem;
+
         }
+
+
 
         .kyc-alert.rejected .kyc-text h3 {
+
             color: #721C24;
+
         }
+
+
 
         .kyc-alert.pending .kyc-text h3 {
+
             color: #0C5460;
+
         }
+
+
 
         .kyc-btn {
+
             background: var(--primary);
+
             color: white;
+
             padding: 0.75rem 1.5rem;
+
             border-radius: 8px;
+
             text-decoration: none;
+
             font-weight: 600;
+
             transition: background 0.3s;
+
         }
+
+
 
         .kyc-btn:hover {
+
             background: var(--primary-dark);
+
         }
+
+
 
         /* Summary Cards */
+
         .stats-grid {
+
             display: grid;
+
             grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+
             gap: 1.5rem;
+
             margin-bottom: 2rem;
+
         }
+
+
 
         .stat-card {
+
             background: white;
+
             padding: 1.5rem;
+
             border-radius: 16px;
+
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+
             display: flex;
+
             align-items: center;
+
             justify-content: space-between;
+
             transition: transform 0.3s, box-shadow 0.3s;
+
             border-left: 4px solid var(--primary);
+
         }
+
+
 
         .stat-card:hover {
+
             transform: translateY(-5px);
+
             box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+
         }
+
+
 
         .stat-card.earnings {
+
             border-left-color: var(--success);
+
         }
+
+
 
         .stat-card.orders {
+
             border-left-color: var(--info);
+
         }
+
+
 
         .stat-card.tools {
+
             border-left-color: var(--secondary);
+
         }
+
+
 
         .stat-content h4 {
+
             margin: 0;
+
             color: #666;
+
             font-weight: 500;
+
             font-size: 0.9rem;
+
             text-transform: uppercase;
+
             letter-spacing: 0.5px;
+
         }
+
+
 
         .stat-content .stat-value {
+
             font-size: 2rem;
+
             font-weight: bold;
+
             color: var(--primary);
+
             margin-top: 0.5rem;
+
         }
+
+
 
         .stat-card.earnings .stat-value {
+
             color: var(--success);
+
         }
+
+
 
         .stat-card.orders .stat-value {
+
             color: var(--info);
+
         }
+
+
 
         .stat-card.tools .stat-value {
+
             color: var(--secondary);
+
         }
+
+
 
         .stat-icon {
+
             font-size: 3rem;
+
             opacity: 0.2;
+
         }
+
+
 
         /* Earnings tab – professional card layout */
+
         .earnings-cards {
+
             display: grid;
+
             grid-template-columns: repeat(3, 1fr);
+
             gap: 1.5rem;
+
             margin-bottom: 2.5rem;
+
         }
+
         @media (max-width: 992px) {
+
             .earnings-cards { grid-template-columns: 1fr; }
+
         }
+
         .earnings-card {
+
             background: #fff;
+
             border-radius: 16px;
+
             box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+
             border: 1px solid rgba(0,0,0,0.06);
+
             padding: 1.75rem;
+
             display: flex;
+
             flex-direction: column;
+
             min-height: 160px;
+
             transition: transform 0.2s, box-shadow 0.2s;
+
         }
+
         .earnings-card:hover {
+
             transform: translateY(-4px);
+
             box-shadow: 0 8px 28px rgba(0,0,0,0.1);
+
         }
+
         .earnings-card.card-total-collect {
+
             border-left: 4px solid var(--primary);
+
         }
+
         .earnings-card.card-orders-received {
+
             border-left: 4px solid var(--success);
+
         }
+
         .earnings-card.card-pending {
+
             border-left: 4px solid var(--warning);
+
         }
+
         .earnings-card-label {
+
             font-size: 0.8rem;
+
             font-weight: 600;
+
             text-transform: uppercase;
+
             letter-spacing: 0.06em;
+
             color: #6c757d;
+
             margin-bottom: 0.75rem;
+
         }
+
         .earnings-card-value {
+
             font-size: 2rem;
+
             font-weight: 700;
+
             line-height: 1.2;
+
             margin-bottom: 0.35rem;
+
         }
+
         @media (max-width: 768px) {
+
             .earnings-card-value { font-size: 1.5rem; }
+
         }
+
         .earnings-card.card-total-collect .earnings-card-value { color: var(--primary); }
+
         .earnings-card.card-orders-received .earnings-card-value { color: var(--success); }
+
         .earnings-card.card-pending .earnings-card-value { color: #b8860b; }
+
         .earnings-card-note {
+
             font-size: 0.8rem;
+
             color: #868e96;
+
             margin-top: auto;
+
         }
+
         .earnings-intro {
+
             color: #6c757d;
+
             margin-bottom: 1.5rem;
+
             font-size: 0.95rem;
+
         }
+
+
 
         /* Content Sections */
+
         .content-section {
+
             background: white;
+
             border-radius: 16px;
+
             box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+
             margin-bottom: 2rem;
+
             overflow: hidden;
+
         }
+
+
 
         .section-header {
+
             padding: 1.5rem 2rem;
+
             border-bottom: 2px solid var(--light);
+
             display: flex;
+
             justify-content: space-between;
+
             align-items: center;
+
         }
+
+
 
         .section-header h2 {
+
             margin: 0;
+
             font-size: 1.5rem;
+
             color: var(--dark);
+
             display: flex;
+
             align-items: center;
+
             gap: 0.75rem;
+
         }
+
+
 
         .section-body {
+
             padding: 2rem;
+
         }
+
+
 
         /* Charts */
+
         .charts-grid {
+
             display: grid;
+
             grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+
             gap: 2rem;
+
             margin-bottom: 2rem;
+
         }
+
+
 
         .chart-container {
+
             position: relative;
+
             height: 300px;
+
         }
+
+
 
         /* Tools Grid */
+
         .tools-grid {
+
             display: grid;
+
             grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+
             gap: 1.5rem;
+
         }
+
+
 
         .tool-card {
+
             background: #f8f9fa;
+
             border: 2px solid #e9ecef;
+
             border-radius: 12px;
+
             overflow: hidden;
+
             transition: all 0.3s;
+
         }
+
+
 
         .tool-card:hover {
+
             border-color: var(--primary);
+
             box-shadow: 0 4px 16px rgba(53, 141, 88, 0.15);
+
             transform: translateY(-3px);
+
         }
+
+
 
         .tool-image-wrapper {
+
             width: 100%;
+
             height: 200px;
+
             background: var(--light);
+
             position: relative;
+
             overflow: hidden;
+
         }
+
+
 
         .tool-image {
+
             width: 100%;
+
             height: 100%;
+
             object-fit: cover;
+
         }
+
+
 
         .tool-placeholder {
+
             width: 100%;
+
             height: 100%;
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             font-size: 4rem;
+
             color: #ccc;
+
         }
+
+
 
         .tool-actions {
+
             position: absolute;
+
             top: 0.75rem;
+
             right: 0.75rem;
+
             display: flex;
+
             gap: 0.5rem;
+
             opacity: 0;
+
             transition: opacity 0.3s;
+
         }
+
+
 
         .tool-card:hover .tool-actions {
+
             opacity: 1;
+
         }
+
+
 
         .btn-action {
+
             width: 36px;
+
             height: 36px;
+
             border-radius: 50%;
+
             border: none;
+
             cursor: pointer;
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             font-size: 0.9rem;
+
             transition: transform 0.3s;
+
             box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+
         }
+
+
 
         .btn-action:hover {
+
             transform: scale(1.1);
+
         }
+
+
 
         .btn-edit {
+
             background: var(--warning);
+
             color: white;
+
         }
+
+
 
         .btn-delete {
+
             background: var(--danger);
+
             color: white;
+
         }
+
+
 
         .tool-info {
+
             padding: 1.5rem;
+
         }
+
+
 
         .tool-name {
+
             font-size: 1.2rem;
+
             font-weight: 700;
+
             color: #333;
+
             margin: 0 0 0.75rem 0;
+
         }
+
+
 
         .tool-description {
+
             font-size: 0.9rem;
+
             color: #666;
+
             margin-bottom: 1rem;
+
             line-height: 1.5;
+
         }
+
+
 
         .tool-footer {
+
             display: flex;
+
             justify-content: space-between;
+
             align-items: center;
+
             margin-top: 1rem;
+
             padding-top: 1rem;
+
             border-top: 1px solid #e9ecef;
+
         }
+
+
 
         .tool-price {
+
             font-size: 1.5rem;
+
             font-weight: bold;
+
             color: var(--primary);
+
         }
+
+
 
         .tool-stock {
+
             font-size: 0.85rem;
+
             color: #666;
+
         }
+
+
 
         .tool-status {
+
             display: inline-block;
+
             padding: 0.4rem 0.8rem;
+
             border-radius: 20px;
+
             font-size: 0.85rem;
+
             font-weight: 500;
+
             margin-top: 0.75rem;
+
         }
+
+
 
         .status-available {
+
             background: #D4EDDA;
+
             color: #155724;
+
         }
+
+
 
         .status-unavailable {
+
             background: #F8D7DA;
+
             color: #721C24;
+
         }
+
+
 
         .status-low-stock {
+
             background: #FFF3CD;
+
             color: #856404;
+
         }
+
+
 
         /* Orders Table */
+
         .orders-table {
+
             width: 100%;
+
             border-collapse: collapse;
+
         }
+
+
 
         .orders-table th,
+
         .orders-table td {
+
             padding: 1rem;
+
             text-align: left;
+
             border-bottom: 1px solid #e9ecef;
+
         }
+
+
 
         .orders-table th {
+
             background: var(--light);
+
             font-weight: 600;
+
             color: #333;
+
         }
+
+
 
         .order-status {
+
             padding: 0.4rem 0.8rem;
+
             border-radius: 20px;
+
             font-size: 0.85rem;
+
             font-weight: 500;
+
         }
+
+
 
         .status-pending {
+
             background: #FFF3CD;
+
             color: #856404;
+
         }
+
+
 
         .status-confirmed {
+
             background: #D1ECF1;
+
             color: #0C5460;
+
         }
+
+
 
         .status-shipped {
+
             background: #D4EDDA;
+
             color: #155724;
+
         }
+
+
 
         .status-delivered {
+
             background: #D4EDDA;
+
             color: #155724;
+
         }
+
+
 
         .status-cancelled {
+
             background: #F8D7DA;
+
             color: #721C24;
+
         }
+
+
 
         /* Buttons */
+
         .btn-primary {
+
             background: var(--primary);
+
             color: white;
+
             border: none;
+
             padding: 0.75rem 1.5rem;
+
             border-radius: 8px;
+
             font-weight: 600;
+
             cursor: pointer;
+
             transition: background 0.3s;
+
             display: inline-flex;
+
             align-items: center;
+
             gap: 0.5rem;
+
         }
+
+
 
         .btn-primary:hover {
+
             background: var(--primary-dark);
+
         }
+
+
 
         .btn-secondary {
+
             background: #6c757d;
+
             color: white;
+
             border: none;
+
             padding: 0.75rem 1.5rem;
+
             border-radius: 8px;
+
             font-weight: 600;
+
             cursor: pointer;
+
             transition: background 0.3s;
+
         }
+
+
 
         .btn-secondary:hover {
+
             background: #5a6268;
+
         }
+
+
 
         /* Modal */
+
         .modal {
+
             display: none;
+
             position: fixed;
+
             top: 0;
+
             left: 0;
+
             width: 100%;
+
             height: 100%;
+
             background: rgba(0,0,0,0.6);
+
             z-index: 2000;
+
             justify-content: center;
+
             align-items: center;
+
             backdrop-filter: blur(4px);
+
         }
+
+
 
         .modal.active {
+
             display: flex;
+
         }
+
+
 
         .modal-content {
+
             background: white;
+
             padding: 2rem;
+
             border-radius: 16px;
+
             width: 90%;
+
             max-width: 600px;
+
             max-height: 90vh;
+
             overflow-y: auto;
+
             box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+
         }
+
+
 
         .modal-header {
+
             display: flex;
+
             justify-content: space-between;
+
             align-items: center;
+
             margin-bottom: 1.5rem;
+
             padding-bottom: 1rem;
+
             border-bottom: 2px solid #eee;
+
         }
+
+
 
         .modal-header h3 {
+
             margin: 0;
+
             color: var(--primary);
+
             font-size: 1.5rem;
+
         }
+
+
 
         .close-modal {
+
             font-size: 1.8rem;
+
             cursor: pointer;
+
             color: #999;
+
             background: none;
+
             border: none;
+
             width: 36px;
+
             height: 36px;
+
             display: flex;
+
             align-items: center;
+
             justify-content: center;
+
             border-radius: 50%;
+
             transition: all 0.3s;
+
         }
+
+
 
         .close-modal:hover {
+
             background: #f0f0f0;
+
             color: #666;
+
         }
+
+
 
         .form-group {
+
             margin-bottom: 1.5rem;
+
         }
+
+
 
         .form-group label {
+
             display: block;
+
             margin-bottom: 0.5rem;
+
             color: #333;
+
             font-weight: 500;
+
             font-size: 0.95rem;
+
         }
+
+
 
         .form-control {
+
             width: 100%;
+
             padding: 0.875rem 1rem;
+
             border: 2px solid #e0e0e0;
+
             border-radius: 8px;
+
             font-size: 1rem;
+
             transition: border-color 0.3s;
+
             box-sizing: border-box;
+
         }
+
+
 
         .form-control:focus {
+
             outline: none;
+
             border-color: var(--primary);
+
             box-shadow: 0 0 0 3px rgba(53, 141, 88, 0.1);
+
         }
+
+
 
         textarea.form-control {
+
             resize: vertical;
+
             min-height: 100px;
+
         }
+
+
 
         .form-row {
+
             display: grid;
+
             grid-template-columns: 1fr 1fr;
+
             gap: 1rem;
+
         }
+
+
 
         .form-checkbox {
+
             display: flex;
+
             align-items: center;
+
             gap: 0.5rem;
+
         }
+
+
 
         .form-checkbox input[type="checkbox"] {
+
             width: 20px;
+
             height: 20px;
+
             cursor: pointer;
+
         }
+
+
 
         .modal-footer {
+
             display: flex;
+
             justify-content: flex-end;
+
             gap: 1rem;
+
             margin-top: 2rem;
+
             padding-top: 1.5rem;
+
             border-top: 2px solid #eee;
+
         }
+
+
 
         /* Empty State */
+
         .empty-state {
+
             text-align: center;
+
             padding: 4rem 2rem;
+
             color: #999;
+
         }
+
+
 
         .empty-state i {
+
             font-size: 5rem;
+
             display: block;
+
             margin-bottom: 1rem;
+
             opacity: 0.4;
+
         }
+
+
 
         .empty-state h3 {
+
             margin: 0 0 0.5rem 0;
+
             color: #666;
+
             font-size: 1.5rem;
+
         }
+
+
 
         /* Messages */
+
         .messages {
+
             margin-bottom: 2rem;
+
         }
+
+
 
         .message-alert {
+
             padding: 1rem 1.5rem;
+
             border-radius: 8px;
+
             margin-bottom: 0.75rem;
+
             font-weight: 500;
+
         }
+
+
 
         .message-alert.success {
+
             background: #D4EDDA;
+
             color: #155724;
+
             border-left: 4px solid #28A745;
+
         }
+
+
 
         .message-alert.error {
+
             background: #F8D7DA;
+
             color: #721C24;
+
             border-left: 4px solid #DC3545;
+
         }
+
+
 
         .message-alert.info {
+
             background: #D1ECF1;
+
             color: #0C5460;
+
             border-left: 4px solid #17A2B8;
+
         }
+
+
 
         /* Profile section – same UI as farmer (card view + edit form) */
+
         .profile-info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+
         @media (max-width: 640px) { .profile-info-grid { grid-template-columns: 1fr; } }
+
         .profile-info-grid .info-card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 1.5rem; }
+
         .profile-info-grid .info-card:hover { border-color: var(--primary); }
+
         .profile-info-label { font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 0.5rem; display: block; }
+
         .profile-info-value { font-size: 1rem; font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem; }
+
         .profile-info-value i { color: var(--primary); font-size: 1rem; }
+
         .btn-edit-profile { background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border: none; padding: 0.5rem 1rem; border-radius: 8px; font-weight: 600; font-size: 0.9rem; cursor: pointer; display: inline-flex; align-items: center; gap: 0.4rem; }
+
         .btn-edit-profile:hover { transform: translateY(-1px); }
+
         .btn-change-photo-sm { font-size: 0.85rem; padding: 0.4rem 0.75rem; border-radius: 8px; background: var(--light); color: var(--primary); border: 2px solid var(--primary); cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; }
+
         .btn-form-sm { padding: 0.5rem 1rem; font-size: 0.9rem; border-radius: 8px; }
+
         .profile-edit-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; }
+
         @media (max-width: 640px) { .profile-edit-grid { grid-template-columns: 1fr; } }
+
         .edit-card { background: #f8f9fa; border: 2px solid #e9ecef; border-radius: 12px; padding: 1.5rem; }
+
         .edit-card:focus-within { border-color: var(--primary); }
+
         .edit-card .profile-info-label { font-size: 0.75rem; color: #6c757d; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; margin-bottom: 0.5rem; display: block; }
+
         .edit-card .form-control { width: 100%; margin-top: 0.25rem; box-sizing: border-box; }
 
+
+
         /* Responsive */
+
         @media (max-width: 768px) {
+
             .sidebar {
+
                 transform: translateX(-100%);
+
             }
+
+
 
             .sidebar.active {
+
                 transform: translateX(0);
+
             }
+
+
 
             .main-content {
+
                 margin-left: 0;
+
             }
+
+
 
             .mobile-menu-btn {
+
                 display: block;
+
             }
+
+
 
             .stats-grid {
+
                 grid-template-columns: 1fr;
+
             }
+
+
 
             .charts-grid {
+
                 grid-template-columns: 1fr;
+
             }
+
+
 
             .tools-grid {
+
                 grid-template-columns: 1fr;
+
             }
+
+
 
             .form-row {
+
                 grid-template-columns: 1fr;
+
             }
+
+
 
             .orders-table {
+
                 font-size: 0.85rem;
+
             }
+
+
 
             .orders-table th,
+
             .orders-table td {
+
                 padding: 0.5rem;
+
             }
+
         }
+
+
 
         /* Dashboard Section */
+
         .dashboard-section {
+
             display: none;
+
             padding: 2rem;
+
         }
+
+
 
         .dashboard-section:first-of-type {
+
             display: block;
+
         }
+
+
 
         /* Theme Toggle Styles */
+
         .theme-toggle {
+
             position: relative;
+
         }
+
+
 
         .theme-toggle-checkbox {
+
             display: none;
+
         }
+
+
 
         .theme-toggle-label {
+
             display: flex;
+
             align-items: center;
+
             justify-content: space-between;
+
             cursor: pointer;
+
             width: 60px;
+
             height: 30px;
+
             background: #ccc;
+
             border-radius: 15px;
+
             position: relative;
+
             transition: background 0.3s;
+
             padding: 0 5px;
+
         }
+
+
 
         .theme-toggle-ball {
+
             position: absolute;
+
             width: 22px;
+
             height: 22px;
+
             background: white;
+
             border-radius: 50%;
+
             top: 4px;
+
             left: 4px;
+
             transition: transform 0.3s;
+
             box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+
         }
+
+
 
         .theme-icon-light, .theme-icon-dark {
+
             font-size: 12px;
+
             z-index: 1;
+
             transition: opacity 0.3s;
+
         }
+
+
 
         .theme-icon-dark {
+
             opacity: 0.4;
+
         }
+
+
 
         .theme-toggle-checkbox:checked + .theme-toggle-label {
+
             background: var(--primary);
+
         }
+
+
 
         .theme-toggle-checkbox:checked + .theme-toggle-label .theme-toggle-ball {
+
             transform: translateX(30px);
+
         }
+
+
 
         .theme-toggle-checkbox:checked + .theme-toggle-label .theme-icon-light {
+
             opacity: 0.4;
+
         }
+
+
 
         .theme-toggle-checkbox:checked + .theme-toggle-label .theme-icon-dark {
+
             opacity: 1;
+
         }
+
+
 
         /* Switch Styles for Notifications */
+
         .switch {
+
             position: relative;
+
             display: inline-block;
+
             width: 50px;
+
             height: 24px;
+
         }
+
+
 
         .switch input {
+
             opacity: 0;
+
             width: 0;
+
             height: 0;
+
         }
+
+
 
         .slider {
+
             position: absolute;
+
             cursor: pointer;
+
             top: 0;
+
             left: 0;
+
             right: 0;
+
             bottom: 0;
+
             background-color: #ccc;
+
             transition: 0.4s;
+
             border-radius: 24px;
+
         }
+
+
 
         .slider:before {
+
             position: absolute;
+
             content: "";
+
             height: 18px;
+
             width: 18px;
+
             left: 3px;
+
             bottom: 3px;
+
             background-color: white;
+
             transition: 0.4s;
+
             border-radius: 50%;
+
         }
+
+
 
         input:checked + .slider {
+
             background-color: var(--primary);
+
         }
+
+
 
         input:checked + .slider:before {
+
             transform: translateX(26px);
+
         }
+
+
 
         /* Dark Mode Styles */
+
         body.dark-mode {
+
             background: #1a1a1a;
+
             color: #ffffff;
+
         }
+
+
 
         body.dark-mode .sidebar {
+
             background: linear-gradient(180deg, #2d3748 0%, #1a202c 100%);
+
         }
+
+
 
         body.dark-mode .main-content {
+
             background: #2d3748;
+
         }
+
+
 
         body.dark-mode .content-section {
+
             background: #374151;
+
             color: #ffffff;
+
         }
+
+
 
         body.dark-mode .form-control {
+
             background: #4b5563;
+
             color: #ffffff;
+
             border-color: #6b7280;
+
         }
+
+
 
         body.dark-mode .form-control:focus {
+
             border-color: var(--primary);
+
             background: #4b5563;
+
         }
+
+
 
         body.dark-mode .tool-card,
+
         body.dark-mode .order-card,
+
         body.dark-mode .chart-container {
+
             background: #374151;
+
             border-color: #4b5563;
+
         }
+
+
 
         body.dark-mode .modal-content {
+
             background: #374151;
+
             color: #ffffff;
+
         }
+
+
 
         body.dark-mode .section-header h2 {
+
             color: #ffffff;
+
         }
+
+
 
         body.dark-mode .profile-info-label {
+
             color: #d1d5db;
+
         }
+
+
 
         body.dark-mode .edit-card {
+
             background: #4b5563;
+
             border-color: #6b7280;
+
         }
+
+
 
         body.dark-mode .btn-secondary {
+
             background: #4b5563;
+
             color: #ffffff;
+
         }
+
+
 
         body.dark-mode .user-avatar {
+
             background: #4b5563;
+
         }
+
+
 
         body.dark-mode .header-actions {
+
             background: #374151;
+
         }
+
+
 
         body.dark-mode .nav-item:hover {
+
             background: #4b5563;
+
         }
+
+
 
         body.dark-mode .stats-card {
+
             background: #374151;
+
             border-color: #4b5563;
+
         }
+
+
 
         body.dark-mode .stats-value {
+
             color: #ffffff;
+
         }
+
+
 
         body.dark-mode .stats-label {
+
             color: #d1d5db;
+
         }
+
+
 
         /* Dark mode for settings section */
+
         body.dark-mode .section-body > div > div {
+
             background: #4b5563;
+
             border-color: #6b7280;
+
         }
+
+
 
         body.dark-mode .section-body label {
+
             color: #ffffff;
+
         }
+
+
 
         body.dark-mode .section-body p {
+
             color: #d1d5db;
+
         }
+
     </style>
+
 </head>
+
 <body>
+
     <!-- Sidebar Navigation -->
+
     <aside class="sidebar" id="sidebar">
+
         <div class="sidebar-header">
+
             <div class="sidebar-logo">
+
                 <img src="{% static 'images/Farmity logo.png' %}" alt="Farmity" class="sidebar-logo-img" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+
                 <span class="sidebar-logo-fallback">🌾</span>
+
             </div>
+
             <div class="sidebar-title">Farmity</div>
+
         </div>
+
         <nav class="sidebar-nav">
+
             <a href="#dashboard" class="nav-item active" onclick="showSection('dashboard', event); return false;">
+
                 <i class="fas fa-home"></i>
+
                 <span>Dashboard</span>
+
             </a>
+
             <a href="#tools" class="nav-item" onclick="showSection('tools', event); return false;">
+
                 <i class="fas fa-tools"></i>
+
                 <span>My Tools</span>
+
             </a>
+
             <a href="#orders" class="nav-item" onclick="showSection('orders', event); return false;">
+
                 <i class="fas fa-shopping-cart"></i>
+
                 <span>Orders</span>
+
             </a>
+
             <a href="#earnings" class="nav-item" onclick="showSection('earnings', event); return false;">
+
                 <i class="fas fa-wallet"></i>
+
                 <span>Earnings</span>
+
             </a>
+
             <a href="#profile" class="nav-item" onclick="showSection('profile', event); return false;">
+
                 <i class="fas fa-user"></i>
+
                 <span>Profile</span>
+
             </a>
+
             <a href="#settings" class="nav-item" onclick="showSection('settings', event); return false;">
+
                 <i class="fas fa-cog"></i>
+
                 <span>Settings</span>
+
             </a>
+
             <a href="{% url 'logout' %}" class="nav-item">
+
                 <i class="fas fa-sign-out-alt"></i>
+
                 <span>Logout</span>
+
             </a>
+
         </nav>
+
     </aside>
 
+
+
     <!-- Main Content -->
+
     <div class="main-content">
+
         <!-- Top Header -->
+
         <header class="top-header">
+
             <div class="header-left">
+
                 <button class="mobile-menu-btn" onclick="toggleSidebar()">
+
                     <i class="fas fa-bars"></i>
+
                 </button>
+
                 <h1 style="margin: 0; font-size: 1.5rem; color: var(--primary);">Vendor Dashboard</h1>
+
             </div>
+
             <div class="header-right">
+
                 {% include 'includes/notification_bell.html' %}
+
                 <div class="user-profile">
+
                     <div class="user-avatar">
+
                         {% if profile.logo %}
+
                         <img src="{{ profile.logo.url }}" alt="Profile" style="width: 100%; height: 100%; object-fit: cover; border-radius: 50%;">
+
                         {% else %}
+
                         {% if profile.company_name %}{{ profile.company_name|first|upper }}{% else %}V{% endif %}
+
                         {% endif %}
+
                     </div>
+
                     <div>
+
                         <div style="font-weight: 600;">{{ profile.company_name|default:user.email }}</div>
+
                         <div style="font-size: 0.85rem; color: #666;">Vendor</div>
+
                     </div>
+
                 </div>
+
             </div>
+
         </header>
 
+
+
         <!-- Dashboard Content -->
+
         <div class="dashboard-content">
+
             <!-- KYC Alert -->
+
             {% if kyc_status != 'approved' %}
+
             <div class="kyc-alert {% if kyc_status == 'rejected' %}rejected{% elif kyc_status == 'pending' %}pending{% endif %}">
+
                 <div class="kyc-content">
+
                     <div class="kyc-text">
+
                         <h3>
+
                             <i class="fas fa-file-contract"></i>
+
                             {% if kyc_status == 'pending' %}KYC Verification Pending
+
                             {% elif kyc_status == 'rejected' %}KYC Verification Rejected
+
                             {% else %}KYC Verification Required{% endif %}
+
                         </h3>
+
                         <p>
+
                             {% if kyc_status == 'pending' %}Your KYC documents are under review. Please wait for approval.
+
                             {% elif kyc_status == 'rejected' %}{% if kyc_request.rejection_reason %}Reason: {{ kyc_request.rejection_reason }}{% endif %} Please update your documents and resubmit.
+
                             {% else %}Upload your documents to verify your vendor status and access all features.{% endif %}
+
                         </p>
+
                     </div>
+
                     <a href="{% url 'kyc' %}" class="kyc-btn">
+
                         <i class="fas fa-upload"></i> {% if kyc_status == 'rejected' or not kyc_status %}Upload KYC{% else %}View Status{% endif %}
+
                     </a>
+
                 </div>
+
             </div>
+
             {% endif %}
+
+
 
             {% include 'includes/messages_block.html' %}
 
+
+
             <!-- Dashboard Section -->
+
             <div id="dashboard-section" class="dashboard-section">
+
                 {% if active_section == 'dashboard' %}{% include 'includes/messages_block.html' %}{% endif %}
+
                 <!-- Summary Cards -->
+
                 <div class="stats-grid">
+
                     <div class="stat-card tools">
+
                         <div class="stat-content">
+
                             <h4>Total Tools</h4>
+
                             <div class="stat-value">{{ tools_count }}</div>
+
                         </div>
+
                         <div class="stat-icon">
+
                             <i class="fas fa-tools"></i>
+
                         </div>
+
                     </div>
+
                     <div class="stat-card">
+
                         <div class="stat-content">
+
                             <h4>Available Tools</h4>
+
                             <div class="stat-value">{{ available_tools_count }}</div>
+
                         </div>
+
                         <div class="stat-icon">
+
                             <i class="fas fa-check-circle"></i>
+
                         </div>
+
                     </div>
+
                     <div class="stat-card orders">
+
                         <div class="stat-content">
+
                             <h4>Total Orders</h4>
+
                             <div class="stat-value">{{ total_orders }}</div>
+
                         </div>
+
                         <div class="stat-icon">
+
                             <i class="fas fa-shopping-bag"></i>
+
                         </div>
+
                     </div>
+
                     <div class="stat-card earnings">
+
                         <div class="stat-content">
+
                             <h4>Total Revenue</h4>
+
                             <div class="stat-value">Rs. {{ total_revenue|floatformat:2 }}</div>
+
                         </div>
+
                         <div class="stat-icon">
+
                             <i class="fas fa-rupee-sign"></i>
+
                         </div>
+
                     </div>
+
                     <div class="stat-card">
+
                         <div class="stat-content">
+
                             <h4>Pending Orders</h4>
+
                             <div class="stat-value" style="color: var(--warning);">{{ pending_orders }}</div>
+
                         </div>
+
                         <div class="stat-icon">
+
                             <i class="fas fa-clock"></i>
+
                         </div>
+
                     </div>
+
                     <div class="stat-card">
+
                         <div class="stat-content">
+
                             <h4>Delivered</h4>
+
                             <div class="stat-value" style="color: var(--success);">{{ delivered_orders }}</div>
+
                         </div>
+
                         <div class="stat-icon">
+
                             <i class="fas fa-check-circle"></i>
+
                         </div>
+
                     </div>
+
                 </div>
+
                 
+
                 {% if features_restricted %}
+
                 <div style="background: #FFF3CD; border-left: 4px solid var(--warning); padding: 1rem 1.5rem; border-radius: 8px; margin-bottom: 2rem;">
+
                     <p style="margin: 0; color: #856404; font-weight: 500;">
+
                         <i class="fas fa-info-circle"></i> Some features are restricted until KYC verification is approved. Complete your KYC to unlock all features.
+
                     </p>
+
                 </div>
+
                 {% endif %}
 
+
+
                 <!-- Charts -->
+
                 <div class="charts-grid">
+
                     <div class="content-section">
+
                         <div class="section-header">
+
                             <h2><i class="fas fa-chart-line"></i> Revenue Trend</h2>
+
                         </div>
+
                         <div class="section-body">
+
                             <div class="chart-container">
+
                                 <canvas id="revenueChart"></canvas>
+
                             </div>
+
                         </div>
+
                     </div>
+
                     <div class="content-section">
+
                         <div class="section-header">
+
                             <h2><i class="fas fa-chart-bar"></i> Orders Trend</h2>
+
                         </div>
+
                         <div class="section-body">
+
                             <div class="chart-container">
+
                                 <canvas id="ordersChart"></canvas>
+
                             </div>
+
                         </div>
+
                     </div>
+
                 </div>
+
             </div>
+
+
 
             <!-- Tools Section -->
+
             <div id="tools-section" class="dashboard-section" style="display: none;">
+
                 {% if active_section == 'tools' %}{% include 'includes/messages_block.html' %}{% endif %}
+
                 <div class="content-section">
+
                     <div class="section-header">
+
                         <h2><i class="fas fa-tools"></i> My Tools</h2>
+
                         <button class="btn-primary" onclick="openAddToolModal()" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;" title="KYC verification required"{% endif %}>
+
                             <i class="fas fa-plus"></i> Add New Tool
+
                         </button>
+
                     </div>
+
                     <div class="section-body">
+
                         {% if tools %}
+
                         <div class="tools-grid">
+
                             {% for tool in tools %}
+
                             <div class="tool-card">
+
                                 <div class="tool-image-wrapper">
+
                                     {% if tool.image %}
+
                                     <img src="{{ tool.image.url }}" alt="{{ tool.name }}" class="tool-image">
+
                                     {% else %}
+
                                     <div class="tool-placeholder">
+
                                         <i class="fas fa-tools"></i>
+
                                     </div>
+
                                     {% endif %}
+
                                     <div class="tool-actions">
+
                                         <button class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', '{{ tool.description|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}, {{ tool.is_available|yesno:"true,false" }}, {% if tool.image %}'{{ tool.image.url }}'{% else %}''{% endif %}){% else %}alert('KYC verification required to edit tools'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+
                                             <i class="fas fa-edit"></i>
+
                                         </button>
+
                                         <button class="btn-action btn-delete" onclick="{% if kyc_status == 'approved' %}openDeleteToolModal({{ tool.id }}, '{{ tool.name|escapejs }}'){% else %}alert('KYC verification required to delete tools'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Delete{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+
                                             <i class="fas fa-trash"></i>
+
                                         </button>
+
                                     </div>
+
                                 </div>
+
                                 <div class="tool-info">
+
                                     <h3 class="tool-name">{{ tool.name }}</h3>
+
                                     {% if tool.description %}
+
                                     <p class="tool-description">{{ tool.description|truncatewords:20 }}</p>
+
                                     {% endif %}
+
                                     <div class="tool-footer">
+
                                         <div>
+
                                             <div class="tool-price">Rs. {{ tool.price }}</div>
+
                                             <div class="tool-stock">Stock: {{ tool.stock_quantity }} units</div>
+
                                         </div>
+
                                         <span class="tool-status {% if tool.stock_quantity == 0 %}status-unavailable{% elif tool.stock_quantity < 5 %}status-low-stock{% elif tool.is_available %}status-available{% else %}status-unavailable{% endif %}">
+
                                             {% if tool.stock_quantity == 0 %}
+
                                                 No Stock (Sold Out)
+
                                             {% elif tool.stock_quantity < 5 %}
+
                                                 Low Stock
+
                                             {% elif tool.is_available %}
+
                                                 Available
+
                                             {% else %}
+
                                                 Unavailable
+
                                             {% endif %}
+
                                         </span>
+
                                     </div>
+
                                 </div>
+
                             </div>
+
                             {% endfor %}
+
                         </div>
+
                         {% else %}
+
                         <div class="empty-state">
+
                             <i class="fas fa-tools"></i>
+
                             <h3>No Tools Added Yet</h3>
+
                             <p>Use <strong>Add New Tool</strong> at the top of this section to list your first product.</p>
+
                         </div>
+
                         {% endif %}
+
                     </div>
+
                 </div>
+
             </div>
+
+
 
             <!-- Orders Section -->
+
             <div id="orders-section" class="dashboard-section" style="display: none;">
+
                 {% if active_section == 'orders' %}{% include 'includes/messages_block.html' %}{% endif %}
+
                 <div class="content-section">
+
                     <div class="section-header">
+
                         <h2><i class="fas fa-shopping-cart"></i> Customer Orders</h2>
+
                     </div>
+
                     <div class="section-body">
+
                         {% if orders %}
+
                         <table class="orders-table">
+
                             <thead>
+
                                 <tr>
+
                                     <th>Order ID</th>
+
                                     <th>Tool</th>
+
                                     <th>Buyer</th>
+
                                     <th>Quantity</th>
+
                                     <th>Amount (incl. shipping)</th>
+
                                     <th>Commission & payout</th>
+
                                     <th>Shipping address</th>
+
                                     <th>Status</th>
+
                                     <th>Date</th>
+
                                     <th>Actions</th>
+
                                 </tr>
+
                             </thead>
+
                             <tbody>
+
                                 {% for order in orders %}
+
                                 <tr>
+
                                     <td>#{{ order.id }}</td>
+
                                     <td>{{ order.tool.name|default:"N/A" }}</td>
+
                                     <td>{{ order.buyer.email }}</td>
+
                                     <td>{{ order.quantity }}</td>
+
                                     <td>Rs. {{ order.total_amount|floatformat:2 }}</td>
+
                                     <td>
+
                                         {% with product_sub=order.product_subtotal commission=order.admin_commission payout=order.seller_amount %}
+
                                         <div style="font-size: 0.85rem; color: #444;">
+
                                             Product: Rs. {{ product_sub|floatformat:2 }}<br>
+
                                             Shipping: Rs. {{ order.shipping_cost|default:0|floatformat:2 }}<br>
+
                                             {% if commission %}Commission: {% if order.commission_percent %}{{ order.commission_percent }}%{% else %}Rs.{% endif %} Rs. {{ commission|floatformat:2 }}<br>{% endif %}
+
                                             Payout: <strong>Rs. {{ payout|default:order.total_amount|floatformat:2 }}</strong><br>
+
                                             Payout status: {{ order.get_payout_status_display|default:'Pending' }}
+
                                         </div>
+
                                         {% endwith %}
+
                                     </td>
+
                                     <td>{{ order.shipping_address|default:"—" }}</td>
+
                                     <td>
+
                                         <span class="order-status status-{{ order.status }}">
+
                                             {{ order.get_status_display }}
+
                                         </span>
+
                                     </td>
+
                                     <td>{{ order.created_at|date:"M d, Y" }}</td>
+
                                     <td>
+
                                         <button type="button" onclick="openOrderDetailModal({{ order.id }})" class="btn-primary" style="display: inline-block; margin-right: 0.5rem; padding: 0.4rem 0.75rem; font-size: 0.85rem;"><i class="fas fa-eye"></i> View</button>
+
                                         {% if kyc_status == 'approved' and order.status != 'delivered' and order.status != 'cancelled' %}
+
                                         <form method="POST" style="display: inline;">
+
                                             {% csrf_token %}
+
                                             <input type="hidden" name="return_section" value="orders">
+
                                             <input type="hidden" name="order_id" value="{{ order.id }}">
+
                                             <input type="hidden" name="update_order_status" value="1">
+
                                             {% if order.status == 'pending' or order.status == 'confirmed' %}
+
                                             <select name="status" style="padding: 0.5rem; border-radius: 6px; border: 1px solid #ddd; font-size: 0.9rem; margin-right: 0.5rem;">
+
                                                 <option value="confirmed" {% if order.status == 'confirmed' %}selected{% endif %}>Confirmed</option>
+
                                                 <option value="shipped" {% if order.status == 'shipped' %}selected{% endif %}>Shipped</option>
+
                                                 <option value="delivered" {% if order.status == 'delivered' %}selected{% endif %}>Delivered</option>
+
                                             </select>
+
                                             <input type="text" name="tracking_number" placeholder="Tracking #" value="{{ order.tracking_number|default:'' }}" style="padding: 0.5rem; border-radius: 6px; border: 1px solid #ddd; font-size: 0.9rem; width: 150px; margin-right: 0.5rem;">
+
                                             <button type="submit" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+
                                                 <i class="fas fa-save"></i> Update
+
                                             </button>
+
                                             {% elif order.status == 'shipped' %}
+
                                             <select name="status" style="padding: 0.5rem; border-radius: 6px; border: 1px solid #ddd; font-size: 0.9rem; margin-right: 0.5rem;">
+
                                                 <option value="shipped" selected>Shipped</option>
+
                                                 <option value="delivered">Delivered</option>
+
                                             </select>
+
                                             <button type="submit" class="btn-primary" style="padding: 0.5rem 1rem; font-size: 0.9rem;">
+
                                                 <i class="fas fa-save"></i> Update
+
                                             </button>
+
                                             {% endif %}
+
                                         </form>
+
                                         {% endif %}
+
                                     </td>
+
                                 </tr>
+
                                 {% endfor %}
+
                             </tbody>
+
                         </table>
+
                         {% else %}
+
                         <div class="empty-state">
+
                             <i class="fas fa-shopping-cart"></i>
+
                             <h3>No Orders Yet</h3>
+
                             <p>Orders for your tools will appear here</p>
+
                         </div>
+
                         {% endif %}
+
                     </div>
+
                 </div>
+
             </div>
+
+
 
             <!-- Earnings / Amount collected Section -->
+
             <div id="earnings-section" class="dashboard-section" style="display: none;">
+
                 {% if active_section == 'earnings' %}{% include 'includes/messages_block.html' %}{% endif %}
+
                 <div class="content-section">
+
                     <div class="section-header">
+
                         <h2><i class="fas fa-wallet"></i> Earnings & Payouts</h2>
+
                     </div>
+
                     <div class="section-body">
+
                         <div class="earnings-cards">
+
                             <div class="earnings-card card-total-collect">
+
                                 <span class="earnings-card-label">Total amount collect</span>
+
                                 <div class="earnings-card-value">Rs. {{ total_amount_collect|floatformat:2 }}</div>
+
                                 <div class="earnings-card-note">From tool sales</div>
+
                             </div>
+
                             <div class="earnings-card card-orders-received">
+
                                 <span class="earnings-card-label">Total order received</span>
+
                                 <div class="earnings-card-value">{{ total_orders_received }}</div>
+
                                 <div class="earnings-card-note">Paid orders (collected)</div>
+
                             </div>
+
                             <div class="earnings-card card-pending">
+
                                 <span class="earnings-card-label">Pending amount to be received</span>
+
                                 <div class="earnings-card-value">Rs. {{ pending_release_amount|floatformat:2 }}</div>
+
                                 <div class="earnings-card-note">Awaiting admin release</div>
+
                             </div>
+
                         </div>
+
                         <div class="content-section">
+
                             <div class="section-header">
+
                                 <h3><i class="fas fa-history"></i> Release history</h3>
+
                             </div>
+
                             <div class="section-body">
+
                                 {% if released_payouts %}
+
                                 <div class="table-responsive">
+
                                     <table class="data-table">
+
                                         <thead>
+
                                             <tr>
+
                                                 <th>Date released</th>
+
                                                 <th>Amount</th>
+
                                                 <th>Orders</th>
+
                                             </tr>
+
                                         </thead>
+
                                         <tbody>
+
                                             {% for p in released_payouts %}
+
                                             <tr>
+
                                                 <td>{{ p.payout_date|date:"M d, Y" }}</td>
+
                                                 <td>Rs. {{ p.amount|floatformat:2 }}</td>
+
                                                 <td>{{ p.order_count }}</td>
+
                                             </tr>
+
                                             {% endfor %}
+
                                         </tbody>
+
                                     </table>
+
                                 </div>
+
                                 {% else %}
+
                                 <p style="color: #6c757d;">No payouts released yet. When admin releases your pending amount, it will appear here.</p>
+
                                 {% endif %}
+
                             </div>
+
                         </div>
+
                         <div class="content-section" style="margin-top: 2rem;">
+
                             <div class="section-header">
+
                                 <h3><i class="fas fa-receipt"></i> Transaction records</h3>
+
                             </div>
+
                             <div class="section-body">
+
                                 {% if vendor_transactions %}
+
                                 <div class="table-responsive">
+
                                     <table class="data-table">
+
                                         <thead>
+
                                             <tr>
+
                                                 <th>Date & time</th>
+
                                                 <th>Order</th>
+
                                                 <th>Buyer</th>
+
                                                 <th>Item</th>
+
                                                 <th>Qty</th>
+
                                                 <th>Total</th>
+
                                                 <th>Payment</th>
+
                                                 <th>Payout</th>
+
                                                 <th>Order status</th>
+
                                             </tr>
+
                                         </thead>
+
                                         <tbody>
+
                                             {% for t in vendor_transactions %}
+
                                             <tr>
+
                                                 <td>{{ t.created_at|date:"M d, Y h:i A" }}</td>
+
                                                 <td>#{{ t.id }}</td>
+
                                                 <td>{{ t.buyer.email }}</td>
+
                                                 <td>{{ t.tool.name|default:"-" }}</td>
+
                                                 <td>{{ t.quantity }} units</td>
+
                                                 <td>Rs. {{ t.total_amount|floatformat:2 }}</td>
+
                                                 <td>{{ t.get_payment_method_display|default:"-" }} / {{ t.get_payment_status_display|default:"Pending" }}</td>
+
                                                 <td>{{ t.get_payout_status_display|default:"Pending payout" }}{% if t.payout_at %} ({{ t.payout_at|date:"M d, Y h:i A" }}){% endif %}</td>
+
                                                 <td>{{ t.get_status_display }}</td>
+
                                             </tr>
+
                                             {% endfor %}
+
                                         </tbody>
+
                                     </table>
+
                                 </div>
+
                                 {% else %}
+
                                 <p style="color: #6c757d;">No transaction records yet.</p>
+
                                 {% endif %}
+
                             </div>
+
                         </div>
+
                     </div>
+
                 </div>
+
             </div>
+
+
 
             <!-- Profile Section (same UI as farmer: card view + edit form) -->
+
             <div id="profile-section" class="dashboard-section" style="display: none;">
+
                 {% if active_section == 'profile' %}{% include 'includes/messages_block.html' %}{% endif %}
+
                 <div class="content-section">
+
                     <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+
                         <h2><i class="fas fa-user"></i> My Profile</h2>
+
                         <button type="button" id="vendorProfileEditBtn" onclick="toggleVendorEditMode()" class="btn-edit-profile">
+
                             <i class="fas fa-edit"></i> <span id="vendorEditBtnText">Edit Profile</span>
+
                         </button>
+
                     </div>
+
                     <div class="section-body">
+
                         <!-- View mode: card grid (default) -->
+
                         <div id="vendorProfileViewMode" style="display: block;">
+
                             <div style="display: flex; align-items: center; gap: 2rem; margin-bottom: 2rem; flex-wrap: wrap;">
+
                                 <div style="flex: 0 0 140px;">
+
                                     {% if profile.logo %}
+
                                     <img src="{{ profile.logo.url }}" alt="Logo" id="vendorViewPhoto" style="width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 4px solid var(--primary);">
+
                                     {% else %}
+
                                     <div id="vendorViewPhoto" style="width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;"><i class="fas fa-building"></i></div>
+
                                     {% endif %}
+
                                     <form method="POST" action="" enctype="multipart/form-data" style="margin-top: 0.75rem; text-align: center;">
+
                                         {% csrf_token %}
+
                                         <input type="hidden" name="update_photo" value="1">
+
                                         <input type="hidden" name="return_section" value="profile">
+
                                         <label for="vendorPhotoChangeInput" class="btn-change-photo-sm" style="cursor: pointer; display: inline-block;"><i class="fas fa-camera"></i> Change Logo</label>
+
                                         <input type="file" name="photo" id="vendorPhotoChangeInput" accept="image/*" style="display: none;" onchange="this.form.submit()">
+
                                     </form>
+
                                 </div>
+
                                 <div style="flex: 1; min-width: 200px;">
+
                                     <h3 style="margin: 0 0 0.75rem 0; font-size: 1.75rem; font-weight: 700; color: #1a1a1a;">{{ profile.company_name|default:user.email }}</h3>
+
                                     <div style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
+
                                         <span style="padding: 0.5rem 1rem; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border-radius: 20px; font-weight: 600;">Vendor</span>
+
                                         {% if kyc_status == 'approved' %}
+
                                         <span style="padding: 0.5rem 1rem; background: #D4EDDA; color: #155724; border-radius: 20px; font-weight: 600;"><i class="fas fa-check-circle"></i> Verified</span>
+
                                         {% else %}
+
                                         <span style="padding: 0.5rem 1rem; background: #FFF3CD; color: #856404; border-radius: 20px; font-weight: 600;"><i class="fas fa-exclamation-circle"></i> Unverified</span>
+
                                         {% endif %}
+
                                     </div>
+
                                 </div>
+
                             </div>
+
                             <div class="profile-info-grid">
+
                                 <div class="info-card">
+
                                     <span class="profile-info-label">Email Address</span>
+
                                     <div class="profile-info-value"><i class="fas fa-envelope"></i> <span data-profile-email-display>{{ user.email|default:"Not set" }}</span></div>
+
                                 </div>
+
                                 <div class="info-card">
+
                                     <span class="profile-info-label">Company Name</span>
-                                    <div class="profile-info-value"><i class="fas fa-building"></i> <span data-profile-company-display>{{ profile.company_name|default:"Not set" }}</span></div>
+
+                                    <div class="profile-info-value"><i class="fas fa-building"></i> {{ profile.company_name|default:"Not set" }}</div>
+
                                 </div>
+
                                 <div class="info-card">
+
                                     <span class="profile-info-label">Contact</span>
-                                    <div class="profile-info-value"><i class="fas fa-phone"></i> <span data-profile-contact-display>{{ profile.contact|default:"Not set" }}</span></div>
+
+                                    <div class="profile-info-value"><i class="fas fa-phone"></i> {{ profile.contact|default:"Not set" }}</div>
+
                                 </div>
+
                                 <div class="info-card">
+
                                     <span class="profile-info-label">Address</span>
-                                    <div class="profile-info-value"><i class="fas fa-map-marker-alt"></i> <span data-profile-address-display>{{ profile.address|default:"Not set" }}</span></div>
+
+                                    <div class="profile-info-value"><i class="fas fa-map-marker-alt"></i> {{ profile.address|default:"Not set" }}</div>
+
                                 </div>
+
                                 <div class="info-card">
+
                                     <span class="profile-info-label">Website</span>
-                                    <div class="profile-info-value"><i class="fas fa-globe"></i> <span data-profile-website-display>{{ profile.website|default:"Not set" }}</span></div>
+
+                                    <div class="profile-info-value"><i class="fas fa-globe"></i> {{ profile.website|default:"Not set" }}</div>
+
                                 </div>
+
                                 <div class="info-card">
+
                                     <span class="profile-info-label">Business Type</span>
-                                    <div class="profile-info-value"><i class="fas fa-briefcase"></i> <span data-profile-business-type-display>{{ profile.business_type|default:"Not set" }}</span></div>
+
+                                    <div class="profile-info-value"><i class="fas fa-briefcase"></i> {{ profile.business_type|default:"Not set" }}</div>
+
                                 </div>
+
                                 <div class="info-card">
+
                                     <span class="profile-info-label">Member Since</span>
+
                                     <div class="profile-info-value"><i class="fas fa-calendar"></i> {{ user.date_joined|date:"M d, Y" }}</div>
+
                                 </div>
+
                             </div>
+
                         </div>
+
                         <!-- Edit form (hidden by default) -->
+
                         <div id="vendorProfileFormWrap" style="display: none;">
+
                             <div style="display: flex; align-items: center; gap: 1.5rem; margin-bottom: 1.5rem; flex-wrap: wrap;">
+
                                 <div style="flex: 0 0 80px;">
+
                                     {% if profile.logo %}
+
                                     <img src="{{ profile.logo.url }}" alt="Logo" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary);">
+
                                     {% else %}
+
                                     <div style="width: 80px; height: 80px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;"><i class="fas fa-building"></i></div>
+
                                     {% endif %}
+
                                 </div>
+
                                 <div>
+
                                     <h3 style="margin: 0 0 0.35rem 0; font-size: 1.25rem; font-weight: 700; color: #1a1a1a;">{{ profile.company_name|default:user.email }}</h3>
+
                                     <span style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%); color: white; border-radius: 16px; font-weight: 600; font-size: 0.8rem;">Vendor</span>
+
                                 </div>
+
                             </div>
-                            <form method="POST" id="vendorProfileForm" enctype="multipart/form-data" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update your profile information?">
+
+                            <form method="POST" id="vendorProfileForm" enctype="multipart/form-data" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update your profile?" data-farmity-success-call="toggleVendorEditMode">
+
                                 {% csrf_token %}
+
                                 <input type="hidden" name="update_profile" value="1">
+
                                 <input type="hidden" name="return_section" value="profile">
+
                                 <div class="profile-edit-grid" id="vendorProfileFields">
+
                                     <div class="edit-card form-group">
+
                                         <span class="profile-info-label">Email Address</span>
+
                                         <input type="email" name="email" id="vendorEmail" class="form-control" value="{{ user.email|default:'' }}" placeholder="Email address" autocomplete="email">
+                                        <p class="farmity-field-error" id="vendorProfileFormFieldError-email" role="alert" style="display:none;margin-top:0.35rem;font-size:0.8125rem;color:#dc3545;"></p>
+
                                     </div>
+
                                     <div class="edit-card form-group">
+
                                         <span class="profile-info-label">Company Name</span>
+
                                         <input type="text" name="company_name" id="vendorCompanyName" class="form-control" value="{{ profile.company_name|default:'' }}" placeholder="Company name">
+
                                     </div>
+
                                     <div class="edit-card form-group">
+
                                         <span class="profile-info-label">Contact</span>
+
                                         <input type="text" name="contact" id="vendorContact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Phone number">
+
                                     </div>
+
                                     <div class="edit-card form-group">
+
                                         <span class="profile-info-label">Website</span>
+
                                         <input type="text" name="website" class="form-control" value="{{ profile.website|default:'' }}" placeholder="https://...">
+
                                     </div>
+
                                     <div class="edit-card form-group">
+
                                         <span class="profile-info-label">Business Type</span>
+
                                         <input type="text" name="business_type" class="form-control" value="{{ profile.business_type|default:'' }}" placeholder="e.g. Equipment supplier">
+
                                     </div>
+
                                     <div class="edit-card form-group" style="grid-column: 1 / -1;">
+
                                         <span class="profile-info-label">Address</span>
+
                                         <textarea name="address" id="vendorAddress" class="form-control" rows="3" placeholder="Company address">{{ profile.address|default:'' }}</textarea>
+
                                     </div>
+
                                     <div class="edit-card form-group">
+
                                         <span class="profile-info-label">Member Since</span>
+
                                         <div style="font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-calendar" style="color: var(--primary);"></i> {{ user.date_joined|date:"M d, Y" }}</div>
+
                                     </div>
+
                                 </div>
+
                                 <div style="margin-top: 1.25rem; display: flex; gap: 0.5rem;">
+
                                     <button type="button" class="btn-primary btn-form-sm" style="background: #6c757d;" onclick="toggleVendorEditMode()"><i class="fas fa-times"></i> Cancel</button>
+
                                     <button type="submit" class="btn-edit-profile btn-form-sm"><i class="fas fa-save"></i> Save</button>
+
                                 </div>
+
                             </form>
+
                         </div>
+
                     </div>
+
                 </div>
+
             </div>
+
+
 
             <!-- Settings Section -->
+
             <div id="settings-section" class="dashboard-section" style="display: none;">
+
                 {% if active_section == 'settings' %}{% include 'includes/messages_block.html' %}{% endif %}
+
                 <div class="content-section">
+
                     <div class="section-header">
+
                         <h2><i class="fas fa-cog"></i> Settings</h2>
+
                     </div>
+
                     <div class="section-body">
+
                         <!-- Appearance Section -->
+
                         <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+
                                 <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+
                                     <i class="fas fa-palette" style="font-size: 1.75rem; color: white;"></i>
+
                                 </div>
+
                                 <h3 style="margin: 0; font-size: 1.5rem;">Appearance</h3>
+
                             </div>
+
                             <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+
                                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
+
                                     <div>
+
                                         <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: #333;">Theme Mode</label>
+
                                         <p style="margin: 0; color: #666; font-size: 0.9rem;">Choose your preferred theme</p>
+
                                     </div>
+
                                     <div class="theme-toggle">
+
                                         <input type="checkbox" id="themeToggle" class="theme-toggle-checkbox">
+
                                         <label for="themeToggle" class="theme-toggle-label">
+
                                             <span class="theme-toggle-ball"></span>
+
                                             <i class="fas fa-sun theme-icon-light"></i>
+
                                             <i class="fas fa-moon theme-icon-dark"></i>
+
                                         </label>
+
                                     </div>
+
                                 </div>
+
                             </div>
+
                         </div>
+
+
 
                         <!-- Notifications Section -->
+
                         <div style="margin-bottom: 3rem; padding-bottom: 2rem; border-bottom: 2px solid #eee;">
+
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+
                                 <div style="width: 50px; height: 50px; background: #fff3cd; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+
                                     <i class="fas fa-bell" style="font-size: 1.75rem; color: #856404;"></i>
+
                                 </div>
+
                                 <h3 style="margin: 0; font-size: 1.5rem;">Notifications</h3>
+
                             </div>
+
                             <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+
                                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
+
                                     <div>
+
                                         <label style="font-weight: 600; margin-bottom: 0.25rem; display: block; color: #333;">Email Notifications</label>
+
                                         <p style="margin: 0; color: #666; font-size: 0.9rem;">Receive order updates via email</p>
+
                                     </div>
+
                                     <label class="switch">
+
                                         <input type="checkbox" checked>
+
                                         <span class="slider"></span>
+
                                     </label>
+
                                 </div>
+
                                 <div style="display: flex; align-items: center; justify-content: space-between;">
+
                                     <div>
+
                                         <label style="font-weight: 600; margin-bottom: 0.25rem; display: block; color: #333;">Browser Notifications</label>
+
                                         <p style="margin: 0; color: #666; font-size: 0.9rem;">Show desktop notifications</p>
+
                                     </div>
+
                                     <label class="switch">
+
                                         <input type="checkbox">
+
                                         <span class="slider"></span>
+
                                     </label>
+
                                 </div>
+
                             </div>
+
                         </div>
+
+
 
                         <!-- Security Section -->
+
                         <div style="margin-bottom: 3rem;">
+
                             <div style="display: flex; align-items: center; gap: 1rem; margin-bottom: 2rem;">
+
                                 <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
+
                                     <i class="fas fa-lock" style="font-size: 1.75rem; color: var(--primary);"></i>
+
                                 </div>
+
                                 <h3 style="margin: 0; font-size: 1.5rem;">Security</h3>
+
                             </div>
+
                             <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
+
                                 <form method="POST" action="{% url 'change_password' %}">
+
                                     {% csrf_token %}
+
                                     <div class="form-group">
+
                                         <label>Current Password</label>
+
                                         <input type="password" name="current_password" class="form-control" placeholder="Enter your current password" required>
+
                                     </div>
+
                                     <div class="form-group">
+
                                         <label>New Password</label>
+
                                         <input type="password" name="new_password" class="form-control" placeholder="Enter your new password" required pattern=".{8,}" title="Password must be at least 8 characters">
+
                                         <small style="color: #666; font-size: 0.85rem; margin-top: 0.5rem; display: block;">Password must be at least 8 characters long</small>
+
                                     </div>
+
                                     <div class="form-group">
+
                                         <label>Confirm New Password</label>
+
                                         <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your new password" required>
+
                                     </div>
+
                                     <button type="submit" class="btn-primary">
+
                                         <i class="fas fa-key"></i> Update Password
+
                                     </button>
+
                                 </form>
+
                             </div>
+
                         </div>
 
+
+
                     </div>
+
                 </div>
+
             </div>
+
         </div>
+
     </div>
+
+
 
     <!-- Add/Edit Tool Modal -->
+
     <div id="toolModal" class="modal">
+
         <div class="modal-content">
+
             <div class="modal-header">
+
                 <h3 id="modalTitle">Add New Tool</h3>
+
                 <button class="close-modal" onclick="closeToolModal()">&times;</button>
+
             </div>
+
             <form id="toolForm" method="POST" enctype="multipart/form-data">
+
                 {% csrf_token %}
+
                 <input type="hidden" name="return_section" value="tools">
+
                 <input type="hidden" id="tool_id" name="tool_id">
+
                 <input type="hidden" id="form_action" name="add_tool" value="1">
+
                 
-                <div class="form-group">
-                    <label for="tool_name">Tool Name *</label>
-                    <input type="text" id="tool_name" name="name" class="form-control" required>
-                </div>
 
                 <div class="form-group">
-                    <label for="tool_description">Description</label>
-                    <textarea id="tool_description" name="description" class="form-control" rows="4"></textarea>
+
+                    <label for="tool_name">Tool Name *</label>
+
+                    <input type="text" id="tool_name" name="name" class="form-control" required>
+
                 </div>
+
+
+
+                <div class="form-group">
+
+                    <label for="tool_description">Description</label>
+
+                    <textarea id="tool_description" name="description" class="form-control" rows="4"></textarea>
+
+                </div>
+
+
 
                 <div class="form-row">
+
                     <div class="form-group">
+
                         <label for="tool_price">Price (NPR) *</label>
+
                         <input type="number" id="tool_price" name="price" class="form-control" step="0.01" min="0" required>
+
                         <small style="color: #666; font-size: 0.85rem; display: block; margin-top: 0.35rem;">
+
                             Note: When this tool is sold, the system will deduct an admin commission (around 20–30% per sale) from the sale amount before payout.
+
                         </small>
+
                     </div>
+
+
 
                     <div class="form-group">
+
                         <label for="tool_stock">Stock Quantity *</label>
+
                         <input type="number" id="tool_stock" name="stock" class="form-control" min="0" required>
+
                     </div>
+
                 </div>
 
+
+
                 <div class="form-group">
+
                     <label for="tool_image">Tool Image</label>
+
                     <input type="file" id="tool_image" name="image" accept="image/*" class="form-control" onchange="previewToolImage(this)">
+
                     <div id="tool_image_preview" style="margin-top: 1rem; display: none;">
+
                         <img id="tool_preview_img" src="" alt="Preview" style="max-width: 200px; border-radius: 8px;">
+
                     </div>
+
                 </div>
 
+
+
                 <div class="form-group">
+
                     <label class="form-checkbox">
+
                         <input type="checkbox" id="tool_available" name="is_available" checked>
+
                         <span>Available for Sale</span>
+
                     </label>
+
                 </div>
+
+
 
                 <div class="modal-footer">
+
                     <button type="button" class="btn-secondary" onclick="closeToolModal()">Cancel</button>
+
                     <button type="submit" class="btn-primary">Save Tool</button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
+
+
 
     <!-- Delete Tool Modal -->
+
     <div id="deleteToolModal" class="modal">
+
         <div class="modal-content">
+
             <div class="modal-header">
+
                 <h3>Delete Tool</h3>
+
                 <button class="close-modal" onclick="closeDeleteToolModal()">&times;</button>
+
             </div>
+
             <form method="POST">
+
                 {% csrf_token %}
+
                 <input type="hidden" name="return_section" value="tools">
+
                 <input type="hidden" id="delete_tool_id" name="tool_id">
+
                 <input type="hidden" name="delete_tool" value="1">
+
                 <p>Are you sure you want to delete <strong id="delete_tool_name"></strong>? This action cannot be undone.</p>
+
                 <div class="modal-footer">
+
                     <button type="button" class="btn-secondary" onclick="closeDeleteToolModal()">Cancel</button>
+
                     <button type="submit" class="btn-primary" style="background: var(--danger);">Delete</button>
+
                 </div>
+
             </form>
+
         </div>
+
     </div>
 
+
+
     <script src="/static/js/main.js"></script>
+
     <script>
+
         // Navigation
+
         function showSection(sectionId, evt) {
+
             document.querySelectorAll('.dashboard-section').forEach(section => {
+
                 section.style.display = 'none';
+
             });
+
             var target = document.getElementById(sectionId + '-section');
+
             if (target) target.style.display = 'block';
+
             document.querySelectorAll('.nav-item').forEach(item => {
+
                 item.classList.remove('active');
+
             });
+
             var clickedItem = (evt && evt.target) ? evt.target.closest('.nav-item') : null;
+
             if (!clickedItem) clickedItem = document.querySelector('.nav-item[href="#' + sectionId + '"]');
+
             if (clickedItem) clickedItem.classList.add('active');
 
+
+
             // Close sidebar after a section change on small screens
+
             const sidebar = document.getElementById('sidebar');
+
             if (sidebar && window.matchMedia && window.matchMedia('(max-width: 768px)').matches) {
+
                 sidebar.classList.remove('active');
+
             }
+
         }
+
+
 
         function toggleSidebar() {
+
             document.getElementById('sidebar').classList.toggle('active');
+
         }
+
+
 
         function toggleVendorEditMode() {
+
             var viewMode = document.getElementById('vendorProfileViewMode');
+
             var formWrap = document.getElementById('vendorProfileFormWrap');
+
             var btnText = document.getElementById('vendorEditBtnText');
+
             if (viewMode.style.display === 'none') {
+
                 viewMode.style.display = 'block';
+
                 formWrap.style.display = 'none';
+
                 if (btnText) btnText.textContent = 'Edit Profile';
+
             } else {
+
                 viewMode.style.display = 'none';
+
                 formWrap.style.display = 'block';
+
                 if (btnText) btnText.textContent = 'Cancel';
+
             }
+
         }
+
+
 
         // Modal Functions
+
         function openAddToolModal() {
+
             document.getElementById('toolModal').classList.add('active');
+
             document.getElementById('modalTitle').textContent = 'Add New Tool';
+
             document.getElementById('toolForm').reset();
+
             document.getElementById('tool_id').value = '';
+
             document.getElementById('form_action').name = 'add_tool';
+
             document.getElementById('form_action').value = '1';
+
             document.getElementById('tool_image_preview').style.display = 'none';
+
         }
+
+
 
         function closeToolModal() {
+
             document.getElementById('toolModal').classList.remove('active');
+
         }
+
+
 
         function openEditToolModal(id, name, description, price, stock, isAvailable, imageUrl) {
+
             document.getElementById('toolModal').classList.add('active');
+
             document.getElementById('modalTitle').textContent = 'Edit Tool';
+
             document.getElementById('tool_id').value = id;
+
             document.getElementById('tool_name').value = name;
+
             document.getElementById('tool_description').value = description || '';
+
             document.getElementById('tool_price').value = price;
+
             document.getElementById('tool_stock').value = stock;
+
             document.getElementById('tool_available').checked = isAvailable;
+
             document.getElementById('form_action').name = 'edit_tool';
+
             document.getElementById('form_action').value = '1';
+
             
+
             // Show existing image if available
+
             const preview = document.getElementById('tool_image_preview');
+
             if (imageUrl) {
+
                 document.getElementById('tool_preview_img').src = imageUrl;
+
                 preview.style.display = 'block';
+
             } else {
+
                 preview.style.display = 'none';
+
             }
+
         }
+
+
 
         function openDeleteToolModal(id, name) {
+
             document.getElementById('deleteToolModal').classList.add('active');
+
             document.getElementById('delete_tool_id').value = id;
+
             document.getElementById('delete_tool_name').textContent = name;
+
         }
+
+
 
         function closeDeleteToolModal() {
+
             document.getElementById('deleteToolModal').classList.remove('active');
+
         }
+
+
 
         // Close modal when clicking outside
+
         window.onclick = function(event) {
+
             if (event.target.classList.contains('modal')) {
+
                 event.target.classList.remove('active');
+
             }
+
         }
+
+
 
         // Image Preview
+
         function previewImage(input) {
+
             if (input.files && input.files[0]) {
+
                 const reader = new FileReader();
+
                 reader.onload = function(e) {
+
                     const img = input.closest('div').querySelector('img');
+
                     if (img) {
+
                         img.src = e.target.result;
+
                     }
+
                 };
+
                 reader.readAsDataURL(input.files[0]);
+
             }
+
         }
+
+
 
         function previewToolImage(input) {
+
             if (input.files && input.files[0]) {
+
                 const reader = new FileReader();
+
                 reader.onload = function(e) {
+
                     document.getElementById('tool_preview_img').src = e.target.result;
+
                     document.getElementById('tool_image_preview').style.display = 'block';
+
                 };
+
                 reader.readAsDataURL(input.files[0]);
+
             }
+
         }
+
+
 
         // Language Functions
+
         document.addEventListener('DOMContentLoaded', function() {
+
             var sectionFromUrl = new URLSearchParams(window.location.search).get('section');
+
             if (sectionFromUrl && document.getElementById(sectionFromUrl + '-section')) {
+
                 showSection(sectionFromUrl, null);
+
             }
+
+
 
             // Charts
+
             const revenueData = {{ revenue_data|safe }};
+
             
+
             // Revenue Chart
+
             const revenueCtx = document.getElementById('revenueChart');
+
             if (revenueCtx) {
+
                 new Chart(revenueCtx, {
+
                     type: 'line',
+
                     data: {
+
                         labels: revenueData.map(d => d.month || 'N/A'),
+
                         datasets: [{
+
                             label: 'Revenue (Rs.)',
+
                             data: revenueData.map(d => d.total_revenue || 0),
+
                             borderColor: 'rgb(53, 141, 88)',
+
                             backgroundColor: 'rgba(53, 141, 88, 0.1)',
+
                             tension: 0.4,
+
                             fill: true
+
                         }]
+
                     },
+
                     options: {
+
                         responsive: true,
+
                         maintainAspectRatio: false,
+
                         plugins: {
+
                             legend: {
+
                                 display: true
+
                             }
+
                         },
+
                         scales: {
+
                             y: {
+
                                 beginAtZero: true
+
                             }
+
                         }
+
                     }
+
                 });
+
             }
+
+
 
             // Orders Chart
+
             const ordersCtx = document.getElementById('ordersChart');
+
             if (ordersCtx) {
+
                 new Chart(ordersCtx, {
+
                     type: 'bar',
+
                     data: {
+
                         labels: revenueData.map(d => d.month || 'N/A'),
+
                         datasets: [{
+
                             label: 'Orders',
+
                             data: revenueData.map(d => d.order_count || 0),
+
                             backgroundColor: 'rgba(40, 167, 69, 0.8)',
+
                             borderColor: 'rgb(40, 167, 69)',
+
                             borderWidth: 1
+
                         }]
+
                     },
+
                     options: {
+
                         responsive: true,
+
                         maintainAspectRatio: false,
+
                         plugins: {
+
                             legend: {
+
                                 display: true
+
                             }
+
                         },
+
                         scales: {
+
                             y: {
+
                                 beginAtZero: true
+
                             }
+
                         }
+
                     }
+
                 });
+
             }
 
+
+
         });
+
+
 
         // Theme Toggle Functionality
+
         function initThemeToggle() {
+
             const themeToggle = document.getElementById('themeToggle');
+
             const body = document.body;
+
             
+
             // Load saved theme from localStorage
+
             const savedTheme = localStorage.getItem('theme');
+
             if (savedTheme === 'dark') {
+
                 body.classList.add('dark-mode');
+
                 themeToggle.checked = true;
+
             }
+
             
+
             // Handle theme toggle changes
+
             themeToggle.addEventListener('change', function() {
+
                 if (this.checked) {
+
                     body.classList.add('dark-mode');
+
                     localStorage.setItem('theme', 'dark');
+
                 } else {
+
                     body.classList.remove('dark-mode');
+
                     localStorage.setItem('theme', 'light');
+
                 }
+
             });
+
         }
 
+
+
         // Initialize theme toggle when DOM is ready
+
         document.addEventListener('DOMContentLoaded', function() {
+
             initThemeToggle();
+
         });
 
+
+
     </script>
+
     {% include 'includes/order_detail_modal.html' %}
+
     {% include 'includes/farmity_ux_scripts.html' %}
+
     {% include 'support_widget.html' %}
+
     {% include 'includes/user_dashboard_scroll.html' %}
+
 </body>
+
 </html>
+
