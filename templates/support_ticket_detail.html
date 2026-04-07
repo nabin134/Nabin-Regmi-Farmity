@@ -106,9 +106,20 @@
         .sup-msg {
             display: flex;
             max-width: 85%;
+            align-items: flex-end;
+            gap: 0.5rem;
         }
         .sup-msg.sent { align-self: flex-end; flex-direction: row-reverse; }
         .sup-msg.received { align-self: flex-start; }
+        .sup-msg-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 1px solid #dbe2ea;
+            background: #f1f5f9;
+            flex-shrink: 0;
+        }
         .sup-msg-bubble {
             padding: 0.75rem 1rem;
             border-radius: 14px;
@@ -255,9 +266,10 @@
                 {% if messages_list %}
                     {% for msg in messages_list %}
                     <div class="sup-msg {% if msg.sender_id == request.user.id %}sent{% else %}received{% endif %}" data-message-id="{{ msg.id }}">
+                        <img class="sup-msg-avatar" src="/static/images/default-avatar.png" alt="avatar">
                         <div class="sup-msg-bubble">
                             {{ msg.message|linebreaksbr }}
-                            <div class="sup-msg-meta">{{ msg.created_at|date:"M d, h:i A" }} · {{ msg.sender.email }}</div>
+                            <div class="sup-msg-meta">{{ msg.created_at|date:"M d, h:i A" }} · {{ msg.sender.get_full_name|default:msg.sender.email }}</div>
                         </div>
                     </div>
                     {% endfor %}
@@ -310,8 +322,9 @@
                 var row = document.createElement('div');
                 row.className = 'sup-msg ' + (mine ? 'sent' : 'received');
                 row.setAttribute('data-message-id', idStr);
-                row.innerHTML = '<div class="sup-msg-bubble">' + nl(msg.message || '') +
-                    '<div class="sup-msg-meta">' + esc(msg.created_at || '') + ' · ' + esc(msg.sender_email || '') + '</div></div>';
+                row.innerHTML = '<img class="sup-msg-avatar" src="' + esc(msg.sender_profile_image || '/static/images/default-avatar.png') + '" alt="avatar">' +
+                    '<div class="sup-msg-bubble">' + nl(msg.message || '') +
+                    '<div class="sup-msg-meta">' + esc(msg.created_at || '') + ' · ' + esc(msg.sender_name || 'User') + '</div></div>';
                 messagesEl.appendChild(row);
                 messagesEl.scrollTop = messagesEl.scrollHeight;
             }

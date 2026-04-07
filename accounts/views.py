@@ -79,16 +79,16 @@ def _chat_notification_link(recipient, thread_id):
 def get_user_profile_image(user):
     """Get user profile image URL based on user role."""
     try:
-        if hasattr(user, 'expertprofile'):
-            profile = user.expertprofile
+        if hasattr(user, 'expertprofile') or hasattr(user, 'expert_profile'):
+            profile = getattr(user, 'expertprofile', None) or getattr(user, 'expert_profile', None)
             if profile and profile.photo:
                 return profile.photo.url
-        elif hasattr(user, 'farmerprofile'):
-            profile = user.farmerprofile
+        elif hasattr(user, 'farmerprofile') or hasattr(user, 'farmer_profile'):
+            profile = getattr(user, 'farmerprofile', None) or getattr(user, 'farmer_profile', None)
             if profile and profile.photo:
                 return profile.photo.url
-        elif hasattr(user, 'userprofile'):
-            profile = user.userprofile
+        elif hasattr(user, 'userprofile') or hasattr(user, 'user_profile'):
+            profile = getattr(user, 'userprofile', None) or getattr(user, 'user_profile', None)
             if profile and profile.photo:
                 return profile.photo.url
     except:
@@ -99,25 +99,39 @@ def get_user_profile_image(user):
 def get_user_display_name(user):
     """Best-effort display name for chat/UI."""
     try:
-        if hasattr(user, 'expertprofile'):
-            p = user.expertprofile
+        if hasattr(user, 'expertprofile') or hasattr(user, 'expert_profile'):
+            p = getattr(user, 'expertprofile', None) or getattr(user, 'expert_profile', None)
             if p and getattr(p, 'name', None):
                 return p.name
-        if hasattr(user, 'farmerprofile'):
-            p = user.farmerprofile
+        if hasattr(user, 'farmerprofile') or hasattr(user, 'farmer_profile'):
+            p = getattr(user, 'farmerprofile', None) or getattr(user, 'farmer_profile', None)
             if p and getattr(p, 'name', None):
                 return p.name
-        if hasattr(user, 'vendorprofile'):
-            p = user.vendorprofile
+        if hasattr(user, 'vendorprofile') or hasattr(user, 'vendor_profile'):
+            p = getattr(user, 'vendorprofile', None) or getattr(user, 'vendor_profile', None)
             if p and getattr(p, 'company_name', None):
                 return p.company_name
-        if hasattr(user, 'userprofile'):
-            p = user.userprofile
+        if hasattr(user, 'userprofile') or hasattr(user, 'user_profile'):
+            p = getattr(user, 'userprofile', None) or getattr(user, 'user_profile', None)
             if p and getattr(p, 'name', None):
                 return p.name
     except Exception:
         pass
-    return (getattr(user, 'email', '') or 'User')
+    try:
+        full_name = (user.get_full_name() or '').strip()
+        if full_name:
+            return full_name
+    except Exception:
+        pass
+    username = (getattr(user, 'username', '') or '').strip()
+    if username:
+        return username
+    email = (getattr(user, 'email', '') or '').strip()
+    if email:
+        local = email.split('@', 1)[0].replace('.', ' ').replace('_', ' ').strip()
+        if local:
+            return ' '.join(part.capitalize() for part in local.split())
+    return 'User'
 
 
 # Password reset tokens storage (in production, use Redis or database)
@@ -3659,7 +3673,7 @@ def expert_dashboard(request):
             t.created_by_display_name = get_user_display_name(t.created_by)
             t.created_by_avatar = get_user_profile_image(t.created_by)
         except Exception:
-            t.created_by_display_name = (getattr(getattr(t, 'created_by', None), 'email', '') or 'User')
+            t.created_by_display_name = 'User'
             t.created_by_avatar = '/static/images/default-avatar.png'
     
     # Get all chat threads for statistics (not limited)
@@ -6132,6 +6146,8 @@ def _support_msg_to_json(message):
         'id': message.id,
         'message': message.message,
         'sender_email': message.sender.email,
+        'sender_name': get_user_display_name(message.sender),
+        'sender_profile_image': get_user_profile_image(message.sender),
         'sender_id': message.sender_id,
         'created_at': message.created_at.strftime('%b %d, %H:%M'),
     }
