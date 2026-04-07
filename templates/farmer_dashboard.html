@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    {% include 'includes/dark_mode_head.html' %}
     <title>Farmer Dashboard - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/css/form-validation.css">
@@ -479,6 +480,32 @@
         .earnings-table tbody tr:hover {
             background: #f9fcff;
         }
+        .release-history-table th,
+        .release-history-table td {
+            white-space: nowrap;
+            padding-left: 0.95rem;
+            padding-right: 0.95rem;
+        }
+        .release-history-table th:nth-child(1),
+        .release-history-table td:nth-child(1) {
+            width: 28%;
+            text-align: left;
+        }
+        .release-history-table th:nth-child(2),
+        .release-history-table td:nth-child(2) {
+            width: 26%;
+            text-align: right;
+        }
+        .release-history-table th:nth-child(3),
+        .release-history-table td:nth-child(3) {
+            width: 24%;
+            text-align: center;
+        }
+        .release-history-table th:nth-child(4),
+        .release-history-table td:nth-child(4) {
+            width: 22%;
+            text-align: center;
+        }
         .earnings-badge {
             display: inline-flex;
             align-items: center;
@@ -499,6 +526,70 @@
             background: #eff6ff;
             border-color: #bfdbfe;
         }
+        .person-cell {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+        .person-name {
+            font-weight: 600;
+            color: #1f2937;
+            line-height: 1.2;
+        }
+        .person-email {
+            font-size: 0.78rem;
+            color: #6b7280;
+            line-height: 1.2;
+            word-break: break-all;
+        }
+        .earnings-tx-date {
+            white-space: nowrap;
+            font-size: 0.88rem;
+            color: #334155;
+        }
+        .earnings-tx-time {
+            display: block;
+            font-size: 0.75rem;
+            color: #94a3b8;
+            font-weight: 400;
+            margin-top: 0.2rem;
+        }
+        .earnings-tx-summary {
+            min-width: 0;
+            max-width: min(480px, 58vw);
+        }
+        .earnings-tx-title {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 0.9rem;
+            line-height: 1.3;
+        }
+        .earnings-tx-meta {
+            display: block;
+            margin-top: 0.28rem;
+            font-size: 0.78rem;
+            color: #64748b;
+            line-height: 1.4;
+        }
+        .earnings-tx-amount {
+            font-weight: 600;
+            color: #166534;
+            white-space: nowrap;
+        }
+        .earnings-tx-amount.earnings-tx-amount--purchase {
+            color: #1d4ed8;
+        }
+        .earnings-tx-actions {
+            white-space: nowrap;
+            text-align: right;
+            width: 1%;
+        }
+        .btn-earnings-view {
+            padding: 0.4rem 0.75rem;
+            font-size: 0.8rem;
+            border-radius: 8px;
+        }
+
 
         /* Content Sections */
         .content-section {
@@ -889,6 +980,15 @@
             font-size: 0.8rem;
             font-weight: 700;
             flex-shrink: 0;
+            overflow: hidden;
+        }
+        .chat-item-avatar img,
+        .message-avatar img,
+        .chat-header-avatar img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 50%;
         }
 
         .chat-item-body {
@@ -926,6 +1026,24 @@
         .chat-header {
             padding: 1rem 1.25rem;
             border-bottom: 1px solid #e5e7eb;
+        }
+        .chat-header-main {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+        }
+        .chat-header-avatar {
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            background: #e5f3eb;
+            color: var(--primary);
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            font-size: 0.9rem;
+            overflow: hidden;
         }
 
         .chat-header-title {
@@ -1898,7 +2016,7 @@
             </a>
             <a href="#my_orders" class="nav-item" onclick="return showSection('my_orders', event);">
                 <i class="fas fa-shopping-bag"></i>
-                <span>My Orders</span>
+                <span data-translate="nav.myOrders">My Orders</span>
             </a>
             <a href="#orders" class="nav-item" onclick="return showSection('orders', event);">
                 <i class="fas fa-shopping-cart"></i>
@@ -1906,7 +2024,7 @@
             </a>
             <a href="#earnings" class="nav-item" onclick="return showSection('earnings', event);">
                 <i class="fas fa-wallet"></i>
-                <span>Earnings</span>
+                <span data-translate="nav.earnings">Earnings</span>
             </a>
             <a href="#profile" class="nav-item" onclick="return showSection('profile', event);">
                 <i class="fas fa-user"></i>
@@ -1957,9 +2075,6 @@
 
         <!-- Dashboard Content -->
         <div class="dashboard-content">
-
-        <!-- Dashboard Content -->
-        <div class="dashboard-content">
             <!-- KYC Alert -->
             {% if kyc_status != 'approved' %}
             <div class="kyc-alert {% if kyc_status == 'rejected' %}rejected{% elif kyc_status == 'pending' %}pending{% endif %}" style="margin-bottom: 2rem;">
@@ -1967,20 +2082,29 @@
                     <div class="kyc-text">
                         <h3>
                             <i class="fas fa-file-contract"></i>
-                            <span data-translate="kyc.{% if kyc_status == 'pending' %}pending{% elif kyc_status == 'rejected' %}rejected{% else %}required{% endif %}">
-                                {% if kyc_status == 'pending' %}KYC Verification Pending
-                                {% elif kyc_status == 'rejected' %}KYC Verification Rejected
-                                {% else %}KYC Verification Required{% endif %}
-                            </span>
+                            {% if kyc_status == 'pending' %}
+                            <span data-translate="kyc.pending">KYC Verification Pending</span>
+                            {% elif kyc_status == 'rejected' %}
+                            <span data-translate="kyc.rejected">KYC Verification Rejected</span>
+                            {% else %}
+                            <span data-translate="kyc.required">KYC Verification Required</span>
+                            {% endif %}
                         </h3>
-                        <p data-translate="kyc.{% if kyc_status == 'pending' %}pendingDesc{% elif kyc_status == 'rejected' %}rejectedDesc{% else %}requiredDesc{% endif %}">
-                            {% if kyc_status == 'pending' %}Your KYC documents are under review. Please wait for approval.
-                            {% elif kyc_status == 'rejected' %}{% if kyc_request.rejection_reason %}Reason: {{ kyc_request.rejection_reason }}{% endif %} Please update your documents and resubmit.
-                            {% else %}Upload your documents to verify your farmer status and access all features.{% endif %}
-                        </p>
+                        {% if kyc_status == 'pending' %}
+                        <p data-translate="kyc.pendingDesc">Your KYC documents are under review. Please wait for approval.</p>
+                        {% elif kyc_status == 'rejected' %}
+                        <p data-translate="kyc.rejectedDesc">{% if kyc_request.rejection_reason %}Reason: {{ kyc_request.rejection_reason }}{% endif %} Please update your documents and resubmit.</p>
+                        {% else %}
+                        <p data-translate="kyc.requiredDesc">Upload your documents to verify your farmer status and access all features.</p>
+                        {% endif %}
                     </div>
                     <a href="{% url 'kyc' %}" class="kyc-btn">
-                        <i class="fas fa-upload"></i> {% if kyc_status == 'rejected' or not kyc_status %}Upload KYC{% else %}View Status{% endif %}
+                        <i class="fas fa-upload"></i>
+                        {% if kyc_status == 'rejected' or not kyc_status %}
+                        <span data-translate="kyc.btnUpload">Upload KYC</span>
+                        {% else %}
+                        <span data-translate="kyc.btnViewStatus">View Status</span>
+                        {% endif %}
                     </a>
                 </div>
             </div>
@@ -2183,7 +2307,7 @@
                 {% if active_section == 'tools' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-tools"></i> Farming Tools & Equipment</h2>
+                        <h2><i class="fas fa-tools"></i> <span data-translate="tools.title">Farming Tools & Equipment</span></h2>
                     </div>
                     <div class="section-body tools-section-body">
                         {% if available_tools %}
@@ -2255,7 +2379,7 @@
                 {% if active_section == 'experts' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-user-graduate"></i> Agricultural Experts</h2>
+                        <h2><i class="fas fa-user-graduate"></i> <span data-translate="experts.title">Agricultural Experts</span></h2>
                     </div>
                     <div class="section-body">
                         {% if experts %}
@@ -2296,7 +2420,7 @@
                                         <i class="fas fa-id-card"></i> View profile
                                     </button>
                                     {% if kyc_status == 'approved' %}
-                                    <button class="btn-primary" onclick="openChatWithExpert({{ expert.id }}, '{{ expert.name|default:expert.user.email|escapejs }}', '{{ expert.qualification|default:""|escapejs }}', '{{ expert.specialization|default:""|escapejs }}', '{{ expert.experience|default:""|escapejs }}')" style="display: inline-flex; align-items: center; gap: 0.5rem;">
+                                    <button class="btn-primary" onclick="openChatWithExpert({{ expert.id }}, '{{ expert.name|default:expert.user.email|escapejs }}', '{{ expert.qualification|default:""|escapejs }}', '{{ expert.specialization|default:""|escapejs }}', '{{ expert.experience|default:""|escapejs }}', '{% if expert.photo %}{{ expert.photo.url|escapejs }}{% endif %}')" style="display: inline-flex; align-items: center; gap: 0.5rem;">
                                         <i class="fas fa-comments"></i> Chat
                                     </button>
                                     {% else %}
@@ -2327,14 +2451,14 @@
                 {% if active_section == 'chat' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-comments"></i> Chat with Experts</h2>
+                        <h2><i class="fas fa-comments"></i> <span data-translate="chat.title">Chat with Experts</span></h2>
                     </div>
                     <div class="section-body">
                         <div class="chat-container">
                             <div class="chat-sidebar">
                                 <div class="chat-sidebar-header">
                                     <i class="fas fa-user-graduate"></i>
-                                    <span>Conversations</span>
+                                    <span data-translate="chat.conversations">Conversations</span>
                                 </div>
                                 <ul class="chat-list">
                                     {% for thread in chat_threads %}
@@ -2345,9 +2469,14 @@
                                         data-expert-spec="{{ thread.expert.specialization|default:'Expert' }}"
                                         data-expert-qual="{{ thread.expert.qualification|default:'' }}"
                                         data-expert-exp="{{ thread.expert.experience|default:'' }}"
-                                        onclick="loadChatThread({{ thread.id }}, '{{ thread.expert.name|default:thread.expert.user.email|escapejs }}', '{{ thread.expert.qualification|escapejs }}', '{{ thread.expert.specialization|escapejs }}', '{{ thread.expert.experience|escapejs }}')">
+                                        data-expert-photo="{% if thread.expert.photo %}{{ thread.expert.photo.url }}{% endif %}"
+                                        onclick="loadChatThread({{ thread.id }}, '{{ thread.expert.name|default:thread.expert.user.email|escapejs }}', '{{ thread.expert.qualification|escapejs }}', '{{ thread.expert.specialization|escapejs }}', '{{ thread.expert.experience|escapejs }}', '{% if thread.expert.photo %}{{ thread.expert.photo.url|escapejs }}{% endif %}')">
                                         <div class="chat-item-avatar">
+                                            {% if thread.expert.photo %}
+                                            <img src="{{ thread.expert.photo.url }}" alt="{{ thread.expert.name|default:thread.expert.user.email }}">
+                                            {% else %}
                                             <i class="fas fa-user-graduate"></i>
+                                            {% endif %}
                                         </div>
                                         <div class="chat-item-body">
                                             <div class="chat-item-name">{{ thread.expert.name|default:thread.expert.user.email }}</div>
@@ -2357,27 +2486,29 @@
                                         </div>
                                     </li>
                                     {% empty %}
-                                    <li style="padding: 1rem; text-align: center; color: #999;">No chat threads yet. Start chatting with an expert!</li>
+                                    <li style="padding: 1rem; text-align: center; color: #999;" data-translate="chat.emptyThreads">No chat threads yet. Start chatting with an expert!</li>
                                     {% endfor %}
                                 </ul>
                             </div>
                             <div class="chat-main">
                                 <div class="chat-header" id="chatHeader">
-                                    <div class="chat-header-title">
-                                        <i class="fas fa-comments"></i>
-                                        <span>Select an expert to start chatting</span>
+                                    <div class="chat-header-main">
+                                        <div class="chat-header-avatar"><i class="fas fa-comments"></i></div>
+                                        <div class="chat-header-title">
+                                            <span data-translate="chat.selectTitle">Select an expert to start chatting</span>
+                                        </div>
                                     </div>
                                     <div class="chat-header-subtitle" id="chatHeaderSubtitle"></div>
                                 </div>
                                 <div class="chat-messages" id="chatMessages">
-                                    <div style="text-align: center; color: #999; padding: 2rem;">
+                                    <div style="text-align: center; color: #999; padding: 2rem;" data-translate="chat.selectPrompt">
                                         Select an expert from the sidebar to start a conversation
                                     </div>
                                 </div>
                                 <div class="chat-input-area" id="chatInputArea" style="display: none;">
-                                    <input type="text" class="chat-input" id="chatInput" placeholder="Type your message..." {% if kyc_status != 'approved' %}disabled{% endif %}>
+                                    <input type="text" class="chat-input" id="chatInput" data-translate-placeholder="chat.placeholder" placeholder="Type your message..." {% if kyc_status != 'approved' %}disabled{% endif %}>
                                     <button class="btn-send" onclick="sendMessage()" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
-                                        <i class="fas fa-paper-plane"></i> Send
+                                        <i class="fas fa-paper-plane"></i> <span data-translate="chat.send">Send</span>
                                     </button>
                                 </div>
                             </div>
@@ -2391,7 +2522,7 @@
                 {% if active_section == 'blogs' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-blog"></i> Blogs</h2>
+                        <h2><i class="fas fa-blog"></i> <span data-translate="blogs.title">Blogs</span></h2>
                     </div>
                     <div class="section-body">
                         {% if tips %}
@@ -2417,7 +2548,7 @@
                         {% else %}
                         <div class="empty-state">
                             <i class="fas fa-blog"></i>
-                            <h3>No blogs yet</h3>
+                            <h3 data-translate="blogs.emptyTitle">No blogs yet</h3>
                             <p>Check back later for articles and tips from our experts</p>
                         </div>
                         {% endif %}
@@ -2493,6 +2624,7 @@
                                             data-expert-qual="{{ appointment.expert.qualification|default:'' }}"
                                             data-expert-spec="{{ appointment.expert.specialization|default:'' }}"
                                             data-expert-exp="{{ appointment.expert.experience|default:'' }}"
+                                            data-expert-photo="{% if appointment.expert.photo %}{{ appointment.expert.photo.url }}{% endif %}"
                                             data-date="{{ appointment.requested_date|date:'M d, Y' }}"
                                             data-time="{{ appointment.requested_time|time:'g:i A' }}"
                                             data-status="{{ appointment.get_status_display }}"
@@ -2504,7 +2636,7 @@
                                     </button>
                                     <button type="button"
                                             class="btn-primary appointment-btn-success"
-                                            onclick="openChatWithExpert({{ appointment.expert.id }}, '{{ appointment.expert.name|default:appointment.expert.user.email|escapejs }}', '{{ appointment.expert.qualification|escapejs }}', '{{ appointment.expert.specialization|escapejs }}', '{{ appointment.expert.experience|escapejs }}')">
+                                            onclick="openChatWithExpert({{ appointment.expert.id }}, '{{ appointment.expert.name|default:appointment.expert.user.email|escapejs }}', '{{ appointment.expert.qualification|escapejs }}', '{{ appointment.expert.specialization|escapejs }}', '{{ appointment.expert.experience|escapejs }}', '{% if appointment.expert.photo %}{{ appointment.expert.photo.url|escapejs }}{% endif %}')">
                                         <i class="fas fa-comments"></i> <span data-translate="appointments.joinChat">Join chat</span>
                                     </button>
                                     {% if appointment.status == 'pending' %}
@@ -2537,10 +2669,10 @@
                 {% if active_section == 'my_orders' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-shopping-bag"></i> My Orders</h2>
+                        <h2><i class="fas fa-shopping-bag"></i> <span data-translate="myOrders.title">My Orders</span></h2>
                     </div>
                     <div class="section-body">
-                        <p style="margin: -0.5rem 0 1rem 0; font-size: 0.9rem; color: #666;">Orders you placed for tools or produce. Click <strong>View details</strong> to see full order info and shipping address.</p>
+                        <p style="margin: -0.5rem 0 1rem 0; font-size: 0.9rem; color: #666;" data-translate="myOrders.help">Orders you placed for tools or produce. Click <strong>View details</strong> to see full order info and shipping address.</p>
                         {% if farmer_my_orders %}
                         <div class="farmer-orders-card-grid">
                             {% for order in farmer_my_orders %}
@@ -2555,7 +2687,7 @@
                                 <p class="farmer-order-meta"><i class="far fa-calendar"></i> {{ order.created_at|date:"M d, Y · h:i A" }}</p>
                                 <div class="farmer-order-card-footer">
                                     <span class="farmer-order-total">Rs. {{ order.total_amount|default:0|floatformat:2 }} <small>(incl. Rs. {{ order.shipping_cost|default:0 }} shipping)</small></span>
-                                    <button type="button" onclick="openOrderDetailModal({{ order.id }})" class="btn-primary farmer-order-view-btn"><i class="fas fa-eye"></i> View details</button>
+                                    <button type="button" onclick="openOrderDetailModal({{ order.id }})" class="btn-primary farmer-order-view-btn"><i class="fas fa-eye"></i> <span data-translate="myOrders.viewDetails">View details</span></button>
                                 </div>
                             </div>
                             {% endfor %}
@@ -2563,7 +2695,7 @@
                         {% else %}
                         <div class="empty-state">
                             <i class="fas fa-shopping-bag"></i>
-                            <h3>No orders yet</h3>
+                            <h3 data-translate="myOrders.empty">No orders yet</h3>
                             <p>When you buy tools or produce, your orders will appear here.</p>
                         </div>
                         {% endif %}
@@ -2664,7 +2796,7 @@
                         {% else %}
                         <div class="empty-state">
                             <i class="fas fa-shopping-cart"></i>
-                            <h3>No orders for your crops yet</h3>
+                            <h3 data-translate="orders.emptyReceived">No orders for your crops yet</h3>
                             <p>When buyers place orders for your crops, they will appear here. Shipping is handled by admin.</p>
                         </div>
                         {% endif %}
@@ -2677,10 +2809,10 @@
                 {% if active_section == 'earnings' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-wallet"></i> Earnings</h2>
+                        <h2><i class="fas fa-wallet"></i> <span data-translate="earnings.title">Earnings</span></h2>
                     </div>
                     <div class="section-body">
-                        <p class="earnings-intro">Summary of your crop sales and payouts from admin.</p>
+                        <p class="earnings-intro" data-translate="earnings.intro">Summary of your crop sales and payouts from admin.</p>
                         <div class="earnings-cards">
                             <div class="earnings-card card-total-earning">
                                 <span class="earnings-card-label"><i class="fas fa-coins"></i>Total earning</span>
@@ -2705,34 +2837,42 @@
                         </div>
                         <div class="content-section earnings-subsection" style="margin-top: 2rem;">
                             <div class="section-header">
-                                <h3><i class="fas fa-history"></i> Release history</h3>
+                                <h3><i class="fas fa-history"></i> <span data-translate="earnings.releaseHistory">Release history</span></h3>
                             </div>
                             <div class="section-body">
                                 {% if farmer_released_payouts %}
                                 <div class="table-responsive earnings-table-wrap">
-                                    <table class="data-table earnings-table">
+                                    <table class="data-table earnings-table release-history-table">
                                         <thead>
-                                            <tr><th>Date released</th><th>Amount</th><th>Orders</th></tr>
+                                            <tr>
+                                                <th data-translate="earnings.dateReleased">Date released</th>
+                                                <th data-translate="earnings.amount">Amount</th>
+                                                <th data-translate="earnings.ordersIncluded">Orders included</th>
+                                                <th data-translate="earnings.actions">Actions</th>
+                                            </tr>
                                         </thead>
                                         <tbody>
                                             {% for p in farmer_released_payouts %}
                                             <tr>
-                                                <td>{{ p.payout_date|date:"M d, Y" }}</td>
-                                                <td>Rs. {{ p.amount|floatformat:2 }}</td>
-                                                <td>{{ p.order_count }}</td>
+                                                <td class="earnings-tx-date">{{ p.payout_date|date:"M d, Y" }}</td>
+                                                <td class="earnings-tx-amount">Rs. {{ p.amount|floatformat:2 }}</td>
+                                                <td class="release-orders-count">{{ p.order_count }}</td>
+                                                <td class="earnings-tx-actions release-action-cell">
+                                                    <span class="earnings-badge sale" data-translate="common.success">Success</span>
+                                                </td>
                                             </tr>
                                             {% endfor %}
                                         </tbody>
                                     </table>
                                 </div>
                                 {% else %}
-                                <p style="color: #6c757d;">No payouts released yet. When admin releases your pending amount, it will appear here.</p>
+                                <p style="color: #6c757d;" data-translate="earnings.noPayouts">No payouts released yet. When admin releases your pending amount, it will appear here.</p>
                                 {% endif %}
                             </div>
                         </div>
                         <div class="content-section earnings-subsection" style="margin-top: 2rem;">
                             <div class="section-header">
-                                <h3><i class="fas fa-receipt"></i> Transaction records (sales)</h3>
+                                <h3><i class="fas fa-receipt"></i> <span data-translate="earnings.salesTx">Transaction records (sales)</span></h3>
                             </div>
                             <div class="section-body">
                                 {% if farmer_sale_transactions %}
@@ -2740,40 +2880,37 @@
                                     <table class="data-table earnings-table">
                                         <thead>
                                             <tr>
-                                                <th>Date & time</th>
-                                                <th>Order</th>
-                                                <th>Buyer</th>
-                                                <th>Item</th>
-                                                <th>Qty</th>
-                                                <th>Total</th>
-                                                <th>Payment</th>
-                                                <th>Payout</th>
+                                                <th data-translate="earnings.colDate">Date</th>
+                                                <th data-translate="earnings.colSummary">Transaction</th>
+                                                <th data-translate="earnings.colTotal">Total</th>
+                                                <th data-translate="earnings.colView">View</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {% for t in farmer_sale_transactions %}
                                             <tr>
-                                                <td>{{ t.created_at|date:"M d, Y h:i A" }}</td>
-                                                <td><span class="earnings-badge sale">#{{ t.id }}</span></td>
-                                                <td>{{ t.buyer.email }}</td>
-                                                <td>{{ t.crop.name|default:"-" }}</td>
-                                                <td>{{ t.quantity }} {% if t.crop %}{{ t.crop.unit }}{% endif %}</td>
-                                                <td>Rs. {{ t.total_amount|floatformat:2 }}</td>
-                                                <td>{{ t.get_payment_method_display|default:"-" }} / {{ t.get_payment_status_display|default:"Pending" }}</td>
-                                                <td>{{ t.get_payout_status_display|default:"Pending payout" }}{% if t.payout_at %} ({{ t.payout_at|date:"M d, Y h:i A" }}){% endif %}</td>
+                                                <td class="earnings-tx-date">{{ t.created_at|date:"M d, Y" }}<span class="earnings-tx-time">{{ t.created_at|date:"h:i A" }}</span></td>
+                                                <td class="earnings-tx-summary">
+                                                    <span class="earnings-tx-title">{{ t.crop.name|default:"—" }}</span>
+                                                    <span class="earnings-tx-meta"><span class="earnings-badge sale">#{{ t.id }}</span> · {{ t.buyer.get_full_name|default:t.buyer.email }} · {{ t.quantity }}{% if t.crop %} {{ t.crop.unit }}{% endif %}</span>
+                                                </td>
+                                                <td class="earnings-tx-amount">Rs. {{ t.total_amount|floatformat:2 }}</td>
+                                                <td class="earnings-tx-actions">
+                                                    <button type="button" class="btn-primary btn-earnings-view" onclick="openOrderDetailModal({{ t.id }})" title="Full order details"><i class="fas fa-eye"></i> <span data-translate="common.view">View</span></button>
+                                                </td>
                                             </tr>
                                             {% endfor %}
                                         </tbody>
                                     </table>
                                 </div>
                                 {% else %}
-                                <p style="color: #6c757d;">No sales transactions yet.</p>
+                                <p style="color: #6c757d;" data-translate="earnings.noSalesTx">No sales transactions yet.</p>
                                 {% endif %}
                             </div>
                         </div>
                         <div class="content-section earnings-subsection" style="margin-top: 2rem;">
                             <div class="section-header">
-                                <h3><i class="fas fa-cart-arrow-down"></i> Transaction records (purchases)</h3>
+                                <h3><i class="fas fa-cart-arrow-down"></i> <span data-translate="earnings.purchaseTx">Transaction records (purchases)</span></h3>
                             </div>
                             <div class="section-body">
                                 {% if farmer_purchase_transactions %}
@@ -2781,40 +2918,31 @@
                                     <table class="data-table earnings-table">
                                         <thead>
                                             <tr>
-                                                <th>Date & time</th>
-                                                <th>Order</th>
-                                                <th>Type</th>
-                                                <th>Seller</th>
-                                                <th>Item</th>
-                                                <th>Qty</th>
-                                                <th>Total</th>
-                                                <th>Payment</th>
-                                                <th>Status</th>
+                                                <th data-translate="earnings.colDate">Date</th>
+                                                <th data-translate="earnings.colSummary">Transaction</th>
+                                                <th data-translate="earnings.colTotal">Total</th>
+                                                <th data-translate="earnings.colView">View</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {% for t in farmer_purchase_transactions %}
                                             <tr>
-                                                <td>{{ t.created_at|date:"M d, Y h:i A" }}</td>
-                                                <td><span class="earnings-badge purchase">#{{ t.id }}</span></td>
-                                                <td><span class="earnings-badge purchase">{% if t.tool %}Tool{% elif t.crop %}Crop{% else %}-{% endif %}</span></td>
-                                                <td>
-                                                    {% if t.tool and t.tool.vendor %}{{ t.tool.vendor.company_name|default:t.tool.vendor.user.email }}
-                                                    {% elif t.crop and t.crop.farmer %}{{ t.crop.farmer.name|default:t.crop.farmer.user.email }}
-                                                    {% else %}-{% endif %}
+                                                <td class="earnings-tx-date">{{ t.created_at|date:"M d, Y" }}<span class="earnings-tx-time">{{ t.created_at|date:"h:i A" }}</span></td>
+                                                <td class="earnings-tx-summary">
+                                                    <span class="earnings-tx-title">{% if t.tool %}{{ t.tool.name }}{% elif t.crop %}{{ t.crop.name }}{% else %}—{% endif %}</span>
+                                                    <span class="earnings-tx-meta"><span class="earnings-badge purchase">#{{ t.id }}</span> · {% if t.tool %}Tool{% elif t.crop %}Crop{% else %}—{% endif %} · {% if t.tool and t.tool.vendor %}{{ t.tool.vendor.company_name|default:t.tool.vendor.user.get_full_name|default:t.tool.vendor.user.email }}{% elif t.crop and t.crop.farmer %}{{ t.crop.farmer.name|default:t.crop.farmer.user.get_full_name|default:t.crop.farmer.user.email }}{% else %}—{% endif %} · {{ t.get_status_display }}</span>
                                                 </td>
-                                                <td>{% if t.tool %}{{ t.tool.name }}{% elif t.crop %}{{ t.crop.name }}{% else %}-{% endif %}</td>
-                                                <td>{{ t.quantity }}</td>
-                                                <td>Rs. {{ t.total_amount|floatformat:2 }}</td>
-                                                <td>{{ t.get_payment_method_display|default:"-" }} / {{ t.get_payment_status_display|default:"Pending" }}</td>
-                                                <td>{{ t.get_status_display }}</td>
+                                                <td class="earnings-tx-amount earnings-tx-amount--purchase">Rs. {{ t.total_amount|floatformat:2 }}</td>
+                                                <td class="earnings-tx-actions">
+                                                    <button type="button" class="btn-primary btn-earnings-view" onclick="openOrderDetailModal({{ t.id }})" title="Full order details"><i class="fas fa-eye"></i> <span data-translate="common.view">View</span></button>
+                                                </td>
                                             </tr>
                                             {% endfor %}
                                         </tbody>
                                     </table>
                                 </div>
                                 {% else %}
-                                <p style="color: #6c757d;">No purchase transactions yet.</p>
+                                <p style="color: #6c757d;" data-translate="earnings.noPurchaseTx">No purchase transactions yet.</p>
                                 {% endif %}
                             </div>
                         </div>
@@ -2829,7 +2957,7 @@
                     <div class="section-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
                         <h2><i class="fas fa-user"></i> <span data-translate="profile.title">My Profile</span></h2>
                         <button type="button" id="farmerProfileEditBtn" onclick="toggleFarmerEditMode()" class="btn-edit-profile">
-                            <i class="fas fa-edit"></i> <span id="farmerEditBtnText">Edit Profile</span>
+                            <i class="fas fa-edit"></i> <span id="farmerEditBtnText" data-translate="profile.editBtn">Edit Profile</span>
                         </button>
                     </div>
                     <div class="section-body">
@@ -2864,7 +2992,7 @@
                             </div>
                             <div class="profile-info-grid">
                                 <div class="info-card">
-                                    <span class="profile-info-label">Email Address</span>
+                                    <span class="profile-info-label" data-translate="profile.email">Email Address</span>
                                     <div class="profile-info-value"><i class="fas fa-envelope"></i> <span data-profile-email-display>{{ user.email|default:"Not set" }}</span></div>
                                 </div>
                                 <div class="info-card">
@@ -2892,7 +3020,7 @@
                                     <div class="profile-info-value"><i class="fas fa-paw"></i> {{ profile.livestock_details|default:"Not set" }}</div>
                                 </div>
                                 <div class="info-card">
-                                    <span class="profile-info-label">Member Since</span>
+                                    <span class="profile-info-label" data-translate="profile.memberSince">Member Since</span>
                                     <div class="profile-info-value"><i class="fas fa-calendar"></i> {{ user.date_joined|date:"M d, Y" }}</div>
                                 </div>
                             </div>
@@ -2918,7 +3046,7 @@
                                 <input type="hidden" name="return_section" value="profile">
                                 <div class="profile-edit-grid" id="farmerProfileFields">
                                     <div class="edit-card form-group">
-                                        <span class="profile-info-label">Email Address</span>
+                                        <span class="profile-info-label" data-translate="profile.email">Email Address</span>
                                         <input type="email" name="email" id="farmerEmail" class="form-control" value="{{ user.email|default:'' }}" placeholder="Email address" autocomplete="email">
                                         <p class="farmity-field-error" id="farmerProfileFormFieldError-email" role="alert" style="display:none;margin-top:0.35rem;font-size:0.8125rem;color:#dc3545;"></p>
                                     </div>
@@ -2939,7 +3067,7 @@
                                         <input type="text" name="farm_size" id="farmerFarmSize" class="form-control" value="{{ profile.farm_size|default:'' }}" placeholder="e.g., 5 acres">
                                     </div>
                                     <div class="edit-card form-group">
-                                        <span class="profile-info-label">Member Since</span>
+                                        <span class="profile-info-label" data-translate="profile.memberSince">Member Since</span>
                                         <div style="font-weight: 600; color: #1a1a1a; display: flex; align-items: center; gap: 0.5rem;"><i class="fas fa-calendar" style="color: var(--primary);"></i> {{ user.date_joined|date:"M d, Y" }}</div>
                                     </div>
                                     <div class="edit-card form-group" style="grid-column: 1 / -1;">
@@ -2975,13 +3103,13 @@
                                 <div style="width: 50px; height: 50px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                     <i class="fas fa-palette" style="font-size: 1.75rem; color: white;"></i>
                                 </div>
-                                <h3 style="margin: 0; font-size: 1.5rem;">Appearance</h3>
+                                <h3 style="margin: 0; font-size: 1.5rem;" data-translate="settings.appearance">Appearance</h3>
                             </div>
                             <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
                                 <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem;">
                                     <div>
-                                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: #333;">Theme Mode</label>
-                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">Choose your preferred theme</p>
+                                        <label style="font-weight: 600; margin-bottom: 0.5rem; display: block; color: #333;" data-translate="settings.themeLabel">Theme Mode</label>
+                                        <p style="margin: 0; color: #666; font-size: 0.9rem;" data-translate="settings.themeDesc">Choose your preferred theme</p>
                                     </div>
                                     <div class="theme-toggle">
                                         <input type="checkbox" id="themeToggle" class="theme-toggle-checkbox">
@@ -3001,13 +3129,13 @@
                                 <div style="width: 50px; height: 50px; background: #fff3cd; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                     <i class="fas fa-bell" style="font-size: 1.75rem; color: #856404;"></i>
                                 </div>
-                                <h3 style="margin: 0; font-size: 1.5rem;">Notifications</h3>
+                                <h3 style="margin: 0; font-size: 1.5rem;" data-translate="settings.notifications">Notifications</h3>
                             </div>
                             <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
                                 <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 1rem;">
                                     <div>
-                                        <label style="font-weight: 600; margin-bottom: 0.25rem; display: block; color: #333;">Email Notifications</label>
-                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">Receive order updates via email</p>
+                                        <label style="font-weight: 600; margin-bottom: 0.25rem; display: block; color: #333;" data-translate="settings.emailNotif">Email Notifications</label>
+                                        <p style="margin: 0; color: #666; font-size: 0.9rem;" data-translate="settings.emailNotifDesc">Receive order updates via email</p>
                                     </div>
                                     <label class="switch">
                                         <input type="checkbox" checked>
@@ -3016,8 +3144,8 @@
                                 </div>
                                 <div style="display: flex; align-items: center; justify-content: space-between;">
                                     <div>
-                                        <label style="font-weight: 600; margin-bottom: 0.25rem; display: block; color: #333;">Browser Notifications</label>
-                                        <p style="margin: 0; color: #666; font-size: 0.9rem;">Show desktop notifications</p>
+                                        <label style="font-weight: 600; margin-bottom: 0.25rem; display: block; color: #333;" data-translate="settings.browserNotif">Browser Notifications</label>
+                                        <p style="margin: 0; color: #666; font-size: 0.9rem;" data-translate="settings.browserNotifDesc">Show desktop notifications</p>
                                     </div>
                                     <label class="switch">
                                         <input type="checkbox">
@@ -3033,26 +3161,26 @@
                                 <div style="width: 50px; height: 50px; background: #e8f5e9; border-radius: 12px; display: flex; align-items: center; justify-content: center;">
                                     <i class="fas fa-lock" style="font-size: 1.75rem; color: var(--primary);"></i>
                                 </div>
-                                <h3 style="margin: 0; font-size: 1.5rem;">Security</h3>
+                                <h3 style="margin: 0; font-size: 1.5rem;" data-translate="settings.security">Security</h3>
                             </div>
                             <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
                                 <form method="POST" action="{% url 'change_password' %}">
                                     {% csrf_token %}
                                     <div class="form-group">
-                                        <label>Current Password</label>
+                                        <label data-translate="settings.currentPassword">Current Password</label>
                                         <input type="password" name="current_password" class="form-control" placeholder="Enter your current password" required>
                                     </div>
                                     <div class="form-group">
-                                        <label>New Password</label>
+                                        <label data-translate="settings.newPassword">New Password</label>
                                         <input type="password" name="new_password" class="form-control" placeholder="Enter your new password" required pattern=".{8,}" title="Password must be at least 8 characters">
-                                        <small style="color: #666; font-size: 0.85rem; margin-top: 0.5rem; display: block;">Password must be at least 8 characters long</small>
+                                        <small style="color: #666; font-size: 0.85rem; margin-top: 0.5rem; display: block;" data-translate="settings.passwordHint">Password must be at least 8 characters long</small>
                                     </div>
                                     <div class="form-group">
-                                        <label>Confirm New Password</label>
+                                        <label data-translate="settings.confirmPassword">Confirm New Password</label>
                                         <input type="password" name="confirm_password" class="form-control" placeholder="Confirm your new password" required>
                                     </div>
                                     <button type="submit" class="btn-primary">
-                                        <i class="fas fa-key"></i> Update Password
+                                        <i class="fas fa-key"></i> <span data-translate="settings.updatePassword">Update Password</span>
                                     </button>
                                 </form>
                             </div>
@@ -4031,10 +4159,12 @@
                     var expertName = appt.expert_name || document.getElementById('apptExpertName').value || 'Expert';
                     var dateText = appt.requested_date_display || sel;
                     var timeText = appt.requested_time_display || (document.getElementById('apptRequestedTime').value || '');
-                    var msg = appt.message || (document.querySelector('#appointmentBookForm textarea[name=message]')?.value || '');
+                    var apptMsgEl = document.querySelector('#appointmentBookForm textarea[name=message]');
+                    var msg = appt.message || ((apptMsgEl && apptMsgEl.value) || '');
                     var statusCode = (appt.status || 'pending');
                     var statusDisplay = appt.status_display || 'Pending';
                     var apptId = appt.id || '';
+                    var dict = translations[currentLanguage] || translations.en;
                     card.innerHTML =
                         '<div class="appointment-info">' +
                         '<h4 class="appointment-expert-name" style="font-size: 1rem; font-weight: 700; color: #111827; margin-bottom: 0.25rem; display:flex; align-items:center; gap:0.4rem;">' +
@@ -4066,12 +4196,12 @@
                         'data-status="' + statusDisplay.replace(/"/g, '&quot;') + '" ' +
                         'data-status-code="' + statusCode.replace(/"/g, '&quot;') + '" ' +
                         'data-visit-status="" data-message="' + (msg || '').replace(/"/g, '&quot;') + '" data-response="">' +
-                        '<i class="fas fa-eye"></i> View details</button>' +
+                        '<i class="fas fa-eye"></i> ' + (dict['common.viewDetails'] || 'View details') + '</button>' +
                         '<button type="button" class="btn-primary" ' +
                         'style="font-size:0.85rem;padding:0.45rem 0.9rem;background:#16A34A;color:#ffffff;border:1px solid #15803D;" ' +
                         'onclick="openChatWithExpert(\'\', \'' + expertName.replace(/'/g, '\\\'') + '\', \'\', \'\', \'\')">' +
-                        '<i class="fas fa-comments"></i> Join chat</button>' +
-                        '<small style="font-size:0.78rem;color:#9ca3af;text-align:right;">To cancel, please contact the Farmity team.</small>' +
+                        '<i class="fas fa-comments"></i> ' + (dict['appointments.joinChat'] || 'Join chat') + '</button>' +
+                        '<small style="font-size:0.78rem;color:#9ca3af;text-align:right;">' + (dict['appointments.cancelNote'] || 'To cancel, please contact the Farmity team.') + '</small>' +
                         '</div>';
                     list.prepend(card);
                 }
@@ -4094,7 +4224,8 @@
             ajaxSubmitForm(form, {
                 onSuccess: function (payload) {
                     closeModal('changeAppointmentModal');
-                    var apptId = payload.appointment_id || form.querySelector('[name=appointment_id]')?.value;
+                    var apptIdEl = form.querySelector('[name=appointment_id]');
+                    var apptId = payload.appointment_id || (apptIdEl && apptIdEl.value);
                     if (!apptId) return;
                     var btn = document.querySelector('.appointments-list [data-appt-id="' + apptId + '"]');
                     if (!btn) return;
@@ -4128,7 +4259,8 @@
             ajaxSubmitForm(form, {
                 onSuccess: function (payload) {
                     closeModal('reapplyAppointmentModal');
-                    var apptId = payload.appointment_id || form.querySelector('[name=appointment_id]')?.value;
+                    var apptIdEl = form.querySelector('[name=appointment_id]');
+                    var apptId = payload.appointment_id || (apptIdEl && apptIdEl.value);
                     if (!apptId) return;
                     var btn = document.querySelector('.appointments-list [data-appt-id="' + apptId + '"]');
                     if (!btn) return;
@@ -4157,9 +4289,11 @@
 
         var currentChatThreadId = null;
         var currentChatExpertName = '';
+        var currentChatExpertPhoto = '';
 
         function getCsrfToken() {
-            return document.querySelector('[name=csrfmiddlewaretoken]')?.value || document.cookie.replace(/(?:(?:^|.*;\s*)csrftoken\s*=\s*([^;]*).*$)|^.*$/, '$1');
+            var csrfEl = document.querySelector('[name=csrfmiddlewaretoken]');
+            return (csrfEl && csrfEl.value) || document.cookie.replace(/(?:(?:^|.*;\s*)csrftoken\s*=\s*([^;]*).*$)|^.*$/, '$1');
         }
 
         function showToast(message, type) {
@@ -4233,27 +4367,42 @@
             });
         }
 
-        function setChatHeader(name, qual, spec, exp) {
+        function buildChatAvatarHtml(name, photoUrl) {
+            if (photoUrl) {
+                return '<img src="' + photoUrl + '" alt="' + escapeHtml(name || 'Expert') + '">';
+            }
+            return '<i class="fas fa-user-graduate"></i>';
+        }
+
+        function setChatHeader(name, qual, spec, exp, photoUrl) {
             var header = document.getElementById('chatHeader');
-            var titleSpan = header && header.querySelector('.chat-header-title span');
-            var subtitleEl = document.getElementById('chatHeaderSubtitle');
             var parts = [];
             if (qual) parts.push(qual);
             if (spec) parts.push(spec);
             if (exp) parts.push(exp + ' experience');
             var sub = parts.length ? parts.join(' • ') : '';
-            if (titleSpan) {
-                titleSpan.textContent = name || 'Expert';
-            }
-            if (subtitleEl) {
-                subtitleEl.textContent = sub;
-            }
+            if (!header) return;
+            header.innerHTML =
+                '<div class="chat-header-main">' +
+                    '<div class="chat-header-avatar">' + buildChatAvatarHtml(name, photoUrl) + '</div>' +
+                    '<div class="chat-header-title"><span>' + escapeHtml(name || 'Expert') + '</span></div>' +
+                '</div>' +
+                '<div class="chat-header-subtitle" id="chatHeaderSubtitle">' + escapeHtml(sub) + '</div>';
         }
-        function openChatWithExpert(expertId, expertName, qual, spec, exp) {
+        function setChatHeaderLoading(name, photoUrl) {
+            var header = document.getElementById('chatHeader');
+            if (!header) return;
+            header.innerHTML =
+                '<div class="chat-header-main">' +
+                    '<div class="chat-header-avatar">' + buildChatAvatarHtml(name, photoUrl) + '</div>' +
+                    '<div class="chat-header-title"><span>' + escapeHtml(name || 'Expert') + ' (loading...)</span></div>' +
+                '</div>' +
+                '<div class="chat-header-subtitle"></div>';
+        }
+        function openChatWithExpert(expertId, expertName, qual, spec, exp, photoUrl) {
             showSection('chat');
-            setChatHeader(expertName || 'Expert', qual, spec, exp);
-            var h = document.getElementById('chatHeader');
-            h.innerHTML = '<div>Chat with ' + (expertName || 'Expert') + ' (loading...)</div>';
+            currentChatExpertPhoto = photoUrl || '';
+            setChatHeaderLoading(expertName || 'Expert', currentChatExpertPhoto);
             document.getElementById('chatInputArea').style.display = 'none';
             document.getElementById('chatMessages').innerHTML = '<div style="text-align: center; color: #999; padding: 2rem;">Starting chat...</div>';
             fetch('/api/chat/start/' + expertId + '/', {
@@ -4270,7 +4419,7 @@
                 }
                 currentChatThreadId = data.thread_id;
                 currentChatExpertName = data.expert_name || expertName;
-                setChatHeader(currentChatExpertName, data.qualification || qual, data.specialization || spec, data.experience || exp);
+                setChatHeader(currentChatExpertName, data.qualification || qual, data.specialization || spec, data.experience || exp, currentChatExpertPhoto);
                 document.getElementById('chatInputArea').style.display = 'flex';
                 loadChatMessages();
             }).catch(() => {
@@ -4278,11 +4427,12 @@
             });
         }
 
-        function loadChatThread(threadId, expertName, qual, spec, exp) {
+        function loadChatThread(threadId, expertName, qual, spec, exp, photoUrl) {
             showSection('chat');
             currentChatThreadId = threadId;
             currentChatExpertName = expertName || 'Expert';
-            setChatHeader(expertName, qual, spec, exp);
+            currentChatExpertPhoto = photoUrl || '';
+            setChatHeader(expertName, qual, spec, exp, currentChatExpertPhoto);
             var inputArea = document.getElementById('chatInputArea');
             if (inputArea) inputArea.style.display = 'flex';
             loadChatMessages();
@@ -4295,6 +4445,7 @@
             var qual = d.expertQual || '';
             var spec = d.expertSpec || '';
             var exp = d.expertExp || '';
+            var photo = d.expertPhoto || '';
 
             // Expert area
             var expertNameEl = document.getElementById('apptDetailExpertName');
@@ -4332,7 +4483,7 @@
             var chatBtn = document.getElementById('apptDetailChatBtn');
             if (chatBtn && d.expertId) {
                 chatBtn.onclick = function() {
-                    openChatWithExpert(d.expertId, expertName, qual, spec, exp);
+                    openChatWithExpert(d.expertId, expertName, qual, spec, exp, photo);
                     closeModal('appointmentDetailsModal');
                 };
             }
@@ -4402,9 +4553,11 @@
             }
             messagesDiv.innerHTML = messages.map(m => {
                 const cls = m.is_mine ? 'sent' : 'received';
-                const avatarIcon = m.is_mine ? 'fa-user' : 'fa-user-graduate';
+                const avatarHtml = m.is_mine
+                    ? '<i class="fas fa-user"></i>'
+                    : buildChatAvatarHtml(currentChatExpertName || 'Expert', currentChatExpertPhoto || '');
                 return '<div class="message ' + cls + '">' +
-                       '<div class="message-avatar"><i class="fas ' + avatarIcon + '"></i></div>' +
+                       '<div class="message-avatar">' + avatarHtml + '</div>' +
                        '<div class="message-bubble"><div class="message-text">' + escapeHtml(m.message) + '</div>' +
                        '<div class="message-time">' + (m.created_at || '') + '</div></div></div>';
             }).join('');
@@ -4550,11 +4703,14 @@
         });
 
         // Enter key for chat
-        document.getElementById('chatInput')?.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                sendMessage();
-            }
-        });
+        var chatInputEl = document.getElementById('chatInput');
+        if (chatInputEl) {
+            chatInputEl.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        }
 
         // Translation System
         const translations = {
@@ -4564,9 +4720,12 @@
                 'nav.crops': 'My Crops',
                 'nav.tools': 'Buy Tools',
                 'nav.experts': 'Experts',
+                'nav.appointments': 'My Appointments',
                 'nav.chat': 'Chat',
                 'nav.blogs': 'Blogs',
-                'nav.orders': 'Orders',
+                'nav.myOrders': 'My Orders',
+                'nav.orders': 'Received Orders',
+                'nav.earnings': 'Earnings',
                 'nav.profile': 'Profile',
                 'nav.settings': 'Settings',
                 'nav.logout': 'Logout',
@@ -4600,6 +4759,10 @@
                 'profile.cropTypes': 'Main Crops',
                 'profile.livestock': 'Livestock Details',
                 'profile.save': 'Save Profile',
+                'profile.editBtn': 'Edit Profile',
+                'profile.cancelBtn': 'Cancel',
+                'profile.emailAddress': 'Email Address',
+                'profile.memberSince': 'Member Since',
                 // Settings
                 'settings.title': 'Settings',
                 'settings.security': 'Security',
@@ -4614,9 +4777,34 @@
                 'settings.appearance': 'Appearance',
                 'settings.darkMode': 'Dark Mode',
                 'settings.darkModeDesc': 'Switch between light and dark themes for better viewing experience',
-                // Orders
-                'orders.title': 'Purchase History',
+                'settings.themeLabel': 'Theme Mode',
+                'settings.themeDesc': 'Choose your preferred theme',
+                'settings.notifications': 'Notifications',
+                'settings.emailNotif': 'Email Notifications',
+                'settings.emailNotifDesc': 'Receive order updates via email',
+                'settings.browserNotif': 'Browser Notifications',
+                'settings.browserNotifDesc': 'Show desktop notifications',
+                // Orders (received — crops you sell)
+                'orders.title': 'Received orders (for my crops)',
+                'orders.receivedHelp': 'Update status when you prepare, ship, or deliver the product. Delivered orders are closed.',
                 'orders.orderId': 'Order ID',
+                'orders.colBuyer': 'Buyer',
+                'orders.colItem': 'Item',
+                'orders.colQty': 'Qty',
+                'orders.colAmount': 'Amount (incl. shipping)',
+                'orders.colCommission': 'Commission & payout',
+                'orders.colShipping': 'Shipping address',
+                'orders.colStatus': 'Status',
+                'orders.colUpdate': 'Update status',
+                'orders.colPayment': 'Payment',
+                'orders.colDate': 'Date',
+                'orders.updateBtn': 'Update',
+                'orders.view': 'View',
+                'orders.product': 'Product',
+                'orders.shipping': 'Shipping',
+                'orders.commission': 'Commission',
+                'orders.payout': 'Payout',
+                'orders.payoutStatus': 'Payout status',
                 'orders.item': 'Item',
                 'orders.quantity': 'Quantity',
                 'orders.amount': 'Amount',
@@ -4624,6 +4812,74 @@
                 'orders.date': 'Date',
                 'orders.noOrders': 'No Orders Yet',
                 'orders.noOrdersDesc': 'Your purchase history will appear here',
+                'orders.emptyReceived': 'No orders for your crops yet',
+                'orders.emptyReceivedDesc': 'When buyers place orders for your crops, they will appear here. Shipping is handled by admin.',
+                // My orders (purchases)
+                'myOrders.title': 'My Orders',
+                'myOrders.help': 'Orders you placed for tools or produce. Click View details to see full order info and shipping address.',
+                'myOrders.viewDetails': 'View details',
+                'myOrders.empty': 'No orders yet',
+                'myOrders.emptyDesc': 'When you buy tools or produce, your orders will appear here.',
+                // Earnings
+                'earnings.title': 'Earnings',
+                'earnings.intro': 'Summary of your crop sales and payouts from admin.',
+                'earnings.totalEarning': 'Total earning',
+                'earnings.totalSpend': 'Total spend',
+                'earnings.released': 'Total amount released by admin',
+                'earnings.pending': 'Pending amount',
+                'earnings.notePaid': 'From paid crop orders',
+                'earnings.noteTools': 'On tools (paid orders)',
+                'earnings.notePayouts': 'Payouts received',
+                'earnings.noteAwait': 'Awaiting admin release',
+                'earnings.releaseHistory': 'Release history',
+                'earnings.dateReleased': 'Date released',
+                'earnings.amount': 'Amount',
+                'earnings.ordersIncluded': 'Orders included',
+                'earnings.actions': 'Actions',
+                'earnings.viewOrders': 'View orders',
+                'earnings.orders': 'Orders',
+                'earnings.noPayouts': 'No payouts released yet. When admin releases your pending amount, it will appear here.',
+                'earnings.salesTx': 'Transaction records (sales)',
+                'earnings.purchaseTx': 'Transaction records (purchases)',
+                'earnings.colDate': 'Date',
+                'earnings.colSummary': 'Transaction',
+                'earnings.colTotal': 'Total',
+                'earnings.colView': 'View',
+                'earnings.noSalesTx': 'No sales transactions yet.',
+                'earnings.noPurchaseTx': 'No purchase transactions yet.',
+                // Chat
+                'chat.title': 'Chat with Experts',
+                'chat.conversations': 'Conversations',
+                'chat.emptyThreads': 'No chat threads yet. Start chatting with an expert!',
+                'chat.selectTitle': 'Select an expert to start chatting',
+                'chat.selectPrompt': 'Select an expert from the sidebar to start a conversation',
+                'chat.placeholder': 'Type your message...',
+                'chat.send': 'Send',
+                // Blogs
+                'blogs.title': 'Blogs',
+                'blogs.by': 'By',
+                'blogs.emptyTitle': 'No blogs yet',
+                'blogs.emptyDesc': 'Check back later for articles and tips from our experts',
+                // Tools
+                'tools.title': 'Farming Tools & Equipment',
+                'tools.vendor': 'Vendor',
+                'tools.noTools': 'No Tools Available',
+                'tools.noToolsDesc': 'Check back later for agricultural tools from our vendors',
+                'tools.buyNow': 'Buy Now',
+                'tools.soldOut': 'Sold Out',
+                'tools.addToCart': 'Add to Cart',
+                'tools.cartTitle': 'Tools cart',
+                'tools.cartEmpty': 'Your tools cart is empty. Add tools above and checkout together.',
+                'tools.checkout': 'Proceed to checkout',
+                // Experts
+                'experts.title': 'Agricultural Experts',
+                'experts.consultFee': 'Consultation fee',
+                'experts.free': 'Free for now',
+                'experts.viewProfile': 'View profile',
+                'experts.chat': 'Chat',
+                'experts.appointment': 'Appointment',
+                'experts.noExperts': 'No Experts Available',
+                'experts.noExpertsDesc': 'Check back later for agricultural experts',
                 // KYC
                 'kyc.pending': 'KYC Verification Pending',
                 'kyc.rejected': 'KYC Verification Rejected',
@@ -4631,14 +4887,20 @@
                 'kyc.pendingDesc': 'Your KYC documents are under review. Please wait for approval.',
                 'kyc.rejectedDesc': 'Please update your documents and resubmit.',
                 'kyc.requiredDesc': 'Upload your documents to verify your farmer status and access all features.',
+                'kyc.btnUpload': 'Upload KYC',
+                'kyc.btnViewStatus': 'View Status',
                 // Common
+                'common.viewDetails': 'View details',
+                'common.view': 'View',
+                'common.send': 'Send',
+                'common.loading': 'Loading messages...',
                 'common.save': 'Save',
                 'common.cancel': 'Cancel',
                 'common.delete': 'Delete',
                 'common.edit': 'Edit',
                 'common.add': 'Add',
-                'common.update': 'Update',
-                'common.close': 'Close',
+                                'common.success': 'Success',
+                
                 // Appointments
                 'appointments.title': 'My Appointments',
                 'appointments.joinChat': 'Join chat',
@@ -4670,9 +4932,12 @@
                 'nav.crops': 'मेरो बालीहरू',
                 'nav.tools': 'उपकरण खरिद गर्नुहोस्',
                 'nav.experts': 'विशेषज्ञहरू',
+                'nav.appointments': 'मेरो भेटघाटहरू',
                 'nav.chat': 'च्याट',
                 'nav.blogs': 'ब्लग',
-                'nav.orders': 'अर्डरहरू',
+                'nav.myOrders': 'मेरो अर्डरहरू',
+                'nav.orders': 'प्राप्त अर्डरहरू',
+                'nav.earnings': 'आम्दानी',
                 'nav.profile': 'प्रोफाइल',
                 'nav.settings': 'सेटिङहरू',
                 'nav.logout': 'लगआउट',
@@ -4706,6 +4971,10 @@
                 'profile.cropTypes': 'मुख्य बालीहरू',
                 'profile.livestock': 'पशुधन विवरण',
                 'profile.save': 'प्रोफाइल सेभ गर्नुहोस्',
+                'profile.editBtn': 'प्रोफाइल सम्पादन',
+                'profile.cancelBtn': 'रद्द गर्नुहोस्',
+                'profile.emailAddress': 'इमेल ठेगाना',
+                'profile.memberSince': 'सदस्यता मिति',
                 // Settings
                 'settings.title': 'सेटिङहरू',
                 'settings.security': 'सुरक्षा',
@@ -4720,9 +4989,34 @@
                 'settings.appearance': 'देखावट',
                 'settings.darkMode': 'डार्क मोड',
                 'settings.darkModeDesc': 'राम्रो हेर्नको लागि हल्का र अँध्यारो थिमहरू बीच स्विच गर्नुहोस्',
-                // Orders
-                'orders.title': 'खरिद इतिहास',
+                'settings.themeLabel': 'थिम मोड',
+                'settings.themeDesc': 'आफूलाई मन पर्ने थिम छान्नुहोस्',
+                'settings.notifications': 'सूचनाहरू',
+                'settings.emailNotif': 'इमेल सूचनाहरू',
+                'settings.emailNotifDesc': 'अर्डर अपडेट इमेलमार्फत पाउनुहोस्',
+                'settings.browserNotif': 'ब्राउजर सूचनाहरू',
+                'settings.browserNotifDesc': 'डेस्कटप सूचना देखाउनुहोस्',
+                // Orders (received)
+                'orders.title': 'मेरो बालीका लागि प्राप्त अर्डरहरू',
+                'orders.receivedHelp': 'तयार, ढुवानी वा वितरण गर्दा स्थिति अपडेट गर्नुहोस्। वितरण भएका अर्डर बन्द हुन्छन्।',
                 'orders.orderId': 'अर्डर आईडी',
+                'orders.colBuyer': 'खरिदकर्ता',
+                'orders.colItem': 'वस्तु',
+                'orders.colQty': 'मात्रा',
+                'orders.colAmount': 'रकम (ढुवानी सहित)',
+                'orders.colCommission': 'कमिसन र भुक्तानी',
+                'orders.colShipping': 'ढुवानी ठेगाना',
+                'orders.colStatus': 'स्थिति',
+                'orders.colUpdate': 'स्थिति अपडेट',
+                'orders.colPayment': 'भुक्तानी',
+                'orders.colDate': 'मिति',
+                'orders.updateBtn': 'अपडेट गर्नुहोस्',
+                'orders.view': 'हेर्नुहोस्',
+                'orders.product': 'उत्पादन',
+                'orders.shipping': 'ढुवानी',
+                'orders.commission': 'कमिसन',
+                'orders.payout': 'भुक्तानी (पेआउट)',
+                'orders.payoutStatus': 'पेआउट स्थिति',
                 'orders.item': 'वस्तु',
                 'orders.quantity': 'मात्रा',
                 'orders.amount': 'रकम',
@@ -4730,6 +5024,68 @@
                 'orders.date': 'मिति',
                 'orders.noOrders': 'अझै अर्डर छैन',
                 'orders.noOrdersDesc': 'तपाईंको खरिद इतिहास यहाँ देखिनेछ',
+                'orders.emptyReceived': 'अझै तपाईंको बालीका लागि अर्डर छैन',
+                'orders.emptyReceivedDesc': 'क्रेताहरूले बाली अर्डर गर्दा यहाँ देखिनेछ। ढुवानी प्रशासनले हेर्छ।',
+                'myOrders.title': 'मेरो अर्डरहरू',
+                'myOrders.help': 'तपाईंले उपकरण वा उत्पादनका लागि गरेका अर्डरहरू। पूर्ण विवरण र ढुवानी ठेगानाको लागि विवरण हेर्नुहोस्।',
+                'myOrders.viewDetails': 'विवरण हेर्नुहोस्',
+                'myOrders.empty': 'अझै अर्डर छैन',
+                'myOrders.emptyDesc': 'उपकरण वा उत्पादन खरिद गर्दा अर्डर यहाँ देखिनेछ।',
+                'earnings.title': 'आम्दानी',
+                'earnings.intro': 'बाली बिक्री र प्रशासनबाट भएका भुक्तानीको सारांश।',
+                'earnings.totalEarning': 'कुल आम्दानी',
+                'earnings.totalSpend': 'कुल खर्च',
+                'earnings.released': 'प्रशासनले जारी गरेको कुल रकम',
+                'earnings.pending': 'बाँकी रकम',
+                'earnings.notePaid': 'भुक्तान भएका बाली अर्डरबाट',
+                'earnings.noteTools': 'उपकरणमा (भुक्तान भएका अर्डर)',
+                'earnings.notePayouts': 'प्राप्त भुक्तानीहरू',
+                'earnings.noteAwait': 'प्रशासन रिलिजको प्रतीक्षामा',
+                'earnings.releaseHistory': 'रिलिज इतिहास',
+                'earnings.dateReleased': 'रिलिज मिति',
+                'earnings.amount': 'रकम',
+                'earnings.ordersIncluded': 'समावेश अर्डरहरू',
+                'earnings.actions': 'कार्यहरू',
+                'earnings.viewOrders': 'अर्डर हेर्नुहोस्',
+                'earnings.orders': 'अर्डरहरू',
+                'earnings.noPayouts': 'अझै भुक्तानी रिलिज भएको छैन। प्रशासनले रकम रिलिज गर्दा यहाँ देखिनेछ।',
+                'earnings.salesTx': 'कारोबार रेकर्ड (बिक्री)',
+                'earnings.purchaseTx': 'कारोबार रेकर्ड (खरिद)',
+                'earnings.colDate': 'मिति',
+                'earnings.colSummary': 'कारोबार',
+                'earnings.colTotal': 'जम्मा',
+                'earnings.colView': 'हेर्नुहोस्',
+                'earnings.noSalesTx': 'अझै बिक्री कारोबार छैन।',
+                'earnings.noPurchaseTx': 'अझै खरिद कारोबार छैन।',
+                'chat.title': 'विशेषज्ञसँग च्याट',
+                'chat.conversations': 'कुराकानीहरू',
+                'chat.emptyThreads': 'अझै च्याट थ्रेड छैन। विशेषज्ञसँग कुरा सुरु गर्नुहोस्!',
+                'chat.selectTitle': 'च्याट सुरु गर्न विशेषज्ञ छान्नुहोस्',
+                'chat.selectPrompt': 'कुराकानी सुरु गर्न बायाँबाट विशेषज्ञ छान्नुहोस्',
+                'chat.placeholder': 'आफ्नो सन्देश टाइप गर्नुहोस्...',
+                'chat.send': 'पठाउनुहोस्',
+                'blogs.title': 'ब्लगहरू',
+                'blogs.by': 'लेखक',
+                'blogs.emptyTitle': 'अझै ब्लग छैन',
+                'blogs.emptyDesc': 'विशेषज्ञका लेख र सुझावका लागि पछि हेर्नुहोस्',
+                'tools.title': 'कृषि उपकरण र सामग्री',
+                'tools.vendor': 'विक्रेता',
+                'tools.noTools': 'उपलब्ध उपकरण छैन',
+                'tools.noToolsDesc': 'विक्रेताका कृषि उपकरणका लागि पछि हेर्नुहोस्',
+                'tools.buyNow': 'अहिले खरिद गर्नुहोस्',
+                'tools.soldOut': 'सकियो',
+                'tools.addToCart': 'कार्टमा थप्नुहोस्',
+                'tools.cartTitle': 'उपकरण कार्ट',
+                'tools.cartEmpty': 'कार्ट खाली छ। माथिबाट थप्नुहोस् र एकसाथ चेकआउट गर्नुहोस्।',
+                'tools.checkout': 'चेकआउटमा जानुहोस्',
+                'experts.title': 'कृषि विशेषज्ञहरू',
+                'experts.consultFee': 'परामर्श शुल्क',
+                'experts.free': 'अहिले निःशुल्क',
+                'experts.viewProfile': 'प्रोफाइल हेर्नुहोस्',
+                'experts.chat': 'च्याट',
+                'experts.appointment': 'भेटघाट',
+                'experts.noExperts': 'विशेषज्ञ उपलब्ध छैनन्',
+                'experts.noExpertsDesc': 'कृषि विशेषज्ञका लागि पछि हेर्नुहोस्',
                 // KYC
                 'kyc.pending': 'KYC प्रमाणीकरण बाँकी',
                 'kyc.rejected': 'KYC प्रमाणीकरण अस्वीकार',
@@ -4737,7 +5093,13 @@
                 'kyc.pendingDesc': 'तपाईंको KYC कागजातहरू समीक्षामा छन्। कृपया स्वीकृतिको लागि प्रतीक्षा गर्नुहोस्।',
                 'kyc.rejectedDesc': 'कृपया आफ्ना कागजातहरू अपडेट गर्नुहोस् र पुनः पेश गर्नुहोस्।',
                 'kyc.requiredDesc': 'आफ्नो किसान स्थिति प्रमाणित गर्न र सबै सुविधाहरू पहुँच गर्न आफ्ना कागजातहरू अपलोड गर्नुहोस्।',
+                'kyc.btnUpload': 'KYC अपलोड गर्नुहोस्',
+                'kyc.btnViewStatus': 'स्थिति हेर्नुहोस्',
                 // Common
+                'common.viewDetails': 'विवरण हेर्नुहोस्',
+                'common.view': 'हेर्नुहोस्',
+                'common.send': 'पठाउनुहोस्',
+                'common.loading': 'सन्देश लोड हुँदै...',
                 'common.save': 'सेभ गर्नुहोस्',
                 'common.cancel': 'रद्द गर्नुहोस्',
                 'common.delete': 'मेटाउनुहोस्',
@@ -4779,18 +5141,30 @@
             localStorage.setItem('language', lang);
             
             // Update language selector
-            document.getElementById('languageSelect').value = lang;
-            if (document.getElementById('settingsLanguageSelect')) {
-                document.getElementById('settingsLanguageSelect').value = lang;
-            }
+            const langSel = document.getElementById('languageSelect');
+            if (langSel) langSel.value = lang;
+            const settingsLang = document.getElementById('settingsLanguageSelect');
+            if (settingsLang) settingsLang.value = lang;
             
-            // Translate all elements
+            const dict = translations[lang] || translations.en;
             document.querySelectorAll('[data-translate]').forEach(element => {
                 const key = element.getAttribute('data-translate');
-                if (translations[lang] && translations[lang][key]) {
-                    element.textContent = translations[lang][key];
+                if (key && dict[key]) {
+                    element.textContent = dict[key];
                 }
             });
+            document.querySelectorAll('[data-translate-placeholder]').forEach(element => {
+                const key = element.getAttribute('data-translate-placeholder');
+                if (key && dict[key]) {
+                    element.setAttribute('placeholder', dict[key]);
+                }
+            });
+            const editBtnText = document.getElementById('farmerEditBtnText');
+            if (editBtnText) {
+                const formWrap = document.getElementById('farmerProfileFormWrap');
+                const showingForm = formWrap && formWrap.style.display === 'block';
+                editBtnText.textContent = showingForm ? (dict['profile.cancelBtn'] || 'Cancel') : (dict['profile.editBtn'] || 'Edit Profile');
+            }
         }
 
         // Initialize language on page load
@@ -4828,15 +5202,16 @@
             const formWrap = document.getElementById('farmerProfileFormWrap');
             const editBtnText = document.getElementById('farmerEditBtnText');
             if (!viewMode || !formWrap) return;
+            const dict = translations[currentLanguage] || translations.en;
             const showingForm = formWrap.style.display === 'block';
             if (showingForm) {
                 viewMode.style.display = 'block';
                 formWrap.style.display = 'none';
-                if (editBtnText) editBtnText.textContent = 'Edit Profile';
+                if (editBtnText) editBtnText.textContent = dict['profile.editBtn'] || 'Edit Profile';
             } else {
                 viewMode.style.display = 'none';
                 formWrap.style.display = 'block';
-                if (editBtnText) editBtnText.textContent = 'Cancel';
+                if (editBtnText) editBtnText.textContent = dict['profile.cancelBtn'] || 'Cancel';
             }
         }
         function farmerShowInlineEdit(btn) {
@@ -4858,23 +5233,20 @@
             if (card) card.querySelector('.profile-value-row').style.display = 'flex';
         }
 
-        // Dark mode toggle
+        // Dark mode toggle (whole system: html + body)
         const themeToggle = document.getElementById('themeToggle');
+        function applyFarmerDarkMode(on) {
+            localStorage.setItem('darkMode', on ? 'true' : 'false');
+            document.documentElement.classList.toggle('dark-mode', on);
+            document.body.classList.toggle('dark-mode', on);
+        }
         if (themeToggle) {
-            // Check saved preference
             if (localStorage.getItem('darkMode') === 'true') {
                 themeToggle.checked = true;
-                document.body.classList.add('dark-mode');
+                applyFarmerDarkMode(true);
             }
-            
             themeToggle.addEventListener('change', function() {
-                if (this.checked) {
-                    localStorage.setItem('darkMode', 'true');
-                    document.body.classList.add('dark-mode');
-                } else {
-                    localStorage.setItem('darkMode', 'false');
-                    document.body.classList.remove('dark-mode');
-                }
+                applyFarmerDarkMode(this.checked);
             });
         }
 
@@ -4893,3 +5265,11 @@
     {% include 'includes/user_dashboard_scroll.html' %}
 </body>
 </html>
+
+
+
+
+
+
+
+

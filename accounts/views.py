@@ -2935,11 +2935,31 @@ def farmer_dashboard(request):
     farmer_pending_q = Q(payout_status__isnull=True) | Q(payout_status=Order.PAYOUT_PENDING)
     farmer_pending_release = farmer_collected.filter(farmer_pending_q).aggregate(total=Sum('seller_amount'))['total'] or farmer_collected.filter(farmer_pending_q).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     farmer_paid = farmer_collected.filter(payout_status=Order.PAYOUT_PAID).order_by('-payout_at')
-    farmer_released_payouts = list(
-        farmer_paid.annotate(payout_date=TruncDate('payout_at'))
-        .values('payout_date')
-        .annotate(amount=Sum('seller_amount'), order_count=Count('id'))
-        .order_by('-payout_date')
+    # Build release history batches with order ids so the dashboard can show
+    # exactly which orders were included in each released payout date.
+    release_history_map = {}
+    for order in farmer_paid:
+        payout_at = getattr(order, 'payout_at', None)
+        if not payout_at:
+            continue
+        payout_date = payout_at.date()
+        date_key = payout_date.isoformat()
+        if date_key not in release_history_map:
+            release_history_map[date_key] = {
+                'payout_date': payout_date,
+                'amount': Decimal('0'),
+                'order_count': 0,
+                'order_ids': [],
+            }
+        seller_part = order.seller_amount or order.total_amount or Decimal('0')
+        release_history_map[date_key]['amount'] += seller_part
+        release_history_map[date_key]['order_count'] += 1
+        release_history_map[date_key]['order_ids'].append(order.id)
+
+    farmer_released_payouts = sorted(
+        release_history_map.values(),
+        key=lambda item: item['payout_date'],
+        reverse=True
     )
     farmer_total_released = sum((p['amount'] or Decimal('0')) for p in farmer_released_payouts)
     # Farmer spend (tool orders where they are buyer, payment completed)

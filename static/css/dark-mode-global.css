@@ -1,0 +1,261 @@
+/**
+ * Global dark theme — applied when html.dark-mode is set (localStorage darkMode === 'true').
+ * Works with farmer dashboard and other pages using shared layout classes.
+ */
+html.dark-mode {
+    color-scheme: dark;
+}
+
+html.dark-mode body {
+    background: #0f1419 !important;
+    color: #e8eaed !important;
+}
+
+/* Generic surfaces */
+html.dark-mode .top-header,
+html.dark-mode .content-section,
+html.dark-mode .stat-card,
+html.dark-mode .dashboard-card,
+html.dark-mode .product-card,
+html.dark-mode .modal-content,
+html.dark-mode .farmer-order-card,
+html.dark-mode .tip-card,
+html.dark-mode .tool-card,
+html.dark-mode .earnings-card,
+html.dark-mode .earnings-subsection,
+html.dark-mode .earnings-table-wrap,
+html.dark-mode .farmer-tools-cart-panel,
+html.dark-mode .chat-sidebar,
+html.dark-mode .chat-main,
+html.dark-mode .appointment-item,
+html.dark-mode .notif-dropdown,
+html.dark-mode .profile-card {
+    background: #1a1f26 !important;
+    color: #e8eaed !important;
+    border-color: #2d3640 !important;
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35) !important;
+}
+
+html.dark-mode .section-header {
+    background: linear-gradient(135deg, #1e252d 0%, #1a1f26 100%) !important;
+    border-bottom-color: #2d3640 !important;
+}
+
+html.dark-mode .section-header h2,
+html.dark-mode .section-header h3,
+html.dark-mode h1,
+html.dark-mode h2,
+html.dark-mode h3,
+html.dark-mode h4 {
+    color: #f1f5f9 !important;
+}
+
+html.dark-mode .section-body {
+    color: #cbd5e1 !important;
+}
+
+html.dark-mode p,
+html.dark-mode label,
+html.dark-mode .profile-info-label,
+html.dark-mode .card-label,
+html.dark-mode .earnings-card-label,
+html.dark-mode .farmer-order-meta,
+html.dark-mode .tip-expert,
+html.dark-mode .tip-date {
+    color: #94a3b8 !important;
+}
+
+html.dark-mode .top-header {
+    border-bottom: 1px solid #2d3640 !important;
+}
+
+html.dark-mode .user-profile:hover {
+    background: #252b33 !important;
+}
+
+html.dark-mode .language-selector,
+html.dark-mode .form-control,
+html.dark-mode input[type="text"],
+html.dark-mode input[type="email"],
+html.dark-mode input[type="password"],
+html.dark-mode input[type="number"],
+html.dark-mode input[type="search"],
+html.dark-mode select,
+html.dark-mode textarea {
+    background: #252b33 !important;
+    border-color: #3d4754 !important;
+    color: #e8eaed !important;
+}
+
+html.dark-mode .form-control::placeholder,
+html.dark-mode input::placeholder,
+html.dark-mode textarea::placeholder {
+    color: #64748b !important;
+}
+
+html.dark-mode .btn-primary {
+    filter: brightness(1.05);
+}
+
+html.dark-mode .profile-info-grid .info-card,
+html.dark-mode .edit-card {
+    background: #252b33 !important;
+    border-color: #3d4754 !important;
+}
+
+html.dark-mode .profile-info-value {
+    color: #e8eaed !important;
+}
+
+html.dark-mode .btn-change-photo-sm {
+    background: #2d3640 !important;
+    border-color: #3d4754 !important;
+    color: #e8eaed !important;
+}
+
+html.dark-mode .data-table,
+html.dark-mode .orders-table,
+html.dark-mode table {
+    background: #1a1f26 !important;
+}
+
+html.dark-mode .data-table thead th,
+html.dark-mode .orders-table thead th,
+html.dark-mode .earnings-table thead th {
+    background: #252b33 !important;
+    color: #94a3b8 !important;
+    border-color: #2d3640 !important;
+}
+
+html.dark-mode .data-table tbody td,
+html.dark-mode .orders-table tbody td,
+html.dark-mode .earnings-table tbody td {
+    border-color: #2d3640 !important;
+    color: #e2e8f0 !important;
+}
+
+html.dark-mode .earnings-tx-date {
+    color: #cbd5e1 !important;
+}
+
+html.dark-mode .earnings-tx-time {
+    color: #64748b !important;
+}
+
+html.dark-mode .earnings-tx-title {
+    color: #f1f5f9 !important;
+}
+
+html.dark-mode .earnings-tx-meta {
+    color: #94a3b8 !important;
+}
+
+html.dark-mode .earnings-tx-amount {
+    color: #86efac !important;
+}
+
+html.dark-mode .earnings-tx-amount.earnings-tx-amount--purchase {
+    color: #93c5fd !important;
+}
+
+html.dark-mode .empty-state {
+    color: #94a3b8 !important;
+}
+
+html.dark-mode .empty-state i {
+    color: #475569 !important;
+}
+
+html.dark-mode .modal {
+    background: rgba(0, 0, 0, 0.65) !important;
+}
+
+html.dark-mode .modal-header {
+    border-bottom-color: #2d3640 !important;
+}
+
+html.dark-mode .kyc-alert {
+    background: linear-gradient(135deg, #3d3420 0%, #2d2618 100%) !important;
+}
+
+html.dark-mode .kyc-alert.rejected {
+    background: linear-gradient(135deg, #3d2020 0%, #2d1818 100%) !important;
+}
+
+html.dark-mode .kyc-alert.pending {
+    background: linear-gradient(135deg, #1e3538 0%, #18282d 100%) !important;
+}
+
+html.dark-mode .kyc-text h3 {
+    color: #fde68a !important;
+}
+
+html.dark-mode .kyc-alert.rejected .kyc-text h3 {
+    color: #fca5a5 !important;
+}
+
+html.dark-mode .kyc-alert.pending .kyc-text h3 {
+    color: #7dd3fc !important;
+}
+
+/* Charts canvas area */
+html.dark-mode .chart-container {
+    filter: brightness(0.92) contrast(1.05);
+}
+
+/* Toast / confirmation from form-validation.css */
+html.dark-mode .toast {
+    background: #252b33 !important;
+    color: #e8eaed !important;
+    border-color: #3d4754 !important;
+}
+
+html.dark-mode .confirmation-content {
+    background: #1a1f26 !important;
+    color: #e8eaed !important;
+    border: 1px solid #2d3640 !important;
+}
+
+html.dark-mode .confirmation-title {
+    color: #f1f5f9 !important;
+}
+
+html.dark-mode .confirmation-message {
+    color: #94a3b8 !important;
+}
+
+/* Inline-heavy settings blocks on dashboards */
+html.dark-mode [style*="background: #f8f9fa"],
+html.dark-mode [style*="background:#f8f9fa"] {
+    background: #252b33 !important;
+}
+
+html.dark-mode [style*="border-bottom: 2px solid #eee"],
+html.dark-mode [style*="border-bottom:2px solid #eee"] {
+    border-bottom-color: #2d3640 !important;
+}
+
+html.dark-mode [style*="color: #333"],
+html.dark-mode [style*="color:#333"] {
+    color: #e8eaed !important;
+}
+
+html.dark-mode [style*="color: #666"],
+html.dark-mode [style*="color:#666"] {
+    color: #94a3b8 !important;
+}
+
+html.dark-mode [style*="background: #f8f9fa; border: 2px solid #e9ecef"],
+html.dark-mode [style*="background:#f8f9fa"] {
+    background: #252b33 !important;
+    border-color: #3d4754 !important;
+}
+
+/* Notification bell dropdown text */
+html.dark-mode .notif-item-title {
+    color: #f1f5f9 !important;
+}
+
+html.dark-mode .notif-item-body {
+    color: #cbd5e1 !important;
+}

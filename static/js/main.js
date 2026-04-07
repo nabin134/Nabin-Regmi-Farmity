@@ -1,3 +1,16 @@
+/* Dark mode: keep html + body in sync with localStorage (whole-site theme). */
+(function () {
+    function applyFarmityDarkMode() {
+        try {
+            var on = localStorage.getItem('darkMode') === 'true';
+            document.documentElement.classList.toggle('dark-mode', on);
+            if (document.body) document.body.classList.toggle('dark-mode', on);
+        } catch (e) {}
+    }
+    applyFarmityDarkMode();
+    document.addEventListener('DOMContentLoaded', applyFarmityDarkMode);
+})();
+
 // API Base URL
 const API_BASE_URL = '/api/auth';
 
