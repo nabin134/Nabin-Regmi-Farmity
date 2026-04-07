@@ -2398,7 +2398,7 @@
                                 <span style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border-radius: 16px; font-weight: 600; font-size: 0.8rem;">{{ role_display|default:"Buyer" }}</span>
                             </div>
                         </div>
-                        <form method="POST" action="{% url 'user_dashboard' %}" id="profileForm" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update your profile?" data-farmity-success-call="toggleEditMode">
+                        <form method="POST" action="{% url 'user_dashboard' %}" id="profileForm" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-type="warning" data-farmity-confirm-title="Update Profile Information?" data-farmity-confirm-message="Your profile details will be updated for your account. Do you want to continue?" data-farmity-confirm-button="Yes, Update Profile" data-farmity-cancel-button="Cancel" data-farmity-success-call="toggleEditMode">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="1">
                             <input type="hidden" name="return_section" value="profile">

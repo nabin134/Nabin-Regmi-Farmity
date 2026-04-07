@@ -573,26 +573,48 @@
     });
     if (dropdownEl) dropdownEl.addEventListener('click', function(e) { e.stopPropagation(); });
 
+    function resolveUrl(href) {
+        if (!href || href === '#') return null;
+        try {
+            return new URL(href, window.location.href);
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function goToNotificationLinkByHref(href, id) {
+        var targetUrl = resolveUrl(href);
+        if (!targetUrl) return;
+
+        if (id) markRead(id);
+
+        var samePage = targetUrl.origin === window.location.origin && targetUrl.pathname === window.location.pathname;
+        var sectionParam = targetUrl.searchParams.get('section');
+        var openChatParam = targetUrl.searchParams.get('open_chat');
+
+        if (openChatParam === 'true') {
+            openChatOnCurrentPage(targetUrl.href);
+            return;
+        }
+
+        if (samePage && sectionParam && typeof showSection === 'function') {
+            showSection(sectionParam, null);
+            window.history.replaceState({}, '', targetUrl.pathname + targetUrl.search + targetUrl.hash);
+            return;
+        }
+
+        window.location.href = targetUrl.href;
+    }
+
     function goToNotificationLink(notifItem) {
         var href = notifItem && notifItem.getAttribute('data-href');
-        if (href && href !== '#') {
-            var id = notifItem.getAttribute('data-id');
-            if (id) markRead(id);
-            
-            // Handle chat opening on current page
-            if (href.includes('open_chat=true')) {
-                openChatOnCurrentPage(href);
-                return;
-            }
-            
-            window.location.href = href;
-        }
+        var id = notifItem && notifItem.getAttribute('data-id');
+        goToNotificationLinkByHref(href, id);
     }
     
     function openChatOnCurrentPage(chatUrl) {
-        // Parse thread_id from URL parameters
-        var urlParams = new URLSearchParams(chatUrl.replace('?', ''));
-        var threadId = urlParams.get('thread_id');
+        var targetUrl = resolveUrl(chatUrl);
+        var threadId = targetUrl ? targetUrl.searchParams.get('thread_id') : null;
         
         if (threadId) {
             // Try to open chat on current page
@@ -635,8 +657,7 @@
                 if (href && href !== '#') {
                     e.preventDefault();
                     e.stopPropagation();
-                    markRead(viewBtn.dataset.id);
-                    window.location.href = href;
+                    goToNotificationLinkByHref(href, viewBtn.dataset.id);
                 }
                 return;
             }

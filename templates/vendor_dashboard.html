@@ -3310,7 +3310,7 @@
 
                             </div>
 
-                            <form method="POST" id="vendorProfileForm" enctype="multipart/form-data" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update your profile?" data-farmity-success-call="toggleVendorEditMode">
+                            <form method="POST" id="vendorProfileForm" enctype="multipart/form-data" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-type="warning" data-farmity-confirm-title="Update Profile Information?" data-farmity-confirm-message="Your profile details will be updated for your account. Do you want to continue?" data-farmity-confirm-button="Yes, Update Profile" data-farmity-cancel-button="Cancel" data-farmity-success-call="toggleVendorEditMode">
 
                                 {% csrf_token %}
 

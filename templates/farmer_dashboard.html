@@ -399,6 +399,106 @@
         .earnings-card.card-released .earnings-card-value { color: var(--success); }
         .earnings-card.card-pending .earnings-card-value { color: #b8860b; }
         .earnings-card-note { font-size: 0.78rem; color: #868e96; margin-top: auto; }
+        .earnings-intro {
+            color: #5f6b7a;
+            margin-bottom: 1.5rem;
+            font-size: 0.95rem;
+            background: linear-gradient(135deg, #f8fff9 0%, #f3f8ff 100%);
+            border: 1px solid #e5f2e9;
+            border-radius: 12px;
+            padding: 0.85rem 1rem;
+        }
+        .earnings-card {
+            position: relative;
+            overflow: hidden;
+        }
+        .earnings-card::after {
+            content: "";
+            position: absolute;
+            right: -28px;
+            top: -28px;
+            width: 95px;
+            height: 95px;
+            border-radius: 50%;
+            background: rgba(53, 141, 88, 0.08);
+            pointer-events: none;
+        }
+        .earnings-card-label i {
+            margin-right: 0.35rem;
+            opacity: 0.8;
+        }
+        .earnings-card-value {
+            letter-spacing: -0.02em;
+        }
+        .earnings-subsection {
+            border: 1px solid #e7edf3;
+            border-radius: 14px;
+            background: #fcfdff;
+            box-shadow: 0 3px 10px rgba(15, 23, 42, 0.04);
+        }
+        .earnings-subsection .section-header {
+            background: linear-gradient(135deg, #f7fbff 0%, #f6fff8 100%);
+            border-bottom: 1px solid #e7edf3;
+            padding: 1rem 1.25rem;
+        }
+        .earnings-subsection .section-header h3 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: #1f2937;
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+        }
+        .earnings-subsection .section-body {
+            padding: 1.1rem 1.25rem 1.25rem;
+        }
+        .earnings-table-wrap {
+            border: 1px solid #e5eaf0;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .earnings-table {
+            margin: 0;
+        }
+        .earnings-table thead th {
+            background: #f5f8fc;
+            color: #475569;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            border-bottom: 1px solid #e7edf3;
+        }
+        .earnings-table tbody td {
+            vertical-align: middle;
+            border-bottom: 1px solid #eef2f7;
+        }
+        .earnings-table tbody tr:last-child td {
+            border-bottom: none;
+        }
+        .earnings-table tbody tr:hover {
+            background: #f9fcff;
+        }
+        .earnings-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0.55rem;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border: 1px solid transparent;
+            white-space: nowrap;
+        }
+        .earnings-badge.sale {
+            color: #166534;
+            background: #ecfdf3;
+            border-color: #bbf7d0;
+        }
+        .earnings-badge.purchase {
+            color: #1d4ed8;
+            background: #eff6ff;
+            border-color: #bfdbfe;
+        }
 
         /* Content Sections */
         .content-section {
@@ -2069,7 +2169,7 @@
                             <i class="fas fa-seedling"></i>
                             <h3 data-translate="crops.noCrops">No Crops Added Yet</h3>
                             <p data-translate="crops.noCropsDesc">Start by adding your first crop to the marketplace</p>
-                            <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openAddModal(){% else %}alert('KYC verification required to add crops'){% endif %}" style="margin-top: 1.5rem;" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; margin-top: 1.5rem;"{% endif %}>
+                            <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openAddModal(){% else %}alert('KYC verification required to add crops'){% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; margin-top: 1.5rem;"{% else %}style="margin-top: 1.5rem;"{% endif %}>
                                 <i class="fas fa-plus"></i> <span data-translate="crops.addFirst">Add Your First Crop</span>
                             </button>
                         </div>
@@ -2204,7 +2304,7 @@
                                         <i class="fas fa-comments"></i> Chat
                                     </button>
                                     {% endif %}
-                                    <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openAppointmentModal({{ expert.id }}, '{{ expert.name|escapejs }}', {{ expert.consultation_fee|default:0 }}){% else %}alert('KYC verification required to book appointments'){% endif %}" style="background: var(--secondary);" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; background: var(--secondary);"{% endif %}>
+                                    <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openAppointmentModal({{ expert.id }}, '{{ expert.name|escapejs }}', {{ expert.consultation_fee|default:0 }}){% else %}alert('KYC verification required to book appointments'){% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; background: var(--secondary);"{% else %}style="background: var(--secondary);"{% endif %}>
                                         <i class="fas fa-calendar"></i> Appointment {% if expert.consultation_fee and expert.consultation_fee > 0 %}(Rs. {{ expert.consultation_fee }}){% else %}(Free){% endif %}
                                     </button>
                                 </div>
@@ -2529,7 +2629,7 @@
                                     </td>
                                     <td>
                                         {% if order.status != 'delivered' and order.status != 'cancelled' %}
-                                        <form method="POST" action="{% url 'farmer_dashboard' %}" style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0;">
+                                        <form method="POST" action="{% url 'farmer_dashboard' %}" style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem; margin: 0;" data-farmity-confirm="1" data-farmity-confirm-type="warning" data-farmity-confirm-title="Update Order Status?" data-farmity-confirm-message="This status update affects order tracking and payout timeline shown in Earnings. Do you want to continue?" data-farmity-confirm-button="Yes, Update Status" data-farmity-cancel-button="Cancel">
                                             {% csrf_token %}
                                             <input type="hidden" name="update_order_status" value="1">
                                             <input type="hidden" name="order_id" value="{{ order.id }}">
@@ -2580,37 +2680,37 @@
                         <h2><i class="fas fa-wallet"></i> Earnings</h2>
                     </div>
                     <div class="section-body">
-                        <p style="color: #6c757d; margin-bottom: 1.5rem; font-size: 0.95rem;">Summary of your crop sales and payouts from admin.</p>
+                        <p class="earnings-intro">Summary of your crop sales and payouts from admin.</p>
                         <div class="earnings-cards">
                             <div class="earnings-card card-total-earning">
-                                <span class="earnings-card-label">Total earning</span>
+                                <span class="earnings-card-label"><i class="fas fa-coins"></i>Total earning</span>
                                 <div class="earnings-card-value">Rs. {{ farmer_amount_collected|floatformat:2 }}</div>
                                 <div class="earnings-card-note">From paid crop orders</div>
                             </div>
                             <div class="earnings-card card-spend">
-                                <span class="earnings-card-label">Total spend</span>
+                                <span class="earnings-card-label"><i class="fas fa-credit-card"></i>Total spend</span>
                                 <div class="earnings-card-value">Rs. {{ farmer_total_spend|floatformat:2 }}</div>
                                 <div class="earnings-card-note">On tools (paid orders)</div>
                             </div>
                             <div class="earnings-card card-released">
-                                <span class="earnings-card-label">Total amount released by admin</span>
+                                <span class="earnings-card-label"><i class="fas fa-hand-holding-usd"></i>Total amount released by admin</span>
                                 <div class="earnings-card-value">Rs. {{ farmer_total_released|floatformat:2 }}</div>
                                 <div class="earnings-card-note">Payouts received</div>
                             </div>
                             <div class="earnings-card card-pending">
-                                <span class="earnings-card-label">Pending amount</span>
+                                <span class="earnings-card-label"><i class="fas fa-hourglass-half"></i>Pending amount</span>
                                 <div class="earnings-card-value">Rs. {{ farmer_pending_release|floatformat:2 }}</div>
                                 <div class="earnings-card-note">Awaiting admin release</div>
                             </div>
                         </div>
-                        <div class="content-section" style="margin-top: 2rem;">
+                        <div class="content-section earnings-subsection" style="margin-top: 2rem;">
                             <div class="section-header">
                                 <h3><i class="fas fa-history"></i> Release history</h3>
                             </div>
                             <div class="section-body">
                                 {% if farmer_released_payouts %}
-                                <div class="table-responsive">
-                                    <table class="data-table">
+                                <div class="table-responsive earnings-table-wrap">
+                                    <table class="data-table earnings-table">
                                         <thead>
                                             <tr><th>Date released</th><th>Amount</th><th>Orders</th></tr>
                                         </thead>
@@ -2630,14 +2730,14 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="content-section" style="margin-top: 2rem;">
+                        <div class="content-section earnings-subsection" style="margin-top: 2rem;">
                             <div class="section-header">
                                 <h3><i class="fas fa-receipt"></i> Transaction records (sales)</h3>
                             </div>
                             <div class="section-body">
                                 {% if farmer_sale_transactions %}
-                                <div class="table-responsive">
-                                    <table class="data-table">
+                                <div class="table-responsive earnings-table-wrap">
+                                    <table class="data-table earnings-table">
                                         <thead>
                                             <tr>
                                                 <th>Date & time</th>
@@ -2654,7 +2754,7 @@
                                             {% for t in farmer_sale_transactions %}
                                             <tr>
                                                 <td>{{ t.created_at|date:"M d, Y h:i A" }}</td>
-                                                <td>#{{ t.id }}</td>
+                                                <td><span class="earnings-badge sale">#{{ t.id }}</span></td>
                                                 <td>{{ t.buyer.email }}</td>
                                                 <td>{{ t.crop.name|default:"-" }}</td>
                                                 <td>{{ t.quantity }} {% if t.crop %}{{ t.crop.unit }}{% endif %}</td>
@@ -2671,14 +2771,14 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="content-section" style="margin-top: 2rem;">
+                        <div class="content-section earnings-subsection" style="margin-top: 2rem;">
                             <div class="section-header">
                                 <h3><i class="fas fa-cart-arrow-down"></i> Transaction records (purchases)</h3>
                             </div>
                             <div class="section-body">
                                 {% if farmer_purchase_transactions %}
-                                <div class="table-responsive">
-                                    <table class="data-table">
+                                <div class="table-responsive earnings-table-wrap">
+                                    <table class="data-table earnings-table">
                                         <thead>
                                             <tr>
                                                 <th>Date & time</th>
@@ -2696,8 +2796,8 @@
                                             {% for t in farmer_purchase_transactions %}
                                             <tr>
                                                 <td>{{ t.created_at|date:"M d, Y h:i A" }}</td>
-                                                <td>#{{ t.id }}</td>
-                                                <td>{% if t.tool %}Tool{% elif t.crop %}Crop{% else %}-{% endif %}</td>
+                                                <td><span class="earnings-badge purchase">#{{ t.id }}</span></td>
+                                                <td><span class="earnings-badge purchase">{% if t.tool %}Tool{% elif t.crop %}Crop{% else %}-{% endif %}</span></td>
                                                 <td>
                                                     {% if t.tool and t.tool.vendor %}{{ t.tool.vendor.company_name|default:t.tool.vendor.user.email }}
                                                     {% elif t.crop and t.crop.farmer %}{{ t.crop.farmer.name|default:t.crop.farmer.user.email }}
@@ -2740,7 +2840,7 @@
                                     {% if profile.photo %}
                                     <img src="{{ profile.photo.url }}" alt="Profile" id="farmerViewPhoto" style="width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 4px solid var(--primary);">
                                     {% else %}
-                                    <div id="farmerViewPhoto" style="width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;"><i class="fas fa-user"></i></div>
+                                    <div id="farmerViewPhotoPlaceholder" style="width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;"><i class="fas fa-user"></i></div>
                                     {% endif %}
                                     <form method="POST" action="" enctype="multipart/form-data" style="margin-top: 0.75rem; text-align: center;">
                                         {% csrf_token %}
@@ -2812,7 +2912,7 @@
                                     <span style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border-radius: 16px; font-weight: 600; font-size: 0.8rem;">{{ role_display|default:"Farmer" }}</span>
                                 </div>
                             </div>
-                            <form method="POST" id="farmerProfileForm" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update your profile?" data-farmity-success-call="toggleFarmerEditMode">
+                            <form method="POST" id="farmerProfileForm" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-type="warning" data-farmity-confirm-title="Update Profile Information?" data-farmity-confirm-message="Your profile details will be updated for your account. Do you want to continue?" data-farmity-confirm-button="Yes, Update Profile" data-farmity-cancel-button="Cancel" data-farmity-success-call="toggleFarmerEditMode">
                                 {% csrf_token %}
                                 <input type="hidden" name="update_profile" value="1">
                                 <input type="hidden" name="return_section" value="profile">

@@ -1654,7 +1654,7 @@
                                     <span style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border-radius: 16px; font-weight: 600; font-size: 0.8rem;">{{ role_display|default:"Agricultural Expert" }}</span>
                                 </div>
                             </div>
-                            <form method="POST" id="expertProfileForm" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update your profile information?">
+                            <form method="POST" id="expertProfileForm" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-type="warning" data-farmity-confirm-title="Update Profile Information?" data-farmity-confirm-message="Your profile details will be updated for your account. Do you want to continue?" data-farmity-confirm-button="Yes, Update Profile" data-farmity-cancel-button="Cancel">
                                 {% csrf_token %}
                                 <input type="hidden" name="update_profile" value="1">
                                 <input type="hidden" name="return_section" value="profile">

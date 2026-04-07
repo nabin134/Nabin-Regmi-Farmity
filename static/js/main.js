@@ -357,6 +357,25 @@ function showLogoutConfirmation() {
     });
 }
 
+function showGenericConfirmationFromForm(form) {
+    const message = (form.getAttribute('data-farmity-confirm-message') || '').trim() || 'Are you sure you want to proceed?';
+    const type = (form.getAttribute('data-farmity-confirm-type') || '').trim() || 'warning';
+    const title = (form.getAttribute('data-farmity-confirm-title') || '').trim() || 'Please Confirm';
+    const confirmText = (form.getAttribute('data-farmity-confirm-button') || '').trim() || 'Yes, Continue';
+    const cancelText = (form.getAttribute('data-farmity-cancel-button') || '').trim() || 'Cancel';
+
+    if (typeof showConfirmation === 'function') {
+        return showConfirmation({
+            title: title,
+            message: message,
+            type: type,
+            confirmText: confirmText,
+            cancelText: cancelText
+        });
+    }
+    return Promise.resolve(window.confirm(message));
+}
+
 // Logout Function
 async function logout() {
     const ok = await showLogoutConfirmation();
@@ -389,6 +408,19 @@ document.addEventListener('click', async function(e) {
 document.addEventListener('submit', async function(e) {
     const form = e.target;
     if (!form || !form.getAttribute) return;
+
+    // Confirm non-AJAX forms that opt in via data attributes.
+    const useFormConfirm = form.getAttribute('data-farmity-confirm') === '1';
+    const isAjaxForm = form.getAttribute('data-farmity-ajax') === '1';
+    if (useFormConfirm && !isAjaxForm) {
+        e.preventDefault();
+        e.stopPropagation();
+        const ok = await showGenericConfirmationFromForm(form);
+        if (!ok) return;
+        form.submit();
+        return;
+    }
+
     const action = (form.getAttribute('action') || '').trim();
     if (!action) return;
     const isLogoutForm = action === '/logout/' || action === 'logout/' || action.endsWith('/logout/');

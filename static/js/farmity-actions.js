@@ -16,15 +16,18 @@
         return getCookie('csrftoken');
     }
 
-    function farmityConfirm(message, type = 'warning') {
+    function farmityConfirm(message, type = 'warning', options = {}) {
         const dlg = typeof showConfirmation === 'function' ? showConfirmation : null;
         const prompt = (message || '').trim() || 'Are you sure you want to proceed?';
+        const title = (options.title || '').trim();
+        const confirmText = (options.confirmText || '').trim();
+        const cancelText = (options.cancelText || '').trim();
         if (dlg) {
             return dlg({
-                title: type === 'danger' ? 'Delete Confirmation' : 'Confirm',
+                title: title || (type === 'danger' ? 'Please Confirm Action' : 'Please Confirm'),
                 message: prompt,
-                confirmText: type === 'danger' ? 'Delete' : 'Yes',
-                cancelText: 'Cancel',
+                confirmText: confirmText || (type === 'danger' ? 'Confirm' : 'Yes, Continue'),
+                cancelText: cancelText || 'Cancel',
                 type: type,
             });
         }
@@ -108,6 +111,9 @@
             let confirmType = 'warning';
             const confirmMessage = (form.getAttribute('data-farmity-confirm-message') || '').trim() || 'Are you sure you want to proceed?';
             const forcedType = (form.getAttribute('data-farmity-confirm-type') || '').trim();
+            const confirmTitle = (form.getAttribute('data-farmity-confirm-title') || '').trim();
+            const confirmButtonText = (form.getAttribute('data-farmity-confirm-button') || '').trim();
+            const cancelButtonText = (form.getAttribute('data-farmity-cancel-button') || '').trim();
             
             // Determine confirmation type based on action
             if (form.querySelector('[name*="delete"]') || form.querySelector('[name*="remove"]') || 
@@ -116,7 +122,11 @@
             }
             if (forcedType) confirmType = forcedType;
             
-            const ok = await farmityConfirm(confirmMessage, confirmType);
+            const ok = await farmityConfirm(confirmMessage, confirmType, {
+                title: confirmTitle,
+                confirmText: confirmButtonText,
+                cancelText: cancelButtonText,
+            });
             if (!ok) return;
         }
 
