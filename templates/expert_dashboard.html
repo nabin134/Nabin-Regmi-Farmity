@@ -1534,37 +1534,40 @@
                                 </div>
                                 <div class="availability-inline-error" id="availabilityWeekError"></div>
                             </form>
+                            <div class="availability-inline-error" id="availabilityDeleteError"></div>
                             <p style="margin: 0.75rem 0 0 0; font-size: 0.8rem; color: #6b7280;">Single day and weekly range are separate. Remove dates instantly from cards below.</p>
                         </div>
-                        {% if availability %}
-                        <div class="availability-summary"><i class="fas fa-calendar-check"></i> Total available dates: <span id="availabilityCount">{{ availability|length }}</span></div>
-                        <h3 class="availability-list-title" id="availabilityListTitle"><i class="fas fa-list"></i> Your available dates (<span id="availabilityCountInline">{{ availability|length }}</span>)</h3>
-                        <div class="availability-grid" id="availabilityGrid">
-                            {% for avail in availability %}
-                            <div class="availability-date-card {% if avail.date < today %}past{% endif %}" data-availability-row="{{ avail.id }}">
-                                <div class="date-main">
-                                    <strong>{{ avail.date|date:"M d, Y" }}</strong>
-                                    {% if avail.start_time and avail.end_time %}<div class="date-time">{{ avail.start_time|time:"H:i" }} – {{ avail.end_time|time:"H:i" }}</div>{% endif %}
-                                    {% if avail.notes %}<div class="date-notes">{{ avail.notes }}</div>{% endif %}
-                                    {% if avail.date < today %}<span class="date-notes">(past)</span>{% endif %}
+                        <div id="availabilityListContainer">
+                            {% if availability %}
+                            <div class="availability-summary"><i class="fas fa-calendar-check"></i> Total available dates: <span id="availabilityCount">{{ availability|length }}</span></div>
+                            <h3 class="availability-list-title" id="availabilityListTitle"><i class="fas fa-list"></i> Your available dates (<span id="availabilityCountInline">{{ availability|length }}</span>)</h3>
+                            <div class="availability-grid" id="availabilityGrid">
+                                {% for avail in availability %}
+                                <div class="availability-date-card {% if avail.date < today %}past{% endif %}" data-availability-row="{{ avail.id }}">
+                                    <div class="date-main">
+                                        <strong>{{ avail.date|date:"M d, Y" }}</strong>
+                                        {% if avail.start_time and avail.end_time %}<div class="date-time">{{ avail.start_time|time:"H:i" }} – {{ avail.end_time|time:"H:i" }}</div>{% endif %}
+                                        {% if avail.notes %}<div class="date-notes">{{ avail.notes }}</div>{% endif %}
+                                        {% if avail.date < today %}<span class="date-notes">(past)</span>{% endif %}
+                                    </div>
+                                    <form method="POST" style="margin: 0;" class="availability-remove-form">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="return_section" value="availability">
+                                        <input type="hidden" name="remove_availability" value="1">
+                                        <input type="hidden" name="availability_id" value="{{ avail.id }}">
+                                        <button type="submit" class="btn-remove-avail" title="Remove"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
                                 </div>
-                                <form method="POST" style="margin: 0;" class="availability-remove-form">
-                                    {% csrf_token %}
-                                    <input type="hidden" name="return_section" value="availability">
-                                    <input type="hidden" name="remove_availability" value="1">
-                                    <input type="hidden" name="availability_id" value="{{ avail.id }}">
-                                    <button type="submit" class="btn-remove-avail" title="Remove"><i class="fas fa-trash-alt"></i></button>
-                                </form>
+                                {% endfor %}
                             </div>
-                            {% endfor %}
+                            {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-alt" style="color: #d1d5db;"></i>
+                                <h3>No availability set</h3>
+                                <p>Add a day or a week above so farmers and buyers know when you're available.</p>
+                            </div>
+                            {% endif %}
                         </div>
-                        {% else %}
-                        <div class="empty-state">
-                            <i class="fas fa-calendar-alt" style="color: #d1d5db;"></i>
-                            <h3>No availability set</h3>
-                            <p>Add a day or a week above so farmers and buyers know when you're available.</p>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -2575,11 +2578,65 @@
                 var parts = String(v).split(':');
                 return (parseInt(parts[0], 10) * 60) + parseInt(parts[1], 10);
             }
+            function refreshAvailabilityListFromHtml(htmlText) {
+                if (!htmlText) return false;
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(htmlText, 'text/html');
+                var incoming = doc.getElementById('availabilityListContainer');
+                var current = document.getElementById('availabilityListContainer');
+                if (!incoming || !current) return false;
+                current.innerHTML = incoming.innerHTML;
+                return true;
+            }
+            function submitAvailabilityFormAjax(form, isValid) {
+                if (!form) return;
+                if (typeof isValid === 'function' && !isValid()) return;
+                var csrfEl = form.querySelector('[name=csrfmiddlewaretoken]');
+                var csrf = csrfEl ? csrfEl.value : '';
+                var fd = new FormData(form);
+                fetch(window.location.href, {
+                    method: 'POST',
+                    body: fd,
+                    headers: csrf ? { 'X-CSRFToken': csrf } : {}
+                }).then(function (res) {
+                    if (!res.ok) throw new Error('Request failed');
+                    return res.text();
+                }).then(function (html) {
+                    var updated = refreshAvailabilityListFromHtml(html);
+                    if (updated) {
+                        form.reset();
+                        var todayStr = new Date().toISOString().split('T')[0];
+                        var availDate = document.getElementById('availability_date');
+                        var availWeekStart = document.getElementById('availability_week_start');
+                        var availWeekEnd = document.getElementById('availability_week_end');
+                        if (availDate) availDate.setAttribute('min', todayStr);
+                        if (availWeekStart) availWeekStart.setAttribute('min', todayStr);
+                        if (availWeekEnd) availWeekEnd.setAttribute('min', todayStr);
+                        showInlineError(dayErrorEl, '');
+                        showInlineError(weekErrorEl, '');
+                    }
+                }).catch(function () {
+                    alert('Could not save availability. Please try again.');
+                });
+            }
+            function askAvailabilityDeleteConfirm() {
+                if (typeof showConfirmation === 'function') {
+                    return showConfirmation({
+                        title: 'Delete Availability?',
+                        message: 'Are you sure you want to delete this availability date?',
+                        type: 'danger',
+                        confirmText: 'Yes, Delete',
+                        cancelText: 'Cancel'
+                    });
+                }
+                return Promise.resolve(window.confirm('Are you sure you want to delete this availability date?'));
+            }
 
             var dayForm = document.getElementById('availabilityDayForm');
             var weekForm = document.getElementById('availabilityWeekForm');
             var dayErrorEl = document.getElementById('availabilityDayError');
             var weekErrorEl = document.getElementById('availabilityWeekError');
+            var deleteErrorEl = document.getElementById('availabilityDeleteError');
 
             function validateDayForm() {
                 if (!dayForm) return true;
@@ -2632,14 +2689,16 @@
                 dayForm.addEventListener('input', validateDayForm);
                 dayForm.addEventListener('change', validateDayForm);
                 dayForm.addEventListener('submit', function (e) {
-                    if (!validateDayForm()) e.preventDefault();
+                    e.preventDefault();
+                    submitAvailabilityFormAjax(dayForm, validateDayForm);
                 });
             }
             if (weekForm) {
                 weekForm.addEventListener('input', validateWeekForm);
                 weekForm.addEventListener('change', validateWeekForm);
                 weekForm.addEventListener('submit', function (e) {
-                    if (!validateWeekForm()) e.preventDefault();
+                    e.preventDefault();
+                    submitAvailabilityFormAjax(weekForm, validateWeekForm);
                 });
             }
 
@@ -2649,44 +2708,51 @@
                 if (!form || !form.matches('form')) return;
                 var removeFlag = form.querySelector('input[name="remove_availability"]');
                 if (!removeFlag) return;
-                if (!window.confirm('Are you sure you want to delete this availability date?')) {
-                    e.preventDefault();
+                e.preventDefault();
+                showInlineError(deleteErrorEl, '');
+                var availabilityIdEl = form.querySelector('input[name="availability_id"]');
+                var availabilityId = availabilityIdEl ? String(availabilityIdEl.value || '').trim() : '';
+                var row = form.closest('[data-availability-row]');
+                if (!availabilityId || !/^\d+$/.test(availabilityId)) {
+                    showInlineError(deleteErrorEl, 'Delete failed: invalid availability id.');
                     return;
                 }
-                e.preventDefault();
+                if (!row) {
+                    showInlineError(deleteErrorEl, 'Delete failed: availability row not found.');
+                    return;
+                }
+                askAvailabilityDeleteConfirm().then(function (okToDelete) {
+                    if (!okToDelete) return;
+                    var submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn) submitBtn.disabled = true;
 
-                var csrfEl = form.querySelector('[name=csrfmiddlewaretoken]');
-                var csrf = csrfEl ? csrfEl.value : '';
-                var fd = new FormData(form);
+                    var csrfEl = form.querySelector('[name=csrfmiddlewaretoken]');
+                    var csrf = csrfEl ? csrfEl.value : '';
+                    var fd = new FormData(form);
 
-                fetch(window.location.href, {
-                    method: 'POST',
-                    body: fd,
-                    headers: csrf ? { 'X-CSRFToken': csrf } : {}
-                }).then(function (res) {
-                    if (!res.ok) throw new Error('Request failed');
-                    var card = form.closest('[data-availability-row]');
-                    if (card) card.remove();
-
-                    var grid = document.getElementById('availabilityGrid');
-                    var countEl = document.getElementById('availabilityCount');
-                    var countInlineEl = document.getElementById('availabilityCountInline');
-                    var count = grid ? grid.querySelectorAll('[data-availability-row]').length : 0;
-                    if (countEl) countEl.textContent = String(count);
-                    if (countInlineEl) countInlineEl.textContent = String(count);
-
-                    if (count === 0 && grid) {
-                        var title = document.getElementById('availabilityListTitle');
-                        var summary = document.querySelector('.availability-summary');
-                        if (title) title.style.display = 'none';
-                        if (summary) summary.style.display = 'none';
-                        var empty = document.createElement('div');
-                        empty.className = 'empty-state';
-                        empty.innerHTML = '<i class="fas fa-calendar-alt" style="color: #d1d5db;"></i><h3>No availability set</h3><p>Add a day or a week above so farmers and buyers know when you\'re available.</p>';
-                        grid.replaceWith(empty);
-                    }
+                    fetch(window.location.href, {
+                        method: 'POST',
+                        body: fd,
+                        headers: csrf ? { 'X-CSRFToken': csrf } : {}
+                    }).then(function (res) {
+                        if (!res.ok) throw new Error('Request failed');
+                        return res.text();
+                    }).then(function (html) {
+                        refreshAvailabilityListFromHtml(html);
+                        if (typeof showSuccess === 'function') {
+                            showSuccess('Availability date deleted successfully.', 2500);
+                        }
+                    }).catch(function () {
+                        if (submitBtn) submitBtn.disabled = false;
+                        if (typeof showError === 'function') {
+                            showError('Could not remove availability. Please try again.', 3000);
+                        } else {
+                            showInlineError(deleteErrorEl, 'Could not remove availability. Please try again.');
+                        }
+                    });
                 }).catch(function () {
-                    alert('Could not remove availability. Please try again.');
+                    // If custom confirm fails for any reason, do nothing.
+                    return;
                 });
             });
 

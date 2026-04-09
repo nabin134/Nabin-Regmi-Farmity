@@ -211,19 +211,9 @@ def _ensure_role_profile(user):
 def _redirect_to_role_home(user):
     """
     Redirect user to their role-specific dashboard.
-    For roles requiring KYC, check status and redirect to KYC if needed.
     Returns the URL path as a string for API responses.
     """
-    # Check KYC status for roles that require it
-    if user.role in {'farmer', 'vendor', 'agricultural_expert'}:
-        kyc_request = user.kyc_requests.first()
-        kyc_status = kyc_request.status if kyc_request else None
-        
-        # If no KYC submitted, redirect to KYC page
-        if kyc_status is None:
-            return reverse('kyc')
-    
-    # Redirect to appropriate dashboard - return URL path.
+    # Redirect to role dashboard first for every login.
     if user.role == 'admin':
         return reverse('admin_dashboard')
     if user.role == 'farmer':
@@ -730,21 +720,7 @@ class LoginView(APIView):
                 _clear_stored_messages(request)
                 request.session['show_login_success'] = True
                 request.session.modified = True
-                
-                # Check KYC status for roles that require it
-                if user.role in {'farmer', 'vendor', 'agricultural_expert'}:
-                    kyc_request = user.kyc_requests.first()
-                    kyc_status = kyc_request.status if kyc_request else None
-                    
-                    # If no KYC submitted, redirect to KYC page
-                    if kyc_status is None:
-                        redirect_url = reverse('kyc')
-                    else:
-                        # Get normal redirect URL (dashboard will show KYC alert if not approved)
-                        redirect_url = _redirect_to_role_home(user)
-                else:
-                    # Buyers and admins - no KYC required, normal redirect
-                    redirect_url = _redirect_to_role_home(user)
+                redirect_url = _redirect_to_role_home(user)
                 
                 return Response(
                     {
@@ -883,21 +859,7 @@ class OTPVerificationView(APIView):
                 _clear_stored_messages(request)
                 request.session['show_login_success'] = True
                 request.session.modified = True
-                
-                # Check KYC status for roles that require it
-                if user.role in {'farmer', 'vendor', 'agricultural_expert'}:
-                    kyc_request = user.kyc_requests.first()
-                    kyc_status = kyc_request.status if kyc_request else None
-                    
-                    # If no KYC submitted, redirect to KYC page
-                    if kyc_status is None:
-                        redirect_url = reverse('kyc')
-                    else:
-                        # Get normal redirect URL (dashboard will show KYC alert if not approved)
-                        redirect_url = _redirect_to_role_home(user)
-                else:
-                    # Buyers and admins - no KYC required, normal redirect
-                    redirect_url = _redirect_to_role_home(user)
+                redirect_url = _redirect_to_role_home(user)
                 
                 return Response(
                     {

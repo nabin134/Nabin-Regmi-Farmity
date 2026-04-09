@@ -7,6 +7,18 @@
     <title>Farmity - Smart Agriculture Platform</title>
     <link rel="stylesheet" href="{% static 'css/style.css' %}">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root { --landing-header-offset: 88px; }
+        html { scroll-padding-top: var(--landing-header-offset); }
+        .hero-section, .features-section, .marketplace-section, .vendors-section, .experts-section, .learning-section {
+            scroll-margin-top: var(--landing-header-offset);
+        }
+        .landing-messages {
+            top: calc(var(--landing-header-offset) + 8px) !important;
+            pointer-events: none;
+        }
+        .landing-messages .message-alert { pointer-events: auto; }
+    </style>
 </head>
 <body>
     <!-- Header Navigation -->
@@ -68,7 +80,18 @@
     .landing-messages .message-alert.info { background: #D1ECF1; color: #0C5460; border-left-color: #17a2b8; }
     .landing-messages .message-alert.debug { background: #e2e3e5; color: #383d41; border-left-color: #6c757d; }
     </style>
-    <script>(function(){ var el = document.querySelector('.landing-messages.messages-auto-dismiss'); if (el) { var ms = Math.max(5000, parseInt(el.getAttribute('data-dismiss-ms')||'5000',10)); setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms); } })();</script>
+    <script>(function(){
+        var header = document.querySelector('.main-header');
+        if (header) {
+            var h = Math.max(72, Math.ceil(header.getBoundingClientRect().height || 0));
+            document.documentElement.style.setProperty('--landing-header-offset', h + 'px');
+        }
+        var el = document.querySelector('.landing-messages.messages-auto-dismiss');
+        if (el) {
+            var ms = Math.max(5000, parseInt(el.getAttribute('data-dismiss-ms')||'5000',10));
+            setTimeout(function(){ el.classList.add('messages-hidden'); setTimeout(function(){ el.style.display='none'; }, 300); }, ms);
+        }
+    })();</script>
     {% endif %}
 
     <!-- Hero Section -->
