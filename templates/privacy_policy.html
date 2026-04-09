@@ -1,0 +1,128 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy - Farmity</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --pp-bg: #f3faf5;
+            --pp-surface: #ffffff;
+            --pp-border: #d7eddc;
+            --pp-primary: #2d8a53;
+            --pp-primary-soft: #e7f6eb;
+            --pp-text: #1f2937;
+            --pp-muted: #64748b;
+        }
+        body { background: var(--pp-bg); color: var(--pp-text); }
+        .policy-wrap { max-width: 980px; margin: 0 auto; padding: 0 1rem 2rem; }
+        .policy-header {
+            position: sticky; top: 0; z-index: 20;
+            background: rgba(243, 250, 245, 0.96);
+            backdrop-filter: blur(4px);
+            border-bottom: 1px solid var(--pp-border);
+            padding: 1rem 0;
+            margin-bottom: 1rem;
+        }
+        .policy-title { margin: 0; color: var(--pp-primary); font-size: 1.5rem; }
+        .policy-subtitle { margin: 0.35rem 0 0; color: var(--pp-muted); font-size: 0.92rem; }
+        .policy-accordion { display: grid; gap: 0.85rem; }
+        .policy-card {
+            background: var(--pp-surface);
+            border: 1px solid var(--pp-border);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(31, 41, 55, 0.05);
+        }
+        .policy-card summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 1rem 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--pp-primary-soft);
+            color: #14532d;
+        }
+        .policy-card summary::-webkit-details-marker { display: none; }
+        .policy-card[open] summary { border-bottom: 1px solid var(--pp-border); }
+        .policy-body { padding: 1rem 1.1rem 1.1rem; line-height: 1.65; color: #334155; }
+        .policy-body ul { margin: 0.5rem 0 0.25rem 1.15rem; }
+        .policy-body li { margin-bottom: 0.35rem; }
+        @media (max-width: 640px) {
+            .policy-title { font-size: 1.3rem; }
+            .policy-card summary { padding: 0.9rem 0.95rem; }
+            .policy-body { padding: 0.9rem 0.95rem 1rem; font-size: 0.94rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="policy-wrap">
+        <div class="policy-header">
+            <h1 class="policy-title">Privacy Policy</h1>
+            <p class="policy-subtitle">Effective date: {% now "M d, Y" %} · How Farmity collects and protects data</p>
+        </div>
+
+        <div class="policy-accordion">
+            <details class="policy-card" open>
+                <summary>1. Information We Collect (Personal, KYC, Transactions) <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    We may collect information such as your name, email, phone number, address, account role, KYC/identity documents, payment records, and transaction details needed to operate marketplace and consultation services.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>2. How We Use Data <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    Your data is used to provide platform functionality, verify users, process payments, deliver support, improve product quality, prevent fraud, and comply with legal obligations.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>3. Data Protection & Security <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    Farmity applies technical and organizational safeguards to protect your data. While no system is fully risk-free, we continuously monitor and improve security practices to reduce unauthorized access and misuse.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>4. Third-Party Services (Google Sign-In, eSewa) <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    Some services rely on third-party providers, including Google Sign-In and eSewa. Their platforms may process limited data required for authentication or payments under their own privacy terms.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>5. Cookies & Tracking <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    We use cookies and similar technologies to maintain sessions, remember preferences, and improve usability and performance analytics.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>6. User Rights <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    Subject to applicable law, users may request access, correction, or deletion of personal data, and may request limitations to certain processing activities where legally permitted.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>7. Data Retention <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    We retain personal and transaction data for as long as necessary to provide services, resolve disputes, enforce agreements, and meet legal or regulatory requirements.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>8. Changes to Policy <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    We may update this Privacy Policy from time to time. Material changes will be reflected by updating the effective date and posting the revised policy on this page.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>9. Contact Support <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    For privacy-related questions or requests, contact us at <strong>info@farmity.com</strong> or through Farmity customer support.
+                </div>
+            </details>
+        </div>
+    </div>
+</body>
+</html>

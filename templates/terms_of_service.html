@@ -1,0 +1,144 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Terms of Service - Farmity</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        :root {
+            --tos-bg: #f4fbf6;
+            --tos-surface: #ffffff;
+            --tos-border: #d9efe0;
+            --tos-primary: #2f8f56;
+            --tos-primary-soft: #e9f7ee;
+            --tos-text: #1f2937;
+            --tos-muted: #64748b;
+        }
+        body { background: var(--tos-bg); color: var(--tos-text); }
+        .policy-wrap { max-width: 980px; margin: 0 auto; padding: 0 1rem 2rem; }
+        .policy-header {
+            position: sticky; top: 0; z-index: 20;
+            background: rgba(244, 251, 246, 0.96);
+            backdrop-filter: blur(4px);
+            border-bottom: 1px solid var(--tos-border);
+            padding: 1rem 0;
+            margin-bottom: 1rem;
+        }
+        .policy-title { margin: 0; color: var(--tos-primary); font-size: 1.5rem; }
+        .policy-subtitle { margin: 0.35rem 0 0; color: var(--tos-muted); font-size: 0.92rem; }
+        .policy-accordion { display: grid; gap: 0.85rem; }
+        .policy-card {
+            background: var(--tos-surface);
+            border: 1px solid var(--tos-border);
+            border-radius: 14px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(31, 41, 55, 0.05);
+        }
+        .policy-card summary {
+            list-style: none;
+            cursor: pointer;
+            padding: 1rem 1.1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--tos-primary-soft);
+            color: #14532d;
+        }
+        .policy-card summary::-webkit-details-marker { display: none; }
+        .policy-card[open] summary { border-bottom: 1px solid var(--tos-border); }
+        .policy-body { padding: 1rem 1.1rem 1.1rem; line-height: 1.65; color: #334155; }
+        .policy-body ul { margin: 0.5rem 0 0.25rem 1.15rem; }
+        .policy-body li { margin-bottom: 0.35rem; }
+        @media (max-width: 640px) {
+            .policy-title { font-size: 1.3rem; }
+            .policy-card summary { padding: 0.9rem 0.95rem; }
+            .policy-body { padding: 0.9rem 0.95rem 1rem; font-size: 0.94rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="policy-wrap">
+        <div class="policy-header">
+            <h1 class="policy-title">Terms of Service</h1>
+            <p class="policy-subtitle">Effective date: {% now "M d, Y" %} · Farmity platform use terms</p>
+        </div>
+
+        <div class="policy-accordion">
+            <details class="policy-card" open>
+                <summary>1. Introduction <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    These Terms of Service govern your access to and use of Farmity, including marketplace features, expert consultations, payments, and support services. By using Farmity, you agree to these terms and to comply with applicable laws of Nepal.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>2. User Accounts & Responsibilities <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    You are responsible for maintaining account security and providing accurate information.
+                    <ul>
+                        <li>Keep your credentials confidential and notify us of unauthorized access.</li>
+                        <li>Provide truthful profile, contact, and delivery details.</li>
+                        <li>You are responsible for activities performed through your account.</li>
+                    </ul>
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>3. KYC Verification Policy <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    Certain roles and transactions require Know Your Customer (KYC) verification. Farmity may request identity and related documents to verify legitimacy, prevent fraud, and comply with regulatory requirements. Access to role-specific features may be limited until verification is complete.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>4. Orders, Payments & Refund Policy <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    Orders are subject to availability, shipping details, and platform policies.
+                    <ul>
+                        <li>Payments may be processed by supported payment providers (e.g., eSewa).</li>
+                        <li>Refund eligibility depends on order status, delivery condition, and dispute review.</li>
+                        <li>Farmity may deduct platform commissions where applicable and reflected in order details.</li>
+                    </ul>
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>5. Acceptable Use Policy <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    You must not misuse the platform. Prohibited behavior includes fraud, impersonation, abusive content, harassment, spam, manipulation of ratings/reviews, and attempts to disrupt platform systems.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>6. Intellectual Property <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    Farmity branding, software, and platform content are owned by Farmity or licensed partners. You retain ownership of content you submit, but grant Farmity a limited license to host, display, and process that content for platform operation.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>7. Account Suspension/Termination <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    Farmity may suspend or terminate accounts for policy violations, suspicious activity, legal compliance requirements, or safety concerns. We may also restrict certain features while investigations are ongoing.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>8. Limitation of Liability <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    Farmity provides services on an “as available” basis. To the maximum extent permitted by law, Farmity is not liable for indirect, incidental, or consequential losses arising from service interruptions, third-party actions, or user misuse.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>9. Governing Law (Nepal) <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    These terms are governed by the laws of Nepal. Any disputes are subject to the competent courts and legal authorities of Nepal.
+                </div>
+            </details>
+            <details class="policy-card">
+                <summary>10. Contact Information <i class="fas fa-chevron-down"></i></summary>
+                <div class="policy-body">
+                    For legal or policy-related queries, contact Farmity Support at <strong>info@farmity.com</strong> or use the in-app support center.
+                </div>
+            </details>
+        </div>
+    </div>
+</body>
+</html>

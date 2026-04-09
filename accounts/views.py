@@ -1973,6 +1973,14 @@ def home_page(request):
     return redirect('landing')
 
 
+def terms_of_service_page(request):
+    return render(request, 'terms_of_service.html')
+
+
+def privacy_policy_page(request):
+    return render(request, 'privacy_policy.html')
+
+
 @login_required
 def dashboard(request):
     """Redirect to role-specific dashboard, preserving query string (e.g. section=chat&thread_id= for notifications)."""
