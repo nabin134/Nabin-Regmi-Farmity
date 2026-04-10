@@ -43,6 +43,20 @@
         .page-header { margin-bottom: 24px; }
         .page-title { font-size: 28px; font-weight: 700; color: var(--dark); margin-bottom: 8px; }
         .page-subtitle { color: #666; font-size: 14px; }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 12px;
+            margin-bottom: 18px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            padding: 14px 16px;
+        }
+        .stat-value { font-size: 22px; font-weight: 700; color: #1f2937; }
+        .stat-label { font-size: 12px; color: #6b7280; margin-top: 4px; text-transform: uppercase; letter-spacing: 0.4px; }
         .support-card {
             background: white; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); overflow: hidden;
         }
@@ -69,7 +83,6 @@
         .ticket-status.in_progress { background: #cce5ff; color: #004085; }
         .ticket-status.answered { background: #d4edda; color: #155724; }
         .ticket-status.closed { background: #e2e3e5; color: #383d41; }
-        .open-badge { background: var(--danger); color: white; padding: 4px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: 600; }
         .empty-state { text-align: center; color: #666; padding: 2.5rem 1.5rem; }
         .empty-state i { font-size: 2.5rem; color: #ccc; margin-bottom: 0.5rem; display: block; }
 
@@ -142,9 +155,6 @@
             <a href="{% url 'admin_support_desk' %}" class="menu-item active">
                 <i class="fas fa-headset"></i>
                 <span>Support Desk</span>
-                {% if open_support_count > 0 %}
-                <span style="margin-left: auto; background: var(--danger); color: white; padding: 2px 8px; border-radius: 12px; font-size: 11px;">{{ open_support_count }}</span>
-                {% endif %}
             </a>
             <a href="{% url 'logout' %}" class="menu-item">
                 <i class="fas fa-sign-out-alt"></i>
@@ -156,9 +166,6 @@
     <div class="main-content">
         <header class="top-header">
             <h1 class="header-title">Support Desk</h1>
-            {% if open_count > 0 %}
-            <span class="open-badge">{{ open_count }} open</span>
-            {% endif %}
         </header>
 
         <div class="dashboard-content">
@@ -166,6 +173,14 @@
             <div class="page-header">
                 <h2 class="page-title">Customer support tickets</h2>
                 <p class="page-subtitle">View and reply to support requests. Click a ticket to open the conversation.</p>
+            </div>
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-value">{{ total_tickets_count }}</div><div class="stat-label">Total Tickets</div></div>
+                <div class="stat-card"><div class="stat-value">{{ total_messages_count }}</div><div class="stat-label">Total Messages</div></div>
+                <div class="stat-card"><div class="stat-value">{{ open_tickets_count }}</div><div class="stat-label">Open</div></div>
+                <div class="stat-card"><div class="stat-value">{{ in_progress_tickets_count }}</div><div class="stat-label">In Progress</div></div>
+                <div class="stat-card"><div class="stat-value">{{ answered_tickets_count }}</div><div class="stat-label">Answered</div></div>
+                <div class="stat-card"><div class="stat-value">{{ closed_tickets_count }}</div><div class="stat-label">Closed</div></div>
             </div>
 
             <div class="support-card">

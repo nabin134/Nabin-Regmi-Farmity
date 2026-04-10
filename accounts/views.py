@@ -6116,6 +6116,7 @@ def _support_msg_to_json(message):
         'id': message.id,
         'message': message.message,
         'sender_email': message.sender.email,
+        'sender_role': getattr(message.sender, 'role', ''),
         'sender_name': get_user_display_name(message.sender),
         'sender_profile_image': get_user_profile_image(message.sender),
         'sender_id': message.sender_id,
@@ -6202,6 +6203,12 @@ def admin_support_desk(request):
     open_count = SupportTicket.objects.filter(
         status__in=[SupportTicket.STATUS_OPEN, SupportTicket.STATUS_IN_PROGRESS]
     ).count()
+    total_tickets_count = SupportTicket.objects.count()
+    open_tickets_count = SupportTicket.objects.filter(status=SupportTicket.STATUS_OPEN).count()
+    in_progress_tickets_count = SupportTicket.objects.filter(status=SupportTicket.STATUS_IN_PROGRESS).count()
+    answered_tickets_count = SupportTicket.objects.filter(status=SupportTicket.STATUS_ANSWERED).count()
+    closed_tickets_count = SupportTicket.objects.filter(status=SupportTicket.STATUS_CLOSED).count()
+    total_messages_count = SupportMessage.objects.count()
     pending_kyc = KYCRequest.objects.filter(status=KYCRequest.STATUS_PENDING).count()
     context = {
         'tickets': tickets,
@@ -6210,6 +6217,12 @@ def admin_support_desk(request):
         'open_count': open_count,
         'open_support_count': open_count,
         'pending_kyc': pending_kyc,
+        'total_tickets_count': total_tickets_count,
+        'open_tickets_count': open_tickets_count,
+        'in_progress_tickets_count': in_progress_tickets_count,
+        'answered_tickets_count': answered_tickets_count,
+        'closed_tickets_count': closed_tickets_count,
+        'total_messages_count': total_messages_count,
     }
     return render(request, 'admin_support_desk.html', context)
 
@@ -6220,7 +6233,7 @@ def support_ticket_detail(request, ticket_id):
     try:
         ticket = SupportTicket.objects.select_related('user', 'assigned_to').get(id=ticket_id)
     except SupportTicket.DoesNotExist:
-        messages.error(request, 'Support ticket not found.')
+        messages.info(request, 'This support ticket is no longer available.')
         return redirect('support_hub')
     is_staff = _is_support_staff(request.user)
     is_owner = ticket.user_id == request.user.id
@@ -6228,16 +6241,11 @@ def support_ticket_detail(request, ticket_id):
         messages.error(request, 'You do not have access to this ticket.')
         return redirect('support_hub')
 
-    # Customers cannot open ended conversations; staff can still view them
-    if is_owner and not is_staff and ticket.status in (SupportTicket.STATUS_ANSWERED, SupportTicket.STATUS_CLOSED):
-        messages.info(request, 'This conversation has ended and can no longer be opened.')
-        return redirect('support_hub')
-
     if request.method == 'POST':
         action = request.POST.get('action')
         if action == 'reply':
-            if ticket.status in (SupportTicket.STATUS_ANSWERED, SupportTicket.STATUS_CLOSED):
-                messages.error(request, 'This conversation has ended. No further replies can be added.')
+            if ticket.status == SupportTicket.STATUS_CLOSED:
+                messages.error(request, 'This conversation is closed. No further replies can be added.')
                 return _redirect_with_posted_ui_state(
                     request, reverse('support_ticket', kwargs={'ticket_id': ticket_id})
                 )
@@ -6249,7 +6257,7 @@ def support_ticket_detail(request, ticket_id):
                     message=msg_text
                 )
                 ticket.updated_at = timezone.now()
-                if is_staff and ticket.status == SupportTicket.STATUS_OPEN:
+                if ticket.status != SupportTicket.STATUS_CLOSED and ticket.status != SupportTicket.STATUS_IN_PROGRESS:
                     ticket.status = SupportTicket.STATUS_IN_PROGRESS
                 ticket.save()
                 _broadcast_support_event(ticket, {
@@ -6263,6 +6271,11 @@ def support_ticket_detail(request, ticket_id):
                 return _redirect_with_posted_ui_state(
                     request, reverse('support_ticket', kwargs={'ticket_id': ticket_id})
                 )
+        elif action == 'delete_ticket' and is_staff:
+            ticket_subject = ticket.subject
+            ticket.delete()
+            messages.success(request, f'Support ticket "{ticket_subject}" deleted successfully.')
+            return redirect('admin_support_desk')
         elif action == 'assign_me' and is_staff:
             ticket.assigned_to = request.user
             ticket.status = SupportTicket.STATUS_IN_PROGRESS
@@ -6281,9 +6294,21 @@ def support_ticket_detail(request, ticket_id):
         elif action == 'update_status' and is_staff:
             new_status = request.POST.get('status')
             if new_status in dict(SupportTicket.STATUS_CHOICES):
+                old_status = ticket.status
                 ticket.status = new_status
                 ticket.updated_at = timezone.now()
                 ticket.save()
+                if old_status != SupportTicket.STATUS_CLOSED and new_status == SupportTicket.STATUS_CLOSED:
+                    try:
+                        create_notification(
+                            ticket.user,
+                            'Support ticket closed',
+                            f'#{ticket.id}: {ticket.subject}',
+                            reverse('support_ticket', args=[ticket.id]),
+                            UserNotification.TYPE_SUPPORT,
+                        )
+                    except Exception:
+                        logging.getLogger(__name__).exception("Failed to create support closed notification")
                 _broadcast_support_event(ticket, {
                     'type': 'support.status',
                     'ticket_id': ticket.id,
@@ -6296,10 +6321,13 @@ def support_ticket_detail(request, ticket_id):
                 )
 
     messages_list = SupportMessage.objects.filter(ticket=ticket).select_related('sender').order_by('created_at')
+    for msg in messages_list:
+        msg.sender_profile_image = get_user_profile_image(msg.sender)
     context = {
         'ticket': ticket,
         'messages_list': messages_list,
         'is_support_staff': is_staff,
+        'total_messages_count': len(messages_list),
     }
     if is_staff:
         context['pending_kyc'] = KYCRequest.objects.filter(status=KYCRequest.STATUS_PENDING).count()
@@ -6416,24 +6444,17 @@ def api_support_reply(request, ticket_id):
     is_staff = _is_support_staff(request.user)
     if ticket.user_id != request.user.id and not is_staff:
         return JsonResponse({'error': 'Forbidden'}, status=403)
-    if ticket.status in (SupportTicket.STATUS_CLOSED, SupportTicket.STATUS_ANSWERED):
-        return JsonResponse({'error': 'This conversation has ended.'}, status=400)
+    if ticket.status == SupportTicket.STATUS_CLOSED:
+        return JsonResponse({'error': 'This conversation is closed.'}, status=400)
     message = (request.POST.get('message') or '').strip()
     if not message:
         return JsonResponse({'error': 'Message required'}, status=400)
     new_msg = SupportMessage.objects.create(ticket=ticket, sender=request.user, message=message)
     ticket.updated_at = timezone.now()
-    if is_staff and ticket.status == SupportTicket.STATUS_OPEN:
+    if ticket.status != SupportTicket.STATUS_CLOSED and ticket.status != SupportTicket.STATUS_IN_PROGRESS:
         ticket.status = SupportTicket.STATUS_IN_PROGRESS
     ticket.save()
-    if is_staff and ticket.user_id != request.user.id:
-        create_notification(
-            ticket.user,
-            'New reply on your support ticket',
-            f'#{ticket.id}: {ticket.subject}',
-            reverse('support_ticket', args=[ticket.id]),
-            UserNotification.TYPE_SUPPORT
-        )
+    # Do not send an email/notification on every reply.
     _broadcast_support_event(ticket, {
         'type': 'support.message',
         'ticket_id': ticket.id,
@@ -6494,9 +6515,21 @@ def api_support_status(request, ticket_id):
     status_val = (request.POST.get('status') or '').strip()
     if status_val not in dict(SupportTicket.STATUS_CHOICES):
         return JsonResponse({'error': 'Invalid status'}, status=400)
+    old_status = ticket.status
     ticket.status = status_val
     ticket.updated_at = timezone.now()
     ticket.save()
+    if old_status != SupportTicket.STATUS_CLOSED and status_val == SupportTicket.STATUS_CLOSED:
+        try:
+            create_notification(
+                ticket.user,
+                'Support ticket closed',
+                f'#{ticket.id}: {ticket.subject}',
+                reverse('support_ticket', args=[ticket.id]),
+                UserNotification.TYPE_SUPPORT,
+            )
+        except Exception:
+            logging.getLogger(__name__).exception("Failed to create support closed notification")
     return JsonResponse({'ok': True})
 
 

@@ -55,6 +55,37 @@
         .ticket-status.closed { background: #e2e3e5; color: #383d41; }
         .staff-actions { margin-top: 1rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
         .staff-actions form { display: inline; }
+        .btn-danger { background: #dc3545; color: #fff; }
+        .btn-danger:hover { background: #b91c1c; }
+        .confirm-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(15, 23, 42, 0.45);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 1rem;
+        }
+        .confirm-modal.show { display: flex; }
+        .confirm-card {
+            width: 100%;
+            max-width: 460px;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.2);
+            border: 1px solid #e5e7eb;
+            overflow: hidden;
+        }
+        .confirm-head { padding: 1rem 1.2rem; border-bottom: 1px solid #e5e7eb; font-weight: 700; color: #991b1b; }
+        .confirm-body { padding: 1rem 1.2rem; color: #334155; line-height: 1.5; }
+        .confirm-actions { padding: 0.9rem 1.2rem; display: flex; justify-content: flex-end; gap: 0.6rem; background: #f8fafc; }
+        .confirm-btn { border: none; border-radius: 8px; padding: 0.55rem 0.95rem; font-weight: 600; cursor: pointer; }
+        .confirm-cancel { background: #64748b; color: #fff; }
+        .confirm-delete { background: #dc2626; color: #fff; }
+        .view-more-wrap { text-align: center; padding: 0.5rem 1rem 1rem; }
+        .view-more-btn { background: #eef2ff; border: 1px solid #c7d2fe; color: #3730a3; border-radius: 8px; padding: 0.45rem 0.9rem; cursor: pointer; font-weight: 600; }
+        .hidden-msg { display: none; }
         .messages-box { flex: 1; overflow-y: auto; padding: 1.5rem; max-height: 420px; }
         .msg { margin-bottom: 1rem; display: flex; }
         .msg { align-items: flex-end; gap: 0.5rem; }
@@ -187,6 +218,7 @@
                     </div>
                     <span id="supTicketStatusBadge" class="ticket-status {{ ticket.status }}">{{ ticket.get_status_display }}</span>
                     <div class="staff-actions">
+                        <span style="font-size:0.85rem;color:#666;">Total messages: <strong>{{ total_messages_count }}</strong></span>
                         {% if not ticket.assigned_to or ticket.assigned_to_id == request.user.id %}
                         <form method="POST" action="{% url 'support_ticket' ticket.id %}" style="display: inline;">
                             {% csrf_token %}
@@ -203,14 +235,19 @@
                                 {% endfor %}
                             </select>
                         </form>
+                        <form id="deleteTicketForm" method="POST" action="{% url 'support_ticket' ticket.id %}" style="display: inline;">
+                            {% csrf_token %}
+                            <input type="hidden" name="action" value="delete_ticket">
+                            <button type="submit" class="btn-secondary btn-danger" style="padding: 0.5rem 1rem; font-size: 0.9rem;"><i class="fas fa-trash-alt"></i> Delete Ticket</button>
+                        </form>
                     </div>
                 </div>
 
                 <div id="supMessages" class="messages-box">
                     {% if messages_list %}
                         {% for msg in messages_list %}
-                        <div class="msg {% if msg.sender_id == request.user.id %}sent{% else %}received{% endif %}" data-message-id="{{ msg.id }}">
-                            <img class="msg-avatar" src="/static/images/default-avatar.png" alt="avatar">
+                        <div class="msg {% if msg.sender_id == request.user.id %}sent{% else %}received{% endif %}{% if forloop.counter > 5 %} hidden-msg extra-msg{% endif %}" data-message-id="{{ msg.id }}">
+                            <img class="msg-avatar" src="{% if msg.sender.role == 'admin' %}/static/images/Farmity%20logo.png{% else %}{{ msg.sender_profile_image|default:'/static/images/default-avatar.png' }}{% endif %}" alt="avatar">
                             <div class="msg-bubble">
                                 {{ msg.message|linebreaksbr }}
                                 <div class="msg-meta">{{ msg.created_at|date:"M d, h:i A" }} • {{ msg.sender.get_full_name|default:msg.sender.email }}</div>
@@ -221,10 +258,15 @@
                         <div id="supEmptyMsg" class="empty-msg">No messages yet.</div>
                     {% endif %}
                 </div>
+                {% if messages_list|length > 5 %}
+                <div class="view-more-wrap">
+                    <button id="viewMoreBtn" type="button" class="view-more-btn">View more messages</button>
+                </div>
+                {% endif %}
 
-                {% if ticket.status == 'answered' or ticket.status == 'closed' %}
+                {% if ticket.status == 'closed' %}
                 <div class="conversation-ended" style="padding: 1rem 1.5rem; border-top: 2px solid #f0f0f0; background: #f8f9fa; color: #666; text-align: center;">
-                    <i class="fas fa-lock"></i> This conversation has ended. No further replies.
+                    <i class="fas fa-lock"></i> This conversation is closed. Replies are disabled for both user and admin.
                 </div>
                 {% else %}
                 <div class="reply-form">
@@ -243,6 +285,20 @@
     </div>
     {% include 'includes/farmity_logout_modal_script.html' %}
     <script src="/static/js/admin_state.js"></script>
+    <div id="deleteConfirmModal" class="confirm-modal" aria-hidden="true">
+        <div class="confirm-card" role="dialog" aria-modal="true" aria-labelledby="deleteConfirmTitle">
+            <div id="deleteConfirmTitle" class="confirm-head"><i class="fas fa-exclamation-triangle"></i> Delete Ticket?</div>
+            <div class="confirm-body">
+                This will permanently delete this support ticket and all chat messages.
+                <br><br>
+                This action cannot be undone.
+            </div>
+            <div class="confirm-actions">
+                <button type="button" id="deleteModalCancel" class="confirm-btn confirm-cancel">Cancel</button>
+                <button type="button" id="deleteModalConfirm" class="confirm-btn confirm-delete">Yes, Delete</button>
+            </div>
+        </div>
+    </div>
     <script>
         (function () {
             var ticketId = {{ ticket.id }};
@@ -267,14 +323,28 @@
                 seen.add(idStr);
                 if (emptyEl && emptyEl.parentNode) emptyEl.parentNode.removeChild(emptyEl);
                 var mine = Number(msg.sender_id) === Number(currentUserId);
+                var avatar = (msg.sender_role === 'admin')
+                    ? '/static/images/Farmity%20logo.png'
+                    : (msg.sender_profile_image || '/static/images/default-avatar.png');
                 var row = document.createElement('div');
                 row.className = 'msg ' + (mine ? 'sent' : 'received');
                 row.setAttribute('data-message-id', idStr);
-                row.innerHTML = '<img class="msg-avatar" src="' + esc(msg.sender_profile_image || '/static/images/default-avatar.png') + '" alt="avatar">' +
+                row.innerHTML = '<img class="msg-avatar" src="' + esc(avatar) + '" alt="avatar">' +
                     '<div class="msg-bubble">' + nl(msg.message || '') +
                     '<div class="msg-meta">' + esc(msg.created_at || '') + ' • ' + esc(msg.sender_name || 'User') + '</div></div>';
                 messagesEl.appendChild(row);
                 messagesEl.scrollTop = messagesEl.scrollHeight;
+            }
+            function appendPendingMessage(text) {
+                if (!text) return null;
+                if (emptyEl && emptyEl.parentNode) emptyEl.parentNode.removeChild(emptyEl);
+                var row = document.createElement('div');
+                row.className = 'msg sent pending-msg';
+                row.innerHTML = '<img class="msg-avatar" src="/static/images/Farmity%20logo.png" alt="avatar">' +
+                    '<div class="msg-bubble">' + nl(text) + '<div class="msg-meta">Sending...</div></div>';
+                messagesEl.appendChild(row);
+                messagesEl.scrollTop = messagesEl.scrollHeight;
+                return row;
             }
             function updateStatus(code, label) {
                 if (!statusBadge || !code) return;
@@ -283,20 +353,39 @@
             }
 
             var protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-            var ws = new WebSocket(protocol + '//' + window.location.host + '/ws/support/' + ticketId + '/');
-            ws.onmessage = function (event) {
-                try {
-                    var data = JSON.parse(event.data || '{}');
-                    if (data.type === 'support.message' && data.message) {
-                        appendMessage(data.message);
-                        updateStatus(data.ticket_status, data.ticket_status_display);
-                    } else if (data.type === 'support.status') {
-                        updateStatus(data.ticket_status, data.ticket_status_display);
-                    }
-                } catch (e) {}
-            };
+            var ws = null;
+            var reconnectMs = 1500;
+            function connectWs() {
+                ws = new WebSocket(protocol + '//' + window.location.host + '/ws/support/' + ticketId + '/');
+                ws.onopen = function () {
+                    reconnectMs = 1500;
+                };
+                ws.onmessage = function (event) {
+                    try {
+                        var data = JSON.parse(event.data || '{}');
+                        if (data.type === 'support.message' && data.message) {
+                            appendMessage(data.message);
+                            updateStatus(data.ticket_status, data.ticket_status_display);
+                        } else if (data.type === 'support.status') {
+                            updateStatus(data.ticket_status, data.ticket_status_display);
+                        }
+                    } catch (e) {}
+                };
+                ws.onclose = function () {
+                    setTimeout(connectWs, reconnectMs);
+                    reconnectMs = Math.min(reconnectMs * 2, 10000);
+                };
+            }
+            connectWs();
 
             var form = document.getElementById('supReplyForm');
+            var viewMoreBtn = document.getElementById('viewMoreBtn');
+            if (viewMoreBtn) {
+                viewMoreBtn.addEventListener('click', function () {
+                    document.querySelectorAll('.extra-msg').forEach(function (el) { el.classList.remove('hidden-msg'); });
+                    viewMoreBtn.style.display = 'none';
+                });
+            }
             if (!form) return;
             form.addEventListener('submit', function (e) {
                 e.preventDefault();
@@ -304,6 +393,8 @@
                 var btn = form.querySelector('button[type="submit"]');
                 var text = textarea ? textarea.value.trim() : '';
                 if (!text) return;
+                var pending = appendPendingMessage(text);
+                textarea.value = '';
                 var fd = new FormData();
                 fd.append('message', text);
                 fd.append('csrfmiddlewaretoken', form.querySelector('[name=csrfmiddlewaretoken]').value);
@@ -312,16 +403,47 @@
                     .then(function (r) { return r.json(); })
                     .then(function (data) {
                         if (data && data.ok && data.message) {
+                            if (pending && pending.parentNode) pending.parentNode.removeChild(pending);
                             appendMessage(data.message);
                             updateStatus(data.ticket_status, data.ticket_status_display);
-                            textarea.value = '';
                         } else {
+                            if (pending && pending.parentNode) pending.parentNode.removeChild(pending);
                             alert((data && data.error) || 'Failed to send reply.');
                         }
                     })
-                    .catch(function () { alert('Failed to send reply.'); })
+                    .catch(function () {
+                        if (pending && pending.parentNode) pending.parentNode.removeChild(pending);
+                        alert('Failed to send reply.');
+                    })
                     .finally(function () { if (btn) btn.disabled = false; });
             });
+
+            var deleteForm = document.getElementById('deleteTicketForm');
+            var deleteModal = document.getElementById('deleteConfirmModal');
+            var deleteCancelBtn = document.getElementById('deleteModalCancel');
+            var deleteConfirmBtn = document.getElementById('deleteModalConfirm');
+            if (deleteForm && deleteModal && deleteCancelBtn && deleteConfirmBtn) {
+                deleteForm.addEventListener('submit', function (e) {
+                    e.preventDefault();
+                    deleteModal.classList.add('show');
+                    deleteModal.setAttribute('aria-hidden', 'false');
+                });
+                deleteCancelBtn.addEventListener('click', function () {
+                    deleteModal.classList.remove('show');
+                    deleteModal.setAttribute('aria-hidden', 'true');
+                });
+                deleteConfirmBtn.addEventListener('click', function () {
+                    deleteModal.classList.remove('show');
+                    deleteModal.setAttribute('aria-hidden', 'true');
+                    deleteForm.submit();
+                });
+                deleteModal.addEventListener('click', function (e) {
+                    if (e.target === deleteModal) {
+                        deleteModal.classList.remove('show');
+                        deleteModal.setAttribute('aria-hidden', 'true');
+                    }
+                });
+            }
         })();
     </script>
 </body>
