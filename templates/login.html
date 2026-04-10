@@ -350,7 +350,9 @@
 
             font-size: 1.1rem;
 
-            z-index: 1;
+            z-index: 2;
+
+            pointer-events: none;
 
         }
 
@@ -389,6 +391,16 @@
             background: white;
 
             color: #1a1a1a;
+
+            position: relative;
+
+            z-index: 1;
+
+        }
+
+        .password-wrapper .form-control {
+
+            padding-right: 3rem;
 
         }
 
@@ -430,7 +442,15 @@
 
             font-size: 1.1rem;
 
-            z-index: 1;
+            z-index: 3;
+
+            border: none;
+
+            background: transparent;
+
+            padding: 0;
+
+            line-height: 1;
 
         }
 
@@ -440,6 +460,11 @@
 
             color: #3C894B;
 
+        }
+
+        /* Ensure the eye control stays above the input even if global CSS loads later */
+        #togglePassword {
+            z-index: 5;
         }
 
 
@@ -1078,11 +1103,11 @@
 
                             <input type="password" id="password" name="password" class="form-control" placeholder="Enter your password" autocomplete="current-password">
 
-                            <span class="toggle-password" id="togglePassword">
+                            <button type="button" class="toggle-password" id="togglePassword" aria-label="Show password" aria-pressed="false" title="Show password" onclick="farmityToggleLoginPassword(this)">
 
                                 <i class="far fa-eye"></i>
 
-                            </span>
+                            </button>
 
                         </div>
 
@@ -1502,54 +1527,37 @@
 
         
 
+        function farmityToggleLoginPassword(btn) {
+            const passwordInput = document.getElementById('password');
+            if (!btn || !passwordInput) return;
+
+            const icon = btn.querySelector('i');
+            const show = passwordInput.type === 'password';
+            passwordInput.type = show ? 'text' : 'password';
+
+            btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+            btn.setAttribute('title', show ? 'Hide password' : 'Show password');
+            btn.setAttribute('aria-pressed', show ? 'true' : 'false');
+
+            if (icon) {
+                icon.classList.toggle('fa-eye', !show);
+                icon.classList.toggle('fa-eye-slash', show);
+            }
+        }
+
         // Enhanced login handling with proper validation
 
-        document.addEventListener('DOMContentLoaded', function() {
+        function initLoginPageEnhancements() {
 
-            // Password toggle
+            // Password toggle is handled via inline onclick + farmityToggleLoginPassword()
 
-            const togglePassword = document.getElementById('togglePassword');
-
-            if (togglePassword) {
-
-                togglePassword.addEventListener('click', function() {
-
-                    const passwordInput = document.getElementById('password');
-
-                    const icon = this.querySelector('i');
-
-                    
-
-                    if (passwordInput && passwordInput.type === 'password') {
-
-                        passwordInput.type = 'text';
-
-                        if (icon) {
-
-                            icon.classList.remove('fa-eye');
-
-                            icon.classList.add('fa-eye-slash');
-
-                        }
-
-                    } else if (passwordInput) {
-
-                        passwordInput.type = 'password';
-
-                        if (icon) {
-
-                            icon.classList.remove('fa-eye-slash');
-
-                            icon.classList.add('fa-eye');
-
-                        }
-
-                    }
-
+            (function removeStrayGlobalValidatorMessages() {
+                var form = document.getElementById('loginForm');
+                if (!form) return;
+                form.querySelectorAll('.field-error').forEach(function (el) {
+                    el.remove();
                 });
-
-            }
-
+            })();
 
 
             // Setup enhanced validation with real-time feedback
@@ -1932,7 +1940,13 @@
 
             }
 
-        });
+        }
+
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initLoginPageEnhancements);
+        } else {
+            initLoginPageEnhancements();
+        }
 
     </script>
 

@@ -76,7 +76,10 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
-    wirePasswordToggle(document.getElementById('togglePassword'), 'password');
+    // login.html wires its own password toggle (and adds aria state). Avoid double-binding.
+    if (!window.location.pathname.includes('/login/')) {
+        wirePasswordToggle(document.getElementById('togglePassword'), 'password');
+    }
     wirePasswordToggle(document.getElementById('toggleConfirmPassword'), 'confirmPassword');
 
     // Login page: clear inline errors when user edits a field
@@ -1130,13 +1133,31 @@ window.FormValidator = {
         // Add error styling
         field.classList.add('field-invalid');
         
-        // Create or update error element
-        let errorElement = field.parentNode.querySelector('.field-error');
+        const wrapper = field.closest('.input-wrapper');
+        const mountParent = wrapper ? wrapper.parentNode : field.parentNode;
+        const insertAfter = wrapper || field;
+        let key = (field.id || field.name || '').trim();
+        if (!key) {
+            if (!field.dataset.farmityErrorKey) {
+                field.dataset.farmityErrorKey = 'farmity-fe-' + String(Math.random()).slice(2);
+            }
+            key = field.dataset.farmityErrorKey;
+        }
+
+        // Old behavior appended inside .input-wrapper; global CSS uses flex row, so errors appeared beside the input.
+        if (wrapper) {
+            wrapper.querySelectorAll(':scope > .field-error').forEach(function (el) {
+                el.remove();
+            });
+        }
+
+        let errorElement = mountParent.querySelector('.field-error[data-farmity-for="' + key.replace(/"/g, '\\"') + '"]');
         if (!errorElement) {
             errorElement = document.createElement('div');
             errorElement.className = 'field-error';
-            errorElement.style.cssText = 'color: #dc3545; font-size: 0.85rem; margin-top: 0.5rem; font-weight: 500; display: block;';
-            field.parentNode.appendChild(errorElement);
+            errorElement.setAttribute('data-farmity-for', key);
+            errorElement.style.cssText = 'color: #dc3545; font-size: 0.85rem; margin-top: 0.5rem; font-weight: 500; display: block; width: 100%; box-sizing: border-box;';
+            insertAfter.insertAdjacentElement('afterend', errorElement);
         }
         
         errorElement.textContent = message;
@@ -1155,7 +1176,21 @@ window.FormValidator = {
         
         field.classList.remove('field-invalid');
         
-        const errorElement = field.parentNode.querySelector('.field-error');
+        let key = (field.id || field.name || '').trim();
+        if (!key && field.dataset.farmityErrorKey) {
+            key = field.dataset.farmityErrorKey;
+        }
+        const wrapper = field.closest('.input-wrapper');
+        const mountParent = wrapper ? wrapper.parentNode : field.parentNode;
+        let errorElement = key && mountParent
+            ? mountParent.querySelector('.field-error[data-farmity-for="' + key.replace(/"/g, '\\"') + '"]')
+            : null;
+        if (!errorElement && wrapper) {
+            errorElement = wrapper.querySelector(':scope > .field-error');
+        }
+        if (!errorElement) {
+            errorElement = field.parentNode.querySelector('.field-error');
+        }
         if (errorElement) {
             errorElement.style.display = 'none';
         }
@@ -1351,17 +1386,31 @@ window.FormValidator = {
     }
 };
 
+function farmityShouldSkipGlobalFieldValidation(field) {
+    if (!field || !field.closest) return false;
+    /* Login/register ship their own inline errors; binding both yields duplicate messages. */
+    try {
+        var path = (window.location.pathname || '').replace(/\/+$/, '') || '/';
+        if (path.endsWith('/login')) {
+            return true;
+        }
+    } catch (e) { /* ignore */ }
+    return !!(field.closest('#loginForm') || field.closest('#registerForm'));
+}
+
 // Auto-initialize common validation patterns
 document.addEventListener('DOMContentLoaded', function() {
     // Add email validation to all email fields
     document.querySelectorAll('input[type="email"]').forEach(function(field) {
-        FormValidator.addRealtimeValidation(field, 'email', { required: field.hasAttribute('required') });
+        if (farmityShouldSkipGlobalFieldValidation(field)) return;
+        window.FormValidator.addRealtimeValidation(field, 'email', { required: field.hasAttribute('required') });
     });
     
     // Add required validation to all required fields
     document.querySelectorAll('input[required], select[required], textarea[required]').forEach(function(field) {
+        if (farmityShouldSkipGlobalFieldValidation(field)) return;
         if (field.type !== 'email') {
-            FormValidator.addRealtimeValidation(field, 'required', { 
+            window.FormValidator.addRealtimeValidation(field, 'required', { 
                 fieldName: field.getAttribute('data-field-name') || field.name || 'Field' 
             });
         }
@@ -1369,13 +1418,15 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add password validation to password fields
     document.querySelectorAll('input[type="password"]').forEach(function(field) {
+        if (farmityShouldSkipGlobalFieldValidation(field)) return;
         const confirmField = field.form.querySelector('input[type="password"][name*="confirm"], input[type="password"][id*="confirm"]');
-        FormValidator.addRealtimeValidation(field, 'password', { confirmField: confirmField });
+        window.FormValidator.addRealtimeValidation(field, 'password', { confirmField: confirmField });
     });
     
     // Add phone validation to phone fields
     document.querySelectorAll('input[type="tel"], input[name*="phone"], input[id*="phone"]').forEach(function(field) {
-        FormValidator.addRealtimeValidation(field, 'phone', { required: field.hasAttribute('required') });
+        if (farmityShouldSkipGlobalFieldValidation(field)) return;
+        window.FormValidator.addRealtimeValidation(field, 'phone', { required: field.hasAttribute('required') });
     });
 });
 

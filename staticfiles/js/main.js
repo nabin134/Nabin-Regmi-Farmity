@@ -1,3 +1,16 @@
+/* Dark mode: keep html + body in sync with localStorage (whole-site theme). */
+(function () {
+    function applyFarmityDarkMode() {
+        try {
+            var on = localStorage.getItem('darkMode') === 'true';
+            document.documentElement.classList.toggle('dark-mode', on);
+            if (document.body) document.body.classList.toggle('dark-mode', on);
+        } catch (e) {}
+    }
+    applyFarmityDarkMode();
+    document.addEventListener('DOMContentLoaded', applyFarmityDarkMode);
+})();
+
 // API Base URL
 const API_BASE_URL = '/api/auth';
 
@@ -91,6 +104,55 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.setCustomValidity('');
             }
         });
+    }
+});
+
+// Preserve current page context for POST->redirect flows (admin CRUD/list/detail pages).
+document.addEventListener('DOMContentLoaded', function () {
+    function ensureHidden(form, name) {
+        var input = form.querySelector('input[name="' + name + '"]');
+        if (!input) {
+            input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = name;
+            form.appendChild(input);
+        }
+        return input;
+    }
+
+    function stampReturnState(form) {
+        try {
+            ensureHidden(form, '_return_path').value = window.location.pathname || '/';
+            var search = window.location.search || '';
+            ensureHidden(form, '_return_query').value = search.startsWith('?') ? search.substring(1) : search;
+            ensureHidden(form, '_return_scroll').value = String(Math.max(0, Math.round(window.scrollY || 0)));
+        } catch (e) {
+            // Ignore state-stamp failures; form submission should continue.
+        }
+    }
+
+    document.querySelectorAll('form').forEach(function (form) {
+        var method = (form.getAttribute('method') || 'get').toLowerCase();
+        if (method !== 'post') return;
+        form.addEventListener('submit', function () { stampReturnState(form); }, true);
+    });
+
+    // Restore scroll from query parameter after redirect, then clean URL.
+    try {
+        var url = new URL(window.location.href);
+        var scrollVal = url.searchParams.get('_scroll');
+        if (scrollVal !== null && scrollVal !== '') {
+            var y = parseInt(scrollVal, 10);
+            if (!isNaN(y) && y >= 0) {
+                window.requestAnimationFrame(function () {
+                    window.scrollTo(0, y);
+                });
+            }
+            url.searchParams.delete('_scroll');
+            window.history.replaceState({}, '', url.pathname + (url.search ? url.search : '') + url.hash);
+        }
+    } catch (e) {
+        // Ignore restore failures safely.
     }
 });
 
@@ -308,6 +370,25 @@ function showLogoutConfirmation() {
     });
 }
 
+function showGenericConfirmationFromForm(form) {
+    const message = (form.getAttribute('data-farmity-confirm-message') || '').trim() || 'Are you sure you want to proceed?';
+    const type = (form.getAttribute('data-farmity-confirm-type') || '').trim() || 'warning';
+    const title = (form.getAttribute('data-farmity-confirm-title') || '').trim() || 'Please Confirm';
+    const confirmText = (form.getAttribute('data-farmity-confirm-button') || '').trim() || 'Yes, Continue';
+    const cancelText = (form.getAttribute('data-farmity-cancel-button') || '').trim() || 'Cancel';
+
+    if (typeof showConfirmation === 'function') {
+        return showConfirmation({
+            title: title,
+            message: message,
+            type: type,
+            confirmText: confirmText,
+            cancelText: cancelText
+        });
+    }
+    return Promise.resolve(window.confirm(message));
+}
+
 // Logout Function
 async function logout() {
     const ok = await showLogoutConfirmation();
@@ -340,6 +421,19 @@ document.addEventListener('click', async function(e) {
 document.addEventListener('submit', async function(e) {
     const form = e.target;
     if (!form || !form.getAttribute) return;
+
+    // Confirm non-AJAX forms that opt in via data attributes.
+    const useFormConfirm = form.getAttribute('data-farmity-confirm') === '1';
+    const isAjaxForm = form.getAttribute('data-farmity-ajax') === '1';
+    if (useFormConfirm && !isAjaxForm) {
+        e.preventDefault();
+        e.stopPropagation();
+        const ok = await showGenericConfirmationFromForm(form);
+        if (!ok) return;
+        form.submit();
+        return;
+    }
+
     const action = (form.getAttribute('action') || '').trim();
     if (!action) return;
     const isLogoutForm = action === '/logout/' || action === 'logout/' || action.endsWith('/logout/');
@@ -997,3 +1091,443 @@ async function handleRegister(e) {
         setSignupFieldError(form, 'non_field_errors', 'Network error. Please check your connection.');
     }
 }
+
+// ======================
+// REUSABLE VALIDATION UTILITIES
+// ======================
+
+/**
+ * Universal Field Validation Utility
+ * Provides consistent validation across all forms in the system
+ */
+window.FormValidator = {
+    // Email validation regex
+    emailRegex: /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+    
+    // Phone validation regex (10 digits)
+    phoneRegex: /^\d{10}$/,
+    
+    // Password requirements
+    passwordRequirements: {
+        minLength: 8,
+        requireUppercase: true,
+        requireLowercase: true,
+        requireNumber: true,
+        requireSpecial: true
+    },
+
+    /**
+     * Show inline field error
+     * @param {HTMLElement} field - The input field
+     * @param {string} message - Error message to display
+     */
+    showFieldError: function(field, message) {
+        if (!field) return;
+        
+        // Remove existing error
+        this.hideFieldError(field);
+        
+        // Add error styling
+        field.classList.add('field-invalid');
+        
+        // Create or update error element
+        let errorElement = field.parentNode.querySelector('.field-error');
+        if (!errorElement) {
+            errorElement = document.createElement('div');
+            errorElement.className = 'field-error';
+            errorElement.style.cssText = 'color: #dc3545; font-size: 0.85rem; margin-top: 0.5rem; font-weight: 500; display: block;';
+            field.parentNode.appendChild(errorElement);
+        }
+        
+        errorElement.textContent = message;
+        errorElement.style.display = 'block';
+        
+        // Focus the field
+        field.focus();
+    },
+
+    /**
+     * Hide field error
+     * @param {HTMLElement} field - The input field
+     */
+    hideFieldError: function(field) {
+        if (!field) return;
+        
+        field.classList.remove('field-invalid');
+        
+        const errorElement = field.parentNode.querySelector('.field-error');
+        if (errorElement) {
+            errorElement.style.display = 'none';
+        }
+    },
+
+    /**
+     * Validate email field
+     * @param {HTMLElement} field - Email input field
+     * @param {boolean} required - Whether field is required
+     * @returns {boolean} - True if valid
+     */
+    validateEmail: function(field, required = true) {
+        const value = field.value.trim();
+        
+        if (required && !value) {
+            this.showFieldError(field, 'Email is required.');
+            return false;
+        }
+        
+        if (value && !this.emailRegex.test(value)) {
+            this.showFieldError(field, 'Please enter a valid email address (e.g., user@example.com).');
+            return false;
+        }
+        
+        this.hideFieldError(field);
+        return true;
+    },
+
+    /**
+     * Validate required field
+     * @param {HTMLElement} field - Input field
+     * @param {string} fieldName - Name of the field for error message
+     * @returns {boolean} - True if valid
+     */
+    validateRequired: function(field, fieldName) {
+        const value = field.value.trim();
+        
+        if (!value) {
+            this.showFieldError(field, `${fieldName} is required.`);
+            return false;
+        }
+        
+        this.hideFieldError(field);
+        return true;
+    },
+
+    /**
+     * Validate password strength
+     * @param {HTMLElement} field - Password input field
+     * @param {HTMLElement} confirmField - Confirm password field (optional)
+     * @returns {boolean} - True if valid
+     */
+    validatePassword: function(field, confirmField = null) {
+        const password = field.value;
+        
+        if (!password) {
+            this.showFieldError(field, 'Password is required.');
+            return false;
+        }
+        
+        if (password.length < this.passwordRequirements.minLength) {
+            this.showFieldError(field, `Password must be at least ${this.passwordRequirements.minLength} characters long.`);
+            return false;
+        }
+        
+        if (this.passwordRequirements.requireUppercase && !/[A-Z]/.test(password)) {
+            this.showFieldError(field, 'Password must contain at least 1 uppercase letter.');
+            return false;
+        }
+        
+        if (this.passwordRequirements.requireLowercase && !/[a-z]/.test(password)) {
+            this.showFieldError(field, 'Password must contain at least 1 lowercase letter.');
+            return false;
+        }
+        
+        if (this.passwordRequirements.requireNumber && !/\d/.test(password)) {
+            this.showFieldError(field, 'Password must contain at least 1 number.');
+            return false;
+        }
+        
+        if (this.passwordRequirements.requireSpecial && !/[^A-Za-z0-9]/.test(password)) {
+            this.showFieldError(field, 'Password must contain at least 1 special character.');
+            return false;
+        }
+        
+        // Check password confirmation
+        if (confirmField && confirmField.value) {
+            if (password !== confirmField.value) {
+                this.showFieldError(confirmField, 'Passwords do not match.');
+                return false;
+            } else {
+                this.hideFieldError(confirmField);
+            }
+        }
+        
+        this.hideFieldError(field);
+        return true;
+    },
+
+    /**
+     * Validate phone number (10 digits)
+     * @param {HTMLElement} field - Phone input field
+     * @param {boolean} required - Whether field is required
+     * @returns {boolean} - True if valid
+     */
+    validatePhone: function(field, required = true) {
+        const value = field.value.replace(/\D/g, ''); // Remove non-digits
+        
+        if (required && !value) {
+            this.showFieldError(field, 'Phone number is required.');
+            return false;
+        }
+        
+        if (value && value.length !== 10) {
+            this.showFieldError(field, 'Phone number must be exactly 10 digits.');
+            return false;
+        }
+        
+        this.hideFieldError(field);
+        return true;
+    },
+
+    /**
+     * Add real-time validation to field
+     * @param {HTMLElement} field - Input field
+     * @param {string} type - Validation type (email, required, password, phone)
+     * @param {Object} options - Additional options
+     */
+    addRealtimeValidation: function(field, type, options = {}) {
+        if (!field) return;
+        
+        const validator = this;
+        
+        // Clear error on input
+        field.addEventListener('input', function() {
+            switch (type) {
+                case 'email':
+                    validator.validateEmail(field, options.required);
+                    break;
+                case 'required':
+                    validator.validateRequired(field, options.fieldName || 'Field');
+                    break;
+                case 'password':
+                    validator.validatePassword(field, options.confirmField);
+                    break;
+                case 'phone':
+                    validator.validatePhone(field, options.required);
+                    break;
+            }
+        });
+        
+        // Clear error on focus
+        field.addEventListener('focus', function() {
+            validator.hideFieldError(field);
+        });
+    },
+
+    /**
+     * Validate entire form
+     * @param {HTMLElement} form - Form element
+     * @param {Object} rules - Validation rules
+     * @returns {boolean} - True if form is valid
+     */
+    validateForm: function(form, rules) {
+        if (!form || !rules) return true;
+        
+        let isValid = true;
+        
+        Object.keys(rules).forEach(function(fieldName) {
+            const field = form.querySelector(`[name="${fieldName}"], #${fieldName}`);
+            const rule = rules[fieldName];
+            
+            if (!field) return;
+            
+            switch (rule.type) {
+                case 'email':
+                    if (!this.validateEmail(field, rule.required)) isValid = false;
+                    break;
+                case 'required':
+                    if (!this.validateRequired(field, rule.fieldName || fieldName)) isValid = false;
+                    break;
+                case 'password':
+                    const confirmField = rule.confirmField ? form.querySelector(`[name="${rule.confirmField}"], #${rule.confirmField}`) : null;
+                    if (!this.validatePassword(field, confirmField)) isValid = false;
+                    break;
+                case 'phone':
+                    if (!this.validatePhone(field, rule.required)) isValid = false;
+                    break;
+            }
+        }.bind(this));
+        
+        return isValid;
+    }
+};
+
+// Auto-initialize common validation patterns
+document.addEventListener('DOMContentLoaded', function() {
+    // Add email validation to all email fields
+    document.querySelectorAll('input[type="email"]').forEach(function(field) {
+        window.FormValidator.addRealtimeValidation(field, 'email', { required: field.hasAttribute('required') });
+    });
+    
+    // Add required validation to all required fields
+    document.querySelectorAll('input[required], select[required], textarea[required]').forEach(function(field) {
+        if (field.type !== 'email') {
+            window.FormValidator.addRealtimeValidation(field, 'required', { 
+                fieldName: field.getAttribute('data-field-name') || field.name || 'Field' 
+            });
+        }
+    });
+    
+    // Add password validation to password fields
+    document.querySelectorAll('input[type="password"]').forEach(function(field) {
+        const confirmField = field.form.querySelector('input[type="password"][name*="confirm"], input[type="password"][id*="confirm"]');
+        window.FormValidator.addRealtimeValidation(field, 'password', { confirmField: confirmField });
+    });
+    
+    // Add phone validation to phone fields
+    document.querySelectorAll('input[type="tel"], input[name*="phone"], input[id*="phone"]').forEach(function(field) {
+        window.FormValidator.addRealtimeValidation(field, 'phone', { required: field.hasAttribute('required') });
+    });
+});
+
+// ======================
+// UNIVERSAL SUCCESS MESSAGE UTILITIES
+// ======================
+
+/**
+ * Universal Success Message Utility
+ * Provides consistent success message display across all forms in the system
+ */
+window.SuccessMessage = {
+    /**
+     * Show success message using the admin messaging system
+     * @param {string} message - Success message to display
+     * @param {number} duration - Auto-dismiss duration in milliseconds (default: 5000)
+     */
+    show: function(message, duration = 5000) {
+        console.log('Showing success message:', message);
+        
+        // Try multiple selectors to find the container
+        let messagesContainer = document.querySelector('.dashboard-content') ||
+                              document.querySelector('main') ||
+                              document.querySelector('body') ||
+                              document.querySelector('.content-wrapper');
+        
+        if (!messagesContainer) {
+            console.warn('Could not find messages container');
+            // Fallback to alert if no container found
+            alert(message);
+            return;
+        }
+        
+        // Check if messages wrapper already exists
+        let messagesWrapper = messagesContainer.querySelector('.admin-messages-wrap');
+        if (!messagesWrapper) {
+            // Insert messages wrapper at the top of the container
+            const existingMessages = messagesContainer.querySelector('.admin-messages');
+            if (existingMessages) {
+                messagesWrapper = existingMessages;
+            } else {
+                messagesWrapper = document.createElement('div');
+                messagesWrapper.className = 'admin-messages-wrap messages-auto-dismiss';
+                messagesWrapper.setAttribute('data-dismiss-ms', duration.toString());
+                messagesWrapper.setAttribute('aria-live', 'polite');
+                
+                const innerWrapper = document.createElement('div');
+                innerWrapper.className = 'admin-messages-inner';
+                messagesWrapper.appendChild(innerWrapper);
+                
+                messagesContainer.insertBefore(messagesWrapper, messagesContainer.firstChild);
+            }
+        }
+        
+        // Create success message element
+        const messageHtml = `
+            <div class="admin-messages-wrap messages-auto-dismiss" data-dismiss-ms="${duration}" aria-live="polite">
+                <div class="admin-messages-inner">
+                    <div class="message-alert msg-success" role="status">
+                        <span class="msg-icon" aria-hidden="true">
+                            <i class="fas fa-check-circle"></i>
+                        </span>
+                        <span class="msg-text">${this.escapeHtml(message)}</span>
+                        <button type="button" class="msg-close" aria-label="Dismiss message" onclick="this.closest('.admin-messages-wrap').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Insert the message
+        messagesContainer.insertAdjacentHTML('afterbegin', messageHtml);
+        
+        // Auto-dismiss after duration
+        setTimeout(function() {
+            const msgElement = messagesContainer.querySelector('.admin-messages-wrap.messages-auto-dismiss');
+            if (msgElement) {
+                msgElement.classList.add('messages-hidden');
+                setTimeout(function() {
+                    msgElement.remove();
+                }, 300);
+            }
+        }, duration);
+    },
+
+    /**
+     * Show success message for form actions
+     * @param {string} action - The action performed (e.g., 'KYC Verified', 'User Deleted')
+     * @param {string} target - The target of the action (e.g., user email, KYC ID)
+     */
+    showActionSuccess: function(action, target) {
+        const message = target ? `${action} successfully for: ${target}` : `${action} successful`;
+        this.show(message);
+    },
+
+    /**
+     * Show success message for CRUD operations
+     * @param {string} operation - Operation type (Create, Update, Delete)
+     * @param {string} itemType - Type of item (User, KYC Request, etc.)
+     * @param {string} identifier - Item identifier (name, email, ID)
+     */
+    showCrudSuccess: function(operation, itemType, identifier) {
+        const message = `${itemType} ${operation}d successfully${identifier ? `: ${identifier}` : ''}`;
+        this.show(message);
+    },
+
+    /**
+     * Escape HTML to prevent XSS
+     * @param {string} text - Text to escape
+     * @returns {string} - Escaped text
+     */
+    escapeHtml: function(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    },
+
+    /**
+     * Show success message and optionally redirect
+     * @param {string} message - Success message
+     * @param {string} redirectUrl - URL to redirect to (optional)
+     * @param {number} delay - Redirect delay in milliseconds (default: 2000)
+     */
+    showWithRedirect: function(message, redirectUrl, delay = 2000) {
+        this.show(message);
+        
+        if (redirectUrl) {
+            setTimeout(function() {
+                window.location.href = redirectUrl;
+            }, delay);
+        }
+    }
+};
+
+// Auto-initialize success messages for common actions
+document.addEventListener('DOMContentLoaded', function() {
+    // Check for URL parameters that indicate success
+    const urlParams = new URLSearchParams(window.location.search);
+    const successParam = urlParams.get('success');
+    const actionParam = urlParams.get('action');
+    const targetParam = urlParams.get('target');
+    
+    if (successParam === 'true' && actionParam) {
+        if (targetParam) {
+            SuccessMessage.showActionSuccess(actionParam.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()), targetParam);
+        } else {
+            SuccessMessage.show(`${actionParam.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())} successful`);
+        }
+        
+        // Clean up URL parameters
+        const cleanUrl = window.location.pathname;
+        window.history.replaceState({}, document.title, cleanUrl);
+    }
+});

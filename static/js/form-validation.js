@@ -3,7 +3,7 @@
  * Handles all form validation, error display, and user interactions
  */
 
-class FormValidator {
+class EnhancedFormValidator {
     constructor(formId, options = {}) {
         this.form = document.getElementById(formId);
         this.options = {
@@ -565,7 +565,7 @@ function chainValidators() {
 }
 
 function setupLoginForm() {
-    const validator = new FormValidator('loginForm', {
+    const validator = new EnhancedFormValidator('loginForm', {
         showRealTimeValidation: true,
         onSubmit: function (e, formValidator) {
             formValidator.submitForm();
