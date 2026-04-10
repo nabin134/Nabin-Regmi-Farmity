@@ -10,8 +10,8 @@
         </div>
         <div class="farmity-support-tabs">
             <button type="button" class="farmity-tab active" data-tab="faq">FAQ</button>
-            <button type="button" class="farmity-tab" data-tab="mytickets">My tickets</button>
-            <button type="button" class="farmity-tab" data-tab="new">New request</button>
+            <button type="button" class="farmity-tab" data-tab="mytickets" id="farmityTabMytickets">My tickets</button>
+            <button type="button" class="farmity-tab" data-tab="new" id="farmityTabNew">New request</button>
             {% if not hide_admin_tab %}
             <button type="button" class="farmity-tab farmity-tab-staff" data-tab="open" id="farmityTabOpen" style="display:none;">Open (Admin)</button>
             {% endif %}
@@ -177,6 +177,7 @@
     });
 
     var isStaff = false;
+    var isAuthenticated = false;
     var currentTicketId = null;
 
     function loadConfig() {
@@ -230,11 +231,27 @@
             });
         });
     }
+    function applyAuthTabVisibility() {
+        var tabMy = document.getElementById('farmityTabMytickets');
+        var tabNew = document.getElementById('farmityTabNew');
+        var contentMy = document.getElementById('farmityContentMytickets');
+        var contentNew = document.getElementById('farmityContentNew');
+        if (tabMy) tabMy.style.display = isAuthenticated ? '' : 'none';
+        if (tabNew) tabNew.style.display = isAuthenticated ? '' : 'none';
+        if (!isAuthenticated) {
+            if (contentMy) contentMy.innerHTML = '<div class="farmity-empty">Please sign in to view your tickets.</div>';
+            if (contentNew) contentNew.innerHTML = '<div class="farmity-empty">Please sign in to create a support request.</div>';
+            var faqTab = panel.querySelector('.farmity-tab[data-tab="faq"]');
+            if (faqTab) faqTab.click();
+        }
+    }
     function loadAll() {
         loadFaq();
-        loadMyTickets();
         api('/api/support/config/').then(function(d) {
             isStaff = d.is_staff || false;
+            isAuthenticated = !!d.is_authenticated;
+            applyAuthTabVisibility();
+            if (isAuthenticated) loadMyTickets();
             var tabOpen = document.getElementById('farmityTabOpen');
             if (tabOpen) { tabOpen.style.display = isStaff ? '' : 'none'; if (isStaff) loadOpenTickets(); }
         });
@@ -310,6 +327,8 @@
 
     api('/api/support/config/').then(function(d) {
         isStaff = d.is_staff || false;
+        isAuthenticated = !!d.is_authenticated;
+        applyAuthTabVisibility();
         var el = document.getElementById('farmityTabOpen');
         if (el) el.style.display = isStaff ? '' : 'none';
     });

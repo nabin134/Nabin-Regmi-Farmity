@@ -5761,7 +5761,6 @@ def logout_view(request):
     # Accept both GET and POST so links and forms work
     next_url = request.GET.get('next') or (request.POST.get('next') if request.method == 'POST' else None)
     logout(request)
-    messages.success(request, 'You have been logged out successfully.')
     if next_url and next_url.startswith('/'):
         return redirect(next_url)
     return redirect('landing')
@@ -6342,8 +6341,8 @@ def support_ticket_detail(request, ticket_id):
 def api_support_config(request):
     """Allow anonymous: landing page widget needs config without login. Returns is_staff: false when not logged in."""
     if request.user.is_authenticated:
-        return JsonResponse({'is_staff': _is_support_staff(request.user)})
-    return JsonResponse({'is_staff': False})
+        return JsonResponse({'is_staff': _is_support_staff(request.user), 'is_authenticated': True})
+    return JsonResponse({'is_staff': False, 'is_authenticated': False})
 
 
 def api_support_faqs(request):

@@ -418,6 +418,8 @@ document.addEventListener('click', async function(e) {
 
     const ok = await showLogoutConfirmation();
     if (!ok) return;
+    localStorage.removeItem('user');
+    localStorage.removeItem('isLoggedIn');
     window.location.href = href;
 }, true);
 
@@ -447,6 +449,8 @@ document.addEventListener('submit', async function(e) {
 
     const ok = await showLogoutConfirmation();
     if (!ok) return;
+    localStorage.removeItem('user');
+    localStorage.removeItem('isLoggedIn');
     form.submit();
 }, true);
 
