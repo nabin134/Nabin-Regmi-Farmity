@@ -110,9 +110,14 @@ def esewa_verify_transaction_realtime(transaction_uuid: str, total_amount, produ
     except (URLError, HTTPError, OSError, Exception):
         return None
     try:
-        return json.loads(body)
+        parsed = json.loads(body)
     except json.JSONDecodeError:
         return None
+    if isinstance(parsed, dict) and 'data' in parsed and isinstance(parsed['data'], dict):
+        inner = parsed['data']
+        if 'status' in inner or 'Status' in inner:
+            return inner
+    return parsed
 
 
 def esewa_verify_callback_signature(data: dict, secret: str) -> bool:
@@ -130,7 +135,16 @@ def esewa_verify_callback_signature(data: dict, secret: str) -> bool:
         val = data.get(key)
         if val is None:
             return False
-        # Normalize so we match eSewa's signature (e.g. 230.0 -> "230")
+        # Normalize so we match eSewa's signature (e.g. 230.0 -> "230", "100.0" -> 100)
+        if isinstance(val, str) and val.strip() != '':
+            try:
+                fv = float(val)
+                if fv == int(fv):
+                    val = int(fv)
+                else:
+                    val = fv
+            except ValueError:
+                pass
         if isinstance(val, float) and val == int(val):
             val = int(val)
         parts.append(f'{key}={val}')

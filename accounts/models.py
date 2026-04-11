@@ -500,6 +500,32 @@ class Order(models.Model):
         except Exception:
             return None
 
+    @property
+    def effective_seller_amount(self):
+        """Net to seller after commission (stored value, or recomputed if legacy row had 0)."""
+        from decimal import Decimal
+        sa = self.seller_amount
+        if sa is not None:
+            d = Decimal(str(sa))
+            if d > 0:
+                return d
+        ptype = 'tool' if self.tool_id else ('crop' if self.crop_id else None)
+        _, seller = self.compute_commission(self.total_amount, self.shipping_cost, ptype)
+        return seller
+
+    @property
+    def effective_admin_commission(self):
+        """Platform commission (stored or recomputed for legacy rows)."""
+        from decimal import Decimal
+        ac = self.admin_commission
+        if ac is not None:
+            d = Decimal(str(ac))
+            if d > 0:
+                return d
+        ptype = 'tool' if self.tool_id else ('crop' if self.crop_id else None)
+        comm, _ = self.compute_commission(self.total_amount, self.shipping_cost, ptype)
+        return comm
+
 
 class CropSale(models.Model):
     """Track sales of crops by farmers"""

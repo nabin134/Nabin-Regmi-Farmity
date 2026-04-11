@@ -632,15 +632,21 @@
 
             display: grid;
 
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(4, 1fr);
 
-            gap: 1.5rem;
+            gap: 1.25rem;
 
-            margin-bottom: 2.5rem;
+            margin-bottom: 2rem;
 
         }
 
-        @media (max-width: 992px) {
+        @media (max-width: 1200px) {
+
+            .earnings-cards { grid-template-columns: repeat(2, 1fr); }
+
+        }
+
+        @media (max-width: 600px) {
 
             .earnings-cards { grid-template-columns: 1fr; }
 
@@ -693,6 +699,14 @@
             border-left: 4px solid var(--warning);
 
         }
+
+        .earnings-card.card-released {
+
+            border-left: 4px solid #0d9488;
+
+        }
+
+        .earnings-card.card-released .earnings-card-value { color: #0d9488; }
 
         .earnings-card-label {
 
@@ -753,6 +767,148 @@
             font-size: 0.95rem;
 
         }
+
+        .earnings-intro-pro {
+
+            background: linear-gradient(135deg, #f8faf8 0%, #eef4ef 100%);
+
+            border: 1px solid rgba(53, 141, 88, 0.15);
+
+            border-radius: 12px;
+
+            padding: 1rem 1.25rem;
+
+            margin-bottom: 1.5rem;
+
+            font-size: 0.9rem;
+
+            color: #495057;
+
+            line-height: 1.55;
+
+        }
+
+        .earnings-intro-pro strong { color: var(--dark); }
+
+        .earnings-legacy-note {
+
+            font-size: 0.85rem;
+
+            color: #5c6f5c;
+
+            background: #f4f8f4;
+
+            border-radius: 10px;
+
+            padding: 0.75rem 1rem;
+
+            margin-top: 1rem;
+
+            border-left: 3px solid var(--primary);
+
+        }
+
+        .vendor-payout-panel .section-header h3 { font-size: 1.15rem; }
+
+        .vendor-tx-table-wrap {
+
+            border-radius: 12px;
+
+            overflow: hidden;
+
+            border: 1px solid rgba(0,0,0,0.06);
+
+        }
+
+        .vendor-tx-table {
+
+            width: 100%;
+
+            border-collapse: collapse;
+
+            font-size: 0.875rem;
+
+        }
+
+        .vendor-tx-table thead th {
+
+            background: linear-gradient(180deg, #f8faf9 0%, #f0f4f1 100%);
+
+            color: #374151;
+
+            font-weight: 600;
+
+            text-align: left;
+
+            padding: 0.85rem 1rem;
+
+            border-bottom: 2px solid rgba(53, 141, 88, 0.12);
+
+            white-space: nowrap;
+
+        }
+
+        .vendor-tx-table tbody td {
+
+            padding: 0.75rem 1rem;
+
+            border-bottom: 1px solid #eef2ef;
+
+            vertical-align: middle;
+
+        }
+
+        .vendor-tx-table tbody tr:hover { background: #fafcfb; }
+
+        .vendor-tx-table .vp-num { text-align: right; font-variant-numeric: tabular-nums; }
+
+        .vendor-tx-table .vp-num--net { font-weight: 700; color: var(--primary); }
+
+        .vp-badge {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 0.25rem;
+
+            padding: 0.2rem 0.5rem;
+
+            border-radius: 6px;
+
+            font-size: 0.7rem;
+
+            font-weight: 600;
+
+            text-transform: uppercase;
+
+            letter-spacing: 0.03em;
+
+            margin: 0.1rem 0.1rem 0.1rem 0;
+
+        }
+
+        .vp-badge--cod { background: #e8eaf0; color: #455a64; }
+
+        .vp-badge--esewa { background: #e8eaf6; color: #3949ab; }
+
+        .vp-badge--pay-pending { background: #fff8e1; color: #856404; }
+
+        .vp-badge--pay-completed { background: #e8f5e9; color: #1b5e20; }
+
+        .vp-badge--pay-failed { background: #fdecea; color: #b71c1c; }
+
+        .vp-badge--payout-pending { background: #fff3e0; color: #e65100; }
+
+        .vp-badge--payout-paid { background: #e0f2f1; color: #00695c; }
+
+        .vp-badge--os-pending { background: #f5f5f5; color: #616161; }
+
+        .vp-badge--os-active { background: #e3f2fd; color: #0d47a1; }
+
+        .vp-badge--os-done { background: #e8f5e9; color: #1b5e20; }
+
+        .vp-badge--os-cancel { background: #fce4ec; color: #880e4f; }
 
 
 
@@ -2948,45 +3104,70 @@
 
                     <div class="section-body">
 
+                        <p class="earnings-intro-pro">
+                            <strong>How this works:</strong> <strong>Buyer paid</strong> is what the customer was charged (product + shipping).
+                            <strong>Platform fee</strong> is Farmity’s commission on the product portion; <strong>Your earning</strong> is your share (after commission) plus full shipping on paid orders.
+                            Summary cards below count only orders with <strong>completed</strong> payment. Payouts move from <em>awaiting payout</em> to <em>paid out</em> when admin marks them released.
+                        </p>
+
                         <div class="earnings-cards">
 
                             <div class="earnings-card card-total-collect">
 
-                                <span class="earnings-card-label">Total amount collect</span>
+                                <span class="earnings-card-label">Your earning (paid orders)</span>
 
-                                <div class="earnings-card-value">Rs. {{ total_amount_collect|floatformat:2 }}</div>
+                                <div class="earnings-card-value">Rs. {{ amount_collected|floatformat:2 }}</div>
 
-                                <div class="earnings-card-note">From tool sales</div>
+                                <div class="earnings-card-note">Net share from completed payments</div>
 
                             </div>
 
                             <div class="earnings-card card-orders-received">
 
-                                <span class="earnings-card-label">Total order received</span>
+                                <span class="earnings-card-label">Paid orders</span>
 
                                 <div class="earnings-card-value">{{ total_orders_received }}</div>
 
-                                <div class="earnings-card-note">Paid orders (collected)</div>
+                                <div class="earnings-card-note">Payment completed</div>
 
                             </div>
 
                             <div class="earnings-card card-pending">
 
-                                <span class="earnings-card-label">Pending amount to be received</span>
+                                <span class="earnings-card-label">Awaiting payout</span>
 
                                 <div class="earnings-card-value">Rs. {{ pending_release_amount|floatformat:2 }}</div>
 
-                                <div class="earnings-card-note">Awaiting admin release</div>
+                                <div class="earnings-card-note">Admin has not released yet</div>
+
+                            </div>
+
+                            <div class="earnings-card card-released">
+
+                                <span class="earnings-card-label">Paid out to you</span>
+
+                                <div class="earnings-card-value">Rs. {{ total_released_amount|floatformat:2 }}</div>
+
+                                <div class="earnings-card-note">Released via dashboard</div>
 
                             </div>
 
                         </div>
 
-                        <div class="content-section">
+                        {% if previous_released_amount and previous_released_amount > 0 %}
+
+                        <p class="earnings-legacy-note">
+                            <strong>Prior balance on file:</strong> Rs. {{ previous_released_amount|floatformat:2 }} was recorded before in-app payout tracking.
+                            <strong>Lifetime total (including prior):</strong> Rs. {{ total_amount_collect|floatformat:2 }}.
+                        </p>
+
+                        {% endif %}
+
+                        <div class="content-section vendor-payout-panel">
 
                             <div class="section-header">
 
-                                <h3><i class="fas fa-history"></i> Release history</h3>
+                                <h3><i class="fas fa-history"></i> Payout release history</h3>
 
                             </div>
 
@@ -2994,19 +3175,19 @@
 
                                 {% if released_payouts %}
 
-                                <div class="table-responsive">
+                                <div class="vendor-tx-table-wrap table-responsive">
 
-                                    <table class="data-table">
+                                    <table class="vendor-tx-table">
 
                                         <thead>
 
                                             <tr>
 
-                                                <th>Date released</th>
+                                                <th>Release date</th>
 
-                                                <th>Amount</th>
+                                                <th class="vp-num">Amount (your share)</th>
 
-                                                <th>Orders</th>
+                                                <th class="vp-num">Orders</th>
 
                                             </tr>
 
@@ -3020,9 +3201,9 @@
 
                                                 <td>{{ p.payout_date|date:"M d, Y" }}</td>
 
-                                                <td>Rs. {{ p.amount|floatformat:2 }}</td>
+                                                <td class="vp-num vp-num--net">Rs. {{ p.amount|floatformat:2 }}</td>
 
-                                                <td>{{ p.order_count }}</td>
+                                                <td class="vp-num">{{ p.order_count }}</td>
 
                                             </tr>
 
@@ -3036,7 +3217,7 @@
 
                                 {% else %}
 
-                                <p style="color: #6c757d;">No payouts released yet. When admin releases your pending amount, it will appear here.</p>
+                                <p class="earnings-intro" style="margin-bottom:0;">No payout batches yet. When admin releases your pending balance, each release date will appear here with the amount and order count.</p>
 
                                 {% endif %}
 
@@ -3044,11 +3225,11 @@
 
                         </div>
 
-                        <div class="content-section" style="margin-top: 2rem;">
+                        <div class="content-section vendor-payout-panel" style="margin-top: 2rem;">
 
                             <div class="section-header">
 
-                                <h3><i class="fas fa-receipt"></i> Transaction records</h3>
+                                <h3><i class="fas fa-receipt"></i> Order transactions</h3>
 
                             </div>
 
@@ -3056,15 +3237,17 @@
 
                                 {% if vendor_transactions %}
 
-                                <div class="table-responsive">
+                                <p class="earnings-intro" style="margin-top:0;">Up to 200 most recent orders. Amounts use your current commission rules; older rows with missing stored values are recalculated for display.</p>
 
-                                    <table class="data-table">
+                                <div class="vendor-tx-table-wrap table-responsive">
+
+                                    <table class="vendor-tx-table">
 
                                         <thead>
 
                                             <tr>
 
-                                                <th>Date & time</th>
+                                                <th>Placed</th>
 
                                                 <th>Order</th>
 
@@ -3072,15 +3255,17 @@
 
                                                 <th>Item</th>
 
-                                                <th>Qty</th>
+                                                <th class="vp-num">Buyer paid</th>
 
-                                                <th>Total</th>
+                                                <th class="vp-num">Platform fee</th>
+
+                                                <th class="vp-num">Your earning</th>
 
                                                 <th>Payment</th>
 
                                                 <th>Payout</th>
 
-                                                <th>Order status</th>
+                                                <th>Fulfillment</th>
 
                                             </tr>
 
@@ -3092,23 +3277,59 @@
 
                                             <tr>
 
-                                                <td>{{ t.created_at|date:"M d, Y h:i A" }}</td>
+                                                <td>{{ t.created_at|date:"M d, Y" }}<br><span style="font-size:0.8rem;color:#6c757d;">{{ t.created_at|date:"h:i A" }}</span></td>
 
-                                                <td>#{{ t.id }}</td>
+                                                <td><strong>#{{ t.id }}</strong></td>
 
-                                                <td>{{ t.buyer.email }}</td>
+                                                <td>{{ t.buyer.email|default:"—" }}</td>
 
-                                                <td>{{ t.tool.name|default:"-" }}</td>
+                                                <td>{{ t.tool.name|default:"—" }}<br><span style="font-size:0.8rem;color:#6c757d;">{{ t.quantity }} unit{{ t.quantity|pluralize }}</span></td>
 
-                                                <td>{{ t.quantity }} units</td>
+                                                <td class="vp-num">Rs. {{ t.total_amount|floatformat:2 }}</td>
 
-                                                <td>Rs. {{ t.total_amount|floatformat:2 }}</td>
+                                                <td class="vp-num">Rs. {{ t.effective_admin_commission|floatformat:2 }}</td>
 
-                                                <td>{{ t.get_payment_method_display|default:"-" }} / {{ t.get_payment_status_display|default:"Pending" }}</td>
+                                                <td class="vp-num vp-num--net">Rs. {{ t.effective_seller_amount|floatformat:2 }}</td>
 
-                                                <td>{{ t.get_payout_status_display|default:"Pending payout" }}{% if t.payout_at %} ({{ t.payout_at|date:"M d, Y h:i A" }}){% endif %}</td>
+                                                <td>
+                                                    {% if t.payment_method == 'cod' %}
+                                                    <span class="vp-badge vp-badge--cod">COD</span>
+                                                    {% elif t.payment_method == 'esewa' %}
+                                                    <span class="vp-badge vp-badge--esewa">eSewa</span>
+                                                    {% else %}
+                                                    <span class="vp-badge vp-badge--cod">{{ t.get_payment_method_display|default:"—" }}</span>
+                                                    {% endif %}
+                                                    {% if t.payment_status == 'completed' %}
+                                                    <span class="vp-badge vp-badge--pay-completed">Paid</span>
+                                                    {% elif t.payment_status == 'failed' %}
+                                                    <span class="vp-badge vp-badge--pay-failed">Failed</span>
+                                                    {% else %}
+                                                    <span class="vp-badge vp-badge--pay-pending">Pending</span>
+                                                    {% endif %}
+                                                </td>
 
-                                                <td>{{ t.get_status_display }}</td>
+                                                <td>
+                                                    {% if t.payout_status == 'paid' %}
+                                                    <span class="vp-badge vp-badge--payout-paid">Released</span>
+                                                    {% if t.payout_at %}<br><span style="font-size:0.75rem;color:#6c757d;">{{ t.payout_at|date:"M d, Y" }}</span>{% endif %}
+                                                    {% elif t.payment_status == 'completed' %}
+                                                    <span class="vp-badge vp-badge--payout-pending">Awaiting release</span>
+                                                    {% else %}
+                                                    <span style="font-size:0.8rem;color:#9e9e9e;">—</span>
+                                                    {% endif %}
+                                                </td>
+
+                                                <td>
+                                                    {% if t.status == 'pending' %}
+                                                    <span class="vp-badge vp-badge--os-pending">Pending</span>
+                                                    {% elif t.status == 'cancelled' %}
+                                                    <span class="vp-badge vp-badge--os-cancel">Cancelled</span>
+                                                    {% elif t.status == 'delivered' %}
+                                                    <span class="vp-badge vp-badge--os-done">Delivered</span>
+                                                    {% else %}
+                                                    <span class="vp-badge vp-badge--os-active">{{ t.get_status_display }}</span>
+                                                    {% endif %}
+                                                </td>
 
                                             </tr>
 
@@ -3122,7 +3343,7 @@
 
                                 {% else %}
 
-                                <p style="color: #6c757d;">No transaction records yet.</p>
+                                <p class="earnings-intro" style="margin-bottom:0;">No transaction records yet.</p>
 
                                 {% endif %}
 

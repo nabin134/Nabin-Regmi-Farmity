@@ -316,6 +316,9 @@ SOCIAL_AUTH_GOOGLE_OAUTH2_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 ESEWA_MERCHANT_CODE = os.environ.get('ESEWA_MERCHANT_CODE', 'EPAYTEST')
 ESEWA_SECRET_KEY = os.environ.get('ESEWA_SECRET_KEY', '8gBm/:&EnhH.1/q')
 ESEWA_USE_UAT = os.environ.get('ESEWA_USE_UAT', 'true').lower() in ('1', 'true', 'yes')
+# If Django sees http://127.0.0.1 but eSewa must redirect to a public HTTPS URL (ngrok / production),
+# set this to that origin, e.g. https://yourdomain.com or https://xxxx.ngrok-free.app (no trailing slash).
+ESEWA_PUBLIC_BASE_URL = os.environ.get('ESEWA_PUBLIC_BASE_URL', '').strip().rstrip('/')
 
 # Google provider: credentials come from SocialApp in DB (via setup_google_oauth or _ensure_google_oauth)
 # APP in settings is NOT used - django-allauth uses SocialApp model

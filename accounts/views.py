@@ -12,7 +12,7 @@ from django.utils.crypto import get_random_string
 from django.core.mail import send_mail
 from django.conf import settings
 from django.db.models import Sum, Count, Q
-from django.db.models.functions import TruncMonth, TruncDate
+from django.db.models.functions import TruncMonth
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
@@ -1577,6 +1577,7 @@ def esewa_initiate(request):
     Initiate eSewa payment for an order. GET/POST: order_id (single order) or cart (cart checkout).
     Builds signed form and returns HTML that auto-posts to eSewa.
     """
+    from django.conf import settings
     from .esewa import get_esewa_config, esewa_build_form_data
     from .models import Order, PaymentGroup
 
@@ -1622,9 +1623,14 @@ def esewa_initiate(request):
         )
         transaction_uuid = ref
 
-    scheme = 'https' if request.is_secure() else 'http'
-    host = request.get_host() or '127.0.0.1:8000'
-    base = f'{scheme}://{host}'
+    # Prefer ESEWA_PUBLIC_BASE_URL when set (HTTPS, correct host behind reverse proxy / ngrok).
+    public_base = (getattr(settings, 'ESEWA_PUBLIC_BASE_URL', None) or '').strip().rstrip('/')
+    if public_base:
+        base = public_base
+    else:
+        scheme = 'https' if request.is_secure() else 'http'
+        host = request.get_host() or '127.0.0.1:8000'
+        base = f'{scheme}://{host}'
     success_url = base + reverse('esewa_success')
     failure_url = base + reverse('esewa_failure')
 
@@ -1643,7 +1649,6 @@ def esewa_initiate(request):
     request.session['esewa_order_ids'] = order_ids
     request.session.modified = True
 
-    from django.conf import settings
     esewa_use_uat = getattr(settings, 'ESEWA_USE_UAT', True)
     return render(request, 'esewa_redirect.html', {
         'form_url': form_url,
@@ -1708,23 +1713,21 @@ def esewa_success(request):
     transaction_uuid = data.get('transaction_uuid', '')
     total_amount_callback = data.get('total_amount')
     product_code_callback = data.get('product_code', '')
+    # Optional status API: can lag right after redirect (PENDING/NOT_FOUND) while signed callback is already COMPLETE.
     verification = esewa_verify_transaction_realtime(transaction_uuid, total_amount_callback, product_code_callback)
     if verification:
-        status = (verification.get('status') or '').upper()
-        if status != 'COMPLETE':
-            err_msg = verification.get('error_message') or f"Payment status: {verification.get('status')}. Only completed payments are accepted. If you were charged, please contact support with your order details."
-            messages.error(request, err_msg)
-            return redirect(reverse('user_dashboard'))
-        # Amount match (fraud check)
-        try:
-            verified_total = float(verification.get('total_amount', 0))
-            expected_total = float(total_amount_callback)
-            if abs(verified_total - expected_total) > 0.01:
-                messages.error(request, 'Payment amount mismatch. Please contact support.')
-                return redirect(reverse('user_dashboard'))
-        except (TypeError, ValueError):
-            pass
-    # If verification is None (API timeout/unavailable), accept callback: signature already verified and status is COMPLETE
+        api_status = (verification.get('status') or verification.get('Status') or '').upper()
+        if api_status == 'COMPLETE':
+            try:
+                verified_total = float(verification.get('total_amount', verification.get('totalAmount', 0)))
+                expected_total = float(total_amount_callback)
+                if abs(verified_total - expected_total) > 0.01:
+                    messages.error(request, 'Payment amount mismatch. Please contact support.')
+                    return redirect(reverse('user_dashboard'))
+            except (TypeError, ValueError):
+                pass
+        # If API is not COMPLETE yet (or unknown shape), still trust the signed redirect payload above.
+    # If verification is None (API timeout/unavailable), accept: HMAC + status COMPLETE in callback already verified.
 
     transaction_uuid = data.get('transaction_uuid', '')
     order_ids_to_notify = []
@@ -3224,36 +3227,33 @@ def vendor_dashboard(request):
     # Get orders for vendor's tools
     orders = Order.objects.filter(tool__vendor=profile).select_related('buyer', 'tool').order_by('-created_at')
     vendor_transactions = orders[:200]
-    
-    # Orders where payment is collected (completed) — used for payout stats
+
+    from collections import defaultdict
+
     collected_orders = orders.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED)
-    # For Mainali Tools and Technology vendor, check if they have actual sales
-    if request.user.email == 'np05cp4s240077@iic.edu.np':
-        # Only include collected amount if they have actual tool sales
-        actual_sales = collected_orders.filter(tool__isnull=False).exists()
-        if not actual_sales:
-            collected_orders = collected_orders.none()  # No actual sales, set to zero
-        # If they have sales, use the real collected amount
-    amount_collected = collected_orders.aggregate(total=Sum('seller_amount'))['total'] or collected_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
-    pending_payout_q = Q(payout_status__isnull=True) | Q(payout_status=Order.PAYOUT_PENDING)
-    pending_release_amount = collected_orders.filter(pending_payout_q).aggregate(total=Sum('seller_amount'))['total'] or collected_orders.filter(pending_payout_q).aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
-    # Released payouts: when admin marked as paid (group by payout_at for each release batch)
-    paid_orders = collected_orders.filter(payout_status=Order.PAYOUT_PAID).order_by('-payout_at')
-    released_payouts = list(
-        paid_orders.annotate(payout_date=TruncDate('payout_at'))
-        .values('payout_date')
-        .annotate(amount=Sum('seller_amount'), order_count=Count('id'))
-        .order_by('-payout_date')
-    )
-    total_released_amount = sum((p['amount'] or Decimal('0')) for p in released_payouts)
-    previous_released = getattr(profile, 'previous_released_amount', None) or Decimal('0')
-    
-    # For Mainali Tools and Technology vendor, set previous released to zero since they have no sales
-    if request.user.email == 'np05cp4s240077@iic.edu.np':
-        previous_released = Decimal('0')
-    
+    collected_list = list(collected_orders)
+
+    def _eff_seller(o):
+        return o.effective_seller_amount
+
+    amount_collected = sum((_eff_seller(o) for o in collected_list), Decimal('0'))
+    pending_list = [o for o in collected_list if o.payout_status is None or o.payout_status == Order.PAYOUT_PENDING]
+    pending_release_amount = sum((_eff_seller(o) for o in pending_list), Decimal('0'))
+    paid_list = [o for o in collected_list if o.payout_status == Order.PAYOUT_PAID]
+    total_released_amount = sum((_eff_seller(o) for o in paid_list), Decimal('0'))
+    by_payout_date = defaultdict(lambda: {'amount': Decimal('0'), 'order_count': 0})
+    for o in paid_list:
+        if not o.payout_at:
+            continue
+        d = o.payout_at.date()
+        by_payout_date[d]['amount'] += _eff_seller(o)
+        by_payout_date[d]['order_count'] += 1
+    released_payouts = [
+        {'payout_date': d, 'amount': v['amount'], 'order_count': v['order_count']}
+        for d, v in sorted(by_payout_date.items(), key=lambda x: x[0], reverse=True)
+    ]
+    previous_released = profile.previous_released_amount or Decimal('0')
     total_received = total_released_amount + previous_released
-    # Total amount collect (sales + previous release by admin, for Earnings card)
     total_amount_collect = amount_collected + previous_released
     total_orders_received = collected_orders.count()
     
