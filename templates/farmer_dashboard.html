@@ -1135,6 +1135,45 @@
             margin-top: 0.25rem;
         }
 
+        .chat-msg-img-wrap {
+            margin-bottom: 0.35rem;
+            line-height: 0;
+        }
+
+        .chat-msg-img {
+            max-width: min(240px, 70vw);
+            max-height: 220px;
+            border-radius: 10px;
+            display: block;
+            object-fit: cover;
+            vertical-align: middle;
+        }
+
+        .message.sent .chat-msg-img {
+            border: 2px solid rgba(255, 255, 255, 0.35);
+        }
+
+        .btn-chat-attach {
+            flex-shrink: 0;
+            width: 44px;
+            height: 44px;
+            border-radius: 999px;
+            border: 2px solid #e5e7eb;
+            background: #fff;
+            color: var(--primary);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+            transition: border-color 0.2s, background 0.2s;
+        }
+
+        .btn-chat-attach:hover {
+            border-color: var(--primary);
+            background: #f0fdf4;
+        }
+
         .chat-input-area {
             padding: 0.9rem 1.1rem;
             background: #f3f4f6;
@@ -2506,8 +2545,12 @@
                                     </div>
                                 </div>
                                 <div class="chat-input-area" id="chatInputArea" style="display: none;">
+                                    <input type="file" id="chatImageInput" accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp" style="display: none;">
+                                    <button type="button" class="btn-chat-attach" id="chatImagePickBtn" onclick="document.getElementById('chatImageInput').click()" title="Attach image" aria-label="Attach image" {% if kyc_status != 'approved' %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                                        <i class="fas fa-image"></i>
+                                    </button>
                                     <input type="text" class="chat-input" id="chatInput" data-translate-placeholder="chat.placeholder" placeholder="Type your message..." {% if kyc_status != 'approved' %}disabled{% endif %}>
-                                    <button class="btn-send" onclick="sendMessage()" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
+                                    <button type="button" class="btn-send" onclick="sendMessage()" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed;"{% endif %}>
                                         <i class="fas fa-paper-plane"></i> <span data-translate="chat.send">Send</span>
                                     </button>
                                 </div>
@@ -4582,6 +4625,24 @@
             });
         }
 
+        function escChatAttr(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        }
+
+        function farmerChatBubbleInnerHtml(m) {
+            var parts = [];
+            if (m.image_url) {
+                parts.push('<div class="chat-msg-img-wrap"><a href="' + escChatAttr(m.image_url) + '" target="_blank" rel="noopener noreferrer"><img class="chat-msg-img" src="' + escChatAttr(m.image_url) + '" alt=""></a></div>');
+            }
+            if (m.message) {
+                parts.push('<div class="message-text">' + escapeHtml(m.message) + '</div>');
+            }
+            if (!parts.length) {
+                parts.push('<div class="message-text">\u00a0</div>');
+            }
+            return parts.join('');
+        }
+
         function renderMessages(messages) {
             const messagesDiv = document.getElementById('chatMessages');
             if (!messages || messages.length === 0) {
@@ -4595,7 +4656,7 @@
                     : buildChatAvatarHtml(currentChatExpertName || 'Expert', currentChatExpertPhoto || '');
                 return '<div class="message ' + cls + '">' +
                        '<div class="message-avatar">' + avatarHtml + '</div>' +
-                       '<div class="message-bubble"><div class="message-text">' + escapeHtml(m.message) + '</div>' +
+                       '<div class="message-bubble">' + farmerChatBubbleInnerHtml(m) +
                        '<div class="message-time">' + (m.created_at || '') + '</div></div></div>';
             }).join('');
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
@@ -4609,21 +4670,32 @@
 
         function sendMessage() {
             const input = document.getElementById('chatInput');
-            const message = input.value.trim();
-            if (!message || !currentChatThreadId) return;
+            const fileInput = document.getElementById('chatImageInput');
+            const message = (input && input.value) ? input.value.trim() : '';
+            const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+            if ((!message && !file) || !currentChatThreadId) return;
             const msg = message;
+            const previewUrl = file ? URL.createObjectURL(file) : null;
             input.value = '';
+            if (fileInput) fileInput.value = '';
             const messagesDiv = document.getElementById('chatMessages');
             const placeholder = document.createElement('div');
             placeholder.className = 'message sent';
+            var pendingInner = farmerChatBubbleInnerHtml({
+                message: msg,
+                image_url: previewUrl
+            });
             placeholder.innerHTML =
                 '<div class="message-avatar">' + buildChatAvatarHtml('Me', currentChatMyPhoto || '') + '</div>' +
-                '<div class="message-bubble"><div class="message-text">' + escapeHtml(msg) +
-                '</div><div class="message-time">Sending...</div></div>';
+                '<div class="message-bubble">' + pendingInner +
+                '<div class="message-time">Sending...</div></div>';
             messagesDiv.appendChild(placeholder);
             messagesDiv.scrollTop = messagesDiv.scrollHeight;
             const formData = new FormData();
             formData.append('message', msg);
+            if (file) {
+                formData.append('image', file);
+            }
             formData.append('csrfmiddlewaretoken', getCsrfToken());
             fetch('/api/chat/thread/' + currentChatThreadId + '/send/', {
                 method: 'POST',
@@ -4631,14 +4703,26 @@
                 headers: { 'X-CSRFToken': getCsrfToken() }
             }).then(r => r.json()).then(data => {
                 if (data.error) {
-                    placeholder.querySelector('.message-bubble').innerHTML = escapeHtml(msg) + ' <span style="color:#dc3545;">(Failed)</span>';
+                    placeholder.querySelector('.message-bubble').innerHTML =
+                        farmerChatBubbleInnerHtml({ message: msg, image_url: previewUrl }) +
+                        '<div class="message-time"><span style="color:#fecaca;">' + escapeHtml(data.error) + '</span></div>';
                     return;
                 }
-                placeholder.querySelector('.message-text').textContent = data.message || msg;
-                const timeEl = placeholder.querySelector('.message-time');
-                if (timeEl) timeEl.textContent = data.created_at || '';
+                if (previewUrl) {
+                    try { URL.revokeObjectURL(previewUrl); } catch (e) {}
+                }
+                const bubble = placeholder.querySelector('.message-bubble');
+                bubble.innerHTML = farmerChatBubbleInnerHtml({
+                    message: data.message || msg,
+                    image_url: data.image_url || null
+                }) + '<div class="message-time">' + (data.created_at || '') + '</div>';
             }).catch(() => {
-                placeholder.querySelector('.message-text').innerHTML = escapeHtml(msg) + ' <span style="color:#dc3545;">(Failed)</span>';
+                if (previewUrl) {
+                    try { URL.revokeObjectURL(previewUrl); } catch (e) {}
+                }
+                placeholder.querySelector('.message-bubble').innerHTML =
+                    farmerChatBubbleInnerHtml({ message: msg, image_url: null }) +
+                    '<div class="message-time"><span style="color:#fecaca;">(Failed)</span></div>';
             });
         }
 

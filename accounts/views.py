@@ -76,6 +76,71 @@ def _chat_notification_link(recipient, thread_id):
     return f'?open_chat=true&thread_id={thread_id}'
 
 
+CHAT_IMAGE_MAX_BYTES = 5 * 1024 * 1024
+CHAT_IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
+
+
+def _validate_chat_image_upload(uploaded):
+    """Returns (file, None) on success, (None, error str) on failure, (None, None) if no file."""
+    if not uploaded:
+        return None, None
+    try:
+        size = getattr(uploaded, 'size', None)
+        if size is not None and size > CHAT_IMAGE_MAX_BYTES:
+            return None, 'Image must be 5 MB or smaller.'
+        name = (getattr(uploaded, 'name', '') or '').lower()
+        if not any(name.endswith(ext) for ext in CHAT_IMAGE_EXTENSIONS):
+            return None, 'Please use a JPEG, PNG, GIF, or WebP image.'
+    except Exception:
+        return None, 'Invalid image file.'
+    return uploaded, None
+
+
+def _chat_message_image_url(request, msg):
+    if not getattr(msg, 'image', None):
+        return None
+    try:
+        return request.build_absolute_uri(msg.image.url)
+    except Exception:
+        return None
+
+
+def _create_expert_chat_message(request, thread, message_text, uploaded_file=None):
+    """
+    Persist a chat message with optional image. Returns (message_obj, None) or (None, error_string).
+    """
+    message_text = (message_text or '').strip()
+    image_file, img_err = _validate_chat_image_upload(uploaded_file)
+    if img_err:
+        return None, img_err
+    if not message_text and not image_file:
+        return None, 'Message or image is required.'
+    msg = ExpertChatMessage.objects.create(
+        thread=thread,
+        sender=request.user,
+        message=message_text,
+        image=image_file,
+    )
+    thread.updated_at = timezone.now()
+    thread.save()
+    recipient = thread.created_by if thread.expert.user_id == request.user.id else thread.expert.user
+    if recipient and recipient.id != request.user.id:
+        if image_file and not message_text:
+            preview = 'Sent an image'
+        elif image_file:
+            preview = (message_text[:55] + '…') if len(message_text) > 55 else message_text
+        else:
+            preview = (message_text[:60] + '…') if len(message_text) > 60 else message_text
+        create_notification(
+            recipient,
+            'New chat message',
+            f'{request.user.email}: {preview}',
+            _chat_notification_link(recipient, thread.id),
+            UserNotification.TYPE_CHAT
+        )
+    return msg, None
+
+
 def get_user_profile_image(user):
     """Get user profile image URL based on user role."""
     try:
@@ -6073,26 +6138,13 @@ def chat_thread_detail(request, thread_id):
     
     if request.method == 'POST':
         message_text = (request.POST.get('message') or '').strip()
-        if message_text:
-            ExpertChatMessage.objects.create(
-                thread=thread,
-                sender=request.user,
-                message=message_text
-            )
-            thread.updated_at = timezone.now()
-            thread.save()
-            # Notify the other participant in the chat
-            recipient = thread.created_by if thread.expert.user_id == request.user.id else thread.expert.user
-            if recipient and recipient.id != request.user.id:
-                preview = (message_text[:60] + '…') if len(message_text) > 60 else message_text
-                create_notification(
-                    recipient,
-                    'New chat message',
-                    f'{request.user.email}: {preview}',
-                    _chat_notification_link(recipient, thread_id),
-                    UserNotification.TYPE_CHAT
-                )
-            return redirect('chat_thread', thread_id=thread_id)
+        uploaded = request.FILES.get('image')
+        msg, err = _create_expert_chat_message(request, thread, message_text, uploaded)
+        if err:
+            messages.error(request, err)
+        elif msg:
+            messages.success(request, 'Message sent.')
+        return redirect('chat_thread', thread_id=thread_id)
     
     messages_list = ExpertChatMessage.objects.filter(thread=thread).select_related('sender').order_by('created_at')
     
@@ -6134,6 +6186,7 @@ def api_chat_messages(request, thread_id):
     data = [{
         'id': m.id,
         'message': m.message,
+        'image_url': _chat_message_image_url(request, m),
         'sender_name': get_user_display_name(m.sender),
         'sender_email': m.sender.email,
         'sender_id': m.sender_id,
@@ -6155,29 +6208,14 @@ def api_chat_send(request, thread_id):
     if not ok:
         return err
     message_text = (request.POST.get('message') or '').strip()
-    if not message_text:
-        return JsonResponse({'error': 'Message is required'}, status=400)
-    msg = ExpertChatMessage.objects.create(
-        thread=thread,
-        sender=request.user,
-        message=message_text
-    )
-    thread.updated_at = timezone.now()
-    thread.save()
-    # Notify the other participant in the chat
-    recipient = thread.created_by if thread.expert.user_id == request.user.id else thread.expert.user
-    if recipient and recipient.id != request.user.id:
-        preview = (message_text[:60] + '…') if len(message_text) > 60 else message_text
-        create_notification(
-            recipient,
-            'New chat message',
-            f'{request.user.email}: {preview}',
-            _chat_notification_link(recipient, thread_id),
-            UserNotification.TYPE_CHAT
-        )
+    uploaded = request.FILES.get('image')
+    msg, create_err = _create_expert_chat_message(request, thread, message_text, uploaded)
+    if create_err:
+        return JsonResponse({'error': create_err}, status=400)
     return JsonResponse({
         'id': msg.id,
         'message': msg.message,
+        'image_url': _chat_message_image_url(request, msg),
         'sender_name': get_user_display_name(msg.sender),
         'sender_email': msg.sender.email,
         'sender_id': msg.sender_id,

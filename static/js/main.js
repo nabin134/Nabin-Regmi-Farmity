@@ -62,10 +62,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Password visibility toggles (login: #togglePassword only; register: #togglePassword + #toggleConfirmPassword)
+    // Password visibility toggles (login uses its own handler; register/reset use button + inner <i>, or legacy bare <i> toggle)
     function wirePasswordToggle(toggleEl, inputId) {
         if (!toggleEl) return;
-        toggleEl.addEventListener('click', function () {
+        toggleEl.addEventListener('click', function (e) {
+            e.preventDefault();
             const passwordInput = document.getElementById(inputId);
             if (!passwordInput) return;
             const icon = this.querySelector('i');
@@ -73,9 +74,15 @@ document.addEventListener('DOMContentLoaded', function() {
             passwordInput.type = show ? 'text' : 'password';
             this.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
             this.setAttribute('title', show ? 'Hide password' : 'Show password');
+            if (this.tagName === 'BUTTON') {
+                this.setAttribute('aria-pressed', show ? 'true' : 'false');
+            }
             if (icon) {
                 icon.classList.toggle('fa-eye', !show);
                 icon.classList.toggle('fa-eye-slash', show);
+            } else if (this.tagName === 'I') {
+                this.classList.toggle('fa-eye', !show);
+                this.classList.toggle('fa-eye-slash', show);
             } else {
                 this.textContent = show ? '🙈' : '👁️';
             }

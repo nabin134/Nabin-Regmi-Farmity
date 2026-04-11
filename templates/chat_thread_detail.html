@@ -44,6 +44,13 @@
         .alert { padding: 1rem; border-radius: 10px; margin-bottom: 1rem; }
         .alert-error { background: #F8D7DA; color: #721C24; }
         .alert-success { background: #D4EDDA; color: #155724; }
+        .msg-image-wrap { margin-bottom: 0.35rem; line-height: 0; }
+        .msg-image-wrap img { max-width: min(240px, 85vw); max-height: 220px; border-radius: 10px; display: block; object-fit: cover; }
+        .msg.sent .msg-image-wrap img { border: 2px solid rgba(255,255,255,0.35); }
+        .chat-form-toolbar { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+        .chat-form-toolbar input[type=file] { font-size: 0.85rem; max-width: 100%; }
+        .btn-image-send { padding: 0.45rem 0.85rem; background: #e8f5e9; color: #2e7d32; border: 1px solid #a5d6a7; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.85rem; }
+        .btn-image-send:hover { background: #c8e6c9; }
     </style>
 </head>
 <body>
@@ -102,7 +109,10 @@
                         {% endif %}
                         <div class="msg-content">
                             <div class="msg-bubble">
-                                {{ msg.message|linebreaksbr }}
+                                {% if msg.image %}
+                                <div class="msg-image-wrap"><a href="{{ msg.image.url }}" target="_blank" rel="noopener noreferrer"><img src="{{ msg.image.url }}" alt="Attached image"></a></div>
+                                {% endif %}
+                                {% if msg.message %}{{ msg.message|linebreaksbr }}{% endif %}
                                 <div class="msg-meta">
                                     <span>{{ msg.created_at|date:"M d, h:i A" }}</span>
                                     {% if msg.sender_id == request.user.id %}
@@ -138,8 +148,14 @@
             <div class="chat-form">
                 <form id="chat-form" onsubmit="return false;">
                     {% csrf_token %}
-                    <input type="text" id="message-input" name="message" placeholder="Type your message..." required autocomplete="off">
-                    <button type="button" onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i> Send</button>
+                    <div class="chat-form-toolbar">
+                        <input type="file" id="chat-image-input" accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp">
+                        <button type="button" class="btn-image-send" id="chat-send-image-btn" onclick="sendChatImageMessage()"><i class="fas fa-image"></i> Send image</button>
+                    </div>
+                    <div style="display: flex; gap: 0.75rem;">
+                        <input type="text" id="message-input" name="message" placeholder="Type your message..." autocomplete="off" style="flex:1;">
+                        <button type="button" onclick="sendChatMessage()"><i class="fas fa-paper-plane"></i> Send</button>
+                    </div>
                 </form>
             </div>
         </div>
@@ -149,6 +165,55 @@
     <script>
     let typingTimer;
     let isTyping = false;
+    function getChatCsrfToken() {
+        const m = document.querySelector('#chat-form input[name=csrfmiddlewaretoken]');
+        if (m && m.value) return m.value;
+        const c = document.cookie.match(/csrftoken=([^;]+)/);
+        return c ? decodeURIComponent(c[1]) : '';
+    }
+    function escapeChatHtml(s) {
+        const d = document.createElement('div');
+        d.textContent = s == null ? '' : String(s);
+        return d.innerHTML;
+    }
+    function sendChatImageMessage() {
+        const fileEl = document.getElementById('chat-image-input');
+        if (!fileEl || !fileEl.files || !fileEl.files[0]) {
+            alert('Choose an image first.');
+            return;
+        }
+        const threadId = document.getElementById('chat-messages').getAttribute('data-thread-id');
+        const fd = new FormData();
+        fd.append('message', '');
+        fd.append('image', fileEl.files[0]);
+        fd.append('csrfmiddlewaretoken', getChatCsrfToken());
+        const btn = document.getElementById('chat-send-image-btn');
+        if (btn) { btn.disabled = true; }
+        fetch('/api/chat/thread/' + threadId + '/send/', {
+            method: 'POST',
+            body: fd,
+            headers: { 'X-CSRFToken': getChatCsrfToken() }
+        }).then(r => r.json()).then(data => {
+            if (btn) { btn.disabled = false; }
+            if (data.error) {
+                alert(data.error);
+                return;
+            }
+            fileEl.value = '';
+            addMessageToChat({
+                message_id: data.id,
+                message: data.message || '',
+                image_url: data.image_url,
+                sender_id: data.sender_id,
+                sender_profile_image: data.sender_profile_image,
+                sender_name: data.sender_name,
+                timestamp: new Date().toISOString()
+            });
+        }).catch(() => {
+            if (btn) { btn.disabled = false; }
+            alert('Failed to send image.');
+        });
+    }
     
     // Initialize WebSocket chat when page loads
     document.addEventListener('DOMContentLoaded', function() {
@@ -206,11 +271,17 @@
         const profileImage = data.sender_profile_image || '/static/images/default-avatar.png';
         const senderName = data.sender_name || data.sender;
         
+        const imgBlock = data.image_url
+            ? `<div class="msg-image-wrap"><a href="${escapeChatHtml(data.image_url)}" target="_blank" rel="noopener noreferrer"><img src="${escapeChatHtml(data.image_url)}" alt=""></a></div>`
+            : '';
+        const textBlock = data.message
+            ? escapeChatHtml(data.message).replace(/\n/g, '<br>')
+            : '';
         messageDiv.innerHTML = `
             ${data.sender_id != getCurrentUserId() ? `<img src="${profileImage}" alt="${senderName}" class="msg-avatar" onerror="this.src='/static/images/default-avatar.png'">` : ''}
             <div class="msg-content">
                 <div class="msg-bubble">
-                    ${data.message.replace(/\n/g, '<br>')}
+                    ${imgBlock}${textBlock}
                     <div class="msg-meta">
                         <span>${formatTime(data.timestamp)}</span>
                         ${data.sender_id == getCurrentUserId() ? `

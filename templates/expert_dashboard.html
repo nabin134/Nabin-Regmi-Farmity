@@ -817,6 +817,30 @@
         .expert-chat-row.mine .expert-chat-name { display: none; }
         .expert-chat-meta { display: flex; justify-content: flex-end; margin-top: 0.35rem; font-size: 0.75rem; opacity: 0.85; }
         .expert-chat-time { white-space: nowrap; opacity: 0.9; }
+        .expert-chat-image-wrap { margin-bottom: 0.35rem; line-height: 0; }
+        .expert-chat-msg-img {
+            max-width: min(220px, 65vw);
+            max-height: 200px;
+            border-radius: 10px;
+            display: block;
+            object-fit: cover;
+        }
+        .expert-chat-row.mine .expert-chat-msg-img { border: 2px solid rgba(255, 255, 255, 0.35); }
+        .expert-chat-attach-btn {
+            flex-shrink: 0;
+            width: 44px;
+            height: 44px;
+            border-radius: 8px;
+            border: 2px solid #e5e7eb;
+            background: #fff;
+            color: var(--primary);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.1rem;
+        }
+        .expert-chat-attach-btn:hover { border-color: var(--primary); background: #f0fdf4; }
 
         /* Buttons */
         .btn-primary {
@@ -1612,9 +1636,11 @@
                                     <div style="text-align: center; color: #999; padding: 2rem;">Select a chat from the sidebar</div>
                                 </div>
                                 <div class="chat-input-area" id="expertChatInputArea" style="display: none; padding: 1rem; border-top: 2px solid #e9ecef;">
-                                    <div style="display: flex; gap: 0.75rem;">
+                                    <input type="file" id="expertChatImageInput" accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp" style="display: none;">
+                                    <div style="display: flex; gap: 0.75rem; align-items: center;">
+                                        <button type="button" class="expert-chat-attach-btn" onclick="document.getElementById('expertChatImageInput').click()" title="Attach image" aria-label="Attach image"><i class="fas fa-image"></i></button>
                                         <input type="text" id="expertChatInput" placeholder="Type your message..." style="flex: 1; padding: 0.75rem; border: 2px solid #e5e7eb; border-radius: 8px;">
-                                        <button class="btn-primary" onclick="sendExpertMessage()" style="padding: 0.75rem 1.5rem;"><i class="fas fa-paper-plane"></i> Send</button>
+                                        <button type="button" class="btn-primary" onclick="sendExpertMessage()" style="padding: 0.75rem 1.5rem;"><i class="fas fa-paper-plane"></i> Send</button>
                                     </div>
                                 </div>
                             </div>
@@ -2219,6 +2245,35 @@
                     '<span>Chat with ' + (userName || 'User') + '</span>' +
                 '</div>';
         }
+        function fillExpertChatMessageBody(bodyEl, m) {
+            bodyEl.innerHTML = '';
+            if (m.image_url) {
+                var wrap = document.createElement('div');
+                wrap.className = 'expert-chat-image-wrap';
+                var a = document.createElement('a');
+                a.href = m.image_url;
+                a.target = '_blank';
+                a.rel = 'noopener noreferrer';
+                var im = document.createElement('img');
+                im.src = m.image_url;
+                im.className = 'expert-chat-msg-img';
+                im.alt = 'Attached image';
+                a.appendChild(im);
+                wrap.appendChild(a);
+                bodyEl.appendChild(wrap);
+            }
+            if (m.message) {
+                var text = document.createElement('div');
+                text.innerHTML = (m.message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+                bodyEl.appendChild(text);
+            }
+            if (!bodyEl.childNodes.length) {
+                var empty = document.createElement('div');
+                empty.innerHTML = '&nbsp;';
+                bodyEl.appendChild(empty);
+            }
+        }
+
         function loadExpertChatThread(threadId, userName, userAvatar) {
             expertChatThreadId = threadId;
             expertOtherAvatar = userAvatar || '/static/images/default-avatar.png';
@@ -2255,7 +2310,7 @@
                     name.textContent = m.sender_name || 'User';
 
                     const body = document.createElement('div');
-                    body.innerHTML = (m.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+                    fillExpertChatMessageBody(body, m);
 
                     const meta = document.createElement('div');
                     meta.className = 'expert-chat-meta';
@@ -2276,9 +2331,13 @@
         }
         function sendExpertMessage() {
             const input = document.getElementById('expertChatInput');
-            const msg = input.value.trim();
-            if (!msg || !expertChatThreadId) return;
-            input.value = '';
+            const fileInput = document.getElementById('expertChatImageInput');
+            const msg = input ? input.value.trim() : '';
+            const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+            if ((!msg && !file) || !expertChatThreadId) return;
+            const previewUrl = file ? URL.createObjectURL(file) : null;
+            if (input) input.value = '';
+            if (fileInput) fileInput.value = '';
             const el = document.getElementById('expertChatMessages');
             let wrap = el.querySelector('.expert-chat-scroll');
             if (!wrap) {
@@ -2304,7 +2363,7 @@
             bubble.className = 'expert-chat-bubble';
 
             const body = document.createElement('div');
-            body.innerHTML = msg.replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+            fillExpertChatMessageBody(body, { message: msg, image_url: previewUrl });
 
             const meta = document.createElement('div');
             meta.className = 'expert-chat-meta';
@@ -2319,14 +2378,21 @@
             el.scrollTop = el.scrollHeight;
             const fd = new FormData();
             fd.append('message', msg);
+            if (file) fd.append('image', file);
             fd.append('csrfmiddlewaretoken', getExpertCsrfToken());
             fetch('/api/chat/thread/' + expertChatThreadId + '/send/', { method: 'POST', body: fd, headers: { 'X-CSRFToken': getExpertCsrfToken() } }).then(r => r.json()).then(data => {
                 if (data.error) {
-                    meta.querySelector('.expert-chat-time').textContent = 'Failed';
+                    meta.querySelector('.expert-chat-time').textContent = data.error;
                     return;
                 }
+                if (previewUrl) try { URL.revokeObjectURL(previewUrl); } catch (e) {}
+                body.innerHTML = '';
+                fillExpertChatMessageBody(body, { message: data.message || msg, image_url: data.image_url || null });
                 meta.querySelector('.expert-chat-time').textContent = data.created_at || 'Sent';
-            }).catch(() => { meta.querySelector('.expert-chat-time').textContent = 'Failed'; });
+            }).catch(function () {
+                if (previewUrl) try { URL.revokeObjectURL(previewUrl); } catch (e) {}
+                meta.querySelector('.expert-chat-time').textContent = 'Failed';
+            });
         }
         document.getElementById('expertChatInput')?.addEventListener('keypress', function(e) { if (e.key === 'Enter') sendExpertMessage(); });
 

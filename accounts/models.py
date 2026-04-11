@@ -342,7 +342,8 @@ class ExpertChatThread(models.Model):
 class ExpertChatMessage(models.Model):
     thread = models.ForeignKey(ExpertChatThread, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(User, on_delete=models.CASCADE, related_name='chat_messages')
-    message = models.TextField()
+    message = models.TextField(blank=True)
+    image = models.ImageField(upload_to='chat_images/%Y/%m/', blank=True, null=True, max_length=500)
     created_at = models.DateTimeField(auto_now_add=True)
     delivered_at = models.DateTimeField(null=True, blank=True, help_text="When message was delivered to recipient")
     seen_at = models.DateTimeField(null=True, blank=True, help_text="When message was seen by recipient")

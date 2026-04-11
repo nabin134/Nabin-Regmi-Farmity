@@ -1595,6 +1595,31 @@
             transition: background 0.2s;
         }
         .chat-send-btn:hover { background: var(--primary-hover); }
+        .chat-attach-btn {
+            flex-shrink: 0;
+            width: 42px;
+            height: 42px;
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border);
+            background: var(--card-bg);
+            color: var(--primary);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
+            transition: border-color 0.2s, background 0.2s;
+        }
+        .chat-attach-btn:hover { border-color: var(--primary); background: var(--primary-light); }
+        .chat-msg-img-wrap { margin-bottom: 0.35rem; line-height: 0; }
+        .chat-msg-img {
+            max-width: min(220px, 70vw);
+            max-height: 200px;
+            border-radius: var(--radius-md);
+            display: block;
+            object-fit: cover;
+        }
+        .chat-messages .chat-row.sent .chat-msg-img { border: 2px solid rgba(255,255,255,0.35); }
         .chat-messages .chat-bubble { max-width: 75%; padding: 0.65rem 1rem; border-radius: var(--radius-md); font-size: 0.9rem; line-height: 1.4; }
         .chat-messages .chat-bubble .chat-bubble-time { font-size: 0.7rem; opacity: 0.85; margin-top: 0.25rem; }
         .chat-messages .chat-row { margin-bottom: 0.75rem; display: flex; }
@@ -2246,7 +2271,9 @@
                             <div class="chat-messages-placeholder">Select a chat from the sidebar or start a new one from Experts</div>
                         </div>
                         <div class="chat-input-area" id="buyerChatInputArea" style="display: none;">
+                            <input type="file" id="buyerChatImageInput" accept="image/jpeg,image/png,image/gif,image/webp,.jpg,.jpeg,.png,.gif,.webp" style="display: none;">
                             <div class="chat-input-row">
+                                <button type="button" class="chat-attach-btn" onclick="document.getElementById('buyerChatImageInput').click()" title="Attach image" aria-label="Attach image"><i class="fas fa-image"></i></button>
                                 <input type="text" class="chat-input" id="buyerChatInput" placeholder="Type your message...">
                                 <button type="button" class="chat-send-btn" onclick="sendBuyerMessage()">
                                     <i class="fas fa-paper-plane"></i> Send
@@ -3202,6 +3229,22 @@
             });
             loadBuyerChatMessages();
         }
+        function buyerEscChatAttr(s) {
+            return String(s || '').replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+        }
+        function buyerChatBubbleInner(m) {
+            var parts = [];
+            if (m.image_url) {
+                parts.push('<div class="chat-msg-img-wrap"><a href="' + buyerEscChatAttr(m.image_url) + '" target="_blank" rel="noopener noreferrer"><img class="chat-msg-img" src="' + buyerEscChatAttr(m.image_url) + '" alt=""></a></div>');
+            }
+            if (m.message) {
+                parts.push('<div>' + (m.message || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>') + '</div>');
+            }
+            if (!parts.length) {
+                parts.push('<div>&nbsp;</div>');
+            }
+            return parts.join('');
+        }
         function loadBuyerChatMessages() {
             if (!buyerChatThreadId) return;
             const el = document.getElementById('buyerChatMessages');
@@ -3214,33 +3257,44 @@
                 }
                 el.innerHTML = data.messages.map(m => {
                     const rowCls = m.is_mine ? 'chat-row sent' : 'chat-row received';
-                    const msgEscaped = (m.message || '').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
                     const avatarHtml = m.is_mine
                         ? buildBuyerChatAvatarHtml('Me', buyerMyAvatar, 'fa-user')
                         : buildBuyerChatAvatarHtml(buyerChatExpertName || 'Expert', buyerChatExpertPhoto || m.sender_profile_image || '', 'fa-user-graduate');
-                    return '<div class="' + rowCls + '"><div class="chat-inner"><div class="chat-avatar">' + avatarHtml + '</div><div class="chat-bubble">' + msgEscaped + '<div class="chat-bubble-time">' + (m.created_at || '') + '</div></div></div></div>';
+                    return '<div class="' + rowCls + '"><div class="chat-inner"><div class="chat-avatar">' + avatarHtml + '</div><div class="chat-bubble">' + buyerChatBubbleInner(m) + '<div class="chat-bubble-time">' + (m.created_at || '') + '</div></div></div></div>';
                 }).join('');
                 el.scrollTop = el.scrollHeight;
             }).catch(() => { el.innerHTML = '<div class="chat-messages-placeholder" style="color: var(--danger);">Failed to load messages.</div>'; });
         }
         function sendBuyerMessage() {
             const input = document.getElementById('buyerChatInput');
-            const msg = input.value.trim();
-            if (!msg || !buyerChatThreadId) return;
-            input.value = '';
+            const fileInput = document.getElementById('buyerChatImageInput');
+            const msg = input ? input.value.trim() : '';
+            const file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+            if ((!msg && !file) || !buyerChatThreadId) return;
+            const previewUrl = file ? URL.createObjectURL(file) : null;
+            if (input) input.value = '';
+            if (fileInput) fileInput.value = '';
             const el = document.getElementById('buyerChatMessages');
             const placeholder = document.createElement('div');
             placeholder.className = 'chat-row sent';
-            placeholder.innerHTML = '<div class="chat-inner"><div class="chat-avatar">' + buildBuyerChatAvatarHtml('Me', buyerMyAvatar, 'fa-user') + '</div><div class="chat-bubble">' + msg.replace(/</g,'&lt;') + ' <span class="chat-bubble-time">Sending...</span></div></div>';
+            placeholder.innerHTML = '<div class="chat-inner"><div class="chat-avatar">' + buildBuyerChatAvatarHtml('Me', buyerMyAvatar, 'fa-user') + '</div><div class="chat-bubble">' + buyerChatBubbleInner({ message: msg, image_url: previewUrl }) + '<div class="chat-bubble-time">Sending...</div></div></div>';
             el.appendChild(placeholder);
             el.scrollTop = el.scrollHeight;
             const fd = new FormData();
             fd.append('message', msg);
+            if (file) fd.append('image', file);
             fd.append('csrfmiddlewaretoken', getCsrfToken());
-            fetch('/api/chat/thread/' + buyerChatThreadId + '/send/', { method: 'POST', body: fd, headers: { 'X-CSRFToken': getCsrfToken() } }).then(r => r.json()).then(data => {
-                if (data.error) { placeholder.querySelector('.chat-bubble').innerHTML = msg.replace(/</g,'&lt;') + ' <span class="chat-bubble-time" style="color:#fef3c7;">(Failed)</span>'; return; }
-                placeholder.querySelector('.chat-bubble').innerHTML = (data.message || msg).replace(/</g,'&lt;') + '<div class="chat-bubble-time">' + (data.created_at || '') + '</div>';
-            }).catch(() => { placeholder.querySelector('.chat-bubble').innerHTML = msg.replace(/</g,'&lt;') + ' <span class="chat-bubble-time" style="color:#fef3c7;">(Failed)</span>'; });
+            fetch('/api/chat/thread/' + buyerChatThreadId + '/send/', { method: 'POST', body: fd, headers: { 'X-CSRFToken': getCsrfToken() }             }).then(r => r.json()).then(data => {
+                if (data.error) {
+                    placeholder.querySelector('.chat-bubble').innerHTML = buyerChatBubbleInner({ message: msg, image_url: previewUrl }) + '<div class="chat-bubble-time" style="color:#fecaca;">' + (data.error || 'Failed') + '</div>';
+                    return;
+                }
+                if (previewUrl) try { URL.revokeObjectURL(previewUrl); } catch (e) {}
+                placeholder.querySelector('.chat-bubble').innerHTML = buyerChatBubbleInner({ message: data.message || msg, image_url: data.image_url || null }) + '<div class="chat-bubble-time">' + (data.created_at || '') + '</div>';
+            }).catch(() => {
+                if (previewUrl) try { URL.revokeObjectURL(previewUrl); } catch (e) {}
+                placeholder.querySelector('.chat-bubble').innerHTML = buyerChatBubbleInner({ message: msg, image_url: null }) + '<div class="chat-bubble-time" style="color:#fecaca;">(Failed)</div>';
+            });
         }
         document.getElementById('buyerChatInput')?.addEventListener('keypress', function(e) { if (e.key === 'Enter') sendBuyerMessage(); });
 
