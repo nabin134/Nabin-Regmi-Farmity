@@ -159,8 +159,18 @@
             color: white;
         }
 
-        .wizard-step.completed .step-circle::after {
-            content: 'âœ“';
+        .step-circle .step-done-icon {
+            display: none;
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+
+        .wizard-step.completed .step-circle .step-number {
+            display: none;
+        }
+
+        .wizard-step.completed .step-circle .step-done-icon {
+            display: block;
         }
 
         .step-label {
@@ -526,7 +536,13 @@
                 <i class="fas fa-shield-alt"></i>
                 KYC Verification
             </h1>
-            <p>Complete your verification to unlock all platform features</p>
+            <p>
+                {% if kyc and kyc.status == 'pending' %}
+                Your submission is under review. You can view and update your details below until a decision is made.
+                {% else %}
+                Complete your verification to unlock all platform features
+                {% endif %}
+            </p>
         </div>
 
         {% if kyc %}
@@ -551,7 +567,7 @@
                     <span style="color: #6c757d; font-size: 0.9rem;">
                         Submitted: {{ kyc.created_at|date:"M d, Y" }}
                     </span>
-                    {% if kyc.status == 'pending' or kyc.status == 'approved' %}
+                    {% if kyc.status == 'pending' or kyc.status == 'approved' or kyc.status == 'rejected' %}
                     <a href="{% url 'dashboard' %}" class="btn btn-primary" style="text-decoration: none; white-space: nowrap;">
                         <i class="fas fa-home"></i> Go to dashboard
                     </a>
@@ -566,18 +582,57 @@
         </div>
         {% endif %}
 
+        {% if kyc and not can_edit %}
+        <div class="wizard-container" style="padding-top: 2rem;">
+            <div class="panel-header">
+                <h2><i class="fas fa-id-card"></i> Your verified KYC details</h2>
+                <p style="color: #6c757d;">These details are approved. To change them, contact support.</p>
+            </div>
+            <div style="background: #E9EBF1; padding: 2rem; border-radius: 12px; margin-bottom: 1.5rem;">
+                <div style="margin-bottom: 1rem;"><strong>Full name:</strong> {{ kyc.full_name }}</div>
+                <div style="margin-bottom: 1rem;"><strong>ID / Citizenship number:</strong> {{ kyc.id_number }}</div>
+                <div style="margin-bottom: 1rem;"><strong>Identity document:</strong>
+                    {% if kyc.id_document %}<a href="{{ kyc.id_document.url }}" target="_blank" class="current-file" style="margin-top: 0;"><i class="fas fa-file-alt"></i> Open file</a>{% else %}—{% endif %}
+                </div>
+                <div style="margin-bottom: 1rem;"><strong>Photo (selfie):</strong>
+                    {% if kyc.selfie %}<a href="{{ kyc.selfie.url }}" target="_blank" class="current-file" style="margin-top: 0;"><i class="fas fa-image"></i> Open file</a>{% else %}—{% endif %}
+                </div>
+                {% if request.user.role == 'vendor' %}
+                <div style="margin-bottom: 1rem;"><strong>Company document:</strong>
+                    {% if kyc.company_document %}<a href="{{ kyc.company_document.url }}" target="_blank" class="current-file" style="margin-top: 0;"><i class="fas fa-building"></i> Open file</a>{% else %}—{% endif %}
+                </div>
+                {% endif %}
+                {% if request.user.role == 'agricultural_expert' %}
+                <div style="margin-bottom: 0;"><strong>Professional certificate:</strong>
+                    {% if kyc.certificate_document %}<a href="{{ kyc.certificate_document.url }}" target="_blank" class="current-file" style="margin-top: 0;"><i class="fas fa-certificate"></i> Open file</a>{% else %}—{% endif %}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% if can_edit %}
         <div class="wizard-container">
             <div class="wizard-steps">
                 <div class="wizard-step active" data-step="1">
-                    <div class="step-circle">1</div>
+                    <div class="step-circle">
+                        <span class="step-number">1</span>
+                        <i class="fas fa-check step-done-icon" aria-hidden="true"></i>
+                    </div>
                     <div class="step-label">Personal Info</div>
                 </div>
                 <div class="wizard-step" data-step="2">
-                    <div class="step-circle">2</div>
+                    <div class="step-circle">
+                        <span class="step-number">2</span>
+                        <i class="fas fa-check step-done-icon" aria-hidden="true"></i>
+                    </div>
                     <div class="step-label">Documents</div>
                 </div>
                 <div class="wizard-step" data-step="3">
-                    <div class="step-circle">3</div>
+                    <div class="step-circle">
+                        <span class="step-number">3</span>
+                        <i class="fas fa-check step-done-icon" aria-hidden="true"></i>
+                    </div>
                     <div class="step-label">Submit</div>
                 </div>
             </div>
@@ -603,7 +658,7 @@
                                 <i class="fas fa-user"></i>
                                 Personal Information
                             </h2>
-                            <p>Enter your personal details as they appear on your ID</p>
+                            <p>{% if kyc %}Review or edit your details as they appear on your ID{% else %}Enter your personal details as they appear on your ID{% endif %}</p>
                         </div>
 
                         <div class="form-row">
@@ -646,7 +701,7 @@
                                 <i class="fas fa-file-upload"></i>
                                 Upload Documents
                             </h2>
-                            <p>Upload clear, readable copies of your documents</p>
+                            <p>{% if kyc %}Replace files if needed, or keep your current uploads{% else %}Upload clear, readable copies of your documents{% endif %}</p>
                         </div>
 
                         <div class="form-group">
@@ -808,12 +863,16 @@
                 </div>
             </form>
         </div>
+        {% endif %}
+
     </div>
 
+    {% if can_edit %}
     <script src="/static/js/main.js"></script>
     <script>
         let currentStep = 1;
         const totalSteps = 3;
+        const kycFormEl = document.getElementById('kycForm');
 
         function changeStep(direction) {
             // Validate current step before moving
@@ -841,16 +900,21 @@
             } else if (step === 2) {
                 const idDoc = document.getElementById('id_document').files[0];
                 const selfie = document.getElementById('selfie').files[0];
-                const hasExistingKyc = {{ kyc|yesno:"true,false" }};
                 const userRole = '{{ request.user.role }}';
-                
-                const missingIdSelfie = !hasExistingKyc && (!idDoc || !selfie);
-                const missingRoleDocs = !hasExistingKyc && (
-                    (userRole === 'vendor' && !document.getElementById('company_document')?.files?.[0]) ||
-                    (userRole === 'agricultural_expert' && !document.getElementById('certificate_document')?.files?.[0])
-                );
-                
-                if (missingIdSelfie || missingRoleDocs) {
+                const hasIdOnServer = {% if kyc and kyc.id_document %}true{% else %}false{% endif %};
+                const hasSelfieOnServer = {% if kyc and kyc.selfie %}true{% else %}false{% endif %};
+                const hasCompanyOnServer = {% if kyc and kyc.company_document %}true{% else %}false{% endif %};
+                const hasCertOnServer = {% if kyc and kyc.certificate_document %}true{% else %}false{% endif %};
+
+                if ((!idDoc && !hasIdOnServer) || (!selfie && !hasSelfieOnServer)) {
+                    alert('Please upload all required documents');
+                    return false;
+                }
+                if (userRole === 'vendor' && !document.getElementById('company_document')?.files?.[0] && !hasCompanyOnServer) {
+                    alert('Please upload all required documents');
+                    return false;
+                }
+                if (userRole === 'agricultural_expert' && !document.getElementById('certificate_document')?.files?.[0] && !hasCertOnServer) {
                     alert('Please upload all required documents');
                     return false;
                 }
@@ -883,20 +947,36 @@
                 }
             });
 
-            // Update buttons
+            // Update buttons (always type="button" so Enter key / focus never auto-submits the form)
             const prevBtn = document.getElementById('prevBtn');
             const forwardBtn = document.getElementById('wizardForwardBtn');
 
             prevBtn.style.display = currentStep > 1 ? 'inline-flex' : 'none';
             forwardBtn.style.display = 'inline-flex';
+            forwardBtn.type = 'button';
             if (currentStep < totalSteps) {
-                forwardBtn.type = 'button';
                 forwardBtn.innerHTML = 'Next <i class="fas fa-arrow-right"></i>';
                 forwardBtn.onclick = function () { changeStep(1); };
             } else {
-                forwardBtn.type = 'submit';
-                forwardBtn.removeAttribute('onclick');
                 forwardBtn.innerHTML = '<i class="fas fa-paper-plane"></i> <span>Submit</span>';
+                forwardBtn.onclick = function (ev) {
+                    ev.preventDefault();
+                    if (!validateStep(1)) {
+                        goToStep(1);
+                        document.getElementById('panel-1')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        return;
+                    }
+                    if (!validateStep(2)) {
+                        goToStep(2);
+                        document.getElementById('panel-2')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                        return;
+                    }
+                    if (typeof kycFormEl.requestSubmit === 'function') {
+                        kycFormEl.requestSubmit();
+                    } else {
+                        kycFormEl.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+                    }
+                };
             }
 
             // Update review summary
@@ -996,8 +1076,16 @@
             });
         });
 
-        // Form submission (step 3 = full validation of steps 1–2)
-        document.getElementById('kycForm').addEventListener('submit', function(e) {
+        kycFormEl.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter') return;
+            if (e.target.tagName === 'TEXTAREA') return;
+            if (currentStep !== 3) {
+                e.preventDefault();
+            }
+        });
+
+        // Form submission only from explicit Submit (requestSubmit) after step 3
+        kycFormEl.addEventListener('submit', function(e) {
             if (window.__kycSubmitting) {
                 e.preventDefault();
                 return false;
@@ -1034,5 +1122,6 @@
         // Initialize
         updateWizard();
     </script>
+    {% endif %}
 </body>
 </html>

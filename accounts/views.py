@@ -2001,21 +2001,17 @@ def kyc_page(request):
     _ensure_role_profile(request.user)
     
     existing = request.user.kyc_requests.first()
-    
-    # Prevent duplicate submissions - only allow new submission if no existing request or if rejected
-    if existing and existing.status not in [KYCRequest.STATUS_REJECTED]:
-        # If there's a pending or approved KYC, don't allow new submission
-        if existing.status == KYCRequest.STATUS_PENDING:
-            messages.info(request, 'Your KYC verification is already pending. Please wait for approval.')
-        elif existing.status == KYCRequest.STATUS_APPROVED:
-            messages.success(request, 'Your KYC is already approved!')
-        context = {
-            'kyc': existing,
-            'can_submit': False,
-        }
-        return render(request, 'kyc.html', context)
-    
+
+    can_edit = not (existing and existing.status == KYCRequest.STATUS_APPROVED)
+
     if request.method == 'POST':
+        if not can_edit:
+            messages.error(
+                request,
+                'Your KYC is approved. Verified details cannot be changed from this page.',
+            )
+            return redirect(reverse('kyc'))
+
         full_name = (request.POST.get('full_name') or '').strip()
         id_number = (request.POST.get('id_number') or '').strip()
         id_document = request.FILES.get('id_document')
@@ -2025,18 +2021,19 @@ def kyc_page(request):
 
         errors = {}
         is_resubmission = bool(existing and existing.status == KYCRequest.STATUS_REJECTED)
+        is_pending_update = bool(existing and existing.status == KYCRequest.STATUS_PENDING)
+        keep_prior_files = is_resubmission or is_pending_update
+
         if not full_name:
             errors['full_name'] = 'Full name is required.'
         if not id_number:
             errors['id_number'] = 'ID number is required.'
-        # On resubmission, allow keeping already-uploaded documents.
-        if not id_document and not (is_resubmission and existing and existing.id_document):
+        if not id_document and not (keep_prior_files and existing and existing.id_document):
             errors['id_document'] = 'ID document is required.'
-        # Selfie is required for first-time submission, but optional on resubmission.
-        if not selfie and not is_resubmission:
+        # Selfie required on first submission only; optional when updating / resubmitting.
+        if not selfie and not keep_prior_files:
             errors['selfie'] = 'Selfie photo is required.'
-        
-        # Validate role-specific documents
+
         if request.user.role == 'vendor':
             if not company_document and not (existing and existing.company_document):
                 errors['company_document'] = 'Company registration document is required for vendors.'
@@ -2045,9 +2042,7 @@ def kyc_page(request):
                 errors['certificate_document'] = 'Professional certificate is required for agricultural experts.'
 
         if not errors:
-            # Only create if no existing request or if previous was rejected
             if existing and existing.status == KYCRequest.STATUS_REJECTED:
-                # Update existing rejected request
                 existing.full_name = full_name
                 existing.id_number = id_number
                 if id_document:
@@ -2063,7 +2058,6 @@ def kyc_page(request):
                 existing.save()
                 messages.success(request, 'KYC resubmitted successfully!')
 
-                # Email copy for "KYC submitted/resubmitted" (user + admin).
                 try:
                     create_notification(
                         request.user,
@@ -2074,47 +2068,56 @@ def kyc_page(request):
                     )
                 except Exception:
                     logging.getLogger(__name__).exception("Failed to send KYC resubmission email")
-            else:
-                # Create new request only if none exists
-                if not existing:
-                    KYCRequest.objects.create(
-                        user=request.user,
-                        full_name=full_name,
-                        id_number=id_number,
-                        id_document=id_document,
-                        selfie=selfie,
-                        company_document=company_document,
-                        certificate_document=certificate_document,
-                        status=KYCRequest.STATUS_PENDING,
-                    )
-                    messages.success(request, 'KYC submitted successfully!')
+            elif existing and existing.status == KYCRequest.STATUS_PENDING:
+                existing.full_name = full_name
+                existing.id_number = id_number
+                if id_document:
+                    existing.id_document = id_document
+                if selfie:
+                    existing.selfie = selfie
+                if company_document:
+                    existing.company_document = company_document
+                if certificate_document:
+                    existing.certificate_document = certificate_document
+                existing.save()
+                messages.success(request, 'KYC details updated successfully.')
+            elif not existing:
+                KYCRequest.objects.create(
+                    user=request.user,
+                    full_name=full_name,
+                    id_number=id_number,
+                    id_document=id_document,
+                    selfie=selfie,
+                    company_document=company_document,
+                    certificate_document=certificate_document,
+                    status=KYCRequest.STATUS_PENDING,
+                )
+                messages.success(request, 'KYC submitted successfully!')
 
-                    # Email copy for "KYC submitted" (user + admin).
-                    try:
-                        create_notification(
-                            request.user,
-                            'KYC submitted',
-                            'Your KYC verification has been submitted and is pending approval. You will receive an email after review (approved or rejected).',
-                            reverse('kyc'),
-                            UserNotification.TYPE_KYC,
-                        )
-                    except Exception:
-                        logging.getLogger(__name__).exception("Failed to send KYC submission email")
-                else:
-                    messages.error(request, 'An error occurred. Please contact support.')
-            
+                try:
+                    create_notification(
+                        request.user,
+                        'KYC submitted',
+                        'Your KYC verification has been submitted and is pending approval. You will receive an email after review (approved or rejected).',
+                        reverse('kyc'),
+                        UserNotification.TYPE_KYC,
+                    )
+                except Exception:
+                    logging.getLogger(__name__).exception("Failed to send KYC submission email")
+            else:
+                messages.error(request, 'An error occurred. Please contact support.')
+
             request.user.is_verified = False
             request.user.save(update_fields=['is_verified'])
-            # Stay on KYC page so the user sees confirmation; they choose when to open the dashboard.
             return redirect(reverse('kyc'))
         else:
-            # If there are validation errors, pass them to the template
             for field, error_msg in errors.items():
                 messages.error(request, f"{field.replace('_', ' ').title()}: {error_msg}")
 
     context = {
         'kyc': existing,
-        'can_submit': True,
+        'can_submit': can_edit,
+        'can_edit': can_edit,
     }
     return render(request, 'kyc.html', context)
 
@@ -3482,7 +3485,12 @@ def expert_dashboard(request):
             return _redirect_same_page(request, 'expert_dashboard')
 
         def _add_one_day_slot(d, st, et, note):
-            avail = ExpertAvailability.objects.create(expert=profile, date=d, start_time=st, end_time=et, notes=note)
+            """One availability row per calendar date per expert (no duplicates)."""
+            if ExpertAvailability.objects.filter(expert=profile, date=d).exists():
+                return False, None
+            avail = ExpertAvailability.objects.create(
+                expert=profile, date=d, start_time=st, end_time=et, notes=note
+            )
             return True, avail
 
         if add_type == 'week':
@@ -3507,6 +3515,7 @@ def expert_dashboard(request):
                     messages.error(request, 'Week start date cannot be in the past.')
                     return _redirect_same_page(request, 'expert_dashboard')
                 added = 0
+                skipped = 0
                 new_availabilities = []
                 d = start_d
                 while d <= end_d:
@@ -3521,8 +3530,12 @@ def expert_dashboard(request):
                                 'end_time': avail.end_time.strftime('%H:%M') if avail.end_time else None,
                                 'notes': avail.notes or ''
                             })
+                        elif not success:
+                            skipped += 1
                     d = d + timedelta(days=1)
-                msg = f'Added {added} day(s) from {week_start_str} to {week_end_str}.'
+                msg = f'Added {added} new day(s) from {week_start_str} to {week_end_str}.'
+                if skipped:
+                    msg += f' {skipped} date(s) were already in your availability and were skipped.'
                 if _farmity_wants_ajax(request):
                     return _farmity_json_response(True, msg, new_availabilities=new_availabilities)
                 messages.success(request, msg)
@@ -3538,7 +3551,10 @@ def expert_dashboard(request):
                     if d >= timezone.now().date():
                         success, avail = _add_one_day_slot(d, start_t, end_t, notes)
                         if success:
-                            msg = f'Date {date_str} {start_t.strftime("%H:%M")}-{end_t.strftime("%H:%M")} added to your availability.'
+                            msg = (
+                                f'Date {date_str} {start_t.strftime("%H:%M")}-{end_t.strftime("%H:%M")} '
+                                f'added to your availability.'
+                            )
                             if _farmity_wants_ajax(request):
                                 new_avail = None
                                 if avail:
@@ -3552,7 +3568,10 @@ def expert_dashboard(request):
                                 return _farmity_json_response(True, msg, new_availability=new_avail)
                             messages.success(request, msg)
                         else:
-                            msg = f'Date {date_str} is already in your availability.'
+                            msg = (
+                                'This date is already in your availability. '
+                                'Remove it first if you want to change the time slot.'
+                            )
                             if _farmity_wants_ajax(request):
                                 return _farmity_json_response(False, msg)
                             messages.error(request, msg)
