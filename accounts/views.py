@@ -11,6 +11,7 @@ from django.utils import timezone
 from django.utils.crypto import get_random_string
 from django.core.mail import send_mail
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth
 from django.urls import reverse
@@ -2841,16 +2842,8 @@ def farmer_dashboard(request):
     # Get experts
     experts = ExpertProfile.objects.select_related('user').all()
     
-    # Expert available dates (expert_id -> list of date strings) for highlighting in booking modal
-    today = timezone.now().date()
-    expert_availability = {}
-    for expert in experts:
-        dates = list(
-            ExpertAvailability.objects.filter(expert=expert, date__gte=today)
-            .order_by('date').values_list('date', flat=True)
-        )
-        expert_availability[expert.id] = [d.isoformat() for d in dates]
-    expert_availability_json = json.dumps(expert_availability)
+    # Expert slots (date + optional default times) for booking modal flatpickr
+    expert_availability_json = _format_expert_availability_slots_json(experts)
     
     # Get farming tips
     tips = FarmingTip.objects.filter(is_published=True, approval_status=FarmingTip.APPROVAL_APPROVED).select_related('expert', 'expert__user').order_by('-created_at')[:10]
@@ -2879,38 +2872,53 @@ def farmer_dashboard(request):
                     out_message = 'Only pending appointments can be rescheduled. Accepted appointments cannot be changed.'
                 elif not req_date:
                     out_message = 'Invalid date format.'
-                elif not ExpertAvailability.objects.filter(expert=appointment.expert, date=req_date).exists():
-                    out_message = 'Appointment not available at this date. Please choose an available date.'
                 else:
-                    appointment.requested_date = requested_date
-                    appointment.requested_time = requested_time
-                    appointment.save()
-                    success = True
-                    out_message = 'Appointment date/time updated successfully.'
-                    try:
-                        time_display = appointment.requested_time.strftime('%I:%M %p') if appointment.requested_time else requested_time
-                    except Exception:
-                        time_display = requested_time
-
-                    # Notify expert so they can review the updated pending appointment.
-                    try:
-                        create_notification(
-                            appointment.expert.user,
-                            'Appointment updated',
-                            f'{request.user.email} updated an appointment request to {req_date.strftime("%b %d, %Y") if req_date else requested_date} at {time_display}.',
-                            reverse('expert_dashboard') + '?section=appointments',
-                            UserNotification.TYPE_APPOINTMENT,
+                    req_time_parsed = _parse_appointment_booking_time(requested_time)
+                    if not req_time_parsed:
+                        out_message = 'Invalid time format.'
+                    else:
+                        slot_err, _avail = _validate_expert_appointment_slot(
+                            appointment.expert,
+                            req_date,
+                            req_time_parsed,
+                            exclude_appointment_id=appointment.id,
                         )
-                    except Exception:
-                        logging.getLogger(__name__).exception("Failed to send appointment update email")
-                    payload = {
-                        'appointment_id': appointment.id,
-                        'requested_date_iso': requested_date,
-                        'requested_date_display': req_date.strftime('%b %d, %Y') if req_date else requested_date,
-                        'requested_time_display': time_display,
-                        'status': appointment.status,
-                        'status_display': appointment.get_status_display(),
-                    }
+                        if slot_err:
+                            out_message = slot_err
+                        else:
+                            appointment.requested_date = req_date
+                            appointment.requested_time = req_time_parsed
+                            appointment.save()
+                            success = True
+                            out_message = 'Appointment date/time updated successfully.'
+                            try:
+                                time_display = (
+                                    appointment.requested_time.strftime('%I:%M %p')
+                                    if appointment.requested_time
+                                    else requested_time
+                                )
+                            except Exception:
+                                time_display = requested_time
+
+                            # Notify expert so they can review the updated pending appointment.
+                            try:
+                                create_notification(
+                                    appointment.expert.user,
+                                    'Appointment updated',
+                                    f'{request.user.email} updated an appointment request to {req_date.strftime("%b %d, %Y") if req_date else requested_date} at {time_display}.',
+                                    reverse('expert_dashboard') + '?section=appointments',
+                                    UserNotification.TYPE_APPOINTMENT,
+                                )
+                            except Exception:
+                                logging.getLogger(__name__).exception("Failed to send appointment update email")
+                            payload = {
+                                'appointment_id': appointment.id,
+                                'requested_date_iso': requested_date,
+                                'requested_date_display': req_date.strftime('%b %d, %Y') if req_date else requested_date,
+                                'requested_time_display': time_display,
+                                'status': appointment.status,
+                                'status_display': appointment.get_status_display(),
+                            }
             except ExpertAppointment.DoesNotExist:
                 out_message = 'Appointment not found.'
         else:
@@ -2947,40 +2955,55 @@ def farmer_dashboard(request):
                     out_message = 'Only rejected appointments can be reapplied.'
                 elif not req_date:
                     out_message = 'Invalid date format.'
-                elif not ExpertAvailability.objects.filter(expert=appointment.expert, date=req_date).exists():
-                    out_message = 'Appointment not available at this date. Please choose an available date.'
                 else:
-                    appointment.requested_date = requested_date
-                    appointment.requested_time = requested_time
-                    appointment.status = ExpertAppointment.STATUS_PENDING
-                    appointment.response_message = None  # fresh request for doctor
-                    appointment.save()
-                    success = True
-                    out_message = 'Appointment updated and resubmitted. The doctor will review your new request.'
-                    try:
-                        time_display = appointment.requested_time.strftime('%I:%M %p') if appointment.requested_time else requested_time
-                    except Exception:
-                        time_display = requested_time
-
-                    # Notify expert so they know about the resubmitted appointment.
-                    try:
-                        create_notification(
-                            appointment.expert.user,
-                            'Appointment resubmitted',
-                            f'{request.user.email} resubmitted a pending appointment for {req_date.strftime("%b %d, %Y") if req_date else requested_date} at {time_display}.',
-                            reverse('expert_dashboard') + '?section=appointments',
-                            UserNotification.TYPE_APPOINTMENT,
+                    req_time_parsed = _parse_appointment_booking_time(requested_time)
+                    if not req_time_parsed:
+                        out_message = 'Invalid time format.'
+                    else:
+                        slot_err, _avail = _validate_expert_appointment_slot(
+                            appointment.expert,
+                            req_date,
+                            req_time_parsed,
+                            exclude_appointment_id=appointment.id,
                         )
-                    except Exception:
-                        logging.getLogger(__name__).exception("Failed to send appointment resubmission email")
-                    payload = {
-                        'appointment_id': appointment.id,
-                        'requested_date_iso': requested_date,
-                        'requested_date_display': req_date.strftime('%b %d, %Y') if req_date else requested_date,
-                        'requested_time_display': time_display,
-                        'status': appointment.status,
-                        'status_display': appointment.get_status_display(),
-                    }
+                        if slot_err:
+                            out_message = slot_err
+                        else:
+                            appointment.requested_date = req_date
+                            appointment.requested_time = req_time_parsed
+                            appointment.status = ExpertAppointment.STATUS_PENDING
+                            appointment.response_message = None  # fresh request for doctor
+                            appointment.save()
+                            success = True
+                            out_message = 'Appointment updated and resubmitted. The doctor will review your new request.'
+                            try:
+                                time_display = (
+                                    appointment.requested_time.strftime('%I:%M %p')
+                                    if appointment.requested_time
+                                    else requested_time
+                                )
+                            except Exception:
+                                time_display = requested_time
+
+                            # Notify expert so they know about the resubmitted appointment.
+                            try:
+                                create_notification(
+                                    appointment.expert.user,
+                                    'Appointment resubmitted',
+                                    f'{request.user.email} resubmitted a pending appointment for {req_date.strftime("%b %d, %Y") if req_date else requested_date} at {time_display}.',
+                                    reverse('expert_dashboard') + '?section=appointments',
+                                    UserNotification.TYPE_APPOINTMENT,
+                                )
+                            except Exception:
+                                logging.getLogger(__name__).exception("Failed to send appointment resubmission email")
+                            payload = {
+                                'appointment_id': appointment.id,
+                                'requested_date_iso': requested_date,
+                                'requested_date_display': req_date.strftime('%b %d, %Y') if req_date else requested_date,
+                                'requested_time_display': time_display,
+                                'status': appointment.status,
+                                'status_display': appointment.get_status_display(),
+                            }
             except ExpertAppointment.DoesNotExist:
                 out_message = 'Appointment not found.'
         else:
@@ -3073,7 +3096,6 @@ def farmer_dashboard(request):
         'profile': profile,
         'products': products,
         'experts': experts,
-        'expert_availability': expert_availability,
         'expert_availability_json': expert_availability_json,
         'tips': tips,
         'appointments': appointments,
@@ -3710,6 +3732,8 @@ def expert_dashboard(request):
     # Handle update visit status (for accepted appointments only)
     if request.method == 'POST' and 'update_visit_status' in request.POST:
         if kyc_status != 'approved':
+            if is_ajax:
+                return _expert_finish(False, 'KYC verification is required.')
             messages.error(request, 'KYC verification is required.')
             return _redirect_same_page(request, 'expert_dashboard')
         appointment_id = request.POST.get('appointment_id')
@@ -3717,29 +3741,55 @@ def expert_dashboard(request):
         try:
             appointment = ExpertAppointment.objects.get(id=appointment_id, expert=profile)
             if appointment.status != ExpertAppointment.STATUS_ACCEPTED:
+                if is_ajax:
+                    return _expert_finish(False, 'Visit status can only be set for accepted appointments.')
                 messages.error(request, 'Visit status can only be set for accepted appointments.')
             elif visit_status in (ExpertAppointment.VISIT_VISITED, ExpertAppointment.VISIT_WILL_VISIT, ExpertAppointment.VISIT_WAITING):
                 appointment.visit_status = visit_status
                 appointment.save()
 
-                # Email copy for "will visit / visited / waiting" status updates.
                 try:
                     visit_status_label = appointment.get_visit_status_display()
+                    req_user = appointment.requester
+                    appt_link = (
+                        reverse('farmer_dashboard') + '?section=appointments'
+                        if getattr(req_user, 'role', None) == 'farmer'
+                        else reverse('user_dashboard') + '?section=appointments'
+                    )
                     create_notification(
                         appointment.requester,
                         'Appointment visit status updated',
                         f'Your appointment on {appointment.requested_date} at {appointment.requested_time} is now: {visit_status_label}.',
-                        reverse('user_dashboard') + '?section=appointments',
+                        appt_link,
                         UserNotification.TYPE_APPOINTMENT,
                     )
                 except Exception:
-                    logging.getLogger(__name__).exception("Failed to send appointment visit-status email")
-                messages.success(request, 'Visit status updated.')
+                    logging.getLogger(__name__).exception("Failed to send appointment visit-status notification")
+                ok_msg = 'Visit status saved. The client has been notified.'
+                visit_payload = {
+                    'visit_status_update': {
+                        'id': appointment.id,
+                        'visit_status': visit_status,
+                        'visit_status_display': appointment.get_visit_status_display(),
+                        'is_completed': visit_status == ExpertAppointment.VISIT_VISITED,
+                    }
+                }
+                if is_ajax:
+                    return _expert_finish(True, ok_msg, **visit_payload)
+                messages.success(request, ok_msg)
             else:
-                messages.error(request, 'Please select a valid visit status.')
+                err = 'Please choose a valid visit status.'
+                if is_ajax:
+                    return _expert_finish(False, err)
+                messages.error(request, err)
         except ExpertAppointment.DoesNotExist:
-            messages.error(request, 'Appointment not found!')
-        return _redirect_same_page(request, 'expert_dashboard')
+            err = 'Appointment not found!'
+            if is_ajax:
+                return _expert_finish(False, err)
+            messages.error(request, err)
+        if not is_ajax:
+            return _redirect_same_page(request, 'expert_dashboard')
+        return _expert_finish(False, 'Unable to update visit status.')
     
     # Get expert content/tips
     tips = FarmingTip.objects.filter(expert=profile).order_by('-created_at')
@@ -4271,21 +4321,34 @@ def user_dashboard(request):
                     out_message = 'Only pending appointments can be rescheduled. Accepted appointments cannot be changed.'
                 elif not req_date:
                     out_message = 'Invalid date format.'
-                elif not ExpertAvailability.objects.filter(expert=appointment.expert, date=req_date).exists():
-                    out_message = 'Appointment not available at this date. Please choose an available date.'
                 else:
-                    appointment.requested_date = requested_date
-                    appointment.requested_time = requested_time
-                    appointment.save()
-                    success = True
-                    out_message = 'Appointment date/time updated successfully.'
-                    payload = {
-                        'appointment_id': appointment.id,
-                        'requested_date_display': req_date.strftime('%b %d, %Y') if req_date else requested_date,
-                        'requested_time_display': appointment.requested_time.strftime('%I:%M %p') if appointment.requested_time else requested_time,
-                        'status': appointment.status,
-                        'status_display': appointment.get_status_display(),
-                    }
+                    req_time_parsed = _parse_appointment_booking_time(requested_time)
+                    if not req_time_parsed:
+                        out_message = 'Invalid time format.'
+                    else:
+                        slot_err, _avail = _validate_expert_appointment_slot(
+                            appointment.expert,
+                            req_date,
+                            req_time_parsed,
+                            exclude_appointment_id=appointment.id,
+                        )
+                        if slot_err:
+                            out_message = slot_err
+                        else:
+                            appointment.requested_date = req_date
+                            appointment.requested_time = req_time_parsed
+                            appointment.save()
+                            success = True
+                            out_message = 'Appointment date/time updated successfully.'
+                            payload = {
+                                'appointment_id': appointment.id,
+                                'requested_date_display': req_date.strftime('%b %d, %Y') if req_date else requested_date,
+                                'requested_time_display': appointment.requested_time.strftime('%I:%M %p')
+                                if appointment.requested_time
+                                else requested_time,
+                                'status': appointment.status,
+                                'status_display': appointment.get_status_display(),
+                            }
             except ExpertAppointment.DoesNotExist:
                 out_message = 'Appointment not found.'
         else:
@@ -4318,23 +4381,36 @@ def user_dashboard(request):
                     out_message = 'Only rejected appointments can be reapplied.'
                 elif not req_date:
                     out_message = 'Invalid date format.'
-                elif not ExpertAvailability.objects.filter(expert=appointment.expert, date=req_date).exists():
-                    out_message = 'Appointment not available at this date. Please choose an available date.'
                 else:
-                    appointment.requested_date = requested_date
-                    appointment.requested_time = requested_time
-                    appointment.status = ExpertAppointment.STATUS_PENDING
-                    appointment.response_message = None
-                    appointment.save()
-                    success = True
-                    out_message = 'Appointment updated and resubmitted. The doctor will review your new request.'
-                    payload = {
-                        'appointment_id': appointment.id,
-                        'requested_date_display': req_date.strftime('%b %d, %Y') if req_date else requested_date,
-                        'requested_time_display': appointment.requested_time.strftime('%I:%M %p') if appointment.requested_time else requested_time,
-                        'status': appointment.status,
-                        'status_display': appointment.get_status_display(),
-                    }
+                    req_time_parsed = _parse_appointment_booking_time(requested_time)
+                    if not req_time_parsed:
+                        out_message = 'Invalid time format.'
+                    else:
+                        slot_err, _avail = _validate_expert_appointment_slot(
+                            appointment.expert,
+                            req_date,
+                            req_time_parsed,
+                            exclude_appointment_id=appointment.id,
+                        )
+                        if slot_err:
+                            out_message = slot_err
+                        else:
+                            appointment.requested_date = req_date
+                            appointment.requested_time = req_time_parsed
+                            appointment.status = ExpertAppointment.STATUS_PENDING
+                            appointment.response_message = None
+                            appointment.save()
+                            success = True
+                            out_message = 'Appointment updated and resubmitted. The doctor will review your new request.'
+                            payload = {
+                                'appointment_id': appointment.id,
+                                'requested_date_display': req_date.strftime('%b %d, %Y') if req_date else requested_date,
+                                'requested_time_display': appointment.requested_time.strftime('%I:%M %p')
+                                if appointment.requested_time
+                                else requested_time,
+                                'status': appointment.status,
+                                'status_display': appointment.get_status_display(),
+                            }
             except ExpertAppointment.DoesNotExist:
                 out_message = 'Appointment not found.'
         else:
@@ -5953,6 +6029,105 @@ def logout_view(request):
     return redirect('landing')
 
 
+def _parse_appointment_booking_time(time_str):
+    """Parse HTML time value (HH:MM or HH:MM:SS) to a time object."""
+    s = (time_str or '').strip()
+    if not s:
+        return None
+    for fmt in ('%H:%M:%S', '%H:%M'):
+        try:
+            return datetime.strptime(s, fmt).time()
+        except ValueError:
+            continue
+    return None
+
+
+MAX_APPOINTMENTS_PER_EXPERT_DATE = 2
+
+
+def _active_appointment_count_expert_date(expert, req_date, exclude_appointment_id=None):
+    qs = ExpertAppointment.objects.filter(
+        expert=expert,
+        requested_date=req_date,
+        status__in=[
+            ExpertAppointment.STATUS_PENDING,
+            ExpertAppointment.STATUS_ACCEPTED,
+        ],
+    )
+    if exclude_appointment_id:
+        qs = qs.exclude(pk=exclude_appointment_id)
+    return qs.count()
+
+
+def _time_within_expert_availability(avail, req_time):
+    """When both start and end are set, req_time must be in [start, end]. Otherwise treat as open day."""
+    if avail is None:
+        return False
+    st, et = avail.start_time, avail.end_time
+    if st is None and et is None:
+        return True
+    if st is not None and et is not None:
+        return st <= req_time <= et
+    return True
+
+
+def _validate_expert_appointment_slot(expert, req_date, req_time_parsed, exclude_appointment_id=None):
+    """
+    Shared checks for book / reschedule / reapply.
+    Returns (error_message, None) on failure or (None, avail) on success.
+    """
+    avail = ExpertAvailability.objects.filter(expert=expert, date=req_date).first()
+    if not avail:
+        return (
+            "Appointment not available at this date. Please choose an available date from the expert's calendar.",
+            None,
+        )
+    if not _time_within_expert_availability(avail, req_time_parsed):
+        if avail.start_time and avail.end_time:
+            return (
+                'Choose a time between %s and %s for this date.'
+                % (avail.start_time.strftime('%H:%M'), avail.end_time.strftime('%H:%M')),
+                None,
+            )
+        return 'The selected time is not valid for this date.', None
+    if (
+        _active_appointment_count_expert_date(expert, req_date, exclude_appointment_id)
+        >= MAX_APPOINTMENTS_PER_EXPERT_DATE
+    ):
+        return (
+            'This date already has the maximum number of bookings (2) for this expert. Please pick another available date.',
+            None,
+        )
+    return None, avail
+
+
+def _format_expert_availability_slots_json(experts_iterable):
+    """expert_id -> [{date, start_time, end_time}, ...] for booking UI."""
+    today = timezone.now().date()
+    expert_ids = [e.id for e in experts_iterable]
+    if not expert_ids:
+        return '{}'
+    out = {eid: [] for eid in expert_ids}
+    rows = (
+        ExpertAvailability.objects.filter(expert_id__in=expert_ids, date__gte=today)
+        .order_by('expert_id', 'date', 'start_time')
+        .values('expert_id', 'date', 'start_time', 'end_time')
+    )
+    for row in rows:
+        eid = row['expert_id']
+        d = row['date']
+        st = row['start_time']
+        et = row['end_time']
+        out[eid].append(
+            {
+                'date': d.isoformat(),
+                'start_time': st.strftime('%H:%M') if st else None,
+                'end_time': et.strftime('%H:%M') if et else None,
+            }
+        )
+    return json.dumps(out)
+
+
 @login_required
 def appointment_request_page(request):
     if request.user.role not in {'buyer', 'farmer'}:
@@ -5989,44 +6164,75 @@ def appointment_request_page(request):
             if not req_date:
                 out_message = 'Invalid date format.'
             else:
-                expert = ExpertProfile.objects.get(id=expert_id)
-                if not ExpertAvailability.objects.filter(expert=expert, date=req_date).exists():
-                    out_message = "Appointment not available at this date. Please choose an available date from the expert's calendar."
+                req_time_parsed = _parse_appointment_booking_time(requested_time)
+                if not req_time_parsed:
+                    out_message = 'Invalid time format.'
                 else:
-                    appt = ExpertAppointment.objects.create(
-                        expert=expert,
-                        requester=request.user,
-                        requested_date=requested_date,
-                        requested_time=requested_time,
-                        message=message,
-                        status=ExpertAppointment.STATUS_PENDING
-                    )
-                    create_notification(
-                        expert.user,
-                        'New appointment request',
-                        f'{request.user.email} requested an appointment on {requested_date} at {requested_time}.',
-                        reverse('expert_dashboard') + '?section=appointments',
-                        UserNotification.TYPE_APPOINTMENT
-                    )
-                    success = True
-                    out_message = 'Appointment booked successfully! The doctor has been notified and will accept or reject your request. Go to My Appointments to see status and change date if needed.'
-                    # Basic payload so frontend can optimistically update UI
                     try:
-                        time_display = appt.requested_time.strftime('%I:%M %p') if appt.requested_time else requested_time
-                    except Exception:
-                        time_display = requested_time
-                    payload = {
-                        'appointment': {
-                            'id': appt.id,
-                            'expert_name': expert.name or expert.user.email,
-                            'requested_date_iso': requested_date,
-                            'requested_date_display': req_date.strftime('%b %d, %Y'),
-                            'requested_time_display': time_display,
-                            'status': appt.status,
-                            'status_display': appt.get_status_display(),
-                            'message': message or '',
-                        }
-                    }
+                        expert = ExpertProfile.objects.get(id=int(expert_id))
+                    except (ExpertProfile.DoesNotExist, ValueError, TypeError):
+                        expert = None
+                    if expert is None:
+                        out_message = 'Expert not found.'
+                    else:
+                        appt = None
+                        slot_err, _avail = _validate_expert_appointment_slot(
+                            expert, req_date, req_time_parsed, exclude_appointment_id=None
+                        )
+                        if slot_err:
+                            out_message = slot_err
+                        else:
+                            with transaction.atomic():
+                                duplicate = ExpertAppointment.objects.filter(
+                                    expert=expert,
+                                    requester=request.user,
+                                    requested_date=req_date,
+                                    requested_time=req_time_parsed,
+                                    status__in=[
+                                        ExpertAppointment.STATUS_PENDING,
+                                        ExpertAppointment.STATUS_ACCEPTED,
+                                    ],
+                                ).exists()
+                                if duplicate:
+                                    out_message = (
+                                        'You already have an appointment with this expert at this date and time. '
+                                        'Open My Appointments to review it, or choose a different slot.'
+                                    )
+                                else:
+                                    appt = ExpertAppointment.objects.create(
+                                        expert=expert,
+                                        requester=request.user,
+                                        requested_date=req_date,
+                                        requested_time=req_time_parsed,
+                                        message=message,
+                                        status=ExpertAppointment.STATUS_PENDING,
+                                    )
+                        if appt:
+                            create_notification(
+                                expert.user,
+                                'New appointment request',
+                                f'{request.user.email} requested an appointment on {requested_date} at {requested_time}.',
+                                reverse('expert_dashboard') + '?section=appointments',
+                                UserNotification.TYPE_APPOINTMENT
+                            )
+                            success = True
+                            out_message = 'Appointment booked successfully! The doctor has been notified and will accept or reject your request. Go to My Appointments to see status and change date if needed.'
+                            try:
+                                time_display = appt.requested_time.strftime('%I:%M %p') if appt.requested_time else requested_time
+                            except Exception:
+                                time_display = requested_time
+                            payload = {
+                                'appointment': {
+                                    'id': appt.id,
+                                    'expert_name': expert.name or expert.user.email,
+                                    'requested_date_iso': requested_date,
+                                    'requested_date_display': req_date.strftime('%b %d, %Y'),
+                                    'requested_time_display': time_display,
+                                    'status': appt.status,
+                                    'status_display': appt.get_status_display(),
+                                    'message': message or '',
+                                }
+                            }
         else:
             out_message = 'Please provide expert, date, and time.'
 

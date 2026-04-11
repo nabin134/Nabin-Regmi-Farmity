@@ -2650,7 +2650,7 @@
                 <h3><i class="fas fa-calendar-plus"></i> Book appointment</h3>
                 <button class="close-modal" onclick="closeModal('appointmentModal')" aria-label="Close">&times;</button>
             </div>
-            <form method="POST" action="{% url 'appointment_request' %}" id="appointmentBookForm" class="appointment-form" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to submit this appointment request?" data-farmity-close-modal="appointmentModal">
+            <form method="POST" action="{% url 'appointment_request' %}" id="appointmentBookForm" class="appointment-form" data-farmity-ajax="1" data-farmity-single-submit="1" data-farmity-close-modal="appointmentModal">
                 {% csrf_token %}
                 <input type="hidden" name="expert_id" id="apptExpertId">
                 <div class="form-group">
@@ -3146,7 +3146,22 @@
         });
 
         var expertAvailability = {{ expert_availability_json|safe }};
-        function initApptFlatpickr(elId, enableDates) {
+        function expertAvailabilitySlots(expertId) {
+            if (expertId === undefined || expertId === null || expertId === '') return [];
+            var key = String(expertId);
+            return expertAvailability[key] || [];
+        }
+        function getExpertSlotDates(expertId) {
+            return expertAvailabilitySlots(expertId).map(function (s) { return s.date; });
+        }
+        function getExpertSlotForDate(expertId, dateStr) {
+            var slots = expertAvailabilitySlots(expertId);
+            for (var i = 0; i < slots.length; i++) {
+                if (slots[i].date === dateStr) return slots[i];
+            }
+            return null;
+        }
+        function initApptFlatpickr(elId, expertId, timeInputId) {
             var el = document.getElementById(elId);
             if (!el) return null;
             if (window.apptFlatpickrInstances && window.apptFlatpickrInstances[elId]) {
@@ -3154,7 +3169,19 @@
                 window.apptFlatpickrInstances[elId] = null;
             }
             if (!window.apptFlatpickrInstances) window.apptFlatpickrInstances = {};
-            var opts = { dateFormat: 'Y-m-d', minDate: 'today' };
+            var enableDates = expertId ? getExpertSlotDates(expertId) : [];
+            var opts = {
+                dateFormat: 'Y-m-d',
+                minDate: 'today',
+                onChange: function (selectedDates, dateStr) {
+                    if (!timeInputId || !expertId || !dateStr) return;
+                    var slot = getExpertSlotForDate(expertId, dateStr);
+                    var ti = document.getElementById(timeInputId);
+                    if (!ti || !slot || !slot.start_time) return;
+                    var st = String(slot.start_time);
+                    ti.value = st.length >= 5 ? st.substring(0, 5) : st;
+                }
+            };
             if (enableDates && enableDates.length > 0) opts.enable = enableDates;
             window.apptFlatpickrInstances[elId] = flatpickr(el, opts);
             return window.apptFlatpickrInstances[elId];
@@ -3303,7 +3330,7 @@
             document.getElementById('apptExpertName').value = expertName || '';
             document.getElementById('apptRequestedDate').value = '';
             document.getElementById('apptRequestedTime').value = '';
-            initApptFlatpickr('apptRequestedDate', expertId && expertAvailability[expertId] ? expertAvailability[expertId] : []);
+            initApptFlatpickr('apptRequestedDate', expertId || null, 'apptRequestedTime');
             document.getElementById('appointmentModal').classList.add('active');
         }
         function openChangeAppointmentModal(apptId, expertId, currentDate, currentTime) {
@@ -3311,7 +3338,7 @@
             document.getElementById('changeApptExpertId').value = expertId || '';
             document.getElementById('changeApptDate').value = currentDate || '';
             document.getElementById('changeApptTime').value = (currentTime || '').substring(0, 5);
-            initApptFlatpickr('changeApptDate', expertId && expertAvailability[expertId] ? expertAvailability[expertId] : []);
+            initApptFlatpickr('changeApptDate', expertId || null, 'changeApptTime');
             document.getElementById('changeAppointmentModal').classList.add('active');
         }
         function openReapplyAppointmentModal(apptId, expertId, currentDate, currentTime) {
@@ -3319,12 +3346,11 @@
             document.getElementById('reapplyApptExpertId').value = expertId || '';
             document.getElementById('reapplyApptDate').value = currentDate || '';
             document.getElementById('reapplyApptTime').value = (currentTime || '').substring(0, 5);
-            initApptFlatpickr('reapplyApptDate', expertId && expertAvailability[expertId] ? expertAvailability[expertId] : []);
+            initApptFlatpickr('reapplyApptDate', expertId || null, 'reapplyApptTime');
             document.getElementById('reapplyAppointmentModal').classList.add('active');
         }
         document.getElementById('appointmentBookForm').addEventListener('submit', function(e) {
             var expertId = document.getElementById('apptExpertId').value;
-            var dates = expertAvailability[expertId];
             var sel = document.getElementById('apptRequestedDate').value;
             var time = document.getElementById('apptRequestedTime').value;
             if (!sel) {
@@ -3337,7 +3363,7 @@
                 alert('Please select an appointment time.');
                 return false;
             }
-            if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
+            if (getExpertSlotDates(expertId).length > 0 && sel && !getExpertSlotForDate(expertId, sel)) {
                 e.preventDefault();
                 alert('Appointment not available at this date. Please choose a highlighted available date.');
                 return false;
@@ -3345,7 +3371,6 @@
         });
         document.getElementById('changeAppointmentForm').addEventListener('submit', function(e) {
             var expertId = document.getElementById('changeApptExpertId').value;
-            var dates = expertAvailability[expertId];
             var sel = document.getElementById('changeApptDate').value;
             var time = document.getElementById('changeApptTime').value;
             if (!sel) {
@@ -3358,7 +3383,7 @@
                 alert('Please select a new appointment time.');
                 return false;
             }
-            if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
+            if (getExpertSlotDates(expertId).length > 0 && sel && !getExpertSlotForDate(expertId, sel)) {
                 e.preventDefault();
                 alert('Appointment not available at this date. Please choose an available date from the list above.');
                 return false;
@@ -3366,7 +3391,6 @@
         });
         document.getElementById('reapplyAppointmentForm').addEventListener('submit', function(e) {
             var expertId = document.getElementById('reapplyApptExpertId').value;
-            var dates = expertAvailability[expertId];
             var sel = document.getElementById('reapplyApptDate').value;
             var time = document.getElementById('reapplyApptTime').value;
             if (!sel) {
@@ -3379,7 +3403,7 @@
                 alert('Please select a new appointment time.');
                 return false;
             }
-            if (dates && dates.length > 0 && sel && dates.indexOf(sel) === -1) {
+            if (getExpertSlotDates(expertId).length > 0 && sel && !getExpertSlotForDate(expertId, sel)) {
                 e.preventDefault();
                 alert('Appointment not available at this date. Please choose an available date from the list above.');
                 return false;

@@ -105,6 +105,10 @@
     }
 
     async function submitFarmityForm(form, submitter) {
+        const singleSubmit = form.getAttribute('data-farmity-single-submit') === '1';
+        if (singleSubmit && form._farmityAjaxInFlight) {
+            return;
+        }
         const url = form.getAttribute('action') || window.location.pathname + window.location.search;
         const externalBtn = form._farmityExternalSubmitBtn;
         if (externalBtn) form._farmityExternalSubmitBtn = null;
@@ -134,6 +138,9 @@
 
         clearFarmityFieldErrors(form);
         if (!applyNativeValidationHints(form)) return;
+        if (singleSubmit) {
+            form._farmityAjaxInFlight = true;
+        }
         const fd = new FormData(form);
         fd.set('ajax', '1');
 
@@ -225,6 +232,53 @@
                         const actionButtons = card.querySelector('.appointment-actions');
                         if (actionButtons && data.appointment_status.status !== 'pending') {
                             actionButtons.style.display = 'none';
+                        }
+                    }
+                }
+                if (data.visit_status_update && data.visit_status_update.id != null) {
+                    const u = data.visit_status_update;
+                    const card = document.querySelector('[data-appointment-row="' + u.id + '"]');
+                    if (card) {
+                        const live = card.querySelector('[data-visit-live]');
+                        if (live && u.visit_status_display) {
+                            live.textContent = u.visit_status_display;
+                        }
+                        const pill = card.querySelector('.expert-visit-current-pill');
+                        if (pill) {
+                            pill.classList.remove('expert-visit-current-pill--pending');
+                        }
+                        const viewBtn = card.querySelector('button[onclick*="openExpertAppointmentDetails"]');
+                        if (viewBtn && u.visit_status_display) {
+                            viewBtn.setAttribute('data-visit-status', u.visit_status_display);
+                        }
+                        const visitRow = card.querySelector('.appointment-item-visit-row[data-visit-row="' + u.id + '"]')
+                            || card.querySelector('.appointment-item-visit-row');
+                        if (u.is_completed) {
+                            if (visitRow) {
+                                visitRow.style.display = 'none';
+                            }
+                            const badge = card.querySelector('.appointment-status-badge');
+                            if (badge) {
+                                badge.className = 'appointment-status-badge status-closed';
+                                badge.textContent = 'Closed';
+                            }
+                            card.classList.remove('status-accepted-card');
+                            card.classList.add('status-closed-card');
+                        } else if (visitRow) {
+                            const panel = visitRow.querySelector('.expert-visit-status-panel');
+                            if (panel) {
+                                panel.querySelectorAll('.expert-visit-option').forEach(function (lab) {
+                                    lab.classList.remove('is-selected');
+                                });
+                                const inp = panel.querySelector('input[name="visit_status"][value="' + u.visit_status + '"]');
+                                if (inp) {
+                                    inp.checked = true;
+                                    const lab = inp.closest('.expert-visit-option');
+                                    if (lab) {
+                                        lab.classList.add('is-selected');
+                                    }
+                                }
+                            }
                         }
                     }
                 }
@@ -461,6 +515,9 @@
                 showError('Network error. Please try again.');
             }
         } finally {
+            if (singleSubmit) {
+                form._farmityAjaxInFlight = false;
+            }
             if (submitBtn) {
                 submitBtn.disabled = false;
                 submitBtn.innerHTML = prevText;
