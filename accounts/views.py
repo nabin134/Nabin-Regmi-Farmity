@@ -4122,14 +4122,11 @@ def user_dashboard(request):
             messages.error(request, 'Contact number is required.')
             return _redirect_same_page(request, 'user_dashboard')
         try:
-            crop = FarmerProduct.objects.get(id=crop_id, is_available=True)
-            if crop.quantity <= Decimal('1'):
-                messages.error(
-                    request,
-                    'This crop is not available for purchase. More than one unit must be in stock.',
-                )
-                return _redirect_same_page(request, 'user_dashboard')
-            if crop.quantity >= quantity:
+            with transaction.atomic():
+                crop = FarmerProduct.objects.select_for_update().get(id=crop_id, is_available=True)
+                if crop.quantity < quantity:
+                    messages.error(request, f'Insufficient quantity. Available: {crop.quantity} {crop.unit}')
+                    return _redirect_same_page(request, 'user_dashboard')
                 base_amount = (crop.price_per_unit * quantity).quantize(Decimal('0.01'))
                 shipping_cost = Decimal('100.00')
                 total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
@@ -4140,11 +4137,11 @@ def user_dashboard(request):
                 order_status = (
                     Order.STATUS_AWAITING_PAYMENT if payment_method == Order.PAYMENT_ESEWA else Order.STATUS_CONFIRMED
                 )
-                # Create order (quantity must be integer for Order model, but we store decimal in CropSale)
+                qty_int = int(quantity.to_integral_value(rounding=ROUND_HALF_UP))
                 order = Order.objects.create(
                     buyer=request.user,
                     crop=crop,
-                    quantity=int(quantity.to_integral_value(rounding='ROUND_HALF_UP')),
+                    quantity=qty_int,
                     total_amount=total_amount,
                     shipping_cost=shipping_cost,
                     admin_commission=admin_commission,
@@ -4157,13 +4154,13 @@ def user_dashboard(request):
                     order_email=order_email,
                     notes=request.POST.get('notes', '')
                 )
-                
+
                 if payment_method != Order.PAYMENT_ESEWA:
-                    # COD: apply inventory + record sale immediately
                     crop.quantity -= quantity
                     if crop.quantity <= 0:
+                        crop.quantity = Decimal('0')
                         crop.is_available = False
-                    crop.save()
+                    crop.save(update_fields=['quantity', 'is_available'])
                     CropSale.objects.create(
                         crop=crop,
                         order=order,
@@ -4180,14 +4177,14 @@ def user_dashboard(request):
                         create_notification(
                             farmer_user,
                             'New order for your crop',
-                            f'Order #{order.id}: {crop.name} x{int(round(quantity))} — Rs. {total_amount:.2f} (incl. shipping)',
+                            f'Order #{order.id}: {crop.name} x{qty_int} — Rs. {total_amount:.2f} (incl. shipping)',
                             reverse('farmer_dashboard') + '?section=orders',
                             UserNotification.TYPE_ORDER
                         )
                     create_notification(
                         request.user,
                         'Order placed',
-                        f'Order #{order.id}: {crop.name} x{int(round(quantity))} — Rs. {total_amount:.2f} (incl. shipping)',
+                        f'Order #{order.id}: {crop.name} x{qty_int} — Rs. {total_amount:.2f} (incl. shipping)',
                         reverse('user_dashboard') + '?section=orders',
                         UserNotification.TYPE_ORDER
                     )
@@ -4196,8 +4193,6 @@ def user_dashboard(request):
                     request.session['esewa_redirect_after'] = 'user_dashboard'
                     request.session.modified = True
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
-            else:
-                messages.error(request, f'Insufficient quantity. Available: {crop.quantity} {crop.unit}')
         except FarmerProduct.DoesNotExist:
             messages.error(request, 'Crop not found or no longer available!')
         except Exception as e:

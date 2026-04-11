@@ -578,12 +578,12 @@
         .appointments-list {
             display: flex;
             flex-direction: column;
-            gap: 1rem;
+            gap: 0.75rem;
         }
 
         .appointment-item {
             background: #fff;
-            border-radius: 14px;
+            border-radius: 10px;
             border: 1px solid #e9ecef;
             overflow: hidden;
             display: flex;
@@ -614,26 +614,24 @@
         .appointment-item-visit-row {
             width: 100%;
             flex: 1 1 100%;
-            border-top: 1px solid #e8eeea;
-            padding: 1rem 1.5rem 1.2rem;
-            background: linear-gradient(180deg, #fbfdfc 0%, #f3f6f4 100%);
+            border-top: 1px solid #eef0f2;
+            padding: 0.6rem 1rem 0.75rem;
+            background: #fafbfc;
         }
         .appointment-item-visit-row .expert-visit-status-panel {
-            margin-top: 0;
-            max-width: 960px;
-            margin-left: auto;
-            margin-right: auto;
+            margin: 0;
+            max-width: none;
         }
 
         .appointment-info {
             flex: 1;
             min-width: 260px;
-            padding: 1.25rem 1.5rem;
+            padding: 0.9rem 1.1rem;
         }
 
         .appointment-info h4 {
-            margin: 0 0 0.75rem 0;
-            font-size: 1.05rem;
+            margin: 0 0 0.5rem 0;
+            font-size: 0.98rem;
             font-weight: 600;
             color: #1a1a1a;
             display: flex;
@@ -666,8 +664,8 @@
         .appointment-response-box.rejected { background: #fff3cd; border-left-color: #dc3545; color: #721c24; }
         .appointment-requested-at { font-size: 0.8rem; color: #999; margin-top: 0.5rem; }
         .appointment-right {
-            padding: 1.25rem 1.5rem;
-            min-width: 160px;
+            padding: 0.9rem 1.1rem;
+            min-width: 140px;
             display: flex;
             flex-direction: column;
             align-items: flex-end;
@@ -690,85 +688,79 @@
         .appointment-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
         .appointment-actions .btn-primary { font-size: 0.875rem; padding: 0.45rem 0.9rem; border-radius: 8px; }
 
-        /* Field visit status (accepted appointments) */
+        /* Visit status — compact row (accepted, not yet visited) */
         .expert-visit-status-panel {
             width: 100%;
-            max-width: 100%;
-            margin-top: 0.5rem;
-            padding: 1rem 1.15rem;
-            background: linear-gradient(145deg, #f0fdf4 0%, #ecfdf5 50%, #f8fafc 100%);
-            border: 1px solid rgba(16, 185, 129, 0.22);
-            border-radius: 12px;
-            box-shadow: 0 2px 8px rgba(16, 185, 129, 0.06);
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            border: none;
+            box-shadow: none;
         }
-        .expert-visit-status-head {
+        .expert-visit-compact-top {
             display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.82rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: #047857;
-            margin-bottom: 0.35rem;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 0.35rem 1rem;
+            margin-bottom: 0.45rem;
         }
-        .expert-visit-status-head i { font-size: 1rem; opacity: 0.9; }
-        .expert-visit-status-hint {
-            font-size: 0.8rem;
-            color: #4b5563;
-            line-height: 1.45;
-            margin: 0 0 0.85rem 0;
+        .expert-visit-compact-top .expert-visit-title {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: #6b7280;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
         }
         .expert-visit-current-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.45rem;
+            display: inline;
             font-size: 0.8rem;
-            color: #374151;
-            background: rgba(255, 255, 255, 0.85);
-            border: 1px solid rgba(16, 185, 129, 0.2);
-            padding: 0.45rem 0.75rem;
-            border-radius: 999px;
-            margin-bottom: 1rem;
+            color: #4b5563;
+            margin: 0;
+            padding: 0;
+            border: none;
+            background: none;
         }
-        .expert-visit-current-pill i { color: var(--primary); }
-        .expert-visit-current-pill--pending {
-            border-style: dashed;
-            color: #6b7280;
-        }
-        .expert-visit-current-pill--pending strong { color: #111827; }
+        .expert-visit-current-pill strong { color: #111827; font-weight: 600; }
+        .expert-visit-current-pill--pending strong { color: #6b7280; font-weight: 500; }
         .expert-visit-status-form { margin: 0; }
-        .expert-visit-options {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 0.65rem;
-            margin-bottom: 1rem;
+        .expert-visit-compact-actions {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.5rem;
         }
-        @media (min-width: 520px) {
-            .expert-visit-options { grid-template-columns: repeat(3, 1fr); }
+        .expert-visit-options {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 0.4rem;
+            margin: 0;
         }
         .expert-visit-option {
             position: relative;
-            display: flex;
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.25rem;
-            padding: 0.75rem 0.85rem;
-            border: 2px solid #e5e7eb;
-            border-radius: 10px;
+            display: inline-flex;
+            align-items: center;
+            margin: 0;
+            padding: 0.32rem 0.65rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
             background: #fff;
             cursor: pointer;
-            transition: border-color 0.2s, box-shadow 0.2s, background 0.2s;
+            font-size: 0.8rem;
+            font-weight: 500;
+            color: #374151;
+            transition: border-color 0.15s, background 0.15s;
         }
         .expert-visit-option:hover {
-            border-color: rgba(16, 185, 129, 0.45);
-            box-shadow: 0 2px 10px rgba(16, 185, 129, 0.08);
+            border-color: var(--primary);
+            background: #f8fdf9;
         }
         .expert-visit-option.is-selected,
         .expert-visit-option:has(input:checked) {
             border-color: var(--primary);
-            background: linear-gradient(180deg, #ffffff 0%, #f0fdf4 100%);
-            box-shadow: 0 0 0 1px rgba(53, 141, 88, 0.15);
+            background: #ecfdf5;
+            color: #065f46;
         }
         .expert-visit-option input {
             position: absolute;
@@ -777,58 +769,25 @@
             height: 1px;
             pointer-events: none;
         }
-        .expert-visit-option-icon {
-            width: 36px;
-            height: 36px;
-            border-radius: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: rgba(53, 141, 88, 0.1);
-            color: var(--primary);
-            font-size: 1rem;
-            margin-bottom: 0.15rem;
-        }
-        .expert-visit-option.is-selected .expert-visit-option-icon,
-        .expert-visit-option:has(input:checked) .expert-visit-option-icon {
-            background: var(--primary);
-            color: #fff;
-        }
-        .expert-visit-option-title {
-            font-size: 0.88rem;
-            font-weight: 700;
-            color: #111827;
-        }
-        .expert-visit-option-desc {
-            font-size: 0.72rem;
-            line-height: 1.35;
-            color: #6b7280;
-        }
         .expert-visit-save-btn {
-            width: 100%;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-            padding: 0.65rem 1rem;
-            font-size: 0.88rem;
-            font-weight: 700;
+            gap: 0.35rem;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.8rem;
+            font-weight: 600;
             color: #fff;
-            background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%);
+            background: var(--primary);
             border: none;
-            border-radius: 10px;
+            border-radius: 6px;
             cursor: pointer;
-            box-shadow: 0 2px 8px rgba(53, 141, 88, 0.25);
-            transition: transform 0.15s, box-shadow 0.2s;
         }
         .expert-visit-save-btn:hover:not(:disabled) {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 14px rgba(53, 141, 88, 0.3);
+            filter: brightness(0.95);
         }
         .expert-visit-save-btn:disabled {
-            opacity: 0.65;
+            opacity: 0.6;
             cursor: not-allowed;
-            transform: none;
         }
 
         /* Availability – add form & date cards */
@@ -1560,8 +1519,7 @@
                 {% if active_section == 'appointments' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <div class="content-section">
                     <div class="section-header">
-                        <h2><i class="fas fa-calendar-check"></i> Appointment Requests</h2>
-                        <span style="color: #6b7280; font-size: 0.9rem; font-weight: 400;">Review and respond to appointment requests</span>
+                        <h2><i class="fas fa-calendar-check"></i> Appointments</h2>
                     </div>
                     <div class="section-body">
                         {% if appointments %}
@@ -1624,43 +1582,32 @@
                                 {% if appointment.status == 'accepted' and kyc_status == 'approved' and appointment.visit_status != 'visited' %}
                                 <div class="appointment-item-visit-row" data-visit-row="{{ appointment.id }}">
                                     <div class="expert-visit-status-panel" data-visit-panel-id="{{ appointment.id }}">
-                                        <div class="expert-visit-status-head">
-                                            <i class="fas fa-route"></i>
-                                            <span>Field visit status</span>
-                                        </div>
-                                        <p class="expert-visit-status-hint">Choose what the farmer or buyer should see, then save. They receive an in-app notification each time you update this.</p>
-                                        <div class="expert-visit-current-pill {% if not appointment.visit_status %}expert-visit-current-pill--pending{% endif %}">
-                                            <i class="fas fa-bullhorn"></i>
-                                            <span>Client sees: <strong data-visit-live>{% if appointment.visit_status %}{{ appointment.get_visit_status_display }}{% else %}Not notified yet — pick an option below{% endif %}</strong></span>
-                                        </div>
                                         <form method="POST" class="expert-visit-status-form" data-farmity-ajax="1" data-farmity-single-submit="1">
                                             {% csrf_token %}
                                             <input type="hidden" name="return_section" value="appointments">
                                             <input type="hidden" name="update_visit_status" value="1">
                                             <input type="hidden" name="appointment_id" value="{{ appointment.id }}">
-                                            <div class="expert-visit-options" role="radiogroup" aria-label="Visit status">
-                                                <label class="expert-visit-option {% if appointment.visit_status == 'will_visit' or not appointment.visit_status %}is-selected{% endif %}">
-                                                    <input type="radio" name="visit_status" value="will_visit" {% if appointment.visit_status == 'will_visit' or not appointment.visit_status %}checked{% endif %}>
-                                                    <span class="expert-visit-option-icon"><i class="fas fa-walking"></i></span>
-                                                    <span class="expert-visit-option-title">Will visit</span>
-                                                    <span class="expert-visit-option-desc">You intend to visit on the agreed date or window.</span>
-                                                </label>
-                                                <label class="expert-visit-option {% if appointment.visit_status == 'waiting' %}is-selected{% endif %}">
-                                                    <input type="radio" name="visit_status" value="waiting" {% if appointment.visit_status == 'waiting' %}checked{% endif %}>
-                                                    <span class="expert-visit-option-icon"><i class="fas fa-hourglass-half"></i></span>
-                                                    <span class="expert-visit-option-title">They have to wait</span>
-                                                    <span class="expert-visit-option-desc">The client should wait for a reschedule or your next message.</span>
-                                                </label>
-                                                <label class="expert-visit-option">
-                                                    <input type="radio" name="visit_status" value="visited">
-                                                    <span class="expert-visit-option-icon"><i class="fas fa-check-circle"></i></span>
-                                                    <span class="expert-visit-option-title">Visited</span>
-                                                    <span class="expert-visit-option-desc">The visit is done. This closes the appointment on your side.</span>
-                                                </label>
+                                            <div class="expert-visit-compact-top">
+                                                <span class="expert-visit-title">Visit status</span>
+                                                <span class="expert-visit-current-pill {% if not appointment.visit_status %}expert-visit-current-pill--pending{% endif %}">Client: <strong data-visit-live>{% if appointment.visit_status %}{{ appointment.get_visit_status_display }}{% else %}Not set{% endif %}</strong></span>
                                             </div>
-                                            <button type="submit" class="expert-visit-save-btn">
-                                                <i class="fas fa-paper-plane"></i> Save &amp; notify client
-                                            </button>
+                                            <div class="expert-visit-compact-actions">
+                                                <div class="expert-visit-options" role="radiogroup" aria-label="Visit status">
+                                                    <label class="expert-visit-option {% if appointment.visit_status == 'will_visit' or not appointment.visit_status %}is-selected{% endif %}">
+                                                        <input type="radio" name="visit_status" value="will_visit" {% if appointment.visit_status == 'will_visit' or not appointment.visit_status %}checked{% endif %}>
+                                                        Will visit
+                                                    </label>
+                                                    <label class="expert-visit-option {% if appointment.visit_status == 'waiting' %}is-selected{% endif %}">
+                                                        <input type="radio" name="visit_status" value="waiting" {% if appointment.visit_status == 'waiting' %}checked{% endif %}>
+                                                        Pending
+                                                    </label>
+                                                    <label class="expert-visit-option">
+                                                        <input type="radio" name="visit_status" value="visited">
+                                                        Visited
+                                                    </label>
+                                                </div>
+                                                <button type="submit" class="expert-visit-save-btn"><i class="fas fa-check"></i> Save</button>
+                                            </div>
                                         </form>
                                     </div>
                                 </div>

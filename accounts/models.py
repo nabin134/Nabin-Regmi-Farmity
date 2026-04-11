@@ -286,7 +286,7 @@ class ExpertAppointment(models.Model):
     VISIT_CHOICES = (
         (VISIT_VISITED, 'Visited'),
         (VISIT_WILL_VISIT, 'Will visit'),
-        (VISIT_WAITING, 'They have to wait'),
+        (VISIT_WAITING, 'Pending'),
     )
 
     expert = models.ForeignKey(ExpertProfile, on_delete=models.CASCADE, related_name='appointments')
@@ -296,7 +296,7 @@ class ExpertAppointment(models.Model):
     message = models.TextField(blank=True, null=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default=STATUS_PENDING)
     response_message = models.TextField(blank=True, null=True, help_text='Doctor message: reason for reject or note for accept.')
-    visit_status = models.CharField(max_length=20, choices=VISIT_CHOICES, blank=True, null=True, help_text='For accepted appointments: Visited / Will visit / They have to wait.')
+    visit_status = models.CharField(max_length=20, choices=VISIT_CHOICES, blank=True, null=True, help_text='For accepted appointments: Will visit / Pending / Visited.')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
