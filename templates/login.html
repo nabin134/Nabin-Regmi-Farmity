@@ -1666,6 +1666,28 @@
 
                         if (response.ok) {
 
+                            if (data.requires_email_verification) {
+
+                                showSuccessMessage(data.message || 'Check your email for the verification code.');
+
+                                if (data.otp_code && document.getElementById('otpDisplay') && document.getElementById('displayOtpCode')) {
+
+                                    document.getElementById('displayOtpCode').textContent = data.otp_code;
+
+                                    document.getElementById('otpDisplay').style.display = 'block';
+
+                                }
+
+                                setTimeout(function() {
+
+                                    window.location.href = data.redirect_url || ('/verify-email/?email=' + encodeURIComponent(data.email || ''));
+
+                                }, data.otp_code ? 2200 : 1200);
+
+                                return;
+
+                            }
+
                             // Check if OTP is required
 
                             if (data.requires_otp) {

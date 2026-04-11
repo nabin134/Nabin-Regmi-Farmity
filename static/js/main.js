@@ -51,10 +51,15 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Register Form
-    const registerForm = document.getElementById('registerForm');
-    if (registerForm) {
-        registerForm.addEventListener('submit', handleRegister);
+    // Register Form — register.html binds its own submit handler (fetch + verify-email redirect).
+    // Attaching handleRegister here too caused duplicate POSTs (success then duplicate-email error).
+    const registerPath = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+    const onRegisterPage = registerPath === '/register';
+    if (!onRegisterPage) {
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', handleRegister);
+        }
     }
 
     // Password visibility toggles (login: #togglePassword only; register: #togglePassword + #toggleConfirmPassword)

@@ -697,18 +697,52 @@ class LoginView(APIView):
                     print(f"Error during case-insensitive check: {e}")
 
             if user is None:
-                print("Authentication failed")
-                return Response(
-                    {"error": "Invalid email or password"},
-                    status=status.HTTP_401_UNAUTHORIZED
-                )
+                # Inactive/unverified accounts do not pass Django's authenticate();
+                # still allow correct password so we can send them to email verification.
+                try:
+                    u = User.objects.get(email__iexact=email)
+                except User.DoesNotExist:
+                    print("Authentication failed")
+                    return Response(
+                        {"error": "Invalid email or password"},
+                        status=status.HTTP_401_UNAUTHORIZED,
+                    )
+                if not u.check_password(password):
+                    print("Authentication failed (bad password)")
+                    return Response(
+                        {"error": "Invalid email or password"},
+                        status=status.HTTP_401_UNAUTHORIZED,
+                    )
+                user = u
 
-            # Block login until email is verified (and account is active)
+            # Block full login until email is verified and account is active — resend code and send user to verify page
             if not getattr(user, 'email_verified', False) or not user.is_active:
-                return Response(
-                    {"error": "Please verify your email to activate your account."},
-                    status=status.HTTP_403_FORBIDDEN
-                )
+                otp = OTP.generate_otp(user, expiry_minutes=30, purpose=OTP.PURPOSE_EMAIL_VERIFY)
+                try:
+                    send_mail(
+                        subject='Verify your email - Farmity',
+                        message=(
+                            f'Your Farmity verification code is: {otp.otp_code}\n\n'
+                            f'This code will expire in 30 minutes.\n\n'
+                            f'Visit Farmity: https://tinyurl.com/Farmity\n\n'
+                            f'If you did not request this, please ignore this email.'
+                        ),
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        recipient_list=[user.email],
+                        fail_silently=False,
+                    )
+                except Exception as e:
+                    print(f"Error sending email verification OTP on login: {str(e)}")
+                redirect_url = reverse('verify_email') + '?' + urlencode({'email': user.email})
+                payload = {
+                    "message": "Please verify your email to continue. We sent a verification code to your inbox.",
+                    "requires_email_verification": True,
+                    "email": user.email,
+                    "redirect_url": redirect_url,
+                }
+                if settings.DEBUG:
+                    payload["otp_code"] = otp.otp_code
+                return Response(payload, status=status.HTTP_200_OK)
 
             # Check if OTP is required (can be disabled in development)
             require_otp = getattr(settings, 'REQUIRE_OTP_FOR_LOGIN', True)
@@ -2071,8 +2105,8 @@ def kyc_page(request):
             
             request.user.is_verified = False
             request.user.save(update_fields=['is_verified'])
-            # Redirect to dashboard after KYC submit (pending approval); dashboard shows KYC status
-            return _redirect_to_role_home_response(request.user)
+            # Stay on KYC page so the user sees confirmation; they choose when to open the dashboard.
+            return redirect(reverse('kyc'))
         else:
             # If there are validation errors, pass them to the template
             for field, error_msg in errors.items():

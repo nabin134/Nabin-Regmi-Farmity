@@ -547,8 +547,15 @@
                         </span>
                     </div>
                 </div>
-                <div style="color: #6c757d; font-size: 0.9rem;">
-                    Submitted: {{ kyc.created_at|date:"M d, Y" }}
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 0.75rem;">
+                    <span style="color: #6c757d; font-size: 0.9rem;">
+                        Submitted: {{ kyc.created_at|date:"M d, Y" }}
+                    </span>
+                    {% if kyc.status == 'pending' or kyc.status == 'approved' %}
+                    <a href="{% url 'dashboard' %}" class="btn btn-primary" style="text-decoration: none; white-space: nowrap;">
+                        <i class="fas fa-home"></i> Go to dashboard
+                    </a>
+                    {% endif %}
                 </div>
             </div>
             {% if kyc.status == 'rejected' and kyc.rejection_reason %}

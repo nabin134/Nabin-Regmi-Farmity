@@ -29,6 +29,7 @@ ROLE_THEMES = {
 
 EVENT_SUBJECTS = {
     "signup": "Welcome to Farmity",
+    "kyc_submitted": "KYC Submitted Successfully",
     "kyc_Submitted": "KYC Submitted Successfully",
     "kyc_Approved": "KYC Approved - Full Access Unlocked",
     "kyc_Rejected": "KYC Update Required",
@@ -267,15 +268,17 @@ def _send_notification_email(
     lower_message = (message or "").lower()
     event_type = ""
     if notification_type == UserNotification.TYPE_KYC:
-        # IMPORTANT: "not approved" must be treated as rejected (red).
-        if (
-            "rejected" in lower_title
-            or "rejected" in lower_message
-            or "not approved" in lower_title
-            or "not approved" in lower_message
-        ):
+        # Use the title first. Submission copy often says "(approved or rejected)" which
+        # must NOT trigger the red "rejected" theme.
+        if "rejected" in lower_title or "not approved" in lower_title:
             event_type = "kyc_rejected"
-        elif "approved" in lower_title or "approved" in lower_message:
+        elif "approved" in lower_title and "rejected" not in lower_title:
+            event_type = "kyc_approved"
+        elif "submitted" in lower_title or "resubmitted" in lower_title:
+            event_type = "kyc_submitted"
+        elif "not approved" in lower_message:
+            event_type = "kyc_rejected"
+        elif "approved" in lower_message and "rejected" not in lower_message:
             event_type = "kyc_approved"
         else:
             event_type = "kyc_submitted"

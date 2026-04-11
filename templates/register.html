@@ -1181,36 +1181,95 @@
                     return;
                 }
 
+                const phoneRaw = (document.getElementById('phone') && document.getElementById('phone').value || '').trim();
+                const phoneDigits = phoneRaw.replace(/\D/g, '');
+                let phone10 = phoneDigits;
+                if (phoneDigits.length >= 10) {
+                    phone10 = phoneDigits.slice(-10);
+                }
+                if (phone10.length !== 10) {
+                    setFieldError('phone', 'Enter exactly 10 digits (Nepal mobile, e.g. 9801234567).');
+                    const pel = document.getElementById('phone');
+                    if (pel) pel.focus();
+                    return;
+                }
+                clearFieldError('phone');
+
+                const roleHidden = (document.getElementById('role') && document.getElementById('role').value || '').trim();
+                const roleFromSelect = (document.getElementById('userRole') && document.getElementById('userRole').value || '').trim();
+                const roleValue = roleHidden || roleFromSelect || 'buyer';
+
+                const genderEl = form.querySelector('input[name="gender"]:checked');
+                const genderVal = genderEl ? genderEl.value : '';
+
                 if (submitBtn) {
                     submitBtn.disabled = true;
                     submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Creating Account...';
                 }
 
+                const messageEl = document.getElementById('message');
+                function showRegisterBanner(text, isError) {
+                    if (messageEl) {
+                        messageEl.textContent = text;
+                        messageEl.className = 'message show ' + (isError ? 'error' : 'success');
+                        messageEl.style.display = 'block';
+                    }
+                    if (typeof showSuccess === 'function' && !isError) showSuccess(text, 4000);
+                    if (typeof showError === 'function' && isError) showError(text, 5000);
+                }
+
                 try {
-                    const formData = new FormData(form);
-                    const response = await fetch('/accounts/register/', {
+                    const payload = {
+                        fullName: (document.getElementById('fullName') && document.getElementById('fullName').value || '').trim(),
+                        email: (document.getElementById('email') && document.getElementById('email').value || '').trim().toLowerCase(),
+                        phone: phone10,
+                        location: (document.getElementById('location') && document.getElementById('location').value || '').trim(),
+                        password: (document.getElementById('password') && document.getElementById('password').value || ''),
+                        confirmPassword: (document.getElementById('confirmPassword') && document.getElementById('confirmPassword').value || ''),
+                        role: roleValue,
+                        gender: genderVal
+                    };
+
+                    const response = await fetch('/api/auth/signup/', {
                         method: 'POST',
-                        body: formData,
                         headers: {
+                            'Content-Type': 'application/json',
                             'X-Requested-With': 'XMLHttpRequest'
-                        }
+                        },
+                        body: JSON.stringify(payload)
                     });
 
-                    if (response.ok) {
-                        const data = await response.json();
-                        if (data.success) {
-                            showSuccess('Account created successfully! Redirecting...');
-                            setTimeout(() => {
-                                window.location.href = data.redirect || '/login/';
-                            }, 1000);
-                        } else {
-                            showError(data.message || 'Registration failed. Please try again.');
-                        }
+                    const data = await response.json().catch(function () { return {}; });
+
+                    if (response.ok && response.status === 201) {
+                        const okMsg = (data && data.message) ? data.message : 'Account created successfully! Check your email for the verification code.';
+                        showRegisterBanner(okMsg, false);
+                        const nextUrl = (data && data.redirect_url) ? data.redirect_url : ('/verify-email/?email=' + encodeURIComponent(payload.email));
+                        setTimeout(function () {
+                            window.location.href = nextUrl;
+                        }, 1500);
                     } else {
-                        showError('Registration failed. Please try again.');
+                        const details = (data && data.details) || {};
+                        let shown = false;
+                        Object.keys(details).forEach(function (key) {
+                            const msgs = details[key];
+                            const msg = Array.isArray(msgs) ? msgs[0] : String(msgs);
+                            const map = { fullName: 'fullName', email: 'email', phone: 'phone', location: 'location', password: 'password', confirmPassword: 'confirmPassword', role: 'userRole', gender: 'gender' };
+                            const fieldId = map[key] || null;
+                            if (fieldId && document.getElementById('registerFieldError-' + fieldId)) {
+                                setFieldError(fieldId, msg);
+                                shown = true;
+                            }
+                        });
+                        const errMsg = (data && data.error) ? data.error : 'Registration failed. Please fix the errors above.';
+                        if (!shown) {
+                            showRegisterBanner((data && data.message) || errMsg, true);
+                        } else {
+                            showRegisterBanner(errMsg, true);
+                        }
                     }
                 } catch (error) {
-                    showError('Network error. Please check your connection.');
+                    showRegisterBanner('Network error. Please check your connection.', true);
                 } finally {
                     if (submitBtn) {
                         submitBtn.disabled = false;
@@ -1236,11 +1295,14 @@
                             message: emailRegex.test(trimmedValue) ? '' : 'Please enter a valid email address.'
                         };
 
-                    case 'phone':
+                    case 'phone': {
+                        const d = trimmedValue.replace(/\D/g, '');
+                        const last10 = d.length >= 10 ? d.slice(-10) : d;
                         return {
-                            valid: trimmedValue.length >= 8,
-                            message: trimmedValue.length >= 8 ? '' : 'Phone number must be at least 8 characters long.'
+                            valid: last10.length === 10,
+                            message: last10.length === 10 ? '' : 'Enter exactly 10 digits (e.g. 9801234567).'
                         };
+                    }
 
                     case 'location':
                         return {
