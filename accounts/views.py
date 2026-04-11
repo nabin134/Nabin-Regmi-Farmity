@@ -17,6 +17,8 @@ from django.db.models.functions import TruncMonth
 from django.urls import reverse
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.http import require_http_methods
+import re
 from urllib.parse import urlencode
 import secrets
 import hashlib
@@ -1639,15 +1641,12 @@ def google_signup_start_view(request):
 # ------------------------------
 @login_required
 def esewa_initiate(request):
-    """
-    Initiate eSewa payment for an order. GET/POST: order_id (single) or session esewa_pending_order_ids (cart).
-    Renders a step-by-step page; the user submits the signed form to eSewa when ready.
-    """
+    """Build signed eSewa form: ?order_id= or cart session esewa_pending_order_ids."""
     from django.conf import settings
     from .esewa import get_esewa_config, esewa_build_form_data
     from .models import Order, PaymentGroup
 
-    merchant_code, secret, form_url, _ = get_esewa_config()
+    merchant_code, secret, form_url = get_esewa_config()
     if not merchant_code or not secret:
         messages.error(request, 'eSewa is not configured. Please use Cash on Delivery.')
         return _redirect_to_role_home_response(request.user)
@@ -1715,51 +1714,43 @@ def esewa_initiate(request):
     request.session['esewa_order_ids'] = order_ids
     request.session.modified = True
 
-    esewa_use_uat = getattr(settings, 'ESEWA_USE_UAT', True)
     return render(request, 'esewa_redirect.html', {
         'form_url': form_url,
         'form_data': form_data,
         'total_amount': total_amount,
         'order_count': len(order_ids),
-        'esewa_use_uat': esewa_use_uat,
     })
 
 
+@csrf_exempt
+@require_http_methods(['GET', 'POST'])
 def esewa_success(request):
-    """
-    eSewa redirects here after successful payment with ?data=<base64>.
-    Decode, verify signature, update order(s) payment_status to completed.
-    """
+    """eSewa success: ?data= base64 JSON; verify HMAC, mark orders paid."""
     from .esewa import get_esewa_config, esewa_verify_callback_signature
     from .models import Order, PaymentGroup, CropSale, FarmerProduct, VendorTool
     from urllib.parse import unquote
     import base64
     import json
 
-    data_b64 = (request.GET.get('data') or request.GET.get('q') or '').strip()
+    data_b64 = (request.GET.get('data') or request.POST.get('data') or '').strip()
     if not data_b64:
         messages.error(request, 'Invalid eSewa callback.')
         return redirect(reverse('user_dashboard'))
 
-    # URL-decode in case eSewa sends encoded query string
     data_b64 = unquote(data_b64)
-    raw = None
-    for attempt in [data_b64, data_b64 + '=' * (4 - len(data_b64) % 4) if len(data_b64) % 4 else data_b64]:
-        try:
-            raw = base64.b64decode(attempt)
-            break
-        except Exception:
-            try:
-                raw = base64.urlsafe_b64decode(attempt.replace('-', '+').replace('_', '/'))
-                break
-            except Exception:
-                continue
-    if raw is None:
-        messages.error(request, 'Invalid eSewa response.')
-        return redirect(reverse('user_dashboard'))
+    pad = (-len(data_b64)) % 4
+    if pad:
+        data_b64 += '=' * pad
     try:
-        data_str = raw.decode('utf-8')
-        data = json.loads(data_str)
+        raw = base64.b64decode(data_b64)
+    except Exception:
+        try:
+            raw = base64.urlsafe_b64decode(data_b64.replace('-', '+').replace('_', '/'))
+        except Exception:
+            messages.error(request, 'Invalid eSewa response.')
+            return redirect(reverse('user_dashboard'))
+    try:
+        data = json.loads(raw.decode('utf-8'))
     except Exception:
         messages.error(request, 'Invalid eSewa response.')
         return redirect(reverse('user_dashboard'))
@@ -1768,60 +1759,77 @@ def esewa_success(request):
         messages.warning(request, 'Payment was not completed.')
         return redirect(reverse('user_dashboard'))
 
-    from .esewa import esewa_verify_callback_signature
-    _, secret, _, _ = get_esewa_config()
+    _, secret, _ = get_esewa_config()
     if not secret or not esewa_verify_callback_signature(data, secret):
         messages.error(request, 'Payment verification failed.')
         return redirect(reverse('user_dashboard'))
 
-    # Real-time verification: confirm with eSewa Status Check API when possible
-    from .esewa import esewa_verify_transaction_realtime
-    transaction_uuid = data.get('transaction_uuid', '')
-    total_amount_callback = data.get('total_amount')
-    product_code_callback = data.get('product_code', '')
-    # Optional status API: can lag right after redirect (PENDING/NOT_FOUND) while signed callback is already COMPLETE.
-    verification = esewa_verify_transaction_realtime(transaction_uuid, total_amount_callback, product_code_callback)
-    if verification:
-        api_status = (verification.get('status') or verification.get('Status') or '').upper()
-        if api_status == 'COMPLETE':
-            try:
-                verified_total = float(verification.get('total_amount', verification.get('totalAmount', 0)))
-                expected_total = float(total_amount_callback)
-                # NPR is whole rupees in ePay v2; allow small float drift
-                if abs(verified_total - expected_total) > 0.51:
-                    messages.error(request, 'Payment amount mismatch. Please contact support.')
-                    return redirect(reverse('user_dashboard'))
-            except (TypeError, ValueError):
-                pass
-        # If API is not COMPLETE yet (or unknown shape), still trust the signed redirect payload above.
-    # If verification is None (API timeout/unavailable), accept: HMAC + status COMPLETE in callback already verified.
+    transaction_uuid = (data.get('transaction_uuid') or '').strip()
 
-    transaction_uuid = data.get('transaction_uuid', '')
     order_ids_to_notify = []
     if transaction_uuid.startswith('order-'):
-        try:
-            order_id = int(transaction_uuid.replace('order-', ''))
-            Order.objects.filter(id=order_id, payment_method=Order.PAYMENT_ESEWA).update(
+        m = re.match(r'^order-(\d+)$', transaction_uuid)
+        if m:
+            order_id = int(m.group(1))
+            updated = Order.objects.filter(id=order_id, payment_method=Order.PAYMENT_ESEWA).update(
                 payment_status=Order.PAYMENT_STATUS_COMPLETED,
                 status=Order.STATUS_CONFIRMED,
             )
-            order_ids_to_notify = [order_id]
-        except ValueError:
-            pass
+            if updated:
+                order_ids_to_notify = [order_id]
+            else:
+                existing = Order.objects.filter(
+                    id=order_id,
+                    payment_method=Order.PAYMENT_ESEWA,
+                    payment_status=Order.PAYMENT_STATUS_COMPLETED,
+                ).first()
+                if existing:
+                    order_ids_to_notify = [order_id]
     elif transaction_uuid.startswith('pg-'):
         pg = PaymentGroup.objects.filter(reference=transaction_uuid).first()
         if pg and pg.order_ids:
-            Order.objects.filter(id__in=pg.order_ids, payment_method=Order.PAYMENT_ESEWA).update(
+            updated = Order.objects.filter(id__in=pg.order_ids, payment_method=Order.PAYMENT_ESEWA).update(
                 payment_status=Order.PAYMENT_STATUS_COMPLETED,
                 status=Order.STATUS_CONFIRMED,
             )
-            pg.status = PaymentGroup.STATUS_COMPLETED
-            pg.save(update_fields=['status', 'updated_at'])
-            order_ids_to_notify = list(pg.order_ids)
-        # Session cleanup (optional)
-        request.session.pop('esewa_order_ids', None)
-        request.session.pop('esewa_pending_order_ids', None)
-        request.session.pop('esewa_transaction_ref', None)
+            if updated:
+                order_ids_to_notify = list(pg.order_ids)
+                pg.status = PaymentGroup.STATUS_COMPLETED
+                pg.save(update_fields=['status', 'updated_at'])
+            else:
+                paid_n = Order.objects.filter(
+                    id__in=pg.order_ids,
+                    payment_method=Order.PAYMENT_ESEWA,
+                    payment_status=Order.PAYMENT_STATUS_COMPLETED,
+                ).count()
+                if paid_n == len(pg.order_ids):
+                    order_ids_to_notify = list(pg.order_ids)
+                    if pg.status != PaymentGroup.STATUS_COMPLETED:
+                        pg.status = PaymentGroup.STATUS_COMPLETED
+                        pg.save(update_fields=['status', 'updated_at'])
+
+    if not order_ids_to_notify:
+        sref = (request.session.get('esewa_transaction_ref') or '').strip()
+        sids = request.session.get('esewa_order_ids') or []
+        if sref == transaction_uuid and sids:
+            updated = Order.objects.filter(id__in=sids, payment_method=Order.PAYMENT_ESEWA).update(
+                payment_status=Order.PAYMENT_STATUS_COMPLETED,
+                status=Order.STATUS_CONFIRMED,
+            )
+            if updated:
+                order_ids_to_notify = list(sids)
+                if transaction_uuid.startswith('pg-'):
+                    PaymentGroup.objects.filter(reference=transaction_uuid).update(
+                        status=PaymentGroup.STATUS_COMPLETED
+                    )
+
+    if not order_ids_to_notify:
+        messages.error(
+            request,
+            'eSewa reported success but we could not link this payment to your order. '
+            'Save your eSewa receipt and contact support with the transaction code.',
+        )
+        return redirect(reverse('user_dashboard'))
     redirect_after = request.session.pop('esewa_redirect_after', 'user_dashboard')
     request.session.pop('esewa_transaction_ref', None)
     request.session.pop('esewa_order_ids', None)
@@ -1910,6 +1918,8 @@ def esewa_success(request):
     })
 
 
+@csrf_exempt
+@require_http_methods(['GET', 'POST'])
 def esewa_failure(request):
     """eSewa redirects here on payment failure or cancel."""
     from .models import PaymentGroup, Order
@@ -2826,6 +2836,47 @@ def farmer_dashboard(request):
             messages.error(request, 'Invalid status update. Please select a status and try again.')
         return _redirect_same_page(request, 'farmer_dashboard')
 
+    # COD: seller confirms cash collected (payment stays pending until this)
+    if request.method == 'POST' and request.POST.get('mark_cod_payment_received'):
+        order_id = (request.POST.get('order_id') or '').strip()
+        try:
+            oid = int(order_id)
+        except (TypeError, ValueError):
+            oid = None
+        if not oid:
+            messages.error(request, 'Invalid order.')
+            return _redirect_same_page(request, 'farmer_dashboard')
+        try:
+            order = Order.objects.select_related('crop', 'buyer').get(id=oid, crop__farmer=profile)
+        except Order.DoesNotExist:
+            messages.error(request, 'Order not found.')
+            return _redirect_same_page(request, 'farmer_dashboard')
+        if order.status == Order.STATUS_CANCELLED:
+            messages.error(request, 'Cancelled orders cannot be marked as paid.')
+            return _redirect_same_page(request, 'farmer_dashboard')
+        if (order.payment_method or '').lower() != Order.PAYMENT_COD:
+            messages.error(request, 'Only Cash on Delivery orders use this action.')
+            return _redirect_same_page(request, 'farmer_dashboard')
+        if order.payment_status == Order.PAYMENT_STATUS_COMPLETED:
+            messages.info(request, 'Payment for this order was already marked as received.')
+            return _redirect_same_page(request, 'farmer_dashboard')
+        order.payment_status = Order.PAYMENT_STATUS_COMPLETED
+        order.save(update_fields=['payment_status', 'updated_at'])
+        if order.buyer:
+            item_name = (order.crop.name if order.crop else 'your order')
+            create_notification(
+                order.buyer,
+                'COD payment confirmed',
+                f'The farmer confirmed cash received (Rs. {float(order.total_amount):.2f}) for Order #{order.id} ({item_name}).',
+                reverse('user_dashboard') + '?section=orders',
+                UserNotification.TYPE_ORDER,
+            )
+        messages.success(
+            request,
+            'Cash collection recorded. This order is now counted in your earnings as paid (closed).',
+        )
+        return _redirect_same_page(request, 'farmer_dashboard')
+
     # Get products
     products = FarmerProduct.objects.filter(farmer=profile).order_by('-created_at')
     
@@ -3125,6 +3176,14 @@ def farmer_dashboard(request):
         'tool', 'tool__vendor', 'tool__vendor__user', 'crop', 'crop__farmer', 'crop__farmer__user'
     ).order_by('-created_at')[:200]
 
+    farmer_cod_pending_total = Order.objects.filter(
+        crop__farmer=profile,
+        payment_method=Order.PAYMENT_COD,
+        payment_status=Order.PAYMENT_STATUS_PENDING,
+    ).exclude(status__in=(Order.STATUS_CANCELLED, Order.STATUS_AWAITING_PAYMENT)).aggregate(
+        t=Sum('seller_amount')
+    )['t'] or Decimal('0')
+
     # Determine if features should be restricted
     features_restricted = (kyc_status != 'approved')
     
@@ -3162,6 +3221,7 @@ def farmer_dashboard(request):
         'farmer_released_payouts': farmer_released_payouts,
         'farmer_sale_transactions': farmer_sale_transactions,
         'farmer_purchase_transactions': farmer_purchase_transactions,
+        'farmer_cod_pending_total': farmer_cod_pending_total,
     }
     return render(request, 'farmer_dashboard.html', context)
 
@@ -3344,6 +3404,50 @@ def vendor_dashboard(request):
         except Order.DoesNotExist:
             messages.error(request, 'Order not found!')
         return _redirect_same_page(request, 'vendor_dashboard')
+
+    # COD: vendor confirms cash collected
+    if request.method == 'POST' and request.POST.get('mark_cod_payment_received'):
+        if kyc_status != 'approved':
+            messages.error(request, 'KYC verification is required to confirm payments.')
+            return _redirect_same_page(request, 'vendor_dashboard')
+        order_id = (request.POST.get('order_id') or '').strip()
+        try:
+            oid = int(order_id)
+        except (TypeError, ValueError):
+            oid = None
+        if not oid:
+            messages.error(request, 'Invalid order.')
+            return _redirect_same_page(request, 'vendor_dashboard')
+        try:
+            order = Order.objects.select_related('tool', 'buyer').get(id=oid, tool__vendor=profile)
+        except Order.DoesNotExist:
+            messages.error(request, 'Order not found.')
+            return _redirect_same_page(request, 'vendor_dashboard')
+        if order.status == Order.STATUS_CANCELLED:
+            messages.error(request, 'Cancelled orders cannot be marked as paid.')
+            return _redirect_same_page(request, 'vendor_dashboard')
+        if (order.payment_method or '').lower() != Order.PAYMENT_COD:
+            messages.error(request, 'Only Cash on Delivery orders use this action.')
+            return _redirect_same_page(request, 'vendor_dashboard')
+        if order.payment_status == Order.PAYMENT_STATUS_COMPLETED:
+            messages.info(request, 'Payment for this order was already marked as received.')
+            return _redirect_same_page(request, 'vendor_dashboard')
+        order.payment_status = Order.PAYMENT_STATUS_COMPLETED
+        order.save(update_fields=['payment_status', 'updated_at'])
+        if order.buyer:
+            item_name = (order.tool.name if order.tool else 'your order')
+            create_notification(
+                order.buyer,
+                'COD payment confirmed',
+                f'The vendor confirmed cash received (Rs. {float(order.total_amount):.2f}) for Order #{order.id} ({item_name}).',
+                reverse('user_dashboard') + '?section=orders',
+                UserNotification.TYPE_ORDER,
+            )
+        messages.success(
+            request,
+            'Cash collection recorded. This order is now counted in your earnings as paid (closed).',
+        )
+        return _redirect_same_page(request, 'vendor_dashboard')
     
     # Get vendor tools
     tools = VendorTool.objects.filter(vendor=profile).order_by('-created_at')
@@ -3353,6 +3457,14 @@ def vendor_dashboard(request):
         status=Order.STATUS_AWAITING_PAYMENT
     ).select_related('buyer', 'tool').order_by('-created_at')
     vendor_transactions = orders[:200]
+
+    vendor_cod_pending_total = Order.objects.filter(
+        tool__vendor=profile,
+        payment_method=Order.PAYMENT_COD,
+        payment_status=Order.PAYMENT_STATUS_PENDING,
+    ).exclude(status__in=(Order.STATUS_CANCELLED, Order.STATUS_AWAITING_PAYMENT)).aggregate(
+        t=Sum('seller_amount')
+    )['t'] or Decimal('0')
 
     from collections import defaultdict
 
@@ -3447,6 +3559,7 @@ def vendor_dashboard(request):
         'total_orders_received': total_orders_received,
         'released_payouts': released_payouts,
         'vendor_transactions': vendor_transactions,
+        'vendor_cod_pending_total': vendor_cod_pending_total,
     }
     return render(request, 'vendor_dashboard.html', context)
 
@@ -4712,7 +4825,7 @@ def admin_collections_payouts(request):
     if request.user.role != 'admin':
         return _redirect_to_role_home_response(request.user)
 
-    # Orders where payment is collected by admin (eSewa completed or COD delivered)
+    # Orders where payment is completed (eSewa paid online, or COD after seller marked cash received)
     collected_orders = Order.objects.filter(
         payment_status=Order.PAYMENT_STATUS_COMPLETED
     ).select_related('crop', 'crop__farmer', 'crop__farmer__user', 'tool', 'tool__vendor', 'tool__vendor__user')
@@ -5702,12 +5815,7 @@ def admin_marketplace_oversight(request):
                     order.order_email = request.POST.get('order_email', '') or None
                 order.notes = request.POST.get('notes', order.notes)
                 order.save()
-                # COD: when order is marked delivered, treat payment as collected by admin
-                if (order.status == Order.STATUS_DELIVERED and
-                        (order.payment_method or '').lower() == Order.PAYMENT_COD and
-                        order.payment_status != Order.PAYMENT_STATUS_COMPLETED):
-                    order.payment_status = Order.PAYMENT_STATUS_COMPLETED
-                    order.save(update_fields=['payment_status'])
+                # COD payment is completed when the farmer/vendor marks cash received (not auto on delivered).
                 # Notify buyer when order status moves through delivery lifecycle (and cancelled).
                 if order.buyer and order.status != old_status and order.status in (
                     Order.STATUS_READY_TO_SHIP,

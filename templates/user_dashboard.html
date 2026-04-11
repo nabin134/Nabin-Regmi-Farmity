@@ -2396,8 +2396,14 @@
                                         <i class="fas fa-mobile-alt"></i> Pay with eSewa
                                     </a>
                                     {% endif %}
-                                    {% if order.payment_status == 'completed' %}
-                                    <p class="order-card-meta" style="color: var(--success);"><i class="fas fa-check-circle"></i> Payment received — order can be tracked</p>
+                                    {% if order.payment_method == 'cod' and order.status != 'cancelled' and order.status != 'awaiting_payment' %}
+                                        {% if order.payment_status == 'completed' %}
+                                        <p class="order-card-meta" style="color: var(--success);"><i class="fas fa-check-circle"></i> COD: seller confirmed cash — payment closed.</p>
+                                        {% else %}
+                                        <p class="order-card-meta" style="color: #b45309;"><i class="fas fa-money-bill-wave"></i> COD: payment <strong>pending</strong> until the farmer/vendor confirms they received cash.</p>
+                                        {% endif %}
+                                    {% elif order.payment_method == 'esewa' and order.payment_status == 'completed' %}
+                                    <p class="order-card-meta" style="color: var(--success);"><i class="fas fa-check-circle"></i> eSewa payment received.</p>
                                     {% endif %}
                                     {% if order.status == 'shipped' or order.tracking_number %}
                                     <p class="order-card-meta tracking"><i class="fas fa-truck"></i> {% if order.status == 'shipped' %}On the way{% endif %}{% if order.tracking_number %} — Tracking: {{ order.tracking_number }}{% endif %}</p>

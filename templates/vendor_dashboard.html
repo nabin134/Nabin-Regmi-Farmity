@@ -2914,6 +2914,8 @@
 
                     <div class="section-body">
 
+                        <p style="margin: 0 0 1rem 0; font-size: 0.9rem; color: #666;">For <strong>Cash on Delivery</strong>, payment shows <strong>pending</strong> until you confirm you collected cash—use <strong>Mark cash received</strong>. Then payment is <strong>closed</strong> and included in paid earnings.</p>
+
                         {% if orders %}
 
                         <table class="orders-table">
@@ -2937,6 +2939,8 @@
                                     <th>Shipping address</th>
 
                                     <th>Status</th>
+
+                                    <th>COD / payment</th>
 
                                     <th>Date</th>
 
@@ -2993,6 +2997,58 @@
                                             {{ order.get_status_display }}
 
                                         </span>
+
+                                    </td>
+
+                                    <td style="min-width: 140px; vertical-align: top;">
+
+                                        {% if order.payment_method == 'esewa' %}
+
+                                        <span><i class="fas fa-mobile-alt"></i> eSewa</span>
+
+                                        {% if order.payment_status == 'completed' %}
+
+                                        <br><small style="color: var(--success); font-weight: 600;">Paid</small>
+
+                                        {% elif order.payment_status == 'pending' %}
+
+                                        <br><small style="color: #b45309;">Pending</small>
+
+                                        {% endif %}
+
+                                        {% else %}
+
+                                        <span><i class="fas fa-money-bill-wave"></i> COD</span>
+
+                                        {% if order.payment_status == 'completed' %}
+
+                                        <br><small style="color: var(--success); font-weight: 600;">Received — closed</small>
+
+                                        {% else %}
+
+                                        <br><small style="color: #b45309; font-weight: 600;">Pending collection</small>
+
+                                        {% if kyc_status == 'approved' and order.status != 'cancelled' %}
+
+                                        <form method="POST" style="margin-top: 0.5rem;" data-farmity-confirm="1" data-farmity-confirm-type="info" data-farmity-confirm-title="Confirm cash received?" data-farmity-confirm-message="Mark Rs. {{ order.total_amount|floatformat:2 }} as collected for Order #{{ order.id }}. This closes COD payment." data-farmity-confirm-button="Yes, cash received" data-farmity-cancel-button="Cancel">
+
+                                            {% csrf_token %}
+
+                                            <input type="hidden" name="mark_cod_payment_received" value="1">
+
+                                            <input type="hidden" name="order_id" value="{{ order.id }}">
+
+                                            <input type="hidden" name="return_section" value="orders">
+
+                                            <button type="submit" class="btn-primary" style="padding: 0.35rem 0.6rem; font-size: 0.78rem; white-space: nowrap;">Mark cash received</button>
+
+                                        </form>
+
+                                        {% endif %}
+
+                                        {% endif %}
+
+                                        {% endif %}
 
                                     </td>
 
@@ -3103,6 +3159,16 @@
                     </div>
 
                     <div class="section-body">
+
+                        {% if vendor_cod_pending_total and vendor_cod_pending_total > 0 %}
+
+                        <p style="margin: 0 0 1rem 0; padding: 0.75rem 1rem; background: #fff8e6; border-left: 4px solid #f59e0b; border-radius: 8px; font-size: 0.9rem; color: #78350f;">
+
+                            <i class="fas fa-hourglass-half"></i> <strong>COD pending your confirmation:</strong> about <strong>Rs. {{ vendor_cod_pending_total|floatformat:2 }}</strong> (your share) is not counted in paid earnings until you tap <em>Mark cash received</em> on each COD order in Orders.
+
+                        </p>
+
+                        {% endif %}
 
                         <div class="earnings-cards">
 

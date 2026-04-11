@@ -318,6 +318,7 @@ ESEWA_SECRET_KEY = os.environ.get('ESEWA_SECRET_KEY', '8gBm/:&EnhH.1/q')
 ESEWA_USE_UAT = os.environ.get('ESEWA_USE_UAT', 'true').lower() in ('1', 'true', 'yes')
 # If Django sees http://127.0.0.1 but eSewa must redirect to a public HTTPS URL (ngrok / production),
 # set this to that origin, e.g. https://yourdomain.com or https://xxxx.ngrok-free.app (no trailing slash).
+# Without this, eSewa may send users to failure/cancel because it cannot reach your success_url, or the bank app may block non-HTTPS redirects.
 ESEWA_PUBLIC_BASE_URL = os.environ.get('ESEWA_PUBLIC_BASE_URL', '').strip().rstrip('/')
 
 # Google provider: credentials come from SocialApp in DB (via setup_google_oauth or _ensure_google_oauth)

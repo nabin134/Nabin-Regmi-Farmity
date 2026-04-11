@@ -1,33 +1,22 @@
-"""
-eSewa ePay V2 integration (Nepal).
-See: https://developer.esewa.com.np/pages/Epay-V2
-Real-time verification: after success redirect, verify transaction with eSewa Status Check API.
-"""
+"""eSewa ePay V2 (Nepal). https://developer.esewa.com.np/pages/Epay-V2"""
 import base64
 import hashlib
 import hmac
-import json
 from decimal import Decimal
-from urllib.parse import urlencode
-from urllib.request import urlopen, Request
-from urllib.error import URLError, HTTPError
 
 from django.conf import settings
-from django.urls import reverse
 
 
 def get_esewa_config():
-    """Return eSewa merchant code, secret, form URL and status-check URL (UAT or production)."""
+    """Merchant code, secret key, and payment form URL (UAT or production)."""
     merchant_code = getattr(settings, 'ESEWA_MERCHANT_CODE', '') or ''
     secret = getattr(settings, 'ESEWA_SECRET_KEY', '') or ''
     use_uat = getattr(settings, 'ESEWA_USE_UAT', True)
     if use_uat:
         form_url = 'https://rc-epay.esewa.com.np/api/epay/main/v2/form'
-        status_check_url = 'https://uat.esewa.com.np/api/epay/transaction/status/'
     else:
         form_url = 'https://epay.esewa.com.np/api/epay/main/v2/form'
-        status_check_url = 'https://epay.esewa.com.np/api/epay/transaction/status/'
-    return merchant_code, secret, form_url, status_check_url
+    return merchant_code, secret, form_url
 
 
 def esewa_sign_message(message: str, secret: str) -> str:
@@ -56,7 +45,7 @@ def esewa_build_form_data(
     total_amount: decimal or number (NPR). amount = total - tax - service - delivery (we use amount = total, others 0).
     transaction_uuid: unique ref (e.g. order-123 or cart-abc).
     """
-    merchant_code, _secret, _, _ = get_esewa_config()
+    merchant_code, _secret, _ = get_esewa_config()
     product_code = product_code or merchant_code
     secret = secret or _secret
     if not product_code or not secret:
@@ -88,72 +77,51 @@ def esewa_build_form_data(
     }
 
 
-def esewa_verify_transaction_realtime(transaction_uuid: str, total_amount, product_code: str):
-    """
-    Verify transaction with eSewa Status Check API (real-time).
-    total_amount: int or float (NPR).
-    Returns: dict with status, ref_id, product_code, total_amount, transaction_uuid; or None on error.
-    status is one of: COMPLETE, PENDING, NOT_FOUND, CANCELED, FULL_REFUND, PARTIAL_REFUND, AMBIGUOUS.
-    """
-    _, _, _, status_check_url = get_esewa_config()
-    total_str = str(int(round(float(total_amount))))
-    params = urlencode({
-        'product_code': product_code,
-        'total_amount': total_str,
-        'transaction_uuid': transaction_uuid,
-    })
-    url = status_check_url.rstrip('/') + '/?' + params
-    try:
-        req = Request(url, headers={'User-Agent': 'Farmity/1.0'})
-        with urlopen(req, timeout=15) as resp:
-            body = resp.read().decode('utf-8')
-    except (URLError, HTTPError, OSError, Exception):
+def _esewa_callback_value_str(val):
+    """Stringify callback fields like eSewa/PHP (strings unchanged; 100.0 -> \"100\")."""
+    if val is None:
         return None
-    try:
-        parsed = json.loads(body)
-    except json.JSONDecodeError:
-        return None
-    if isinstance(parsed, dict) and 'data' in parsed and isinstance(parsed['data'], dict):
-        inner = parsed['data']
-        if 'status' in inner or 'Status' in inner:
-            return inner
-    return parsed
+    if isinstance(val, str):
+        return val
+    if isinstance(val, bool):
+        return '1' if val else ''
+    if isinstance(val, int):
+        return str(val)
+    if isinstance(val, float):
+        if val == int(val):
+            return str(int(val))
+        return str(val)
+    return str(val)
 
 
 def esewa_verify_callback_signature(data: dict, secret: str) -> bool:
-    """
-    Verify eSewa success callback signature.
-    data: decoded JSON from callback (status, signature, transaction_code, total_amount, transaction_uuid, product_code, signed_field_names).
-    Use exact string representation of values to match eSewa's signature.
-    """
-    signed_names = data.get('signed_field_names', '')
-    if not signed_names or not data.get('signature'):
+    """Verify HMAC on decoded callback JSON (signed_field_names order)."""
+    signed_names_raw = data.get('signed_field_names', '')
+    if not signed_names_raw or not data.get('signature'):
         return False
+    received_sig = str(data.get('signature', '')).strip().replace('\n', '').replace('\r', '')
     parts = []
-    for key in signed_names.split(','):
+    for key in str(signed_names_raw).split(','):
         key = key.strip()
         if not key:
             continue
-        val = data.get(key)
+        if key not in data:
+            return False
+        val = _esewa_callback_value_str(data.get(key))
         if val is None:
             return False
-        # signed_field_names value is a comma-separated list string; do not numeric-normalize it
-        if key == 'signed_field_names':
-            parts.append(f'{key}={val}')
-            continue
-        # Normalize so we match eSewa's signature (e.g. 230.0 -> "230", "100.0" -> 100)
-        if isinstance(val, str) and val.strip() != '':
-            try:
-                fv = float(val)
-                if fv == int(fv):
-                    val = int(fv)
-                else:
-                    val = fv
-            except ValueError:
-                pass
-        if isinstance(val, float) and val == int(val):
-            val = int(val)
         parts.append(f'{key}={val}')
     message = ','.join(parts)
-    expected = esewa_sign_message(message, secret)
-    return hmac.compare_digest(expected, data.get('signature', ''))
+    expected = esewa_sign_message(message, secret).strip()
+
+    def _sig_bytes(s: str) -> bytes:
+        s = (s or '').strip()
+        pad = (-len(s)) % 4
+        if pad:
+            s += '=' * pad
+        return base64.b64decode(s, validate=False)
+
+    try:
+        return hmac.compare_digest(_sig_bytes(expected), _sig_bytes(received_sig))
+    except Exception:
+        return False
