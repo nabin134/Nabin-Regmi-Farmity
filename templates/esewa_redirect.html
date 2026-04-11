@@ -9,8 +9,9 @@
     <style>
         :root {
             --sea-green: #358D58;
-            --sushi: #A8AD3B;
             --primary: #3C894B;
+            --step-done: #e8f5e9;
+            --step-active: #e3f2fd;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -21,11 +22,11 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
+            padding: 1.5rem;
         }
         .payment-container {
             width: 100%;
-            max-width: 440px;
+            max-width: 480px;
             background: white;
             border-radius: 20px;
             box-shadow: 0 10px 40px rgba(53, 141, 88, 0.12), 0 2px 12px rgba(0,0,0,0.06);
@@ -34,7 +35,7 @@
         .payment-header {
             background: linear-gradient(135deg, var(--primary) 0%, #2d6b3d 100%);
             color: white;
-            padding: 2rem 2rem 2.5rem;
+            padding: 1.75rem 1.5rem 2.25rem;
             text-align: center;
             position: relative;
         }
@@ -57,8 +58,6 @@
         .logo-curve-wrap img.farmity-logo {
             max-height: 40px;
             max-width: 44px;
-            width: auto;
-            height: auto;
             object-fit: contain;
             display: block;
         }
@@ -68,89 +67,84 @@
             font-weight: 700;
             color: var(--primary);
         }
-        .logo-curve-wrap img.farmity-logo[data-failed="1"] {
-            display: none;
-        }
-        .logo-curve-wrap img.farmity-logo[data-failed="1"] ~ .logo-fallback {
-            display: block;
-        }
-        .logo-row {
-            display: none;
-        }
+        .logo-curve-wrap img.farmity-logo[data-failed="1"] { display: none; }
+        .logo-curve-wrap img.farmity-logo[data-failed="1"] ~ .logo-fallback { display: block; }
         .payment-header h1 {
             font-size: 1.35rem;
             font-weight: 600;
-            opacity: 0.98;
-            margin-bottom: 0.25rem;
+            margin-bottom: 0.35rem;
         }
-        .payment-header p {
-            font-size: 0.9rem;
-            opacity: 0.9;
-        }
-        .payment-body {
-            padding: 2.5rem 2rem 2rem;
-            text-align: center;
-        }
+        .payment-header p { font-size: 0.9rem; opacity: 0.92; }
+        .payment-body { padding: 2.5rem 1.5rem 1.75rem; }
         .amount-card {
             background: linear-gradient(135deg, #f8fdf9 0%, #f0f7f2 100%);
             border: 2px solid rgba(53, 141, 88, 0.2);
             border-radius: 16px;
-            padding: 1.5rem;
-            margin-bottom: 1.75rem;
+            padding: 1.25rem 1.5rem;
+            margin-bottom: 1.5rem;
+            text-align: center;
         }
         .amount-label {
-            font-size: 0.85rem;
+            font-size: 0.8rem;
             color: #666;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             margin-bottom: 0.35rem;
         }
         .amount-value {
-            font-size: 2rem;
+            font-size: 1.85rem;
             font-weight: 700;
             color: var(--primary);
         }
-        .amount-value span { font-size: 1.25rem; font-weight: 600; color: #333; }
-        {% if order_count > 1 %}
         .order-count {
-            font-size: 0.9rem;
+            font-size: 0.88rem;
             color: #666;
             margin-top: 0.5rem;
         }
-        {% endif %}
-        .esewa-brand {
-            display: inline-flex;
+        .steps {
+            list-style: none;
+            margin: 0 0 1.5rem;
+            padding: 0;
+        }
+        .steps li {
+            display: flex;
+            gap: 0.75rem;
+            align-items: flex-start;
+            padding: 0.65rem 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9rem;
+            color: #444;
+            line-height: 1.45;
+        }
+        .steps li:last-child { border-bottom: none; }
+        .step-num {
+            flex-shrink: 0;
+            width: 28px;
+            height: 28px;
+            border-radius: 50%;
+            background: var(--step-done);
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 0.85rem;
+            display: flex;
             align-items: center;
-            gap: 0.6rem;
+            justify-content: center;
+        }
+        .steps li.step-current .step-num {
             background: #5B5FEF;
             color: white;
-            padding: 0.6rem 1.25rem;
+        }
+        .steps li.step-current { font-weight: 600; color: #1a1a1a; }
+        .uat-test-note {
+            background: #fff8e1;
+            border: 1px solid #ffc107;
             border-radius: 12px;
-            font-weight: 600;
-            font-size: 1rem;
-            margin-bottom: 1.5rem;
-            box-shadow: 0 4px 14px rgba(91, 95, 239, 0.35);
+            padding: 0.75rem 1rem;
+            margin-bottom: 1.25rem;
+            font-size: 0.85rem;
+            color: #856404;
+            text-align: left;
         }
-        .esewa-brand i { font-size: 1.25rem; }
-        .spinner-wrap {
-            margin: 1rem 0 1.25rem;
-        }
-        .spinner {
-            width: 48px;
-            height: 48px;
-            border: 4px solid #e8f5e9;
-            border-top-color: var(--primary);
-            border-radius: 50%;
-            animation: spin 0.9s linear infinite;
-            margin: 0 auto;
-        }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        .redirect-msg {
-            color: #555;
-            font-size: 0.95rem;
-            line-height: 1.5;
-        }
-        .redirect-msg strong { color: #333; }
         .btn-esewa {
             display: inline-flex;
             align-items: center;
@@ -158,12 +152,11 @@
             gap: 0.5rem;
             width: 100%;
             padding: 1rem 1.5rem;
-            margin-top: 1.25rem;
             background: linear-gradient(135deg, #5B5FEF 0%, #4a4ed6 100%);
             color: white;
             border: none;
             border-radius: 12px;
-            font-size: 1rem;
+            font-size: 1.05rem;
             font-weight: 600;
             cursor: pointer;
             box-shadow: 0 4px 16px rgba(91, 95, 239, 0.4);
@@ -173,20 +166,31 @@
             transform: translateY(-2px);
             box-shadow: 0 6px 20px rgba(91, 95, 239, 0.45);
         }
-        .btn-esewa i { font-size: 1.2rem; }
+        .btn-esewa:disabled {
+            opacity: 0.65;
+            cursor: wait;
+            transform: none;
+        }
+        .btn-hint {
+            text-align: center;
+            font-size: 0.82rem;
+            color: #666;
+            margin-top: 0.65rem;
+            line-height: 1.4;
+        }
         .secure-note {
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.4rem;
             margin-top: 1.25rem;
-            font-size: 0.8rem;
+            font-size: 0.78rem;
             color: #888;
         }
-        .secure-note i { color: var(--primary); }
         .footer-link {
-            margin-top: 2rem;
+            margin-top: 1.5rem;
             font-size: 0.85rem;
+            text-align: center;
         }
         .footer-link a {
             color: var(--primary);
@@ -203,67 +207,76 @@
                 <img src="/static/images/Farmity%20logo.png" alt="Farmity" class="farmity-logo" onerror="this.setAttribute('data-failed','1');">
                 <span class="logo-fallback">F</span>
             </div>
-            <h1>Pay with eSewa</h1>
-            <p>Secure payment powered by eSewa</p>
+            <h1>Complete payment with eSewa</h1>
+            <p>Follow the steps below — you control when you go to eSewa</p>
         </div>
 
         <div class="payment-body">
             <div class="amount-card">
-                <div class="amount-label">Amount to pay</div>
+                <div class="amount-label">Total to pay (NPR)</div>
                 <div class="amount-value">Rs. {{ total_amount|floatformat:2 }}</div>
                 {% if order_count > 1 %}
-                <div class="order-count">{{ order_count }} items in this order</div>
+                <div class="order-count">{{ order_count }} orders in this payment</div>
                 {% endif %}
             </div>
 
-            <div class="esewa-brand">
-                <i class="fas fa-wallet"></i>
-                <span>eSewa</span>
-            </div>
+            <ol class="steps" aria-label="Payment steps">
+                <li>
+                    <span class="step-num" aria-hidden="true"><i class="fas fa-check" style="font-size:0.75rem;"></i></span>
+                    <span><strong>Order saved.</strong> Your order is on hold until eSewa confirms payment.</span>
+                </li>
+                <li class="step-current">
+                    <span class="step-num">2</span>
+                    <span><strong>Go to eSewa.</strong> Tap the button below to open the secure eSewa payment page.</span>
+                </li>
+                <li>
+                    <span class="step-num">3</span>
+                    <span><strong>Pay on eSewa.</strong> Log in and approve the amount shown.</span>
+                </li>
+                <li>
+                    <span class="step-num">4</span>
+                    <span><strong>Return to Farmity.</strong> After paying, eSewa sends you back here and we confirm your order.</span>
+                </li>
+            </ol>
 
             {% if esewa_use_uat %}
-            <div class="uat-test-note" style="background: #fff8e1; border: 1px solid #ffc107; border-radius: 12px; padding: 0.75rem 1rem; margin-bottom: 1.25rem; font-size: 0.85rem; color: #856404; text-align: left;">
-                <strong>Test environment:</strong> Use eSewa ID <strong>9806800001</strong>, Password <strong>Nepal@123</strong>, Token <strong>123456</strong> to complete payment.
+            <div class="uat-test-note">
+                <strong>Test (UAT):</strong> eSewa ID <strong>9806800001</strong>, password <strong>Nepal@123</strong>, token <strong>123456</strong>.
             </div>
             {% endif %}
 
-            <div class="spinner-wrap">
-                <div class="spinner"></div>
-            </div>
-            <p class="redirect-msg">
-                <strong>Redirecting you to eSewa...</strong><br>
-                Please wait. Do not close this page.
-            </p>
-
-            <form id="esewaForm" method="POST" action="{{ form_url }}" style="display: none;">
+            <form id="esewaForm" method="POST" action="{{ form_url }}">
                 {% for key, value in form_data.items %}
                 <input type="hidden" name="{{ key }}" value="{{ value }}">
                 {% endfor %}
             </form>
-            <button type="button" class="btn-esewa" id="btnContinue" onclick="document.getElementById('esewaForm').submit();">
+            <button type="submit" form="esewaForm" class="btn-esewa" id="btnContinue">
                 <i class="fas fa-external-link-alt"></i>
-                Continue with eSewa
+                Step 2: Continue to eSewa
             </button>
+            <p class="btn-hint">Nothing happens until you click this button. Do not use your browser’s Back button on the eSewa screen until payment finishes.</p>
 
             <div class="secure-note">
-                <i class="fas fa-lock"></i>
-                <span>Your payment is secured by eSewa</span>
+                <i class="fas fa-lock" style="color: var(--primary);"></i>
+                <span>Secured by eSewa · Farmity never sees your eSewa password</span>
             </div>
         </div>
     </div>
 
     <p class="footer-link">
-        <a href="/">← Back to Farmity</a>
+        <a href="/">← Back to Farmity home</a>
     </p>
 
     <script>
-        (function() {
+        (function () {
             var form = document.getElementById('esewaForm');
             var btn = document.getElementById('btnContinue');
-            // Auto-submit after a short delay so user sees the UI
-            setTimeout(function() {
-                form.submit();
-            }, 1800);
+            if (form && btn) {
+                form.addEventListener('submit', function () {
+                    btn.disabled = true;
+                    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Opening eSewa…';
+                });
+            }
         })();
     </script>
 </body>

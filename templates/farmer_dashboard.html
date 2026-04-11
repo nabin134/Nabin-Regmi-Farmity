@@ -2312,9 +2312,11 @@
                                         <div><i class="fas fa-calendar"></i> Added: {{ product.created_at|date:"M d, Y" }}</div>
                                     </div>
                                     <div class="product-price">Rs. {{ product.price_per_unit }}/{{ product.unit }}</div>
-                                    <span class="product-status {% if product.quantity <= 0 %}status-unavailable{% elif product.quantity < 5 %}status-low-stock{% elif product.is_available %}status-available{% else %}status-unavailable{% endif %}">
+                                    <span class="product-status {% if product.quantity <= 0 %}status-unavailable{% elif product.quantity <= 1 %}status-unavailable{% elif product.quantity < 5 %}status-low-stock{% elif product.is_available %}status-available{% else %}status-unavailable{% endif %}">
                                         {% if product.quantity <= 0 %}
                                             No Stock (Sold Out)
+                                        {% elif product.quantity <= 1 %}
+                                            Not Available (need &gt;1 unit for buyers)
                                         {% elif product.quantity < 5 %}
                                             Low Stock
                                         {% elif product.is_available %}
@@ -3470,8 +3472,8 @@
                 </div>
 
                 <div id="esewa_payment_info" style="display: none; padding: 1rem; background: #E8F5E9; border-left: 4px solid #2E7D32; border-radius: 8px; margin: 1rem 0;">
-                    <p style="margin: 0; color: #2E7D32; font-size: 0.9rem;">
-                        <i class="fas fa-mobile-alt"></i> You will be redirected to eSewa to pay securely.
+                    <p style="margin: 0; color: #2E7D32; font-size: 0.9rem; line-height: 1.5;">
+                        <strong>eSewa steps:</strong> Place order → on the next page read the steps → click <strong>Continue to eSewa</strong> → pay → return to Farmity.
                     </p>
                 </div>
 

@@ -1407,7 +1407,7 @@ def landing_page(request):
 
     # --- Featured Crops (show exactly 4, rotate hourly) ---
     crop_ids = list(
-        FarmerProduct.objects.filter(is_available=True, quantity__gt=0)
+        FarmerProduct.objects.filter(is_available=True, quantity__gt=1)
         .order_by('-created_at', 'id')
         .values_list('id', flat=True)
     )
@@ -1489,7 +1489,7 @@ def landing_page(request):
     experts_count = ExpertProfile.objects.count()
     landing_features = LandingFeature.objects.filter(is_active=True).order_by('display_order', 'created_at')
     from django.db.models import Min
-    crop_prices = list(FarmerProduct.objects.filter(is_available=True, quantity__gt=0).values('name').annotate(min_price=Min('price_per_unit')).order_by('name')[:6])
+    crop_prices = list(FarmerProduct.objects.filter(is_available=True, quantity__gt=1).values('name').annotate(min_price=Min('price_per_unit')).order_by('name')[:6])
     kalimati_prices = _fetch_kalimati_prices()
     # Real produce images for first 6 live price cards (Unsplash, free to use)
     price_images = [
@@ -1640,8 +1640,8 @@ def google_signup_start_view(request):
 @login_required
 def esewa_initiate(request):
     """
-    Initiate eSewa payment for an order. GET/POST: order_id (single order) or cart (cart checkout).
-    Builds signed form and returns HTML that auto-posts to eSewa.
+    Initiate eSewa payment for an order. GET/POST: order_id (single) or session esewa_pending_order_ids (cart).
+    Renders a step-by-step page; the user submits the signed form to eSewa when ready.
     """
     from django.conf import settings
     from .esewa import get_esewa_config, esewa_build_form_data
@@ -1895,10 +1895,12 @@ def esewa_success(request):
                 )
 
     messages.success(request, 'Payment successful! Your order has been confirmed.')
+    from urllib.parse import urlencode
     redirect_url = reverse(redirect_after)
     if redirect_after == 'farmer_dashboard':
-        from urllib.parse import urlencode
         redirect_url = redirect_url + '?' + urlencode({'checkout_success': '1', 'section': 'tools'})
+    elif redirect_after == 'user_dashboard':
+        redirect_url = redirect_url + '?' + urlencode({'checkout_success': '1', 'section': 'orders'})
     return render(request, 'esewa_result.html', {
         'success': True,
         'redirect_url': redirect_url,
@@ -1917,9 +1919,15 @@ def esewa_failure(request):
     request.session.pop('esewa_pending_order_ids', None)
     request.session.pop('esewa_transaction_ref', None)
     messages.warning(request, 'eSewa payment was cancelled or failed. You can try again or use Cash on Delivery.')
+    from urllib.parse import urlencode
+    fail_url = reverse(redirect_after)
+    if redirect_after == 'farmer_dashboard':
+        fail_url = fail_url + '?' + urlencode({'section': 'tools', 'esewa': 'cancelled'})
+    elif redirect_after == 'user_dashboard':
+        fail_url = fail_url + '?' + urlencode({'section': 'orders', 'esewa': 'cancelled'})
     return render(request, 'esewa_result.html', {
         'success': False,
-        'redirect_url': reverse(redirect_after),
+        'redirect_url': fail_url,
     })
 
 
@@ -2496,7 +2504,7 @@ def farmer_dashboard(request):
                 quantity=quantity,
                 price_per_unit=price,
                 unit=request.POST.get('unit', 'kg'),
-                is_available=quantity_value > 0
+                is_available=quantity_value > Decimal('1')
             )
             if request.FILES.get('product_image'):
                 product.image = request.FILES.get('product_image')
@@ -2529,7 +2537,7 @@ def farmer_dashboard(request):
             product.quantity = quantity_raw
             product.price_per_unit = request.POST.get('price')
             product.unit = request.POST.get('unit', 'kg')
-            product.is_available = (request.POST.get('is_available') == 'on') and (quantity_value > 0)
+            product.is_available = (request.POST.get('is_available') == 'on') and (quantity_value > Decimal('1'))
             if request.FILES.get('product_image'):
                 product.image = request.FILES.get('product_image')
             product.save()
@@ -2624,6 +2632,8 @@ def farmer_dashboard(request):
                     UserNotification.TYPE_ORDER
                 )
                 if payment_method == Order.PAYMENT_ESEWA:
+                    request.session['esewa_redirect_after'] = 'farmer_dashboard'
+                    request.session.modified = True
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
                 messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
             else:
@@ -3971,6 +3981,12 @@ def user_dashboard(request):
             return _redirect_same_page(request, 'user_dashboard')
         try:
             crop = FarmerProduct.objects.get(id=crop_id, is_available=True)
+            if crop.quantity <= Decimal('1'):
+                messages.error(
+                    request,
+                    'This crop is not available for purchase. More than one unit must be in stock.',
+                )
+                return _redirect_same_page(request, 'user_dashboard')
             if crop.quantity >= quantity:
                 base_amount = (crop.price_per_unit * quantity).quantize(Decimal('0.01'))
                 shipping_cost = Decimal('100.00')
@@ -4028,6 +4044,8 @@ def user_dashboard(request):
                     UserNotification.TYPE_ORDER
                 )
                 if payment_method == Order.PAYMENT_ESEWA:
+                    request.session['esewa_redirect_after'] = 'user_dashboard'
+                    request.session.modified = True
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
                 messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery (incl. Rs. 100 shipping).')
             else:
@@ -4107,6 +4125,8 @@ def user_dashboard(request):
                     UserNotification.TYPE_ORDER
                 )
                 if payment_method == Order.PAYMENT_ESEWA:
+                    request.session['esewa_redirect_after'] = 'user_dashboard'
+                    request.session.modified = True
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
                 messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery (incl. Rs. 100 shipping).')
             else:
@@ -4154,6 +4174,9 @@ def user_dashboard(request):
             if typ == 'crop':
                 try:
                     crop = FarmerProduct.objects.get(id=item_id, is_available=True)
+                    if crop.quantity <= Decimal('1'):
+                        errors.append(f"{crop.name}: not available (need more than 1 {crop.unit} in stock)")
+                        continue
                     if crop.quantity < qty:
                         errors.append(f"{crop.name}: only {crop.quantity} {crop.unit} available")
                         continue
@@ -4275,6 +4298,7 @@ def user_dashboard(request):
         grand_total = sum(float(o.total_amount) for o in orders_created)
         if payment_method == Order.PAYMENT_ESEWA:
             request.session['esewa_pending_order_ids'] = [o.id for o in orders_created]
+            request.session['esewa_redirect_after'] = 'user_dashboard'
             request.session.modified = True
             return redirect(reverse('esewa_initiate'))
         messages.success(request, f'Order placed for {len(orders_created)} item(s)! Total: Rs. {grand_total:.2f} (Cash on Delivery).')

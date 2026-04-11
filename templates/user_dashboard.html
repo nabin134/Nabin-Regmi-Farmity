@@ -176,6 +176,48 @@
             to { transform: translateX(100%); opacity: 0; }
         }
 
+        /* Validation / errors — clearly red */
+        .dashboard-container .message-alert.error,
+        .dashboard-container .message-alert.danger {
+            background: #fef2f2 !important;
+            color: #991b1b !important;
+            border-left: 4px solid #dc2626 !important;
+        }
+        .farmity-field-error {
+            color: #dc2626 !important;
+            font-weight: 600;
+        }
+        .buyer-field-validation-msg {
+            color: #dc2626 !important;
+            font-size: 0.875rem;
+            margin-top: 0.35rem;
+            font-weight: 600;
+        }
+        .buyer-validation-banner {
+            position: fixed;
+            top: 88px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-12px);
+            z-index: 100000;
+            max-width: min(440px, 94vw);
+            padding: 0.75rem 1.25rem;
+            background: #fef2f2;
+            color: #991b1b;
+            border: 1px solid #fecaca;
+            border-radius: 10px;
+            font-size: 0.9rem;
+            font-weight: 600;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.25s ease, transform 0.25s ease;
+        }
+        .buyer-validation-banner.buyer-validation-banner-visible {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            pointer-events: auto;
+        }
+
         /* Product/Tool Grid - wider cards, 3 per row on large screens */
         .products-grid, .tools-grid {
             display: grid;
@@ -2047,6 +2089,13 @@
                                             <button class="btn-cart" disabled style="flex: 1; min-width: 0; background: #f3f4f6; color: #9ca3af; border: 2px solid #d1d5db; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: not-allowed; opacity: 0.75; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                                 <i class="fas fa-shopping-cart"></i> Sold Out
                                             </button>
+                                        {% elif crop.quantity <= 1 %}
+                                            <button class="btn-buy" disabled style="flex: 1; min-width: 0; background: #9ca3af; color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: not-allowed; opacity: 0.75; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                                <i class="fas fa-ban"></i> Not Available
+                                            </button>
+                                            <button class="btn-cart" disabled style="flex: 1; min-width: 0; background: #f3f4f6; color: #9ca3af; border: 2px solid #d1d5db; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: not-allowed; opacity: 0.75; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                                                <i class="fas fa-shopping-cart"></i> Not Available
+                                            </button>
                                         {% else %}
                                             <button class="btn-buy" onclick="openPurchaseCropModal({{ crop.id }}, '{{ crop.name|escapejs }}', {{ crop.price_per_unit }}, {{ crop.quantity }}, '{{ crop.unit|escapejs }}', '{% if crop.image %}{{ crop.image.url|escapejs }}{% endif %}')" style="flex: 1; min-width: 0; background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: white; border: none; padding: 0.75rem 1rem; border-radius: 8px; font-weight: 600; cursor: pointer; transition: all 0.3s; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
                                                 <i class="fas fa-shopping-bag"></i> Buy Now
@@ -2061,6 +2110,8 @@
                                     <i class="fas fa-box" style="color: var(--primary);"></i>
                                     {% if crop.quantity <= 0 %}
                                         <strong>No Stock (Sold Out)</strong>
+                                    {% elif crop.quantity <= 1 %}
+                                        <strong style="color: #dc2626;">Not Available</strong> — need more than 1 {{ crop.unit }} in stock to buy
                                     {% elif crop.quantity < 5 %}
                                         <strong>Low Stock:</strong> {{ crop.quantity }} {{ crop.unit }}
                                     {% else %}
@@ -2784,13 +2835,14 @@
                 <div class="form-group">
                     <label>Quantity to Purchase <span id="purchaseCropQuantityUnit"></span> <span style="color: red;">*</span></label>
                     <input type="number" name="quantity" id="purchaseCropQuantity" class="form-control" step="0.01" min="0.01" required placeholder="e.g. 2.5" oninput="calculateCropTotal()">
+                    <p id="purchaseCropQtyError" class="buyer-field-validation-msg" style="display: none;" role="alert"></p>
                 </div>
                 
                 <div class="form-group" style="padding: 1.25rem; background: var(--light-bg); border-radius: 12px;">
                     <label style="font-weight: 600;">Order summary</label>
                     <div style="font-size: 0.95rem; color: #374151;">
                         <div id="purchaseCropProductTotal">Product amount: Rs. 0.00</div>
-                        <div id="purchaseCropShipping">Shipping: Rs. 100.00</div>
+                        <div id="purchaseCropShipping">Shipping (flat): Rs. 100.00</div>
                         <div style="margin-top: 0.35rem; font-weight: 700; color: var(--primary);" id="purchaseCropGrandTotal">Total: Rs. 0.00</div>
                     </div>
                 </div>
@@ -2819,8 +2871,8 @@
                             </div>
                         </label>
                     </div>
-                    <div id="esewa_crop_info" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #E8F5E9; border-radius: 8px; color: #2E7D32; font-size: 0.9rem;">
-                        <i class="fas fa-mobile-alt"></i> You will be redirected to eSewa to pay securely.
+                    <div id="esewa_crop_info" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #E8F5E9; border-radius: 8px; color: #2E7D32; font-size: 0.9rem; line-height: 1.5;">
+                        <strong>eSewa steps:</strong> Place order → on the next page read the steps → click <strong>Continue to eSewa</strong> → pay on eSewa → you’ll return to Farmity when done.
                     </div>
                 </div>
                 
@@ -2880,13 +2932,14 @@
                 <div class="form-group">
                     <label>Quantity to Purchase <span style="color: red;">*</span></label>
                     <input type="number" name="quantity" id="purchaseToolQuantity" class="form-control" min="1" required oninput="calculateToolTotal()">
+                    <p id="purchaseToolQtyError" class="buyer-field-validation-msg" style="display: none;" role="alert"></p>
                 </div>
                 
                 <div class="form-group" style="padding: 1.25rem; background: var(--light-bg); border-radius: 12px;">
                     <label style="font-weight: 600;">Order summary</label>
                     <div style="font-size: 0.95rem; color: #374151;">
                         <div id="purchaseToolProductTotal">Product amount: Rs. 0.00</div>
-                        <div id="purchaseToolShipping">Shipping: Rs. 100.00</div>
+                        <div id="purchaseToolShipping">Shipping (flat): Rs. 100.00</div>
                         <div style="margin-top: 0.35rem; font-weight: 700; color: var(--primary);" id="purchaseToolGrandTotal">Total: Rs. 0.00</div>
                     </div>
                 </div>
@@ -2915,8 +2968,8 @@
                             </div>
                         </label>
                     </div>
-                    <div id="esewa_tool_info" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #E8F5E9; border-radius: 8px; color: #2E7D32; font-size: 0.9rem;">
-                        <i class="fas fa-mobile-alt"></i> You will be redirected to eSewa to pay securely.
+                    <div id="esewa_tool_info" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #E8F5E9; border-radius: 8px; color: #2E7D32; font-size: 0.9rem; line-height: 1.5;">
+                        <strong>eSewa steps:</strong> Place order → on the next page read the steps → click <strong>Continue to eSewa</strong> → pay on eSewa → you’ll return to Farmity when done.
                     </div>
                 </div>
                 
@@ -2983,6 +3036,9 @@
                             <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;" onchange="updateCheckoutCartButtonText()">
                             <i class="fas fa-mobile-alt" style="color: #5B5FEF;"></i> eSewa
                         </label>
+                    </div>
+                    <div id="checkoutEsewaStepsInfo" style="display: none; margin-top: 0.75rem; padding: 1rem; background: #E8F5E9; border-radius: 8px; color: #2E7D32; font-size: 0.9rem; line-height: 1.5;">
+                        <strong>eSewa steps:</strong> Place order → read steps on the next screen → <strong>Continue to eSewa</strong> → pay → return to Farmity automatically.
                     </div>
                 </div>
                 <div class="form-group">
@@ -3053,6 +3109,23 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="/static/js/main.js"></script>
     <script>
+        var BUY_NOW_SHIPPING_RS = 100;
+        function showBuyerValidationMessage(msg) {
+            if (!msg) return;
+            var el = document.createElement('div');
+            el.className = 'buyer-validation-banner';
+            el.setAttribute('role', 'alert');
+            el.textContent = msg;
+            document.body.appendChild(el);
+            requestAnimationFrame(function () {
+                el.classList.add('buyer-validation-banner-visible');
+            });
+            setTimeout(function () {
+                el.classList.remove('buyer-validation-banner-visible');
+                setTimeout(function () { if (el.parentNode) el.remove(); }, 280);
+            }, 4200);
+        }
+
         function switchTab(tabId, evt) {
             if (evt) {
                 evt.preventDefault();
@@ -3355,17 +3428,17 @@
             var time = document.getElementById('apptRequestedTime').value;
             if (!sel) {
                 e.preventDefault();
-                alert('Please select an appointment date.');
+                showBuyerValidationMessage('Please select an appointment date.');
                 return false;
             }
             if (!time) {
                 e.preventDefault();
-                alert('Please select an appointment time.');
+                showBuyerValidationMessage('Please select an appointment time.');
                 return false;
             }
             if (getExpertSlotDates(expertId).length > 0 && sel && !getExpertSlotForDate(expertId, sel)) {
                 e.preventDefault();
-                alert('Appointment not available at this date. Please choose a highlighted available date.');
+                showBuyerValidationMessage('Appointment not available at this date. Please choose a highlighted available date.');
                 return false;
             }
         });
@@ -3375,17 +3448,17 @@
             var time = document.getElementById('changeApptTime').value;
             if (!sel) {
                 e.preventDefault();
-                alert('Please select a new appointment date.');
+                showBuyerValidationMessage('Please select a new appointment date.');
                 return false;
             }
             if (!time) {
                 e.preventDefault();
-                alert('Please select a new appointment time.');
+                showBuyerValidationMessage('Please select a new appointment time.');
                 return false;
             }
             if (getExpertSlotDates(expertId).length > 0 && sel && !getExpertSlotForDate(expertId, sel)) {
                 e.preventDefault();
-                alert('Appointment not available at this date. Please choose an available date from the list above.');
+                showBuyerValidationMessage('Appointment not available at this date. Please choose an available date from the list above.');
                 return false;
             }
         });
@@ -3395,38 +3468,55 @@
             var time = document.getElementById('reapplyApptTime').value;
             if (!sel) {
                 e.preventDefault();
-                alert('Please select a new appointment date.');
+                showBuyerValidationMessage('Please select a new appointment date.');
                 return false;
             }
             if (!time) {
                 e.preventDefault();
-                alert('Please select a new appointment time.');
+                showBuyerValidationMessage('Please select a new appointment time.');
                 return false;
             }
             if (getExpertSlotDates(expertId).length > 0 && sel && !getExpertSlotForDate(expertId, sel)) {
                 e.preventDefault();
-                alert('Appointment not available at this date. Please choose an available date from the list above.');
+                showBuyerValidationMessage('Appointment not available at this date. Please choose an available date from the list above.');
                 return false;
             }
         });
 
         var purchaseCropForm = document.getElementById('purchaseCropForm');
         if (purchaseCropForm) {
-            purchaseCropForm.addEventListener('submit', function() {
+            purchaseCropForm.addEventListener('submit', function (e) {
                 var qtyEl = document.getElementById('purchaseCropQuantity');
-                if (qtyEl) {
-                    var v = parseFloat(qtyEl.value);
-                    if (isNaN(v) || v <= 0) qtyEl.value = '1';
+                if (!qtyEl) return;
+                var v = parseFloat(qtyEl.value);
+                if (isNaN(v) || v <= 0) {
+                    e.preventDefault();
+                    showBuyerValidationMessage('Please enter a valid quantity.');
+                    return;
+                }
+                var maxQ = parseFloat(qtyEl.getAttribute('max')) || 0;
+                if (maxQ > 0 && v > maxQ) {
+                    e.preventDefault();
+                    showBuyerValidationMessage('Quantity cannot exceed available stock (' + maxQ + ').');
+                    return;
                 }
             });
         }
         var purchaseToolForm = document.getElementById('purchaseToolForm');
         if (purchaseToolForm) {
-            purchaseToolForm.addEventListener('submit', function() {
+            purchaseToolForm.addEventListener('submit', function (e) {
                 var qtyEl = document.getElementById('purchaseToolQuantity');
-                if (qtyEl) {
-                    var v = parseInt(qtyEl.value, 10);
-                    if (isNaN(v) || v < 1) qtyEl.value = '1';
+                if (!qtyEl) return;
+                var v = parseInt(qtyEl.value, 10);
+                if (isNaN(v) || v < 1) {
+                    e.preventDefault();
+                    showBuyerValidationMessage('Please enter a valid quantity (at least 1).');
+                    return;
+                }
+                var maxQ = parseInt(qtyEl.getAttribute('max'), 10) || 0;
+                if (maxQ > 0 && v > maxQ) {
+                    e.preventDefault();
+                    showBuyerValidationMessage('Quantity cannot exceed available stock (' + maxQ + ').');
                 }
             });
         }
@@ -3436,6 +3526,13 @@
         }
 
         function addToCart(event, type, id, name, price, available, unit, quantity, imageUrlParam) {
+            if (type === 'crop') {
+                var avNum = parseFloat(available);
+                if (!isNaN(avNum) && avNum <= 1) {
+                    showBuyerValidationMessage('This crop is not available for purchase. More than one unit must be in stock.');
+                    return;
+                }
+            }
             quantity = (quantity === undefined || quantity === null) ? 1 : Math.max(1, Math.min(parseInt(quantity, 10) || 1, available));
             var imageUrl = (imageUrlParam !== undefined && imageUrlParam !== null) ? String(imageUrlParam) : '';
             if (!imageUrl && event && event.currentTarget && event.currentTarget.getAttribute) {
@@ -3447,7 +3544,7 @@
                 existingItem.quantity = (existingItem.quantity || 1) + quantity;
                 if (existingItem.quantity > available) {
                     existingItem.quantity = available;
-                    alert('Maximum available quantity reached!');
+                    showBuyerValidationMessage('Maximum available quantity reached.');
                 }
                 if (imageUrl && !existingItem.imageUrl) existingItem.imageUrl = imageUrl;
             } else {
@@ -3600,7 +3697,7 @@
                     return;
                 }
                 if (newQuantity > cart[index].available) {
-                    alert('Maximum available quantity reached!');
+                    showBuyerValidationMessage('Maximum available quantity reached.');
                     return;
                 }
                 cart[index].quantity = newQuantity;
@@ -3635,7 +3732,7 @@
         function openCheckoutModal() {
             const cart = JSON.parse(localStorage.getItem('cart') || '[]');
             if (cart.length === 0) {
-                alert('Your cart is empty.');
+                showBuyerValidationMessage('Your cart is empty.');
                 return;
             }
             let subtotal = 0;
@@ -3661,21 +3758,30 @@
             document.getElementById('checkoutCartModal').classList.add('active');
             updateCheckoutCartButtonText();
         }
+        /* Ensure eSewa checkout hint visibility matches default COD on first open */
+        if (document.getElementById('checkoutCartForm')) {
+            updateCheckoutCartButtonText();
+        }
 
         function openPurchaseCropModal(cropId, cropName, price, available, unit, imageUrl) {
             unit = unit || 'kg';
+            var availNum = parseFloat(available);
+            if (isNaN(availNum)) availNum = 0;
+            if (availNum <= 1) {
+                showBuyerValidationMessage('This crop is not available for purchase. More than one unit must be in stock.');
+                return;
+            }
             var sectionEl = document.getElementById('purchaseCropReturnSection');
             if (sectionEl) sectionEl.value = document.body.dataset.currentSection || 'crops';
             document.getElementById('purchaseCropId').value = cropId;
             document.getElementById('purchaseCropName').value = cropName;
-            var availNum = parseFloat(available);
-            if (isNaN(availNum)) availNum = 0;
             document.getElementById('purchaseCropPrice').value = 'Rs. ' + price + ' per ' + unit;
             document.getElementById('purchaseCropAvailable').value = availNum + ' ' + unit;
             var qtyInput = document.getElementById('purchaseCropQuantity');
+            var errCrop = document.getElementById('purchaseCropQtyError');
+            if (errCrop) { errCrop.style.display = 'none'; errCrop.textContent = ''; }
             qtyInput.setAttribute('max', availNum > 0 ? availNum : 0);
-            // Always default to 1 unit if there is any stock, so summary never shows 0 or NaN
-            var defaultQty = availNum > 0 ? 1 : '';
+            var defaultQty = availNum > 1 ? 1 : '';
             qtyInput.value = defaultQty === '' ? '' : String(defaultQty);
             document.getElementById('purchaseCropQuantityUnit').textContent = '(' + unit + ')';
             var imgWrap = document.getElementById('purchaseCropImageWrap');
@@ -3683,17 +3789,7 @@
                 imgWrap.style.display = 'flex';
                 imgWrap.innerHTML = imageUrl ? '<img src="' + imageUrl.replace(/"/g, '&quot;') + '" alt="" class="modal-product-image">' : '<i class="fas fa-seedling"></i>';
             }
-            // Set order summary: product amount, shipping, then total
-            var qtyVal = parseFloat(qtyInput.value) || 0;
-            var productTotal = price * qtyVal;
-            var shipping = productTotal > 0 ? 100 : 0;
-            var grandTotal = productTotal + shipping;
-            var prodEl = document.getElementById('purchaseCropProductTotal');
-            var shipEl = document.getElementById('purchaseCropShipping');
-            var grandEl = document.getElementById('purchaseCropGrandTotal');
-            if (prodEl) prodEl.textContent = 'Product amount: Rs. ' + productTotal.toFixed(2);
-            if (shipEl) shipEl.textContent = 'Shipping: Rs. ' + shipping.toFixed(2);
-            if (grandEl) grandEl.textContent = 'Total: Rs. ' + grandTotal.toFixed(2);
+            calculateCropTotal();
             document.getElementById('purchaseCropModal').classList.add('active');
         }
 
@@ -3707,24 +3803,16 @@
             if (isNaN(stockNum)) stockNum = 0;
             document.getElementById('purchaseToolStock').value = stockNum + ' units';
             var qtyInput = document.getElementById('purchaseToolQuantity');
+            var errTool = document.getElementById('purchaseToolQtyError');
+            if (errTool) { errTool.style.display = 'none'; errTool.textContent = ''; }
             qtyInput.setAttribute('max', Math.max(1, stockNum));
             qtyInput.value = '1';
-            // Set order summary: product amount, shipping, then total
-            var qtyVal = parseInt(qtyInput.value, 10) || 0;
-            var productTotal = price * qtyVal;
-            var shipping = productTotal > 0 ? 100 : 0;
-            var grandTotal = productTotal + shipping;
-            var prodEl = document.getElementById('purchaseToolProductTotal');
-            var shipEl = document.getElementById('purchaseToolShipping');
-            var grandEl = document.getElementById('purchaseToolGrandTotal');
-            if (prodEl) prodEl.textContent = 'Product amount: Rs. ' + productTotal.toFixed(2);
-            if (shipEl) shipEl.textContent = 'Shipping: Rs. ' + shipping.toFixed(2);
-            if (grandEl) grandEl.textContent = 'Total: Rs. ' + grandTotal.toFixed(2);
             var imgWrap = document.getElementById('purchaseToolImageWrap');
             if (imgWrap) {
                 imgWrap.style.display = 'flex';
                 imgWrap.innerHTML = imageUrl ? '<img src="' + imageUrl.replace(/"/g, '&quot;') + '" alt="" class="modal-product-image">' : '<i class="fas fa-tools"></i>';
             }
+            calculateToolTotal();
             document.getElementById('purchaseToolModal').classList.add('active');
         }
 
@@ -3735,14 +3823,25 @@
             const qtyEl = document.getElementById('purchaseCropQuantity');
             const quantity = parseFloat(qtyEl && qtyEl.value) || 0;
             const productTotal = price * quantity;
-            const shipping = productTotal > 0 ? 100 : 0;
-            const grandTotal = productTotal + shipping;
+            const shipping = BUY_NOW_SHIPPING_RS;
+            const grandTotal = productTotal > 0 ? productTotal + shipping : 0;
             const prodEl = document.getElementById('purchaseCropProductTotal');
             const shipEl = document.getElementById('purchaseCropShipping');
             const grandEl = document.getElementById('purchaseCropGrandTotal');
+            const errEl = document.getElementById('purchaseCropQtyError');
+            const maxQ = parseFloat(qtyEl && qtyEl.getAttribute('max')) || 0;
+            if (errEl) {
+                if (quantity > maxQ && maxQ > 0) {
+                    errEl.style.display = 'block';
+                    errEl.textContent = 'Quantity cannot exceed available stock (' + maxQ + ').';
+                } else {
+                    errEl.style.display = 'none';
+                    errEl.textContent = '';
+                }
+            }
             if (prodEl) prodEl.textContent = 'Product amount: Rs. ' + productTotal.toFixed(2);
-            if (shipEl) shipEl.textContent = 'Shipping: Rs. ' + shipping.toFixed(2);
-            if (grandEl) grandEl.textContent = 'Total: Rs. ' + grandTotal.toFixed(2);
+            if (shipEl) shipEl.textContent = 'Shipping (flat): Rs. ' + shipping.toFixed(2);
+            if (grandEl) grandEl.textContent = 'Total (product + shipping): Rs. ' + grandTotal.toFixed(2);
         }
 
         function calculateToolTotal() {
@@ -3750,16 +3849,27 @@
             const match = priceText && priceText.match(/[\d.]+/);
             const price = match ? parseFloat(match[0]) : 0;
             const qtyEl = document.getElementById('purchaseToolQuantity');
-            const quantity = parseInt(qtyEl && qtyEl.value) || 0;
+            const quantity = parseInt(qtyEl && qtyEl.value, 10) || 0;
             const productTotal = price * quantity;
-            const shipping = productTotal > 0 ? 100 : 0;
-            const grandTotal = productTotal + shipping;
+            const shipping = BUY_NOW_SHIPPING_RS;
+            const grandTotal = productTotal > 0 ? productTotal + shipping : 0;
             const prodEl = document.getElementById('purchaseToolProductTotal');
             const shipEl = document.getElementById('purchaseToolShipping');
             const grandEl = document.getElementById('purchaseToolGrandTotal');
+            const errEl = document.getElementById('purchaseToolQtyError');
+            const maxQ = parseInt(qtyEl && qtyEl.getAttribute('max'), 10) || 0;
+            if (errEl) {
+                if (quantity > maxQ && maxQ > 0) {
+                    errEl.style.display = 'block';
+                    errEl.textContent = 'Quantity cannot exceed available stock (' + maxQ + ').';
+                } else {
+                    errEl.style.display = 'none';
+                    errEl.textContent = '';
+                }
+            }
             if (prodEl) prodEl.textContent = 'Product amount: Rs. ' + productTotal.toFixed(2);
-            if (shipEl) shipEl.textContent = 'Shipping: Rs. ' + shipping.toFixed(2);
-            if (grandEl) grandEl.textContent = 'Total: Rs. ' + grandTotal.toFixed(2);
+            if (shipEl) shipEl.textContent = 'Shipping (flat): Rs. ' + shipping.toFixed(2);
+            if (grandEl) grandEl.textContent = 'Total (product + shipping): Rs. ' + grandTotal.toFixed(2);
         }
 
         function updatePaymentMethod(radio) {
@@ -3791,10 +3901,13 @@
             if (!btn) return;
             const form = document.getElementById('checkoutCartForm');
             const selected = form && form.querySelector('input[name="payment_method"]:checked');
+            var info = document.getElementById('checkoutEsewaStepsInfo');
             if (selected && selected.value === 'esewa') {
                 btn.innerHTML = '<i class="fas fa-mobile-alt"></i> Place order and continue with eSewa';
+                if (info) info.style.display = 'block';
             } else {
                 btn.innerHTML = '<i class="fas fa-lock"></i> Place order — Pay on delivery';
+                if (info) info.style.display = 'none';
             }
         }
 

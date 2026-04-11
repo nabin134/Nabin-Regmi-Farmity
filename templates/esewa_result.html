@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% if success %}Payment Successful{% else %}Payment did not succeed{% endif %} - Farmity</title>
+    <title>{% if success %}Payment successful{% else %}Payment not completed{% endif %} - Farmity</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root { --primary: #3C894B; --sea-green: #358D58; }
@@ -16,59 +16,59 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 2rem;
+            padding: 1.5rem;
         }
         .result-container {
             width: 100%;
-            max-width: 420px;
+            max-width: 440px;
             background: white;
             border-radius: 20px;
             box-shadow: 0 10px 40px rgba(53, 141, 88, 0.12);
             overflow: hidden;
             text-align: center;
         }
-        .result-header {
-            padding: 2.5rem 2rem 1.5rem;
-        }
+        .result-header { padding: 2rem 1.5rem 1.25rem; }
         .result-icon {
-            width: 80px;
-            height: 80px;
+            width: 72px;
+            height: 72px;
             border-radius: 50%;
-            margin: 0 auto 1.25rem;
+            margin: 0 auto 1rem;
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 2.5rem;
+            font-size: 2rem;
         }
         .result-icon.success { background: #E8F5E9; color: var(--sea-green); }
         .result-icon.failure { background: #FFF3E0; color: #E65100; }
         .result-container h1 {
-            font-size: 1.5rem;
+            font-size: 1.35rem;
             color: #1a1a1a;
             margin-bottom: 0.5rem;
         }
-        .result-container p {
-            color: #666;
-            font-size: 1rem;
+        .result-container > .result-header p {
+            color: #555;
+            font-size: 0.95rem;
             line-height: 1.5;
         }
-        .result-body {
-            padding: 0 2rem 2rem;
+        .result-steps {
+            text-align: left;
+            padding: 0 1.5rem 1.25rem;
+            font-size: 0.88rem;
+            color: #555;
+            line-height: 1.5;
         }
-        .redirect-msg {
-            font-size: 0.9rem;
-            color: #888;
-            margin-top: 1rem;
-        }
+        .result-steps strong { color: #333; }
+        .result-body { padding: 0 1.5rem 1.75rem; }
         .btn-dashboard {
             display: inline-flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
-            margin-top: 1.5rem;
-            padding: 0.9rem 1.75rem;
+            width: 100%;
+            margin-top: 0.5rem;
+            padding: 0.95rem 1.5rem;
             background: linear-gradient(135deg, var(--primary) 0%, var(--sea-green) 100%);
-            color: white;
+            color: white !important;
             border: none;
             border-radius: 12px;
             font-size: 1rem;
@@ -79,6 +79,12 @@
             transition: transform 0.2s;
         }
         .btn-dashboard:hover { transform: translateY(-2px); color: white; }
+        .redirect-msg {
+            font-size: 0.85rem;
+            color: #888;
+            margin-top: 1rem;
+        }
+        #esewaCountdown { font-weight: 700; color: var(--primary); }
     </style>
 </head>
 <body>
@@ -87,24 +93,49 @@
             <div class="result-icon {% if success %}success{% else %}failure{% endif %}">
                 {% if success %}<i class="fas fa-check"></i>{% else %}<i class="fas fa-times"></i>{% endif %}
             </div>
-            <h1>{% if success %}Payment Successful{% else %}Payment did not succeed{% endif %}</h1>
+            <h1>{% if success %}Payment successful{% else %}Payment not completed{% endif %}</h1>
             <p>
                 {% if success %}
-                Your payment was completed. Your order has been confirmed.
+                eSewa confirmed your payment. Your order status is updated.
                 {% else %}
-                Payment with eSewa was cancelled or could not be completed. You can try again or use Cash on Delivery.
+                You cancelled or the payment did not go through. Your order may still be pending — you can pay with eSewa again from your orders or choose Cash on Delivery next time.
                 {% endif %}
             </p>
         </div>
+        {% if success %}
+        <div class="result-steps">
+            <p><strong>What happens next</strong></p>
+            <p style="margin-top:0.5rem;">1. You’ll see this order under <strong>Orders</strong> on your dashboard.</p>
+            <p style="margin-top:0.35rem;">2. The seller gets a notification and can process your order.</p>
+        </div>
+        {% else %}
+        <div class="result-steps">
+            <p><strong>What you can do</strong></p>
+            <p style="margin-top:0.5rem;">1. Open <strong>Orders</strong> and check the order status.</p>
+            <p style="margin-top:0.35rem;">2. Place a new order with <strong>Cash on Delivery</strong> if you prefer.</p>
+        </div>
+        {% endif %}
         <div class="result-body">
-            <p class="redirect-msg">Redirecting to your dashboard in a moment...</p>
-            <a href="{{ redirect_url }}" class="btn-dashboard">
-                <i class="fas fa-th-large"></i> Go to Dashboard
+            <a href="{{ redirect_url }}" class="btn-dashboard" id="btnDashboard">
+                <i class="fas fa-th-large"></i> Go to dashboard (step 1)
             </a>
+            <p class="redirect-msg">Auto-continue in <span id="esewaCountdown">8</span> s — or tap the button above anytime.</p>
         </div>
     </div>
     <script>
-        setTimeout(function() { window.location.href = "{{ redirect_url|escapejs }}"; }, 3500);
+        (function () {
+            var url = "{{ redirect_url|escapejs }}";
+            var el = document.getElementById('esewaCountdown');
+            var sec = 8;
+            var t = setInterval(function () {
+                sec -= 1;
+                if (el) el.textContent = String(Math.max(0, sec));
+                if (sec <= 0) {
+                    clearInterval(t);
+                    window.location.href = url;
+                }
+            }, 1000);
+        })();
     </script>
 </body>
 </html>
