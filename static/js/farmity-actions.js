@@ -104,8 +104,10 @@
         return true;
     }
 
-    async function submitFarmityForm(form) {
+    async function submitFarmityForm(form, submitter) {
         const url = form.getAttribute('action') || window.location.pathname + window.location.search;
+        const externalBtn = form._farmityExternalSubmitBtn;
+        if (externalBtn) form._farmityExternalSubmitBtn = null;
         const useConfirm = form.getAttribute('data-farmity-confirm') === '1';
         if (useConfirm) {
             let confirmType = 'warning';
@@ -135,7 +137,9 @@
         const fd = new FormData(form);
         fd.set('ajax', '1');
 
-        const submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
+        let submitBtn = externalBtn && externalBtn.tagName === 'BUTTON' ? externalBtn : null;
+        if (!submitBtn && submitter && submitter.tagName === 'BUTTON') submitBtn = submitter;
+        if (!submitBtn) submitBtn = form.querySelector('button[type="submit"], input[type="submit"]');
         const prevText = submitBtn ? submitBtn.innerHTML : '';
         if (submitBtn) {
             submitBtn.disabled = true;
@@ -354,15 +358,73 @@
                     }
                 }
                 if (data.tip_status && data.tip_status.id != null) {
+                    const st = data.tip_status.approval_status;
                     const card = document.querySelector('[data-tip-row="' + data.tip_status.id + '"]');
-                    if (card) {
+                    if (card && st) {
                         const badge = card.querySelector('.status-badge');
-                        if (badge && data.tip_status.approval_status) {
-                            const st = data.tip_status.approval_status;
+                        if (badge) {
                             badge.className = 'status-badge ' + (st === 'approved' ? 'approved' : st === 'pending' ? 'pending' : 'rejected');
                             badge.textContent = st === 'approved' ? 'Approved' : st === 'pending' ? 'Pending approval' : 'Rejected';
                         }
+                        const actionsRow = card.querySelector('[data-tip-actions-row]');
+                        if (actionsRow) {
+                            actionsRow.querySelectorAll('form').forEach(function (f) {
+                                const act = f.querySelector('input[name="action"]');
+                                if (act && (act.value === 'approve_tip' || act.value === 'reject_tip')) {
+                                    f.remove();
+                                }
+                            });
+                            if (st === 'approved') {
+                                const editBtn = actionsRow.querySelector('button.btn-edit');
+                                if (editBtn) {
+                                    const lock = document.createElement('span');
+                                    lock.className = 'btn btn-edit';
+                                    lock.style.opacity = '0.7';
+                                    lock.style.cursor = 'default';
+                                    lock.title = 'Approved content cannot be edited';
+                                    lock.innerHTML = '<i class="fas fa-lock"></i> Approved (locked)';
+                                    editBtn.replaceWith(lock);
+                                }
+                            }
+                        }
                     }
+                }
+                if (data.kyc_update && data.kyc_update.id != null) {
+                    const row = document.querySelector('[data-kyc-row="' + data.kyc_update.id + '"]');
+                    const u = data.kyc_update;
+                    if (row) {
+                        const cells = row.querySelectorAll('td');
+                        if (cells[1] && u.full_name != null) cells[1].textContent = u.full_name;
+                        if (cells[3] && u.id_number != null) cells[3].textContent = u.id_number;
+                        const badge = row.querySelector('.status-badge');
+                        if (badge && u.status && u.status_display) {
+                            badge.className = 'status-badge ' + u.status;
+                            badge.textContent = u.status_display;
+                        }
+                        if (cells[6]) {
+                            if (u.reviewed_by_email) {
+                                cells[6].textContent = u.reviewed_by_email;
+                            } else {
+                                cells[6].innerHTML = '<span style="color: #999;">-</span>';
+                            }
+                        }
+                        const actions = row.querySelector('[data-kyc-actions]');
+                        if (actions && u.status && u.status !== 'pending') {
+                            const appr = actions.querySelector('[data-kyc-approve]');
+                            const rej = actions.querySelector('[data-kyc-reject]');
+                            if (appr) appr.remove();
+                            if (rej) rej.remove();
+                        }
+                    }
+                }
+                if (data.kyc_counts && typeof data.kyc_counts === 'object') {
+                    const c = data.kyc_counts;
+                    const p = document.getElementById('kycStatPending');
+                    const a = document.getElementById('kycStatApproved');
+                    const r = document.getElementById('kycStatRejected');
+                    if (p && c.pending != null) p.textContent = String(c.pending);
+                    if (a && c.approved != null) a.textContent = String(c.approved);
+                    if (r && c.rejected != null) r.textContent = String(c.rejected);
                 }
                 const resetForm = form.getAttribute('data-farmity-reset-on-success') === '1';
                 if (resetForm) form.reset();
@@ -407,10 +469,11 @@
     }
 
     document.addEventListener('submit', function (ev) {
+        if (ev.defaultPrevented) return;
         const form = ev.target;
         if (!form || form.tagName !== 'FORM') return;
         if (form.getAttribute('data-farmity-ajax') !== '1') return;
         ev.preventDefault();
-        submitFarmityForm(form);
+        submitFarmityForm(form, ev.submitter || null);
     });
 })();

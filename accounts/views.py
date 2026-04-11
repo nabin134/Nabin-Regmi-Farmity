@@ -4719,6 +4719,29 @@ def admin_kyc_view_json(request, kyc_id):
         return JsonResponse({'error': 'KYC not found'}, status=404)
 
 
+def _admin_kyc_row_json(kyc):
+    """Serialize a KYC row for admin AJAX UI updates."""
+    kyc.refresh_from_db()
+    rb = kyc.reviewed_by
+    return {
+        'id': kyc.id,
+        'status': kyc.status,
+        'status_display': kyc.get_status_display(),
+        'reviewed_by_email': rb.email if rb else '',
+        'full_name': kyc.full_name or '',
+        'id_number': kyc.id_number or '',
+        'rejection_reason': kyc.rejection_reason or '',
+    }
+
+
+def _admin_kyc_counts_json():
+    return {
+        'pending': KYCRequest.objects.filter(status=KYCRequest.STATUS_PENDING).count(),
+        'approved': KYCRequest.objects.filter(status=KYCRequest.STATUS_APPROVED).count(),
+        'rejected': KYCRequest.objects.filter(status=KYCRequest.STATUS_REJECTED).count(),
+    }
+
+
 @login_required
 def admin_kyc_management(request):
     """KYC Management page for admin"""
@@ -4727,79 +4750,39 @@ def admin_kyc_management(request):
     
     # Handle KYC approval/rejection/edit
     if request.method == 'POST':
+        ajax = _farmity_wants_ajax(request)
         kyc_id = request.POST.get('kyc_id')
-        action = request.POST.get('action')  # 'approve', 'reject', 'edit_kyc'
-        rejection_reason = request.POST.get('rejection_reason', '').strip()
-        
-        try:
-            kyc = KYCRequest.objects.get(id=kyc_id)
-            
-            if action == 'approve':
-                kyc.status = KYCRequest.STATUS_APPROVED
-                kyc.reviewed_by = request.user
-                kyc.reviewed_at = timezone.now()
-                kyc.rejection_reason = None
-                kyc.save()
-                kyc.user.is_verified = True
-                kyc.user.save()
-                create_notification(
-                    kyc.user,
-                    'KYC approved',
-                    'Your KYC verification has been approved. You now have full access to your account features.',
-                    reverse('kyc') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile'),
-                    UserNotification.TYPE_KYC
-                )
-                messages.success(request, f'KYC request for {kyc.user.email} has been approved.')
-            elif action == 'reject':
-                if not rejection_reason:
-                    messages.error(request, 'Rejection reason is required.')
-                else:
-                    kyc.status = KYCRequest.STATUS_REJECTED
-                    kyc.reviewed_by = request.user
-                    kyc.reviewed_at = timezone.now()
-                    kyc.rejection_reason = rejection_reason
-                    kyc.save()
-                    kyc.user.is_verified = False
-                    kyc.user.save()
-                    create_notification(
-                        kyc.user,
-                        'KYC rejected',
-                        'Your KYC verification was not approved. Reason: ' + (rejection_reason or 'See details in KYC page.'),
-                        reverse('kyc') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile'),
-                        UserNotification.TYPE_KYC
-                    )
-                    messages.success(request, f'KYC request for {kyc.user.email} has been rejected.')
-            elif action == 'edit_kyc':
-                # Update KYC details
-                old_status = kyc.status
-                kyc.full_name = request.POST.get('full_name', kyc.full_name)
-                kyc.id_number = request.POST.get('id_number', kyc.id_number)
-                kyc.status = request.POST.get('status', kyc.status)
-                kyc.rejection_reason = request.POST.get('rejection_reason', '') or None
-                
-                # Update documents if new ones are uploaded
-                if request.FILES.get('id_document'):
-                    kyc.id_document = request.FILES.get('id_document')
-                if request.FILES.get('selfie'):
-                    kyc.selfie = request.FILES.get('selfie')
-                if request.FILES.get('company_document'):
-                    kyc.company_document = request.FILES.get('company_document')
-                if request.FILES.get('certificate_document'):
-                    kyc.certificate_document = request.FILES.get('certificate_document')
-                
-                # Update reviewed info if status changed
-                if kyc.status in [KYCRequest.STATUS_APPROVED, KYCRequest.STATUS_REJECTED]:
-                    kyc.reviewed_by = request.user
-                    kyc.reviewed_at = timezone.now()
-                    # Update user verification status
-                    kyc.user.is_verified = (kyc.status == KYCRequest.STATUS_APPROVED)
-                    kyc.user.save()
-                
-                kyc.save()
+        action = (request.POST.get('action') or '').strip()
+        rejection_reason = (request.POST.get('rejection_reason') or '').strip()
 
-                # Ensure notification + email is sent when status is changed via edit flow too.
-                if old_status != kyc.status:
-                    if kyc.status == KYCRequest.STATUS_APPROVED:
+        def _json(ok, message, **extra):
+            payload = {'ok': bool(ok), 'message': message or ''}
+            payload.update(extra)
+            return JsonResponse(payload)
+
+        if not kyc_id:
+            msg = 'Missing KYC request.'
+            if ajax:
+                return _json(False, msg)
+            messages.error(request, msg)
+        else:
+            try:
+                kyc = KYCRequest.objects.select_related('user', 'reviewed_by').get(id=kyc_id)
+            except KYCRequest.DoesNotExist:
+                msg = 'KYC request not found.'
+                if ajax:
+                    return _json(False, msg)
+                messages.error(request, msg)
+            else:
+                try:
+                    if action == 'approve':
+                        kyc.status = KYCRequest.STATUS_APPROVED
+                        kyc.reviewed_by = request.user
+                        kyc.reviewed_at = timezone.now()
+                        kyc.rejection_reason = None
+                        kyc.save()
+                        kyc.user.is_verified = True
+                        kyc.user.save()
                         create_notification(
                             kyc.user,
                             'KYC approved',
@@ -4807,19 +4790,105 @@ def admin_kyc_management(request):
                             reverse('kyc') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile'),
                             UserNotification.TYPE_KYC
                         )
-                    elif kyc.status == KYCRequest.STATUS_REJECTED:
-                        create_notification(
-                            kyc.user,
-                            'KYC rejected',
-                            'Your KYC verification was not approved. Reason: ' + (kyc.rejection_reason or 'See details in KYC page.'),
-                            reverse('kyc') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile'),
-                            UserNotification.TYPE_KYC
-                        )
-                messages.success(request, f'KYC details for {kyc.user.email} have been updated.')
-        except KYCRequest.DoesNotExist:
-            messages.error(request, 'KYC request not found.')
-        except Exception as e:
-            messages.error(request, f'Error updating KYC: {str(e)}')
+                        msg = f'KYC request for {kyc.user.email} has been approved.'
+                        if ajax:
+                            return _json(
+                                True,
+                                msg,
+                                kyc_update=_admin_kyc_row_json(kyc),
+                                kyc_counts=_admin_kyc_counts_json(),
+                            )
+                        messages.success(request, msg)
+                    elif action == 'reject':
+                        if not rejection_reason:
+                            msg = 'Rejection reason is required.'
+                            if ajax:
+                                return _json(False, msg)
+                            messages.error(request, msg)
+                        else:
+                            kyc.status = KYCRequest.STATUS_REJECTED
+                            kyc.reviewed_by = request.user
+                            kyc.reviewed_at = timezone.now()
+                            kyc.rejection_reason = rejection_reason
+                            kyc.save()
+                            kyc.user.is_verified = False
+                            kyc.user.save()
+                            create_notification(
+                                kyc.user,
+                                'KYC rejected',
+                                'Your KYC verification was not approved. Reason: ' + (rejection_reason or 'See details in KYC page.'),
+                                reverse('kyc') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile'),
+                                UserNotification.TYPE_KYC
+                            )
+                            msg = f'KYC request for {kyc.user.email} has been rejected.'
+                            if ajax:
+                                return _json(
+                                    True,
+                                    msg,
+                                    kyc_update=_admin_kyc_row_json(kyc),
+                                    kyc_counts=_admin_kyc_counts_json(),
+                                )
+                            messages.success(request, msg)
+                    elif action == 'edit_kyc':
+                        old_status = kyc.status
+                        kyc.full_name = request.POST.get('full_name', kyc.full_name)
+                        kyc.id_number = request.POST.get('id_number', kyc.id_number)
+                        kyc.status = request.POST.get('status', kyc.status)
+                        kyc.rejection_reason = request.POST.get('rejection_reason', '') or None
+
+                        if request.FILES.get('id_document'):
+                            kyc.id_document = request.FILES.get('id_document')
+                        if request.FILES.get('selfie'):
+                            kyc.selfie = request.FILES.get('selfie')
+                        if request.FILES.get('company_document'):
+                            kyc.company_document = request.FILES.get('company_document')
+                        if request.FILES.get('certificate_document'):
+                            kyc.certificate_document = request.FILES.get('certificate_document')
+
+                        if kyc.status in [KYCRequest.STATUS_APPROVED, KYCRequest.STATUS_REJECTED]:
+                            kyc.reviewed_by = request.user
+                            kyc.reviewed_at = timezone.now()
+                            kyc.user.is_verified = (kyc.status == KYCRequest.STATUS_APPROVED)
+                            kyc.user.save()
+
+                        kyc.save()
+
+                        if old_status != kyc.status:
+                            if kyc.status == KYCRequest.STATUS_APPROVED:
+                                create_notification(
+                                    kyc.user,
+                                    'KYC approved',
+                                    'Your KYC verification has been approved. You now have full access to your account features.',
+                                    reverse('kyc') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile'),
+                                    UserNotification.TYPE_KYC
+                                )
+                            elif kyc.status == KYCRequest.STATUS_REJECTED:
+                                create_notification(
+                                    kyc.user,
+                                    'KYC rejected',
+                                    'Your KYC verification was not approved. Reason: ' + (kyc.rejection_reason or 'See details in KYC page.'),
+                                    reverse('kyc') if kyc.user.role in ('farmer', 'vendor', 'agricultural_expert') else reverse('profile'),
+                                    UserNotification.TYPE_KYC
+                                )
+                        msg = f'KYC details for {kyc.user.email} have been updated.'
+                        if ajax:
+                            return _json(
+                                True,
+                                msg,
+                                kyc_update=_admin_kyc_row_json(kyc),
+                                kyc_counts=_admin_kyc_counts_json(),
+                            )
+                        messages.success(request, msg)
+                    else:
+                        msg = 'Unknown action.'
+                        if ajax:
+                            return _json(False, msg)
+                        messages.error(request, msg)
+                except Exception as e:
+                    msg = f'Error updating KYC: {str(e)}'
+                    if ajax:
+                        return _json(False, msg)
+                    messages.error(request, msg)
     
     # Get filter parameters
     status_filter = request.GET.get('status', 'all')

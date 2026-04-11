@@ -522,15 +522,15 @@
             <!-- Statistics -->
             <div class="stats-grid">
                 <div class="stat-card">
-                    <div class="stat-value">{{ pending_count }}</div>
+                    <div class="stat-value" id="kycStatPending">{{ pending_count }}</div>
                     <div class="stat-label">Pending Requests</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{{ approved_count }}</div>
+                    <div class="stat-value" id="kycStatApproved">{{ approved_count }}</div>
                     <div class="stat-label">Approved</div>
                 </div>
                 <div class="stat-card">
-                    <div class="stat-value">{{ rejected_count }}</div>
+                    <div class="stat-value" id="kycStatRejected">{{ rejected_count }}</div>
                     <div class="stat-label">Rejected</div>
                 </div>
             </div>
@@ -587,7 +587,7 @@
                     </thead>
                     <tbody>
                         {% for kyc in kyc_requests %}
-                        <tr>
+                        <tr data-kyc-row="{{ kyc.id }}">
                             <td>{{ kyc.user.email }}</td>
                             <td>{{ kyc.full_name }}</td>
                             <td>{{ kyc.user.get_role_display }}</td>
@@ -604,18 +604,18 @@
                                 {% endif %}
                             </td>
                             <td>
-                                <div class="action-buttons">
-                                    <button class="btn btn-view" onclick="viewKYC({{ kyc.id }})">
+                                <div class="action-buttons" data-kyc-actions>
+                                    <button type="button" class="btn btn-view" onclick="viewKYC({{ kyc.id }})">
                                         <i class="fas fa-eye"></i> View
                                     </button>
-                                    <button class="btn btn-edit" onclick="openEditKYCModal({{ kyc.id }}, '{{ kyc.full_name|escapejs }}', '{{ kyc.id_number|escapejs }}', '{{ kyc.status }}', '{{ kyc.rejection_reason|default:""|escapejs }}')">
+                                    <button type="button" class="btn btn-edit" onclick="openEditKYCModal({{ kyc.id }}, '{{ kyc.full_name|escapejs }}', '{{ kyc.id_number|escapejs }}', '{{ kyc.status }}', '{{ kyc.rejection_reason|default:""|escapejs }}')">
                                         <i class="fas fa-edit"></i> Edit
                                     </button>
                                     {% if kyc.status == 'pending' %}
-                                    <button class="btn btn-approve" onclick="approveKYC({{ kyc.id }})">
+                                    <button type="button" class="btn btn-approve" data-kyc-approve onclick="submitKycApprove({{ kyc.id }}, this)">
                                         <i class="fas fa-check"></i> Approve
                                     </button>
-                                    <button class="btn btn-reject" onclick="rejectKYC({{ kyc.id }})">
+                                    <button type="button" class="btn btn-reject" data-kyc-reject onclick="rejectKYC({{ kyc.id }})">
                                         <i class="fas fa-times"></i> Reject
                                     </button>
                                     {% endif %}
@@ -655,7 +655,7 @@
                 <h3 class="modal-title">Edit KYC Details</h3>
                 <button class="close-modal" onclick="closeEditKYCModal()">&times;</button>
             </div>
-            <form method="POST" action="{% url 'admin_kyc_management' %}" enctype="multipart/form-data">
+            <form method="POST" action="{% url 'admin_kyc_management' %}" enctype="multipart/form-data" data-farmity-ajax="1" data-farmity-close-modal="editKYCModal">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="edit_kyc">
                 <input type="hidden" name="kyc_id" id="editKycId">
@@ -723,7 +723,7 @@
                 <h3 class="modal-title">Reject KYC Request</h3>
                 <button class="close-modal" onclick="closeRejectModal()">&times;</button>
             </div>
-            <form method="POST" action="{% url 'admin_kyc_management' %}">
+            <form method="POST" action="{% url 'admin_kyc_management' %}" data-farmity-ajax="1" data-farmity-close-modal="rejectModal" data-farmity-reset-on-success="1">
                 {% csrf_token %}
                 <input type="hidden" name="kyc_id" id="rejectKycId">
                 <input type="hidden" name="action" value="reject">
@@ -739,6 +739,15 @@
         </div>
     </div>
 
+    <!-- AJAX: approve uses this form + farmity-actions (no full page reload) -->
+    <form id="adminKycApproveForm" method="POST" action="{% url 'admin_kyc_management' %}" data-farmity-ajax="1" style="position:absolute;width:0;height:0;overflow:hidden;opacity:0" aria-hidden="true">
+        {% csrf_token %}
+        <input type="hidden" name="kyc_id" id="kycApproveId" value="">
+        <input type="hidden" name="action" value="approve">
+        <button type="submit" tabindex="-1">Submit</button>
+    </form>
+
+    {% include 'includes/farmity_ux_scripts.html' %}
     <script>
         // Function to show error messages using the admin messaging system
         function showErrorMessage(message) {
@@ -994,39 +1003,18 @@
                 });
         }
 
-        function approveKYC(kycId) {
-            console.log('Approving KYC:', kycId);
-            
-            // Create and submit form programmatically
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = '{% url "admin_kyc_management" %}';
-            
-            const csrf = document.createElement('input');
-            csrf.type = 'hidden';
-            csrf.name = 'csrfmiddlewaretoken';
-            csrf.value = '{{ csrf_token }}';
-            form.appendChild(csrf);
-            
-            const kycInput = document.createElement('input');
-            kycInput.type = 'hidden';
-            kycInput.name = 'kyc_id';
-            kycInput.value = kycId;
-            form.appendChild(kycInput);
-            
-            const actionInput = document.createElement('input');
-            actionInput.type = 'hidden';
-            actionInput.name = 'action';
-            actionInput.value = 'approve';
-            form.appendChild(actionInput);
-            
-            // Show success message before form submission
-            if (window.SuccessMessage) {
-                SuccessMessage.showActionSuccess('KYC Approved', `KYC ID: ${kycId}`);
+        function submitKycApprove(kycId, btn) {
+            const f = document.getElementById('adminKycApproveForm');
+            const idInput = document.getElementById('kycApproveId');
+            if (!f || !idInput) return;
+            idInput.value = String(kycId);
+            f._farmityExternalSubmitBtn = btn || null;
+            if (typeof f.requestSubmit === 'function') {
+                f.requestSubmit();
+            } else {
+                const sub = f.querySelector('button[type="submit"]');
+                if (sub) sub.click();
             }
-            
-            document.body.appendChild(form);
-            form.submit();
         }
 
         function rejectKYC(kycId) {

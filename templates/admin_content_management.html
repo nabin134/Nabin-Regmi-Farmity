@@ -575,9 +575,9 @@
                         </div>
                     </div>
                     <div class="content-preview">{{ tip.content|truncatewords:30 }}</div>
-                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;">
+                    <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px;" data-tip-actions-row>
                         {% if tip.approval_status == 'pending' %}
-                        <form method="POST" action="{% url 'admin_content_management' %}" style="display: inline;" data-farmity-ajax="1" data-farmity-confirm="1">
+                        <form method="POST" action="{% url 'admin_content_management' %}" style="display: inline;" data-farmity-ajax="1">
                             {% csrf_token %}
                             <input type="hidden" name="action" value="approve_tip">
                             <input type="hidden" name="tip_id" value="{{ tip.id }}">
