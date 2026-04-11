@@ -420,6 +420,31 @@
             color: white;
         }
 
+        /* Marketplace tables: show first 5 rows; rest via "View more" */
+        .admin-mp-extra-row:not(.admin-mp-extra-visible) {
+            display: none;
+        }
+        .admin-mp-view-more-bar {
+            text-align: center;
+            margin-top: 14px;
+            padding-bottom: 4px;
+        }
+        .admin-mp-view-more-btn {
+            background: white;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+            padding: 10px 22px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: background 0.2s ease, color 0.2s ease;
+        }
+        .admin-mp-view-more-btn:hover {
+            background: var(--primary);
+            color: white;
+        }
+
         @media (max-width: 768px) {
             .sidebar {
                 transform: translateX(-100%);
@@ -644,9 +669,9 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="adminMarketplaceToolsTbody">
                         {% for tool in tools %}
-                        <tr>
+                        <tr{% if forloop.counter > 5 %} class="admin-mp-extra-row"{% endif %}>
                             <td>
                                 {% if tool.image %}
                                 <img src="{{ tool.image.url }}" alt="{{ tool.name }}" class="item-image">
@@ -679,6 +704,11 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% if tools|length > 5 %}
+                <div class="admin-mp-view-more-bar">
+                    <button type="button" class="admin-mp-view-more-btn" id="adminMarketplaceToolsViewMore" aria-expanded="false">View more</button>
+                </div>
+                {% endif %}
                 {% else %}
                 <p style="text-align: center; padding: 40px; color: #999;">No tools found</p>
                 {% endif %}
@@ -707,9 +737,9 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="adminMarketplaceCropsTbody">
                         {% for crop in crops %}
-                        <tr>
+                        <tr{% if forloop.counter > 5 %} class="admin-mp-extra-row"{% endif %}>
                             <td>
                                 {% if crop.image %}
                                 <img src="{{ crop.image.url }}" alt="{{ crop.name }}" class="item-image">
@@ -742,6 +772,11 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% if crops|length > 5 %}
+                <div class="admin-mp-view-more-bar">
+                    <button type="button" class="admin-mp-view-more-btn" id="adminMarketplaceCropsViewMore" aria-expanded="false">View more</button>
+                </div>
+                {% endif %}
                 {% else %}
                 <p style="text-align: center; padding: 40px; color: #999;">No crops found</p>
                 {% endif %}
@@ -766,9 +801,9 @@
                             <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="adminMarketplaceOrdersTbody">
                         {% for order in orders %}
-                        <tr>
+                        <tr{% if forloop.counter > 5 %} class="admin-mp-extra-row"{% endif %}>
                             <td>#{{ order.id }}</td>
                             <td>{{ order.buyer.email }}</td>
                             <td>
@@ -800,6 +835,11 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% if orders|length > 5 %}
+                <div class="admin-mp-view-more-bar">
+                    <button type="button" class="admin-mp-view-more-btn" id="adminMarketplaceOrdersViewMore" aria-expanded="false">View more</button>
+                </div>
+                {% endif %}
                 {% else %}
                 <p style="text-align: center; padding: 40px; color: #999;">No orders found</p>
                 {% endif %}
@@ -822,9 +862,9 @@
                             <th>Date</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="adminMarketplacePaymentsTbody">
                         {% for order in payment_orders %}
-                        <tr>
+                        <tr{% if forloop.counter > 5 %} class="admin-mp-extra-row"{% endif %}>
                             <td>#{{ order.id }}</td>
                             <td>{{ order.buyer.email }}</td>
                             <td>Rs. {{ order.total_amount }}</td>
@@ -837,6 +877,11 @@
                         {% endfor %}
                     </tbody>
                 </table>
+                {% if payment_orders|length > 5 %}
+                <div class="admin-mp-view-more-bar">
+                    <button type="button" class="admin-mp-view-more-btn" id="adminMarketplacePaymentsViewMore" aria-expanded="false">View more</button>
+                </div>
+                {% endif %}
             </div>
             {% endif %}
             {% endif %}
@@ -1042,6 +1087,31 @@
     </div>
 
     <script>
+        (function () {
+            function bindViewMore(btnId, tbodyId) {
+                var btn = document.getElementById(btnId);
+                var tbody = document.getElementById(tbodyId);
+                if (!btn || !tbody) return;
+                var extras = tbody.querySelectorAll('tr.admin-mp-extra-row');
+                if (!extras.length) {
+                    btn.closest('.admin-mp-view-more-bar').style.display = 'none';
+                    return;
+                }
+                btn.addEventListener('click', function () {
+                    var show = btn.getAttribute('aria-expanded') !== 'true';
+                    btn.setAttribute('aria-expanded', show ? 'true' : 'false');
+                    extras.forEach(function (tr) {
+                        tr.classList.toggle('admin-mp-extra-visible', show);
+                    });
+                    btn.textContent = show ? 'View less' : 'View more';
+                });
+            }
+            bindViewMore('adminMarketplaceToolsViewMore', 'adminMarketplaceToolsTbody');
+            bindViewMore('adminMarketplaceCropsViewMore', 'adminMarketplaceCropsTbody');
+            bindViewMore('adminMarketplaceOrdersViewMore', 'adminMarketplaceOrdersTbody');
+            bindViewMore('adminMarketplacePaymentsViewMore', 'adminMarketplacePaymentsTbody');
+        })();
+
         // Tool Modals
         function openAddToolModal() {
             document.getElementById('toolModalTitle').textContent = 'Add Tool';
