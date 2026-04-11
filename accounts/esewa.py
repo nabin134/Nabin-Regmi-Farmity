@@ -132,9 +132,15 @@ def esewa_verify_callback_signature(data: dict, secret: str) -> bool:
     parts = []
     for key in signed_names.split(','):
         key = key.strip()
+        if not key:
+            continue
         val = data.get(key)
         if val is None:
             return False
+        # signed_field_names value is a comma-separated list string; do not numeric-normalize it
+        if key == 'signed_field_names':
+            parts.append(f'{key}={val}')
+            continue
         # Normalize so we match eSewa's signature (e.g. 230.0 -> "230", "100.0" -> 100)
         if isinstance(val, str) and val.strip() != '':
             try:

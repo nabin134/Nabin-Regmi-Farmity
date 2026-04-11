@@ -2730,6 +2730,10 @@
                                 <p class="farmer-order-meta"><i class="fas fa-tag"></i> {% if order.crop %}Crop{% elif order.tool %}Tool{% else %}—{% endif %} &middot; {{ order.quantity }}{% if order.crop %} {{ order.crop.unit|default:"" }}{% endif %}</p>
                                 <p class="farmer-order-meta"><i class="fas fa-store"></i> From {% if order.crop %}{{ order.crop.farmer.name|default:order.crop.farmer.user.email }}{% elif order.tool %}{{ order.tool.vendor.company_name|default:order.tool.vendor.user.email }}{% else %}—{% endif %}</p>
                                 <p class="farmer-order-meta"><i class="far fa-calendar"></i> {{ order.created_at|date:"M d, Y · h:i A" }}</p>
+                                {% if order.status == 'awaiting_payment' and order.payment_method == 'esewa' %}
+                                <p class="farmer-order-meta" style="color: #b45309;"><i class="fas fa-exclamation-circle"></i> Pay with eSewa to confirm this order.</p>
+                                <a href="{% url 'esewa_initiate' %}?order_id={{ order.id }}" class="btn-primary farmer-order-view-btn" style="text-decoration:none;display:inline-flex;align-items:center;gap:0.35rem;margin:0.5rem 0;"><i class="fas fa-mobile-alt"></i> Pay with eSewa</a>
+                                {% endif %}
                                 <div class="farmer-order-card-footer">
                                     <span class="farmer-order-total">Rs. {{ order.total_amount|default:0|floatformat:2 }} <small>(incl. Rs. {{ order.shipping_cost|default:0 }} shipping)</small></span>
                                     <button type="button" onclick="openOrderDetailModal({{ order.id }})" class="btn-primary farmer-order-view-btn"><i class="fas fa-eye"></i> <span data-translate="myOrders.viewDetails">View details</span></button>
@@ -3849,14 +3853,25 @@
             } catch (e) {}
         }
 
+        function isDashboardPageReload() {
+            try {
+                var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+                return nav && nav.type === 'reload';
+            } catch (e) {
+                return false;
+            }
+        }
+
         function resolveInitialFarmerSection() {
             var fromUrl = normalizeSectionId(new URLSearchParams(window.location.search).get('section'));
             if (fromUrl && document.getElementById(fromUrl + '-section')) return fromUrl;
-            var fromStorage = '';
-            try {
-                fromStorage = normalizeSectionId(localStorage.getItem(FARMER_SECTION_STORAGE_KEY));
-            } catch (e) {}
-            if (fromStorage && document.getElementById(fromStorage + '-section')) return fromStorage;
+            if (isDashboardPageReload()) {
+                var fromStorage = '';
+                try {
+                    fromStorage = normalizeSectionId(localStorage.getItem(FARMER_SECTION_STORAGE_KEY));
+                } catch (e) {}
+                if (fromStorage && document.getElementById(fromStorage + '-section')) return fromStorage;
+            }
             var fromServer = normalizeSectionId('{{ active_section|default:"dashboard" }}');
             if (fromServer && document.getElementById(fromServer + '-section')) return fromServer;
             return 'dashboard';

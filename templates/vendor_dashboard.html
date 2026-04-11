@@ -3104,12 +3104,6 @@
 
                     <div class="section-body">
 
-                        <p class="earnings-intro-pro">
-                            <strong>How this works:</strong> <strong>Buyer paid</strong> is what the customer was charged (product + shipping).
-                            <strong>Platform fee</strong> is Farmity’s commission on the product portion; <strong>Your earning</strong> is your share (after commission) plus full shipping on paid orders.
-                            Summary cards below count only orders with <strong>completed</strong> payment. Payouts move from <em>awaiting payout</em> to <em>paid out</em> when admin marks them released.
-                        </p>
-
                         <div class="earnings-cards">
 
                             <div class="earnings-card card-total-collect">
@@ -3117,8 +3111,6 @@
                                 <span class="earnings-card-label">Your earning (paid orders)</span>
 
                                 <div class="earnings-card-value">Rs. {{ amount_collected|floatformat:2 }}</div>
-
-                                <div class="earnings-card-note">Net share from completed payments</div>
 
                             </div>
 
@@ -3128,8 +3120,6 @@
 
                                 <div class="earnings-card-value">{{ total_orders_received }}</div>
 
-                                <div class="earnings-card-note">Payment completed</div>
-
                             </div>
 
                             <div class="earnings-card card-pending">
@@ -3137,8 +3127,6 @@
                                 <span class="earnings-card-label">Awaiting payout</span>
 
                                 <div class="earnings-card-value">Rs. {{ pending_release_amount|floatformat:2 }}</div>
-
-                                <div class="earnings-card-note">Admin has not released yet</div>
 
                             </div>
 
@@ -3148,17 +3136,14 @@
 
                                 <div class="earnings-card-value">Rs. {{ total_released_amount|floatformat:2 }}</div>
 
-                                <div class="earnings-card-note">Released via dashboard</div>
-
                             </div>
 
                         </div>
 
                         {% if previous_released_amount and previous_released_amount > 0 %}
 
-                        <p class="earnings-legacy-note">
-                            <strong>Prior balance on file:</strong> Rs. {{ previous_released_amount|floatformat:2 }} was recorded before in-app payout tracking.
-                            <strong>Lifetime total (including prior):</strong> Rs. {{ total_amount_collect|floatformat:2 }}.
+                        <p class="earnings-legacy-note" style="margin-top: 1rem; font-size: 0.95rem; color: #555;">
+                            Prior balance: Rs. {{ previous_released_amount|floatformat:2 }} · Lifetime total: Rs. {{ total_amount_collect|floatformat:2 }}
                         </p>
 
                         {% endif %}
@@ -3217,7 +3202,7 @@
 
                                 {% else %}
 
-                                <p class="earnings-intro" style="margin-bottom:0;">No payout batches yet. When admin releases your pending balance, each release date will appear here with the amount and order count.</p>
+                                <p class="earnings-intro" style="margin-bottom:0;">No payout batches yet.</p>
 
                                 {% endif %}
 
@@ -3236,8 +3221,6 @@
                             <div class="section-body">
 
                                 {% if vendor_transactions %}
-
-                                <p class="earnings-intro" style="margin-top:0;">Up to 200 most recent orders. Amounts use your current commission rules; older rows with missing stored values are recalculated for display.</p>
 
                                 <div class="vendor-tx-table-wrap table-responsive">
 
@@ -4020,6 +4003,16 @@
 
             if (clickedItem) clickedItem.classList.add('active');
 
+            try {
+
+                var url = new URL(window.location.href);
+
+                url.searchParams.set('section', sectionId);
+
+                history.replaceState(null, '', url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : ''));
+
+            } catch (e) {}
+
 
 
             // Close sidebar after a section change on small screens
@@ -4236,11 +4229,27 @@
 
         document.addEventListener('DOMContentLoaded', function() {
 
-            var sectionFromUrl = new URLSearchParams(window.location.search).get('section');
+            var params = new URLSearchParams(window.location.search);
+
+            var sectionFromUrl = (params.get('section') || '').trim();
+
+            var sectionFromHash = (window.location.hash || '').replace(/^#/, '').trim();
+
+            var initial = '';
 
             if (sectionFromUrl && document.getElementById(sectionFromUrl + '-section')) {
 
-                showSection(sectionFromUrl, null);
+                initial = sectionFromUrl;
+
+            } else if (sectionFromHash && document.getElementById(sectionFromHash + '-section')) {
+
+                initial = sectionFromHash;
+
+            }
+
+            if (initial) {
+
+                showSection(initial, null);
 
             }
 

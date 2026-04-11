@@ -2338,12 +2338,23 @@
                 window.history.replaceState({}, '', url.toString());
             } catch (e) {}
         }
+        function isExpertDashboardPageReload() {
+            try {
+                var nav = performance.getEntriesByType && performance.getEntriesByType('navigation')[0];
+                return nav && nav.type === 'reload';
+            } catch (e) {
+                return false;
+            }
+        }
+
         function resolveInitialExpertSection() {
             var fromUrl = normalizeExpertSectionId(new URLSearchParams(window.location.search).get('section'));
             if (fromUrl && document.getElementById(fromUrl + '-section')) return fromUrl;
-            var fromStorage = '';
-            try { fromStorage = normalizeExpertSectionId(localStorage.getItem(EXPERT_SECTION_STORAGE_KEY)); } catch (e) {}
-            if (fromStorage && document.getElementById(fromStorage + '-section')) return fromStorage;
+            if (isExpertDashboardPageReload()) {
+                var fromStorage = '';
+                try { fromStorage = normalizeExpertSectionId(localStorage.getItem(EXPERT_SECTION_STORAGE_KEY)); } catch (e) {}
+                if (fromStorage && document.getElementById(fromStorage + '-section')) return fromStorage;
+            }
             var fromServer = normalizeExpertSectionId('{{ active_section|default:"dashboard" }}');
             if (fromServer && document.getElementById(fromServer + '-section')) return fromServer;
             return 'dashboard';

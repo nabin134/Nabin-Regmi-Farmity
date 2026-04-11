@@ -2390,6 +2390,12 @@
                                     {% if order.shipping_address %}
                                     <p class="order-card-meta"><i class="fas fa-map-marker-alt"></i> {{ order.shipping_address|truncatewords:12 }}</p>
                                     {% endif %}
+                                    {% if order.status == 'awaiting_payment' and order.payment_method == 'esewa' %}
+                                    <p class="order-card-meta" style="color: #b45309;"><i class="fas fa-exclamation-circle"></i> Complete eSewa payment to confirm this order. If you cancelled, this entry will clear when you return from eSewa.</p>
+                                    <a href="{% url 'esewa_initiate' %}?order_id={{ order.id }}" class="btn-buy" style="display:inline-flex;align-items:center;gap:0.5rem;margin-top:0.5rem;text-decoration:none;width:auto;padding:0.5rem 1rem;font-size:0.9rem;">
+                                        <i class="fas fa-mobile-alt"></i> Pay with eSewa
+                                    </a>
+                                    {% endif %}
                                     {% if order.payment_status == 'completed' %}
                                     <p class="order-card-meta" style="color: var(--success);"><i class="fas fa-check-circle"></i> Payment received — order can be tracked</p>
                                     {% endif %}

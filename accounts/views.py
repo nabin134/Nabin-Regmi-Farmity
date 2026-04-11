@@ -24,7 +24,7 @@ import json
 import logging
 import smtplib
 from datetime import timedelta, datetime, date
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 import calendar
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
@@ -1764,7 +1764,7 @@ def esewa_success(request):
         messages.error(request, 'Invalid eSewa response.')
         return redirect(reverse('user_dashboard'))
 
-    if data.get('status') != 'COMPLETE':
+    if str(data.get('status') or '').strip().upper() != 'COMPLETE':
         messages.warning(request, 'Payment was not completed.')
         return redirect(reverse('user_dashboard'))
 
@@ -1787,7 +1787,8 @@ def esewa_success(request):
             try:
                 verified_total = float(verification.get('total_amount', verification.get('totalAmount', 0)))
                 expected_total = float(total_amount_callback)
-                if abs(verified_total - expected_total) > 0.01:
+                # NPR is whole rupees in ePay v2; allow small float drift
+                if abs(verified_total - expected_total) > 0.51:
                     messages.error(request, 'Payment amount mismatch. Please contact support.')
                     return redirect(reverse('user_dashboard'))
             except (TypeError, ValueError):
@@ -1801,7 +1802,8 @@ def esewa_success(request):
         try:
             order_id = int(transaction_uuid.replace('order-', ''))
             Order.objects.filter(id=order_id, payment_method=Order.PAYMENT_ESEWA).update(
-                payment_status=Order.PAYMENT_STATUS_COMPLETED
+                payment_status=Order.PAYMENT_STATUS_COMPLETED,
+                status=Order.STATUS_CONFIRMED,
             )
             order_ids_to_notify = [order_id]
         except ValueError:
@@ -1810,7 +1812,8 @@ def esewa_success(request):
         pg = PaymentGroup.objects.filter(reference=transaction_uuid).first()
         if pg and pg.order_ids:
             Order.objects.filter(id__in=pg.order_ids, payment_method=Order.PAYMENT_ESEWA).update(
-                payment_status=Order.PAYMENT_STATUS_COMPLETED
+                payment_status=Order.PAYMENT_STATUS_COMPLETED,
+                status=Order.STATUS_CONFIRMED,
             )
             pg.status = PaymentGroup.STATUS_COMPLETED
             pg.save(update_fields=['status', 'updated_at'])
@@ -1909,16 +1912,28 @@ def esewa_success(request):
 
 def esewa_failure(request):
     """eSewa redirects here on payment failure or cancel."""
-    from .models import PaymentGroup
-    # If this failure corresponds to a PaymentGroup, mark it failed (best-effort)
+    from .models import PaymentGroup, Order
     ref = request.session.get('esewa_transaction_ref')
+    order_ids = list(request.session.get('esewa_order_ids') or [])
+    # If this failure corresponds to a PaymentGroup, mark it failed (best-effort)
     if ref and isinstance(ref, str) and ref.startswith('pg-'):
         PaymentGroup.objects.filter(reference=ref).update(status=PaymentGroup.STATUS_FAILED)
+    # Remove checkout placeholders: order was never "placed" for sellers until eSewa succeeds
+    if order_ids:
+        Order.objects.filter(
+            id__in=order_ids,
+            payment_method=Order.PAYMENT_ESEWA,
+            payment_status=Order.PAYMENT_STATUS_PENDING,
+            status=Order.STATUS_AWAITING_PAYMENT,
+        ).delete()
     redirect_after = request.session.pop('esewa_redirect_after', 'user_dashboard')
     request.session.pop('esewa_order_ids', None)
     request.session.pop('esewa_pending_order_ids', None)
     request.session.pop('esewa_transaction_ref', None)
-    messages.warning(request, 'eSewa payment was cancelled or failed. You can try again or use Cash on Delivery.')
+    messages.warning(
+        request,
+        'eSewa payment was cancelled or failed. Any unpaid online checkout was cleared—you can place the order again or use Cash on Delivery.',
+    )
     from urllib.parse import urlencode
     fail_url = reverse(redirect_after)
     if redirect_after == 'farmer_dashboard':
@@ -2588,8 +2603,12 @@ def farmer_dashboard(request):
                     base_amount = _to_decimal_or_none(total_amount) or (tool.price * quantity)
                 shipping_cost = Decimal('100.00')
                 total_amount = (Decimal(str(base_amount)) + shipping_cost).quantize(Decimal('0.01'))
+                if payment_method == Order.PAYMENT_ESEWA:
+                    total_amount = total_amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
                 admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
-                # Create order with payment method
+                order_status = (
+                    Order.STATUS_AWAITING_PAYMENT if payment_method == Order.PAYMENT_ESEWA else Order.STATUS_CONFIRMED
+                )
                 order = Order.objects.create(
                     buyer=request.user,
                     tool=tool,
@@ -2598,7 +2617,7 @@ def farmer_dashboard(request):
                     shipping_cost=shipping_cost,
                     admin_commission=admin_commission,
                     seller_amount=seller_amount,
-                    status=Order.STATUS_CONFIRMED,
+                    status=order_status,
                     payment_method=payment_method,
                     payment_status='pending',
                     shipping_address=shipping_address,
@@ -2608,34 +2627,33 @@ def farmer_dashboard(request):
                 )
                 
                 if payment_method != Order.PAYMENT_ESEWA:
-                    # Update stock immediately for COD
                     tool.stock_quantity -= quantity
                     if tool.stock_quantity == 0:
                         tool.is_available = False
                     tool.save()
                     order.inventory_deducted = True
                     order.save(update_fields=['inventory_deducted'])
-                vendor_user = getattr(tool.vendor, 'user', None)
-                if vendor_user:
+                    vendor_user = getattr(tool.vendor, 'user', None)
+                    if vendor_user:
+                        create_notification(
+                            vendor_user,
+                            'New tool order',
+                            f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f} (incl. shipping)',
+                            reverse('vendor_dashboard'),
+                            UserNotification.TYPE_ORDER
+                        )
                     create_notification(
-                        vendor_user,
-                        'New tool order',
+                        request.user,
+                        'Order placed',
                         f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f} (incl. shipping)',
-                        reverse('vendor_dashboard'),
+                        reverse('farmer_dashboard') + '?section=tools',
                         UserNotification.TYPE_ORDER
                     )
-                create_notification(
-                    request.user,
-                    'Order placed',
-                    f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f} (incl. shipping)',
-                    reverse('farmer_dashboard') + '?section=tools',
-                    UserNotification.TYPE_ORDER
-                )
-                if payment_method == Order.PAYMENT_ESEWA:
+                    messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
+                else:
                     request.session['esewa_redirect_after'] = 'farmer_dashboard'
                     request.session.modified = True
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
-                messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
             else:
                 messages.error(request, 'Insufficient stock!')
         except VendorTool.DoesNotExist:
@@ -2690,7 +2708,12 @@ def farmer_dashboard(request):
                 base_amount = (Decimal(str(tool.price)) * Decimal(str(qty))).quantize(Decimal('0.01'))
                 shipping_cost = Decimal('100.00')
                 total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
+                if payment_method == Order.PAYMENT_ESEWA:
+                    total_amount = total_amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
                 admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
+                order_status = (
+                    Order.STATUS_AWAITING_PAYMENT if payment_method == Order.PAYMENT_ESEWA else Order.STATUS_CONFIRMED
+                )
                 order = Order.objects.create(
                     buyer=request.user,
                     tool=tool,
@@ -2699,7 +2722,7 @@ def farmer_dashboard(request):
                     shipping_cost=shipping_cost,
                     admin_commission=admin_commission,
                     seller_amount=seller_amount,
-                    status=Order.STATUS_CONFIRMED,
+                    status=order_status,
                     payment_method=payment_method,
                     payment_status='pending',
                     shipping_address=shipping_address,
@@ -2714,22 +2737,22 @@ def farmer_dashboard(request):
                     tool.save()
                     order.inventory_deducted = True
                     order.save(update_fields=['inventory_deducted'])
-                vendor_user = getattr(tool.vendor, 'user', None)
-                if vendor_user:
+                    vendor_user = getattr(tool.vendor, 'user', None)
+                    if vendor_user:
+                        create_notification(
+                            vendor_user,
+                            'New tool order',
+                            f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f} (incl. shipping)',
+                            reverse('vendor_dashboard'),
+                            UserNotification.TYPE_ORDER
+                        )
                     create_notification(
-                        vendor_user,
-                        'New tool order',
+                        request.user,
+                        'Order placed',
                         f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f} (incl. shipping)',
-                        reverse('vendor_dashboard'),
+                        reverse('farmer_dashboard') + '?section=tools',
                         UserNotification.TYPE_ORDER
                     )
-                create_notification(
-                    request.user,
-                    'Order placed',
-                    f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f} (incl. shipping)',
-                    reverse('farmer_dashboard') + '?section=tools',
-                    UserNotification.TYPE_ORDER
-                )
                 orders_created.append(order)
             except VendorTool.DoesNotExist:
                 errors.append(f"Tool (id {item_id}) no longer available")
@@ -3036,7 +3059,9 @@ def farmer_dashboard(request):
     available_tools = VendorTool.objects.filter(is_available=True, stock_quantity__gt=0).select_related('vendor', 'vendor__user').order_by('-created_at')[:12]
     
     # Orders placed by buyers for THIS farmer's crops (shipping handled by admin)
-    farmer_orders = Order.objects.filter(crop__farmer=profile).select_related('buyer', 'crop').order_by('-created_at')[:30]
+    farmer_orders = Order.objects.filter(crop__farmer=profile).exclude(
+        status=Order.STATUS_AWAITING_PAYMENT
+    ).select_related('buyer', 'crop').order_by('-created_at')[:30]
     # Farmer's own orders (as buyer): tools from vendors or crops from other farmers
     farmer_my_orders = Order.objects.filter(buyer=request.user).select_related(
         'tool', 'tool__vendor', 'tool__vendor__user', 'crop', 'crop__farmer', 'crop__farmer__user'
@@ -3091,7 +3116,9 @@ def farmer_dashboard(request):
     farmer_total_spend = farmer_spend_orders.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED).aggregate(
         total=Sum('total_amount')
     )['total'] or Decimal('0')
-    farmer_sale_transactions = Order.objects.filter(crop__farmer=profile).select_related(
+    farmer_sale_transactions = Order.objects.filter(crop__farmer=profile).exclude(
+        status=Order.STATUS_AWAITING_PAYMENT
+    ).select_related(
         'buyer', 'crop'
     ).order_by('-created_at')[:200]
     farmer_purchase_transactions = Order.objects.filter(buyer=request.user).select_related(
@@ -3322,7 +3349,9 @@ def vendor_dashboard(request):
     tools = VendorTool.objects.filter(vendor=profile).order_by('-created_at')
     
     # Get orders for vendor's tools
-    orders = Order.objects.filter(tool__vendor=profile).select_related('buyer', 'tool').order_by('-created_at')
+    orders = Order.objects.filter(tool__vendor=profile).exclude(
+        status=Order.STATUS_AWAITING_PAYMENT
+    ).select_related('buyer', 'tool').order_by('-created_at')
     vendor_transactions = orders[:200]
 
     from collections import defaultdict
@@ -3991,7 +4020,13 @@ def user_dashboard(request):
                 base_amount = (crop.price_per_unit * quantity).quantize(Decimal('0.01'))
                 shipping_cost = Decimal('100.00')
                 total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
+                if payment_method == Order.PAYMENT_ESEWA:
+                    total_amount = total_amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+                    base_amount = (total_amount - shipping_cost).quantize(Decimal('0.01'))
                 admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='crop')
+                order_status = (
+                    Order.STATUS_AWAITING_PAYMENT if payment_method == Order.PAYMENT_ESEWA else Order.STATUS_CONFIRMED
+                )
                 # Create order (quantity must be integer for Order model, but we store decimal in CropSale)
                 order = Order.objects.create(
                     buyer=request.user,
@@ -4001,7 +4036,7 @@ def user_dashboard(request):
                     shipping_cost=shipping_cost,
                     admin_commission=admin_commission,
                     seller_amount=seller_amount,
-                    status=Order.STATUS_CONFIRMED,
+                    status=order_status,
                     payment_method=payment_method,
                     payment_status='pending',
                     shipping_address=request.POST.get('shipping_address', ''),
@@ -4027,27 +4062,27 @@ def user_dashboard(request):
                     )
                     order.inventory_deducted = True
                     order.save(update_fields=['inventory_deducted'])
-                farmer_user = getattr(crop.farmer, 'user', None)
-                if farmer_user:
+                    farmer_user = getattr(crop.farmer, 'user', None)
+                    if farmer_user:
+                        create_notification(
+                            farmer_user,
+                            'New order for your crop',
+                            f'Order #{order.id}: {crop.name} x{int(round(quantity))} — Rs. {total_amount:.2f} (incl. shipping)',
+                            reverse('farmer_dashboard') + '?section=orders',
+                            UserNotification.TYPE_ORDER
+                        )
                     create_notification(
-                        farmer_user,
-                        'New order for your crop',
+                        request.user,
+                        'Order placed',
                         f'Order #{order.id}: {crop.name} x{int(round(quantity))} — Rs. {total_amount:.2f} (incl. shipping)',
-                        reverse('farmer_dashboard') + '?section=orders',
+                        reverse('user_dashboard') + '?section=orders',
                         UserNotification.TYPE_ORDER
                     )
-                create_notification(
-                    request.user,
-                    'Order placed',
-                    f'Order #{order.id}: {crop.name} x{int(round(quantity))} — Rs. {total_amount:.2f} (incl. shipping)',
-                    reverse('user_dashboard') + '?section=orders',
-                    UserNotification.TYPE_ORDER
-                )
-                if payment_method == Order.PAYMENT_ESEWA:
+                    messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery (incl. Rs. 100 shipping).')
+                else:
                     request.session['esewa_redirect_after'] = 'user_dashboard'
                     request.session.modified = True
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
-                messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery (incl. Rs. 100 shipping).')
             else:
                 messages.error(request, f'Insufficient quantity. Available: {crop.quantity} {crop.unit}')
         except FarmerProduct.DoesNotExist:
@@ -4081,9 +4116,13 @@ def user_dashboard(request):
             if tool.stock_quantity >= quantity:
                 base_amount = tool.price * quantity
                 shipping_cost = Decimal('100.00')
-                total_amount = base_amount + shipping_cost
+                total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
+                if payment_method == Order.PAYMENT_ESEWA:
+                    total_amount = total_amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
                 admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
-                # Create order
+                order_status = (
+                    Order.STATUS_AWAITING_PAYMENT if payment_method == Order.PAYMENT_ESEWA else Order.STATUS_CONFIRMED
+                )
                 order = Order.objects.create(
                     buyer=request.user,
                     tool=tool,
@@ -4092,7 +4131,7 @@ def user_dashboard(request):
                     shipping_cost=shipping_cost,
                     admin_commission=admin_commission,
                     seller_amount=seller_amount,
-                    status=Order.STATUS_CONFIRMED,
+                    status=order_status,
                     payment_method=payment_method,
                     payment_status='pending',
                     shipping_address=request.POST.get('shipping_address', ''),
@@ -4108,27 +4147,27 @@ def user_dashboard(request):
                     tool.save()
                     order.inventory_deducted = True
                     order.save(update_fields=['inventory_deducted'])
-                vendor_user = getattr(tool.vendor, 'user', None)
-                if vendor_user:
+                    vendor_user = getattr(tool.vendor, 'user', None)
+                    if vendor_user:
+                        create_notification(
+                            vendor_user,
+                            'New tool order',
+                            f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f} (incl. shipping)',
+                            reverse('vendor_dashboard'),
+                            UserNotification.TYPE_ORDER
+                        )
                     create_notification(
-                        vendor_user,
-                        'New tool order',
+                        request.user,
+                        'Order placed',
                         f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f} (incl. shipping)',
-                        reverse('vendor_dashboard'),
+                        reverse('user_dashboard') + '?section=orders',
                         UserNotification.TYPE_ORDER
                     )
-                create_notification(
-                    request.user,
-                    'Order placed',
-                    f'Order #{order.id}: {tool.name} x{quantity} — Rs. {total_amount:.2f} (incl. shipping)',
-                    reverse('user_dashboard') + '?section=orders',
-                    UserNotification.TYPE_ORDER
-                )
-                if payment_method == Order.PAYMENT_ESEWA:
+                    messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery (incl. Rs. 100 shipping).')
+                else:
                     request.session['esewa_redirect_after'] = 'user_dashboard'
                     request.session.modified = True
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
-                messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery (incl. Rs. 100 shipping).')
             else:
                 messages.error(request, f'Insufficient stock. Available: {tool.stock_quantity} units')
         except VendorTool.DoesNotExist:
@@ -4183,7 +4222,13 @@ def user_dashboard(request):
                     base_amount = (Decimal(str(crop.price_per_unit)) * qty).quantize(Decimal('0.01'))
                     shipping_cost = Decimal('100.00')
                     total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
+                    if payment_method == Order.PAYMENT_ESEWA:
+                        total_amount = total_amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+                        base_amount = (total_amount - shipping_cost).quantize(Decimal('0.01'))
                     admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='crop')
+                    order_status = (
+                        Order.STATUS_AWAITING_PAYMENT if payment_method == Order.PAYMENT_ESEWA else Order.STATUS_CONFIRMED
+                    )
                     order = Order.objects.create(
                         buyer=request.user,
                         crop=crop,
@@ -4192,7 +4237,7 @@ def user_dashboard(request):
                         shipping_cost=shipping_cost,
                         admin_commission=admin_commission,
                         seller_amount=seller_amount,
-                        status=Order.STATUS_CONFIRMED,
+                        status=order_status,
                         payment_method=payment_method,
                         payment_status='pending',
                         shipping_address=shipping_address,
@@ -4216,22 +4261,22 @@ def user_dashboard(request):
                         )
                         order.inventory_deducted = True
                         order.save(update_fields=['inventory_deducted'])
-                    farmer_user = getattr(crop.farmer, 'user', None)
-                    if farmer_user:
+                        farmer_user = getattr(crop.farmer, 'user', None)
+                        if farmer_user:
+                            create_notification(
+                                farmer_user,
+                                'New order for your crop',
+                                f'Order #{order.id}: {crop.name} x{int(round(qty))} — Rs. {total_amount:.2f} (incl. shipping)',
+                                reverse('farmer_dashboard') + '?section=orders',
+                                UserNotification.TYPE_ORDER
+                            )
                         create_notification(
-                            farmer_user,
-                            'New order for your crop',
+                            request.user,
+                            'Order placed',
                             f'Order #{order.id}: {crop.name} x{int(round(qty))} — Rs. {total_amount:.2f} (incl. shipping)',
-                            reverse('farmer_dashboard') + '?section=orders',
+                            reverse('user_dashboard') + '?section=orders',
                             UserNotification.TYPE_ORDER
                         )
-                    create_notification(
-                        request.user,
-                        'Order placed',
-                        f'Order #{order.id}: {crop.name} x{int(round(qty))} — Rs. {total_amount:.2f} (incl. shipping)',
-                        reverse('user_dashboard') + '?section=orders',
-                        UserNotification.TYPE_ORDER
-                    )
                     orders_created.append(order)
                 except FarmerProduct.DoesNotExist:
                     errors.append(f"Crop (id {item_id}) no longer available")
@@ -4244,7 +4289,12 @@ def user_dashboard(request):
                     base_amount = (Decimal(str(tool.price)) * Decimal(str(qty))).quantize(Decimal('0.01'))
                     shipping_cost = Decimal('100.00')
                     total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
+                    if payment_method == Order.PAYMENT_ESEWA:
+                        total_amount = total_amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
                     admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
+                    order_status = (
+                        Order.STATUS_AWAITING_PAYMENT if payment_method == Order.PAYMENT_ESEWA else Order.STATUS_CONFIRMED
+                    )
                     order = Order.objects.create(
                         buyer=request.user,
                         tool=tool,
@@ -4253,7 +4303,7 @@ def user_dashboard(request):
                         shipping_cost=shipping_cost,
                         admin_commission=admin_commission,
                         seller_amount=seller_amount,
-                        status=Order.STATUS_CONFIRMED,
+                        status=order_status,
                         payment_method=payment_method,
                         payment_status='pending',
                         shipping_address=shipping_address,
@@ -4268,22 +4318,22 @@ def user_dashboard(request):
                         tool.save()
                         order.inventory_deducted = True
                         order.save(update_fields=['inventory_deducted'])
-                    vendor_user = getattr(tool.vendor, 'user', None)
-                    if vendor_user:
+                        vendor_user = getattr(tool.vendor, 'user', None)
+                        if vendor_user:
+                            create_notification(
+                                vendor_user,
+                                'New tool order',
+                                f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f} (incl. shipping)',
+                                reverse('vendor_dashboard'),
+                                UserNotification.TYPE_ORDER
+                            )
                         create_notification(
-                            vendor_user,
-                            'New tool order',
+                            request.user,
+                            'Order placed',
                             f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f} (incl. shipping)',
-                            reverse('vendor_dashboard'),
+                            reverse('user_dashboard') + '?section=orders',
                             UserNotification.TYPE_ORDER
                         )
-                    create_notification(
-                        request.user,
-                        'Order placed',
-                        f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f} (incl. shipping)',
-                        reverse('user_dashboard') + '?section=orders',
-                        UserNotification.TYPE_ORDER
-                    )
                     orders_created.append(order)
                 except VendorTool.DoesNotExist:
                     errors.append(f"Tool (id {item_id}) no longer available")
@@ -4496,10 +4546,11 @@ def user_dashboard(request):
     
     # Get purchase history with statistics
     purchase_history = Order.objects.filter(buyer=request.user).select_related('tool', 'crop', 'crop__farmer', 'tool__vendor').order_by('-created_at')
+    orders_for_stats = purchase_history.exclude(status=Order.STATUS_AWAITING_PAYMENT)
     
-    # Calculate statistics
-    total_orders = purchase_history.count()
-    total_spent = purchase_history.aggregate(total=Sum('total_amount'))['total'] or 0
+    # Calculate statistics (exclude unpaid eSewa checkouts)
+    total_orders = orders_for_stats.count()
+    total_spent = orders_for_stats.aggregate(total=Sum('total_amount'))['total'] or 0
     pending_orders = purchase_history.filter(status=Order.STATUS_PENDING).count()
     completed_orders = purchase_history.filter(status=Order.STATUS_DELIVERED).count()
     
@@ -5772,7 +5823,9 @@ def admin_marketplace_oversight(request):
         context['available_crops'] = FarmerProduct.objects.filter(is_available=True).count()
     
     if section == 'overview' or section == 'orders':
-        orders = Order.objects.select_related('buyer', 'tool', 'tool__vendor', 'crop', 'crop__farmer').order_by('-created_at')
+        orders = Order.objects.select_related('buyer', 'tool', 'tool__vendor', 'crop', 'crop__farmer').exclude(
+            status=Order.STATUS_AWAITING_PAYMENT
+        ).order_by('-created_at')
         if status_filter != 'all':
             orders = orders.filter(status=status_filter)
         if search_query:
@@ -5788,7 +5841,9 @@ def admin_marketplace_oversight(request):
         context['completed_orders'] = Order.objects.filter(status=Order.STATUS_DELIVERED).count()
     
     if section == 'overview' or section == 'payments':
-        orders = Order.objects.select_related('buyer', 'tool', 'crop').order_by('-created_at')
+        orders = Order.objects.select_related('buyer', 'tool', 'crop').exclude(
+            status=Order.STATUS_AWAITING_PAYMENT
+        ).order_by('-created_at')
         total_revenue = Order.objects.aggregate(total=Sum('total_amount'))['total'] or 0
         completed_payments = Order.objects.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED).count()
         pending_payments = Order.objects.filter(payment_status=Order.PAYMENT_STATUS_PENDING).count()

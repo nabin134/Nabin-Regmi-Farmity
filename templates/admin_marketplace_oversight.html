@@ -237,6 +237,11 @@
             padding: 24px;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
             overflow-x: auto;
+            margin-bottom: 32px;
+        }
+
+        .table-container:last-of-type {
+            margin-bottom: 0;
         }
 
         .data-table {
@@ -717,7 +722,7 @@
 
             <!-- Crops Table -->
             {% if section == 'overview' or section == 'crops' %}
-            <div class="table-container" style="margin-top: 20px;">
+            <div class="table-container">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                     <h3 style="font-size: 20px; font-weight: 600;">Crop Listings</h3>
                     <button class="btn btn-add" onclick="openAddCropModal()" style="background: var(--success); color: white; padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;">

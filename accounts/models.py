@@ -358,6 +358,8 @@ class ExpertChatMessage(models.Model):
 
 class Order(models.Model):
     STATUS_PENDING = 'pending'
+    # eSewa: created only after buyer submits checkout; not visible to sellers until payment completes.
+    STATUS_AWAITING_PAYMENT = 'awaiting_payment'
     STATUS_CONFIRMED = 'confirmed'
     STATUS_READY_TO_SHIP = 'ready_to_ship'
     STATUS_SHIPPED = 'shipped'
@@ -366,6 +368,7 @@ class Order(models.Model):
     STATUS_CANCELLED = 'cancelled'
     STATUS_CHOICES = (
         (STATUS_PENDING, 'Pending'),
+        (STATUS_AWAITING_PAYMENT, 'Awaiting payment'),
         (STATUS_CONFIRMED, 'Confirmed'),
         (STATUS_READY_TO_SHIP, 'Ready to ship'),
         (STATUS_SHIPPED, 'Shipped'),
