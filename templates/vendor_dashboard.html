@@ -2844,11 +2844,15 @@
 
                                         </div>
 
-                                        <span class="tool-status {% if tool.stock_quantity == 0 %}status-unavailable{% elif tool.stock_quantity < 5 %}status-low-stock{% elif tool.is_available %}status-available{% else %}status-unavailable{% endif %}">
+                                        <span class="tool-status {% if tool.stock_quantity <= 0 %}status-unavailable{% elif tool.stock_quantity <= 1 %}status-unavailable{% elif tool.stock_quantity < 5 %}status-low-stock{% elif tool.is_available %}status-available{% else %}status-unavailable{% endif %}">
 
-                                            {% if tool.stock_quantity == 0 %}
+                                            {% if tool.stock_quantity <= 0 %}
 
                                                 No Stock (Sold Out)
+
+                                            {% elif tool.stock_quantity <= 1 %}
+
+                                                Not Available (need &gt;1 unit for buyers)
 
                                             {% elif tool.stock_quantity < 5 %}
 

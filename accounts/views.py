@@ -2611,6 +2611,12 @@ def farmer_dashboard(request):
             return _redirect_same_page(request, 'farmer_dashboard')
         try:
             tool = VendorTool.objects.get(id=tool_id, is_available=True)
+            if tool.stock_quantity <= 1:
+                messages.error(
+                    request,
+                    'This tool is not available — need more than 1 unit in stock to buy.',
+                )
+                return _redirect_same_page(request, 'farmer_dashboard')
             if tool.stock_quantity >= quantity:
                 if not total_amount:
                     base_amount = tool.price * quantity
@@ -2718,6 +2724,9 @@ def farmer_dashboard(request):
                 continue
             try:
                 tool = VendorTool.objects.get(id=item_id, is_available=True, stock_quantity__gt=0)
+                if tool.stock_quantity <= 1:
+                    errors.append(f"{tool.name}: not available — need more than 1 unit in stock to buy")
+                    continue
                 if tool.stock_quantity < qty:
                     errors.append(f"{tool.name}: only {tool.stock_quantity} units available")
                     continue
@@ -4228,6 +4237,12 @@ def user_dashboard(request):
         try:
             with transaction.atomic():
                 tool = VendorTool.objects.select_for_update().get(id=tool_id, is_available=True, stock_quantity__gt=0)
+                if tool.stock_quantity <= 1:
+                    messages.error(
+                        request,
+                        'This tool is not available — need more than 1 unit in stock to buy.',
+                    )
+                    return _redirect_same_page(request, 'user_dashboard')
                 if tool.stock_quantity < quantity:
                     messages.error(request, f'Insufficient stock. Available: {tool.stock_quantity} units')
                     return _redirect_same_page(request, 'user_dashboard')
@@ -4399,6 +4414,9 @@ def user_dashboard(request):
                 try:
                     with transaction.atomic():
                         tool = VendorTool.objects.select_for_update().get(id=item_id, is_available=True, stock_quantity__gt=0)
+                        if tool.stock_quantity <= 1:
+                            errors.append(f"{tool.name}: not available — need more than 1 unit in stock to buy")
+                            continue
                         if tool.stock_quantity < qty:
                             errors.append(f"{tool.name}: only {tool.stock_quantity} units available")
                             continue
