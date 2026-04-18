@@ -772,6 +772,33 @@
             color: #856404;
         }
 
+        /* Vendor tools on farmer marketplace — match buyer: red for sold out / unavailable / low stock */
+        .farmer-tool-stock-banner {
+            font-size: 0.85rem;
+            margin: 0 0 1rem 0;
+            padding: 0.5rem 0.65rem;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            line-height: 1.4;
+            color: #666;
+        }
+        .farmer-tool-stock-banner--alert {
+            color: #dc2626;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+        .farmer-tool-stock-banner .farmer-tool-stock-icon {
+            flex-shrink: 0;
+        }
+        .farmer-tool-stock-banner:not(.farmer-tool-stock-banner--alert) .farmer-tool-stock-icon {
+            color: var(--primary);
+        }
+        .farmer-tool-stock-banner--alert .farmer-tool-stock-icon {
+            color: #dc2626;
+        }
+
         /* Tools Grid */
         .tools-grid {
             display: grid;
@@ -2302,10 +2329,10 @@
                                     </div>
                                     {% endif %}
                                     <div class="product-actions">
-                                        <button class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditModal({{ product.id }}, '{{ product.name|escapejs }}', {{ product.quantity }}, '{{ product.unit }}', {{ product.price_per_unit }}, {% if product.image %}'{{ product.image.url }}'{% else %}''{% endif %}, {{ product.is_available|yesno:"true,false" }}){% else %}alert('KYC verification required to edit crops'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+                                        <button class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditModal({{ product.id }}, '{{ product.name|escapejs }}', {{ product.quantity }}, '{{ product.unit }}', {{ product.price_per_unit }}, {% if product.image %}'{{ product.image.url }}'{% else %}''{% endif %}, {{ product.is_available|yesno:"true,false" }}){% else %}showToast('KYC verification required to edit crops', 'error'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
                                             <i class="fas fa-edit"></i>
                                         </button>
-                                        <button class="btn-action btn-delete" onclick="{% if kyc_status == 'approved' %}openDeleteModal({{ product.id }}, '{{ product.name|escapejs }}'){% else %}alert('KYC verification required to delete crops'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Delete{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+                                        <button class="btn-action btn-delete" onclick="{% if kyc_status == 'approved' %}openDeleteModal({{ product.id }}, '{{ product.name|escapejs }}'){% else %}showToast('KYC verification required to delete crops', 'error'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Delete{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
                                             <i class="fas fa-trash"></i>
                                         </button>
                                     </div>
@@ -2339,7 +2366,7 @@
                             <i class="fas fa-seedling"></i>
                             <h3 data-translate="crops.noCrops">No Crops Added Yet</h3>
                             <p data-translate="crops.noCropsDesc">Start by adding your first crop to the marketplace</p>
-                            <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openAddModal(){% else %}alert('KYC verification required to add crops'){% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; margin-top: 1.5rem;"{% else %}style="margin-top: 1.5rem;"{% endif %}>
+                            <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openAddModal(){% else %}showToast('KYC verification required to add crops', 'error'){% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; margin-top: 1.5rem;"{% else %}style="margin-top: 1.5rem;"{% endif %}>
                                 <i class="fas fa-plus"></i> <span data-translate="crops.addFirst">Add Your First Crop</span>
                             </button>
                         </div>
@@ -2376,16 +2403,19 @@
                                             <p style="font-size: 0.9rem; color: #666; margin-bottom: 1rem;">{{ tool.description|truncatewords:20 }}</p>
                                             {% endif %}
                                             <div class="tool-price">Rs. {{ tool.price }}</div>
-                                            <p style="font-size: 0.85rem; color: #666; margin-bottom: 1rem;">
+                                            <p class="farmer-tool-stock-banner {% if tool.stock_quantity < 5 %}farmer-tool-stock-banner--alert{% endif %}">
+                                                <i class="fas fa-box farmer-tool-stock-icon" aria-hidden="true"></i>
+                                                <span>
                                                 {% if tool.stock_quantity <= 0 %}
-                                                    No Stock (Sold Out)
+                                                    <strong>No Stock (Sold Out)</strong>
                                                 {% elif tool.stock_quantity <= 1 %}
-                                                    <span style="color: #dc2626;">Not Available</span> — need more than 1 unit in stock to buy
+                                                    <strong>Not Available</strong> — need more than 1 unit in stock to buy
                                                 {% elif tool.stock_quantity < 5 %}
-                                                    Low Stock: {{ tool.stock_quantity }}
+                                                    <strong>Low Stock:</strong> {{ tool.stock_quantity }} units
                                                 {% else %}
-                                                    Available: {{ tool.stock_quantity }}
+                                                    <strong>Available:</strong> {{ tool.stock_quantity }} units
                                                 {% endif %}
+                                                </span>
                                             </p>
                                             <div style="display: flex; gap: 0.5rem; flex-wrap: wrap;">
                                                 <button class="btn-buy farmer-tool-buy" data-tool-id="{{ tool.id }}" data-name="{{ tool.name|escapejs }}" data-price="{{ tool.price }}" data-stock="{{ tool.stock_quantity }}" {% if kyc_status != 'approved' or tool.stock_quantity <= 1 %}disabled style="opacity: 0.6; cursor: not-allowed; flex: 1; min-width: 100px;"{% else %}style="flex: 1; min-width: 100px;"{% endif %}>{% if tool.stock_quantity <= 0 %}Sold Out{% elif tool.stock_quantity <= 1 %}Not Available{% else %}Buy Now{% endif %}</button>
@@ -2476,7 +2506,7 @@
                                         <i class="fas fa-comments"></i> Chat
                                     </button>
                                     {% endif %}
-                                    <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openAppointmentModal({{ expert.id }}, '{{ expert.name|escapejs }}', {{ expert.consultation_fee|default:0 }}){% else %}alert('KYC verification required to book appointments'){% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; background: var(--secondary);"{% else %}style="background: var(--secondary);"{% endif %}>
+                                    <button class="btn-primary" onclick="{% if kyc_status == 'approved' %}openAppointmentModal({{ expert.id }}, '{{ expert.name|escapejs }}', {{ expert.consultation_fee|default:0 }}){% else %}showToast('KYC verification required to book appointments', 'error'){% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.6; cursor: not-allowed; background: var(--secondary);"{% else %}style="background: var(--secondary);"{% endif %}>
                                         <i class="fas fa-calendar"></i> Appointment {% if expert.consultation_fee and expert.consultation_fee > 0 %}(Rs. {{ expert.consultation_fee }}){% else %}(Free){% endif %}
                                     </button>
                                 </div>
@@ -4202,7 +4232,7 @@
 
         function openFarmerToolsCheckoutModal() {
             var cart = getFarmerToolsCart();
-            if (!cart.length) { alert('Your tools cart is empty.'); return; }
+            if (!cart.length) { showToast('Your tools cart is empty.', 'error'); return; }
             var payload = cart.map(function(item) { return { type: 'tool', id: item.id, name: item.name, price: item.price, quantity: item.quantity || 1 }; });
             document.getElementById('farmerCheckoutCartItemsInput').value = JSON.stringify(payload);
             var total = cart.reduce(function(s, i) { return s + (i.price * (i.quantity || 1)); }, 0);
@@ -4289,10 +4319,10 @@
             var expertId = document.getElementById('apptExpertId').value;
             var sel = document.getElementById('apptRequestedDate').value;
             var time = document.getElementById('apptRequestedTime').value;
-            if (!sel) { alert('Please select an appointment date.'); return false; }
-            if (!time) { alert('Please select an appointment time.'); return false; }
+            if (!sel) { showToast('Please select an appointment date.', 'error'); return false; }
+            if (!time) { showToast('Please select an appointment time.', 'error'); return false; }
             if (getExpertSlotDates(expertId).length > 0 && sel && !getExpertSlotForDate(expertId, sel)) {
-                alert('Appointment not available at this date. Please choose a highlighted available date.');
+                showToast('Appointment not available at this date. Please choose a highlighted available date.', 'error');
                 return false;
             }
             var form = this;
@@ -4382,10 +4412,10 @@
             var expertId = document.getElementById('changeApptExpertId').value;
             var sel = document.getElementById('changeApptDate').value;
             var time = document.getElementById('changeApptTime').value;
-            if (!sel) { alert('Please select a new appointment date.'); return false; }
-            if (!time) { alert('Please select a new appointment time.'); return false; }
+            if (!sel) { showToast('Please select a new appointment date.', 'error'); return false; }
+            if (!time) { showToast('Please select a new appointment time.', 'error'); return false; }
             if (getExpertSlotDates(expertId).length > 0 && sel && !getExpertSlotForDate(expertId, sel)) {
-                alert('Appointment not available at this date. Please choose an available date from the list above.');
+                showToast('Appointment not available at this date. Please choose an available date from the list above.', 'error');
                 return false;
             }
             if (!window.confirm('Are you sure you want to update this appointment?')) return false;
@@ -4416,10 +4446,10 @@
             var expertId = document.getElementById('reapplyApptExpertId').value;
             var sel = document.getElementById('reapplyApptDate').value;
             var time = document.getElementById('reapplyApptTime').value;
-            if (!sel) { alert('Please select a new appointment date.'); return false; }
-            if (!time) { alert('Please select a new appointment time.'); return false; }
+            if (!sel) { showToast('Please select a new appointment date.', 'error'); return false; }
+            if (!time) { showToast('Please select a new appointment time.', 'error'); return false; }
             if (getExpertSlotDates(expertId).length > 0 && sel && !getExpertSlotForDate(expertId, sel)) {
-                alert('Appointment not available at this date. Please choose an available date from the list above.');
+                showToast('Appointment not available at this date. Please choose an available date from the list above.', 'error');
                 return false;
             }
             if (!window.confirm('Are you sure you want to resubmit this appointment?')) return false;
@@ -4834,13 +4864,13 @@
             const price = form.querySelector('input[name="price"]');
             
             if (quantity && parseFloat(quantity.value) <= 0) {
-                alert('Quantity must be greater than 0');
+                showToast('Quantity must be greater than 0', 'error');
                 quantity.focus();
                 return false;
             }
             
             if (price && parseFloat(price.value) <= 0) {
-                alert('Price must be greater than 0');
+                showToast('Price must be greater than 0', 'error');
                 price.focus();
                 return false;
             }

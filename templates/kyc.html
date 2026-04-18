@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>KYC Verification - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/form-validation.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         * {
@@ -869,6 +870,7 @@
 
     {% if can_edit %}
     <script src="/static/js/main.js"></script>
+    <script src="/static/js/form-validation.js"></script>
     <script>
         let currentStep = 1;
         const totalSteps = 3;
@@ -894,7 +896,7 @@
                 const idNumber = document.querySelector('input[name="id_number"]').value.trim();
                 
                 if (!fullName || !idNumber) {
-                    alert('Please fill in all required fields');
+                    showToast('Please fill in all required fields', 'error');
                     return false;
                 }
             } else if (step === 2) {
@@ -907,15 +909,15 @@
                 const hasCertOnServer = {% if kyc and kyc.certificate_document %}true{% else %}false{% endif %};
 
                 if ((!idDoc && !hasIdOnServer) || (!selfie && !hasSelfieOnServer)) {
-                    alert('Please upload all required documents');
+                    showToast('Please upload all required documents', 'error');
                     return false;
                 }
                 if (userRole === 'vendor' && !document.getElementById('company_document')?.files?.[0] && !hasCompanyOnServer) {
-                    alert('Please upload all required documents');
+                    showToast('Please upload all required documents', 'error');
                     return false;
                 }
                 if (userRole === 'agricultural_expert' && !document.getElementById('certificate_document')?.files?.[0] && !hasCertOnServer) {
-                    alert('Please upload all required documents');
+                    showToast('Please upload all required documents', 'error');
                     return false;
                 }
             }
@@ -1035,7 +1037,7 @@
                 const fileName = file.name;
                 
                 if (file.size > 5 * 1024 * 1024) {
-                    alert('File size must be less than 5MB');
+                    showToast('File size must be less than 5MB', 'error');
                     input.value = '';
                     return;
                 }

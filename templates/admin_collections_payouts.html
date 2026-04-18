@@ -639,6 +639,7 @@
         </div>
     </div>
 
+    <script src="/static/js/main.js"></script>
     <script>
         function showTab(name) {
             var panels = document.querySelectorAll('.tab-panel');
@@ -707,9 +708,9 @@
             var orderId = modal.getAttribute('data-order-id') || '';
             if (!orderId) return;
             navigator.clipboard.writeText('#' + orderId).then(function() {
-                alert('Order ID copied: #' + orderId);
+                farmityNotify('Order ID copied: #' + orderId, 'success');
             }).catch(function() {
-                alert('Could not copy Order ID');
+                farmityNotify('Could not copy Order ID', 'error');
             });
         }
 

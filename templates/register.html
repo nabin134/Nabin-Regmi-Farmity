@@ -1048,7 +1048,7 @@
                     {% endif %}
                     {% endif %}
                     {% endif %}
-                    <a href="/accounts/facebook/login/?process=signup" class="social-btn facebook" onclick="event.preventDefault(); alert('Facebook signup coming soon!'); return false;" title="Sign up with Facebook">
+                    <a href="/accounts/facebook/login/?process=signup" class="social-btn facebook" onclick="event.preventDefault(); if (typeof farmityNotify === 'function') farmityNotify('Facebook signup coming soon!', 'info'); return false;" title="Sign up with Facebook">
                         <i class="fab fa-facebook-f social-icon"></i>
                         <span>Continue with Facebook</span>
                     </a>

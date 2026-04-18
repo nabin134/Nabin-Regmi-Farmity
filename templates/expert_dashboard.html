@@ -10,6 +10,7 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="/static/js/main.js"></script>
+    <script src="/static/js/form-validation.js"></script>
     <style>
         * {
             margin: 0;
@@ -2254,11 +2255,7 @@
                 var msg = document.getElementById('appointmentResponseMessage').value.trim();
                 if (!msg) {
                     e.preventDefault();
-                    if (typeof showError === 'function') {
-                        showError('Please provide a valid reason for rejecting the appointment.');
-                    } else {
-                        alert('Please provide a valid reason for rejecting the appointment.');
-                    }
+                    showError('Please provide a valid reason for rejecting the appointment.');
                     return false;
                 }
             }
@@ -2466,11 +2463,7 @@
                 })
                 .then(function (res) {
                     if (!res.data || !res.data.ok) {
-                        if (typeof showError === 'function') {
-                            showError((res.data && res.data.message) || 'Could not accept appointment.');
-                        } else {
-                            alert((res.data && res.data.message) || 'Could not accept appointment.');
-                        }
+                        showError((res.data && res.data.message) || 'Could not accept appointment.');
                         btns.forEach(function (b) { b.disabled = false; });
                         if (actions) delete actions.dataset.expertApptSubmitting;
                         return;
@@ -2487,11 +2480,7 @@
                     }, 500);
                 })
                 .catch(function () {
-                    if (typeof showError === 'function') {
-                        showError('Network error. Please try again.');
-                    } else {
-                        alert('Network error. Please try again.');
-                    }
+                    showError('Network error. Please try again.');
                     btns.forEach(function (b) { b.disabled = false; });
                     if (actions) delete actions.dataset.expertApptSubmitting;
                 });
@@ -2945,7 +2934,7 @@
                         showInlineError(weekErrorEl, '');
                     }
                 }).catch(function () {
-                    alert('Could not save availability. Please try again.');
+                    showError('Could not save availability. Please try again.');
                 });
             }
             function askAvailabilityDeleteConfirm() {

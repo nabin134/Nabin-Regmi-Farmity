@@ -209,7 +209,7 @@
                 item.addEventListener('click', function() {
                     var status = item.getAttribute('data-status');
                     if (status === 'answered' || status === 'closed') {
-                        alert('This conversation has ended and can no longer be opened.');
+                        if (typeof farmityNotify === 'function') farmityNotify('This conversation has ended and can no longer be opened.', 'error'); else if (typeof showToast === 'function') showToast('This conversation has ended and can no longer be opened.', 'error');
                         return;
                     }
                     showTicket(parseInt(item.getAttribute('data-id'), 10));
@@ -307,7 +307,7 @@
         var data = { subject: form.subject.value.trim(), message: form.message.value.trim(), csrfmiddlewaretoken: getToken() };
         if (!data.subject || !data.message) return;
         post('/api/support/tickets/', data).then(function(d) {
-            if (d.error) { alert(d.error); return; }
+            if (d.error) { if (typeof farmityNotify === 'function') farmityNotify(d.error, 'error'); else if (typeof showToast === 'function') showToast(d.error, 'error'); return; }
             form.reset();
             showTicket(d.id);
         });
@@ -319,7 +319,7 @@
         var msg = form.message.value.trim();
         if (!msg || !currentTicketId) return;
         post('/api/support/tickets/' + currentTicketId + '/reply/', { message: msg, csrfmiddlewaretoken: getToken() }).then(function(d) {
-            if (d.error) { alert(d.error); return; }
+            if (d.error) { if (typeof farmityNotify === 'function') farmityNotify(d.error, 'error'); else if (typeof showToast === 'function') showToast(d.error, 'error'); return; }
             form.message.value = '';
             showTicket(currentTicketId);
         });

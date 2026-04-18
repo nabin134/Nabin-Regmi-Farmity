@@ -30,6 +30,61 @@ function getCookie(name) {
     return cookieValue;
 }
 
+/**
+ * In-app feedback (prefers form-validation showToast/showError when loaded).
+ * Safe to call from inline handlers after this script runs.
+ */
+function farmityNotify(message, type) {
+    if (!message) return;
+    type = type || 'info';
+    if (typeof showToast === 'function') {
+        const t = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+        showToast(message, t);
+        return;
+    }
+    if (type === 'error' && typeof showError === 'function') {
+        showError(message);
+        return;
+    }
+    if (type === 'success' && typeof showSuccess === 'function') {
+        showSuccess(message);
+        return;
+    }
+    if (type === 'warning' && typeof showWarning === 'function') {
+        showWarning(message);
+        return;
+    }
+    if (type === 'info' && typeof showInfo === 'function') {
+        showInfo(message);
+        return;
+    }
+    var root = document.getElementById('farmity-notify-root');
+    if (!root) {
+        root = document.createElement('div');
+        root.id = 'farmity-notify-root';
+        root.setAttribute('aria-live', 'polite');
+        root.style.cssText = 'position:fixed;bottom:1.25rem;right:1.25rem;z-index:100002;display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end;pointer-events:none;max-width:calc(100vw - 2rem);';
+        document.body.appendChild(root);
+    }
+    var el = document.createElement('div');
+    var isErr = type === 'error';
+    var isOk = type === 'success';
+    var bg = isErr ? '#fef2f2' : isOk ? '#ecfdf5' : '#fffbeb';
+    var br = isErr ? '#fecaca' : isOk ? '#a7f3d0' : '#fde68a';
+    var fg = isErr ? '#b91c1c' : isOk ? '#065f46' : '#92400e';
+    el.style.cssText = 'pointer-events:auto;padding:0.65rem 0.9rem;border-radius:10px;border:1px solid ' + br + ';background:' + bg + ';color:' + fg + ';font:500 0.9rem system-ui,Segoe UI,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.12);';
+    el.textContent = message;
+    root.appendChild(el);
+    setTimeout(function () {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity .25s ease';
+        setTimeout(function () {
+            if (el.parentNode) el.parentNode.removeChild(el);
+        }, 260);
+    }, 4000);
+}
+window.farmityNotify = farmityNotify;
+
 // Main initialization
 document.addEventListener('DOMContentLoaded', function() {
     // Role selection cards
@@ -608,7 +663,7 @@ async function handleLogin(e) {
             if (messageDiv) {
                 showTempMessage(messageDiv, errorMsg, 'error', 3000);
             } else {
-                alert(errorMsg);
+                farmityNotify(errorMsg, 'error');
             }
         }
     } catch (error) {
@@ -1471,8 +1526,7 @@ window.SuccessMessage = {
         
         if (!messagesContainer) {
             console.warn('Could not find messages container');
-            // Fallback to alert if no container found
-            alert(message);
+            farmityNotify(message, 'success');
             return;
         }
         

@@ -1247,7 +1247,7 @@
 
                     {% endif %}
 
-                    <a href="/accounts/facebook/login/?process=login" class="social-btn facebook" onclick="event.preventDefault(); alert('Facebook login coming soon!'); return false;" title="Sign in with Facebook">
+                    <a href="/accounts/facebook/login/?process=login" class="social-btn facebook" onclick="event.preventDefault(); if (typeof farmityNotify === 'function') farmityNotify('Facebook login coming soon!', 'info'); return false;" title="Sign in with Facebook">
 
                         <i class="fab fa-facebook-f social-icon"></i>
 

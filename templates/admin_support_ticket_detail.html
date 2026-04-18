@@ -299,6 +299,7 @@
             </div>
         </div>
     </div>
+    <script src="/static/js/main.js"></script>
     <script>
         (function () {
             var ticketId = {{ ticket.id }};
@@ -408,12 +409,12 @@
                             updateStatus(data.ticket_status, data.ticket_status_display);
                         } else {
                             if (pending && pending.parentNode) pending.parentNode.removeChild(pending);
-                            alert((data && data.error) || 'Failed to send reply.');
+                            farmityNotify((data && data.error) || 'Failed to send reply.', 'error');
                         }
                     })
                     .catch(function () {
                         if (pending && pending.parentNode) pending.parentNode.removeChild(pending);
-                        alert('Failed to send reply.');
+                        farmityNotify('Failed to send reply.', 'error');
                     })
                     .finally(function () { if (btn) btn.disabled = false; });
             });

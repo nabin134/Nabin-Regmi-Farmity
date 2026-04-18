@@ -160,6 +160,7 @@
             </div>
         </div>
     </main>
+    <script src="/static/js/main.js"></script>
     {% include 'support_widget.html' %}
     {% include 'includes/user_dashboard_scroll.html' %}
     <script>
@@ -179,7 +180,7 @@
     function sendChatImageMessage() {
         const fileEl = document.getElementById('chat-image-input');
         if (!fileEl || !fileEl.files || !fileEl.files[0]) {
-            alert('Choose an image first.');
+            farmityNotify('Choose an image first.', 'error');
             return;
         }
         const threadId = document.getElementById('chat-messages').getAttribute('data-thread-id');
@@ -196,7 +197,7 @@
         }).then(r => r.json()).then(data => {
             if (btn) { btn.disabled = false; }
             if (data.error) {
-                alert(data.error);
+                farmityNotify(data.error, 'error');
                 return;
             }
             fileEl.value = '';
@@ -211,7 +212,7 @@
             });
         }).catch(() => {
             if (btn) { btn.disabled = false; }
-            alert('Failed to send image.');
+            farmityNotify('Failed to send image.', 'error');
         });
     }
     

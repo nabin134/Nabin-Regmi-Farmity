@@ -2808,13 +2808,13 @@
 
                                     <div class="tool-actions">
 
-                                        <button class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', '{{ tool.description|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}, {{ tool.is_available|yesno:"true,false" }}, {% if tool.image %}'{{ tool.image.url }}'{% else %}''{% endif %}){% else %}alert('KYC verification required to edit tools'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+                                        <button class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditToolModal({{ tool.id }}, '{{ tool.name|escapejs }}', '{{ tool.description|escapejs }}', {{ tool.price }}, {{ tool.stock_quantity }}, {{ tool.is_available|yesno:"true,false" }}, {% if tool.image %}'{{ tool.image.url }}'{% else %}''{% endif %}){% else %}showToast('KYC verification required to edit tools', 'error'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
 
                                             <i class="fas fa-edit"></i>
 
                                         </button>
 
-                                        <button class="btn-action btn-delete" onclick="{% if kyc_status == 'approved' %}openDeleteToolModal({{ tool.id }}, '{{ tool.name|escapejs }}'){% else %}alert('KYC verification required to delete tools'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Delete{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
+                                        <button class="btn-action btn-delete" onclick="{% if kyc_status == 'approved' %}openDeleteToolModal({{ tool.id }}, '{{ tool.name|escapejs }}'){% else %}showToast('KYC verification required to delete tools', 'error'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Delete{% endif %}" {% if kyc_status != 'approved' %}style="opacity: 0.5;"{% endif %}>
 
                                             <i class="fas fa-trash"></i>
 
@@ -3893,7 +3893,7 @@
 
             </div>
 
-            <form id="toolForm" method="POST" enctype="multipart/form-data">
+            <form id="toolForm" method="POST" enctype="multipart/form-data" onsubmit="return validateToolForm(this)">
 
                 {% csrf_token %}
 
@@ -4044,8 +4044,27 @@
 
 
     <script src="/static/js/main.js"></script>
+    <script src="/static/js/form-validation.js"></script>
 
     <script>
+
+        function validateToolForm(form) {
+            var priceEl = form.querySelector('#tool_price');
+            var stockEl = form.querySelector('#tool_stock');
+            var price = priceEl ? parseFloat(priceEl.value) : NaN;
+            var stock = stockEl ? parseFloat(stockEl.value) : NaN;
+            if (isNaN(price) || price <= 0) {
+                showToast('Price must be greater than 0', 'error');
+                if (priceEl) priceEl.focus();
+                return false;
+            }
+            if (isNaN(stock) || stock <= 0) {
+                showToast('Stock quantity must be greater than 0', 'error');
+                if (stockEl) stockEl.focus();
+                return false;
+            }
+            return true;
+        }
 
         // Navigation
 

@@ -51,19 +51,47 @@
             -webkit-font-smoothing: antialiased;
         }
 
+        /* Page shell: header + this column fills viewport; main grows; footer sits last */
         .dashboard-wrapper {
-            flex: 1;
+            flex: 1 1 auto;
             display: flex;
             flex-direction: column;
             min-height: 0;
-        }
-        /* Footer must stay in document flow (not lost after modals); visible when scrolling */
-        .dashboard-wrapper > .main-footer {
-            flex-shrink: 0;
             width: 100%;
-            margin-top: 2rem;
-            position: relative;
-            z-index: 1;
+        }
+        .buyer-dashboard-main {
+            flex: 1 1 auto;
+            width: 100%;
+            min-width: 0;
+            display: block;
+        }
+        /* Light band then full-width landing footer (overrides global .main-footer margin-top: auto) */
+        .buyer-page-footer-wrap {
+            flex: 0 0 auto;
+            width: 100%;
+            margin: 0;
+            padding: 2.75rem 0 0;
+            border-top: 1px solid var(--border);
+            background: var(--light-bg);
+            box-sizing: border-box;
+        }
+        body.buyer-dashboard .buyer-page-footer-wrap .main-footer {
+            margin-top: 0 !important;
+            margin-left: 0;
+            margin-right: 0;
+            width: 100%;
+            max-width: none;
+            border-radius: 0;
+        }
+        body.buyer-dashboard .buyer-page-footer-wrap .footer-container {
+            max-width: min(1280px, 100%);
+            margin-left: auto;
+            margin-right: auto;
+        }
+        body.buyer-dashboard .buyer-page-footer-wrap .footer-bottom {
+            max-width: min(1280px, 100%);
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .dashboard-hero {
@@ -103,17 +131,32 @@
 
         .dashboard-container {
             max-width: 1280px;
-            margin: -1.5rem auto 2.5rem;
-            padding: 0 1.5rem;
+            margin: -1.5rem auto 0;
+            padding: 0 1.5rem 1rem;
             position: relative;
             z-index: 10;
+            width: 100%;
+            box-sizing: border-box;
         }
 
         .content-section {
-            padding: 0 0 2rem;
+            padding: 0 0 2.5rem;
             margin-bottom: 0;
         }
-        .content-section:last-child { margin-bottom: 0; }
+        .content-section:last-child {
+            padding-bottom: 3rem;
+        }
+        /* Extra room below marketplace + orders so footer feels “below” products */
+        #crops.content-section,
+        #tools.content-section {
+            padding-bottom: 2.5rem;
+        }
+        #orders.content-section {
+            padding-bottom: 3rem;
+        }
+        .orders-section-wrap {
+            margin-bottom: 0.5rem;
+        }
 
         .stats-grid {
             display: grid;
@@ -2008,7 +2051,7 @@
         }
     </style>
 </head>
-<body>
+<body class="buyer-dashboard">
     <header class="main-header">
         <div class="header-container">
             <div class="logo">
@@ -2075,6 +2118,7 @@
             <p>Shop fresh produce and tools in one place</p>
         </div>
 
+        <main class="buyer-dashboard-main" id="buyer-dashboard-main" role="main">
         <div class="dashboard-container">
             {% if messages %}
             <div class="action-messages messages messages-fixed-top messages-auto-dismiss" data-dismiss-ms="3000" style="position: fixed; top: 0; left: 0; right: 0; z-index: 99999; padding: 0.75rem 1.5rem; margin: 0; box-shadow: 0 2px 12px rgba(0,0,0,0.12); max-height: 40vh; overflow-y: auto; transition: opacity 0.3s ease;">
@@ -2747,9 +2791,12 @@
                 </div>
             </div>
         </div>
+        </main>
 
-        {% url 'landing' as landing_footer_base %}
-        {% include 'includes/landing_footer.html' with footer_link_base=landing_footer_base %}
+        <div class="buyer-page-footer-wrap">
+            {% url 'landing' as landing_footer_base %}
+            {% include 'includes/landing_footer.html' with footer_link_base=landing_footer_base %}
+        </div>
     </div>
 
     <!-- Appointment Modal -->
