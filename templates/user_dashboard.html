@@ -55,6 +55,15 @@
             flex: 1;
             display: flex;
             flex-direction: column;
+            min-height: 0;
+        }
+        /* Footer must stay in document flow (not lost after modals); visible when scrolling */
+        .dashboard-wrapper > .main-footer {
+            flex-shrink: 0;
+            width: 100%;
+            margin-top: 2rem;
+            position: relative;
+            z-index: 1;
         }
 
         .dashboard-hero {
@@ -311,6 +320,31 @@
         }
         .buyer-action-row {
             align-items: stretch;
+        }
+        .buyer-stock-banner {
+            font-size: 0.9rem;
+            margin-top: 0.5rem;
+            padding: 0.5rem;
+            background: var(--light-bg);
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #666;
+        }
+        .buyer-stock-banner--alert {
+            color: #dc2626;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+        }
+        .buyer-stock-banner .buyer-stock-icon {
+            flex-shrink: 0;
+        }
+        .buyer-stock-banner:not(.buyer-stock-banner--alert) .buyer-stock-icon {
+            color: var(--primary);
+        }
+        .buyer-stock-banner--alert .buyer-stock-icon {
+            color: #dc2626;
         }
         .price {
             font-size: 1.25rem;
@@ -2106,12 +2140,12 @@
                                         {% endif %}
                                     </div>
                                 </div>
-                                <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem; padding: 0.5rem; background: var(--light-bg); border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
-                                    <i class="fas fa-box" style="color: var(--primary);"></i>
+                                <p class="buyer-stock-banner {% if crop.quantity < 5 %}buyer-stock-banner--alert{% endif %}">
+                                    <i class="fas fa-box buyer-stock-icon"></i>
                                     {% if crop.quantity <= 0 %}
                                         <strong>No Stock (Sold Out)</strong>
                                     {% elif crop.quantity <= 1 %}
-                                        <strong style="color: #dc2626;">Not Available</strong> — need more than 1 {{ crop.unit }} in stock to buy
+                                        <strong>Not Available</strong> — need more than 1 {{ crop.unit }} in stock to buy
                                     {% elif crop.quantity < 5 %}
                                         <strong>Low Stock:</strong> {{ crop.quantity }} {{ crop.unit }}
                                     {% else %}
@@ -2177,12 +2211,12 @@
                                         {% endif %}
                                     </div>
                                 </div>
-                                <p style="font-size: 0.9rem; color: #666; margin-top: 0.5rem; padding: 0.5rem; background: var(--light-bg); border-radius: 8px; display: flex; align-items: center; gap: 0.5rem;">
-                                    <i class="fas fa-box" style="color: var(--primary);"></i>
+                                <p class="buyer-stock-banner {% if tool.stock_quantity < 5 %}buyer-stock-banner--alert{% endif %}">
+                                    <i class="fas fa-box buyer-stock-icon"></i>
                                     {% if tool.stock_quantity <= 0 %}
                                         <strong>No Stock (Sold Out)</strong>
                                     {% elif tool.stock_quantity <= 1 %}
-                                        <strong style="color: #dc2626;">Not Available</strong> — need more than 1 unit in stock to buy
+                                        <strong>Not Available</strong> — need more than 1 unit in stock to buy
                                     {% elif tool.stock_quantity < 5 %}
                                         <strong>Low Stock:</strong> {{ tool.stock_quantity }} units
                                     {% else %}
@@ -2713,6 +2747,9 @@
                 </div>
             </div>
         </div>
+
+        {% url 'landing' as landing_footer_base %}
+        {% include 'includes/landing_footer.html' with footer_link_base=landing_footer_base %}
     </div>
 
     <!-- Appointment Modal -->
@@ -2855,16 +2892,18 @@
                 
                 <div class="form-group">
                     <label>Quantity to Purchase <span id="purchaseCropQuantityUnit"></span> <span style="color: red;">*</span></label>
-                    <input type="number" name="quantity" id="purchaseCropQuantity" class="form-control" step="0.01" min="0.01" required placeholder="e.g. 2.5" oninput="calculateCropTotal()">
+                    <input type="number" name="quantity" id="purchaseCropQuantity" class="form-control" step="0.01" min="0.01" required placeholder="e.g. 2.5" oninput="calculateCropTotal()" onchange="calculateCropTotal()" onkeyup="calculateCropTotal()">
                     <p id="purchaseCropQtyError" class="buyer-field-validation-msg" style="display: none;" role="alert"></p>
                 </div>
                 
                 <div class="form-group" style="padding: 1.25rem; background: var(--light-bg); border-radius: 12px;">
                     <label style="font-weight: 600;">Order summary</label>
                     <div style="font-size: 0.95rem; color: #374151;">
+                        <div id="purchaseCropBreakdown" style="font-size: 0.88rem; color: #6b7280; margin-bottom: 0.35rem; min-height: 1.35em;"></div>
                         <div id="purchaseCropProductTotal">Product amount: Rs. 0.00</div>
                         <div id="purchaseCropShipping">Shipping (flat): Rs. 100.00</div>
                         <div style="margin-top: 0.35rem; font-weight: 700; color: var(--primary);" id="purchaseCropGrandTotal">Total (product + shipping): Rs. 0.00</div>
+                        <div id="purchaseCropEsewaNote" style="display: none; margin-top: 0.35rem; font-size: 0.82rem; color: #5b6b5f;">eSewa charges whole rupees; amount below is rounded to match checkout.</div>
                     </div>
                 </div>
 
@@ -2872,7 +2911,7 @@
                     <label style="font-weight: 600;">Payment Method <span style="color: red;">*</span></label>
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                         <label style="flex: 1; min-width: 200px; padding: 1.25rem; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
-                            <input type="radio" name="payment_method" value="cod" checked style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
+                            <input type="radio" name="payment_method" value="cod" checked style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this); calculateCropTotal();">
                             <div style="display: flex; align-items: center; gap: 0.75rem;">
                                 <i class="fas fa-money-bill-wave" style="color: var(--primary); font-size: 1.5rem;"></i>
                                 <div>
@@ -2882,7 +2921,7 @@
                             </div>
                         </label>
                         <label style="flex: 1; min-width: 200px; padding: 1.25rem; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
-                            <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
+                            <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this); calculateCropTotal();">
                             <div style="display: flex; align-items: center; gap: 0.75rem;">
                                 <i class="fas fa-mobile-alt" style="color: #5B5FEF; font-size: 1.5rem;"></i>
                                 <div>
@@ -2952,16 +2991,18 @@
                 
                 <div class="form-group">
                     <label>Quantity to Purchase <span style="color: red;">*</span></label>
-                    <input type="number" name="quantity" id="purchaseToolQuantity" class="form-control" min="1" required oninput="calculateToolTotal()">
+                    <input type="number" name="quantity" id="purchaseToolQuantity" class="form-control" min="1" required oninput="calculateToolTotal()" onchange="calculateToolTotal()" onkeyup="calculateToolTotal()">
                     <p id="purchaseToolQtyError" class="buyer-field-validation-msg" style="display: none;" role="alert"></p>
                 </div>
                 
                 <div class="form-group" style="padding: 1.25rem; background: var(--light-bg); border-radius: 12px;">
                     <label style="font-weight: 600;">Order summary</label>
                     <div style="font-size: 0.95rem; color: #374151;">
+                        <div id="purchaseToolBreakdown" style="font-size: 0.88rem; color: #6b7280; margin-bottom: 0.35rem; min-height: 1.35em;"></div>
                         <div id="purchaseToolProductTotal">Product amount: Rs. 0.00</div>
                         <div id="purchaseToolShipping">Shipping (flat): Rs. 100.00</div>
                         <div style="margin-top: 0.35rem; font-weight: 700; color: var(--primary);" id="purchaseToolGrandTotal">Total (product + shipping): Rs. 0.00</div>
+                        <div id="purchaseToolEsewaNote" style="display: none; margin-top: 0.35rem; font-size: 0.82rem; color: #5b6b5f;">eSewa charges whole rupees; amount below is rounded to match checkout.</div>
                     </div>
                 </div>
 
@@ -2969,7 +3010,7 @@
                     <label style="font-weight: 600;">Payment Method <span style="color: red;">*</span></label>
                     <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
                         <label style="flex: 1; min-width: 200px; padding: 1.25rem; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
-                            <input type="radio" name="payment_method" value="cod" checked style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
+                            <input type="radio" name="payment_method" value="cod" checked style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this); calculateToolTotal();">
                             <div style="display: flex; align-items: center; gap: 0.75rem;">
                                 <i class="fas fa-money-bill-wave" style="color: var(--primary); font-size: 1.5rem;"></i>
                                 <div>
@@ -2979,7 +3020,7 @@
                             </div>
                         </label>
                         <label style="flex: 1; min-width: 200px; padding: 1.25rem; border: 2px solid #e9ecef; border-radius: 12px; cursor: pointer; transition: all 0.3s; background: white;" onmouseover="this.style.borderColor='var(--primary)'" onmouseout="if(!this.querySelector('input').checked) this.style.borderColor='#e9ecef'">
-                            <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this)">
+                            <input type="radio" name="payment_method" value="esewa" style="margin-right: 0.5rem;" onchange="updatePaymentMethod(this); calculateToolTotal();">
                             <div style="display: flex; align-items: center; gap: 0.75rem;">
                                 <i class="fas fa-mobile-alt" style="color: #5B5FEF; font-size: 1.5rem;"></i>
                                 <div>
@@ -3085,48 +3126,6 @@
             </form>
         </div>
     </div>
-
-    <footer class="main-footer">
-        <div class="footer-container">
-            <div class="footer-brand">
-                <div class="footer-brand-name">Farmity</div>
-                <p class="footer-tagline">Connecting agriculture for a sustainable future.</p>
-            </div>
-            <div class="footer-section">
-                <h4>Company</h4>
-                <ul>
-                    <li><a href="#">About Us</a></li>
-                    <li><a href="#">Contact</a></li>
-                    <li><a href="#">Careers</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h4>Products</h4>
-                <ul>
-                    <li><a href="#">Marketplace</a></li>
-                    <li><a href="#">Live Prices</a></li>
-                    <li><a href="#">Advisory</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h4>Support</h4>
-                <ul>
-                    <li><a href="{% url 'support_hub' %}">Customer Support</a></li>
-                    <li><a href="{% url 'privacy_policy' %}">Privacy Policy</a></li>
-                    <li><a href="{% url 'terms_of_service' %}">Terms of Service</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h4>Contact</h4>
-                <p class="footer-contact"><span class="footer-contact-icon">&#9993;</span> info@farmity.com</p>
-                <p class="footer-contact"><span class="footer-contact-icon">&#9742;</span> +91-9800000000</p>
-                <p class="footer-contact"><span class="footer-contact-icon">&#9981;</span> Nepal</p>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>© 2025 Farmity. All rights reserved.</p>
-        </div>
-    </footer>
 
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="/static/js/main.js"></script>
@@ -3802,6 +3801,11 @@
             document.getElementById('purchaseCropId').value = cropId;
             document.getElementById('purchaseCropName').value = cropName;
             document.getElementById('purchaseCropPrice').value = 'Rs. ' + price + ' per ' + unit;
+            var cropForm = document.getElementById('purchaseCropForm');
+            if (cropForm) {
+                var up = parseFloat(price);
+                cropForm.dataset.unitPrice = (isNaN(up) ? '' : String(up));
+            }
             document.getElementById('purchaseCropAvailable').value = availNum + ' ' + unit;
             var qtyInput = document.getElementById('purchaseCropQuantity');
             var errCrop = document.getElementById('purchaseCropQtyError');
@@ -3825,6 +3829,11 @@
             document.getElementById('purchaseToolId').value = toolId;
             document.getElementById('purchaseToolName').value = toolName;
             document.getElementById('purchaseToolPrice').value = 'Rs. ' + price;
+            var toolForm = document.getElementById('purchaseToolForm');
+            if (toolForm) {
+                var upTool = parseFloat(price);
+                toolForm.dataset.unitPrice = (isNaN(upTool) ? '' : String(upTool));
+            }
             var stockNum = parseInt(stock, 10);
             if (isNaN(stockNum)) stockNum = 0;
             document.getElementById('purchaseToolStock').value = stockNum + ' units';
@@ -3842,20 +3851,36 @@
             document.getElementById('purchaseToolModal').classList.add('active');
         }
 
+        function purchaseFormIsEsewa(formEl) {
+            if (!formEl) return false;
+            var r = formEl.querySelector('input[name="payment_method"]:checked');
+            return !!(r && r.value === 'esewa');
+        }
+
         function calculateCropTotal() {
-            const priceText = document.getElementById('purchaseCropPrice') && document.getElementById('purchaseCropPrice').value;
-            const match = priceText && priceText.match(/[\d.]+/);
-            const price = match ? parseFloat(match[0]) : 0;
-            const qtyEl = document.getElementById('purchaseCropQuantity');
-            const quantity = parseFloat(qtyEl && qtyEl.value) || 0;
-            const productTotal = price * quantity;
-            const shipping = BUY_NOW_SHIPPING_RS;
-            const grandTotal = productTotal > 0 ? productTotal + shipping : 0;
-            const prodEl = document.getElementById('purchaseCropProductTotal');
-            const shipEl = document.getElementById('purchaseCropShipping');
-            const grandEl = document.getElementById('purchaseCropGrandTotal');
-            const errEl = document.getElementById('purchaseCropQtyError');
-            const maxQ = parseFloat(qtyEl && qtyEl.getAttribute('max')) || 0;
+            var form = document.getElementById('purchaseCropForm');
+            var unitPrice = NaN;
+            if (form && form.dataset.unitPrice !== undefined && form.dataset.unitPrice !== '') {
+                unitPrice = parseFloat(form.dataset.unitPrice);
+            }
+            if (isNaN(unitPrice) || unitPrice < 0) {
+                var priceText = document.getElementById('purchaseCropPrice') && document.getElementById('purchaseCropPrice').value;
+                var match = priceText && priceText.match(/[\d.]+/);
+                unitPrice = match ? parseFloat(match[0]) : 0;
+            }
+            var qtyEl = document.getElementById('purchaseCropQuantity');
+            var quantity = parseFloat(qtyEl && qtyEl.value) || 0;
+            var productTotal = unitPrice * quantity;
+            var shipping = BUY_NOW_SHIPPING_RS;
+            var rawGrand = productTotal > 0 ? productTotal + shipping : 0;
+            var esewa = purchaseFormIsEsewa(form);
+            var prodEl = document.getElementById('purchaseCropProductTotal');
+            var shipEl = document.getElementById('purchaseCropShipping');
+            var grandEl = document.getElementById('purchaseCropGrandTotal');
+            var errEl = document.getElementById('purchaseCropQtyError');
+            var breakdownEl = document.getElementById('purchaseCropBreakdown');
+            var esewaNote = document.getElementById('purchaseCropEsewaNote');
+            var maxQ = parseFloat(qtyEl && qtyEl.getAttribute('max')) || 0;
             if (errEl) {
                 if (quantity > maxQ && maxQ > 0) {
                     errEl.style.display = 'block';
@@ -3865,25 +3890,51 @@
                     errEl.textContent = '';
                 }
             }
+            var unitLbl = document.getElementById('purchaseCropQuantityUnit');
+            var unitStr = unitLbl ? unitLbl.textContent.replace(/[()]/g, '').trim() : 'unit';
+            if (breakdownEl) {
+                if (quantity > 0 && unitPrice >= 0) {
+                    breakdownEl.textContent = quantity + ' ' + unitStr + ' × Rs. ' + unitPrice.toFixed(2) + ' = Rs. ' + productTotal.toFixed(2);
+                } else {
+                    breakdownEl.textContent = '';
+                }
+            }
             if (prodEl) prodEl.textContent = 'Product amount: Rs. ' + productTotal.toFixed(2);
             if (shipEl) shipEl.textContent = 'Shipping (flat): Rs. ' + shipping.toFixed(2);
-            if (grandEl) grandEl.textContent = 'Total (product + shipping): Rs. ' + grandTotal.toFixed(2);
+            if (esewaNote) esewaNote.style.display = esewa ? 'block' : 'none';
+            if (grandEl) {
+                if (esewa && rawGrand > 0) {
+                    grandEl.textContent = 'Total to pay (eSewa, whole Rs.): Rs. ' + Math.round(rawGrand);
+                } else {
+                    grandEl.textContent = 'Total (product + shipping): Rs. ' + rawGrand.toFixed(2);
+                }
+            }
         }
 
         function calculateToolTotal() {
-            const priceText = document.getElementById('purchaseToolPrice') && document.getElementById('purchaseToolPrice').value;
-            const match = priceText && priceText.match(/[\d.]+/);
-            const price = match ? parseFloat(match[0]) : 0;
-            const qtyEl = document.getElementById('purchaseToolQuantity');
-            const quantity = parseInt(qtyEl && qtyEl.value, 10) || 0;
-            const productTotal = price * quantity;
-            const shipping = BUY_NOW_SHIPPING_RS;
-            const grandTotal = productTotal > 0 ? productTotal + shipping : 0;
-            const prodEl = document.getElementById('purchaseToolProductTotal');
-            const shipEl = document.getElementById('purchaseToolShipping');
-            const grandEl = document.getElementById('purchaseToolGrandTotal');
-            const errEl = document.getElementById('purchaseToolQtyError');
-            const maxQ = parseInt(qtyEl && qtyEl.getAttribute('max'), 10) || 0;
+            var form = document.getElementById('purchaseToolForm');
+            var unitPrice = NaN;
+            if (form && form.dataset.unitPrice !== undefined && form.dataset.unitPrice !== '') {
+                unitPrice = parseFloat(form.dataset.unitPrice);
+            }
+            if (isNaN(unitPrice) || unitPrice < 0) {
+                var priceText = document.getElementById('purchaseToolPrice') && document.getElementById('purchaseToolPrice').value;
+                var match = priceText && priceText.match(/[\d.]+/);
+                unitPrice = match ? parseFloat(match[0]) : 0;
+            }
+            var qtyEl = document.getElementById('purchaseToolQuantity');
+            var quantity = parseInt(qtyEl && qtyEl.value, 10) || 0;
+            var productTotal = unitPrice * quantity;
+            var shipping = BUY_NOW_SHIPPING_RS;
+            var rawGrand = productTotal > 0 ? productTotal + shipping : 0;
+            var esewa = purchaseFormIsEsewa(form);
+            var prodEl = document.getElementById('purchaseToolProductTotal');
+            var shipEl = document.getElementById('purchaseToolShipping');
+            var grandEl = document.getElementById('purchaseToolGrandTotal');
+            var errEl = document.getElementById('purchaseToolQtyError');
+            var breakdownEl = document.getElementById('purchaseToolBreakdown');
+            var esewaNote = document.getElementById('purchaseToolEsewaNote');
+            var maxQ = parseInt(qtyEl && qtyEl.getAttribute('max'), 10) || 0;
             if (errEl) {
                 if (quantity > maxQ && maxQ > 0) {
                     errEl.style.display = 'block';
@@ -3893,9 +3944,23 @@
                     errEl.textContent = '';
                 }
             }
+            if (breakdownEl) {
+                if (quantity > 0 && unitPrice >= 0) {
+                    breakdownEl.textContent = quantity + ' × Rs. ' + unitPrice.toFixed(2) + ' = Rs. ' + productTotal.toFixed(2);
+                } else {
+                    breakdownEl.textContent = '';
+                }
+            }
             if (prodEl) prodEl.textContent = 'Product amount: Rs. ' + productTotal.toFixed(2);
             if (shipEl) shipEl.textContent = 'Shipping (flat): Rs. ' + shipping.toFixed(2);
-            if (grandEl) grandEl.textContent = 'Total (product + shipping): Rs. ' + grandTotal.toFixed(2);
+            if (esewaNote) esewaNote.style.display = esewa ? 'block' : 'none';
+            if (grandEl) {
+                if (esewa && rawGrand > 0) {
+                    grandEl.textContent = 'Total to pay (eSewa, whole Rs.): Rs. ' + Math.round(rawGrand);
+                } else {
+                    grandEl.textContent = 'Total (product + shipping): Rs. ' + rawGrand.toFixed(2);
+                }
+            }
         }
 
         function updatePaymentMethod(radio) {
@@ -4021,6 +4086,15 @@
             
             // Update cart badge on load
             updateCartBadge();
+
+            (function bindPurchaseQtyLiveUpdates() {
+                var cq = document.getElementById('purchaseCropQuantity');
+                var tq = document.getElementById('purchaseToolQuantity');
+                ['input', 'change', 'keyup', 'paste'].forEach(function (ev) {
+                    if (cq) cq.addEventListener(ev, function () { calculateCropTotal(); });
+                    if (tq) tq.addEventListener(ev, function () { calculateToolTotal(); });
+                });
+            })();
             
             // Display cart items if orders section is visible
             const ordersSection = document.getElementById('orders');
@@ -4103,7 +4177,7 @@
     </script>
     {% include 'includes/order_detail_modal.html' %}
     {% include 'includes/farmity_ux_scripts.html' %}
-    {% include 'support_widget.html' %}
+    {% include 'support_widget.html' with hide_admin_tab=True %}
     {% include 'includes/user_dashboard_scroll.html' %}
 </body>
 </html>

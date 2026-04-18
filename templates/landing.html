@@ -411,57 +411,8 @@
         </div>
     </section>
 
-    <!-- Footer -->
-    <footer class="main-footer">
-        <div class="footer-container">
-            <div class="footer-brand">
-                <div class="footer-brand-name">Farmity</div>
-                <p class="footer-tagline">
-                    Your trusted smart agriculture platform. Connect with farmers, vendors, and experts to grow better, together.
-                </p>
-            </div>
-            <div class="footer-section">
-                <h4>Quick Links</h4>
-                <ul>
-                    <li><a href="#home">Home</a></li>
-                    <li><a href="#marketplace">Marketplace</a></li>
-                    <li><a href="#vendors">Vendors</a></li>
-                    <li><a href="#experts">Experts</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h4>Resources</h4>
-                <ul>
-                    <li><a href="{% url 'support_hub' %}">Help Center</a></li>
-                    <li><a href="{% url 'privacy_policy' %}">Privacy Policy</a></li>
-                    <li><a href="{% url 'terms_of_service' %}">Terms of Service</a></li>
-                    <li><a href="/register/">Join Farmity</a></li>
-                </ul>
-            </div>
-            <div class="footer-section footer-contact-section">
-                <h4>Contact Us</h4>
-                <p class="footer-contact"><span class="footer-contact-icon"><i class="fa-regular fa-envelope"></i></span> farmityforyou@gmail.com</p>
-                <p class="footer-contact"><span class="footer-contact-icon"><i class="fa-solid fa-phone"></i></span> +977 9804373219</p>
-                <p class="footer-contact"><span class="footer-contact-icon"><i class="fa-solid fa-location-dot"></i></span> Nepal</p>
-            </div>
-        </div>
-        <div class="footer-bottom">
-            <p>© 2026 Farmity. All rights reserved.</p>
-            <div class="footer-bottom-right">
-                <div class="social-icons" aria-label="Farmity social links">
-                    <a href="https://www.instagram.com/farmityforyou/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
-                        <i class="fa-brands fa-instagram"></i>
-                    </a>
-                    <a href="https://www.youtube.com/@farmityforyou" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
-                        <i class="fa-brands fa-youtube"></i>
-                    </a>
-                    <a href="https://www.linkedin.com/company/farmity/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
-                        <i class="fa-brands fa-linkedin-in"></i>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </footer>
+    <!-- Footer (shared with buyer dashboard and other pages) -->
+    {% include 'includes/landing_footer.html' %}
 
     {% include 'support_widget.html' with hide_admin_tab=True %}
     <script src="/static/js/main.js"></script>
