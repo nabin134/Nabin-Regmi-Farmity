@@ -180,6 +180,11 @@
             color: #991b1b;
             border-color: #fca5a5;
         }
+        .payment-chip.payout-released {
+            background: #e0f2fe;
+            color: #0369a1;
+            border-color: #7dd3fc;
+        }
         .modal {
             position: fixed;
             inset: 0;
@@ -433,12 +438,19 @@
                             <td class="amount-cell">Rs. {{ item.amount|floatformat:2 }}</td>
                             <td><span class="order-ids">{% for o in item.orders %}#{{ o.id }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></td>
                             <td>
-                                <form method="POST" action="{% url 'admin_collections_payouts' %}" style="display: inline;">
+                                <form method="POST" action="{% url 'admin_collections_payouts' %}" style="display: inline;"
+                                    data-farmity-confirm="1"
+                                    data-farmity-confirm-type="warning"
+                                    data-farmity-confirm-title="Confirm payout to farmer?"
+                                    data-farmity-confirm-message="Record Rs. {{ item.amount|floatformat:2 }} as paid to {{ item.display_name }}. Included orders: {% for o in item.orders %}#{{ o.id }}{% if not forloop.last %}, {% endif %}{% endfor %}. The farmer will be notified. Only continue if you have already sent the money."
+                                    data-farmity-confirm-button="Yes, record payout"
+                                    data-farmity-cancel-button="Cancel">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="mark_payout_paid">
                                     <input type="hidden" name="seller_type" value="farmer">
                                     <input type="hidden" name="seller_id" value="{{ item.profile.id }}">
-                                    <button type="submit" class="btn-payout" onclick="return confirm('Mark Rs. {{ item.amount|floatformat:2 }} as paid to {{ item.display_name }}? They will be notified.');">
+                                    <input type="hidden" name="expected_payout_amount" value="{{ item.amount }}">
+                                    <button type="submit" class="btn-payout">
                                         <i class="fas fa-check"></i> Pay out
                                     </button>
                                 </form>
@@ -474,12 +486,19 @@
                             <td class="amount-cell">Rs. {{ item.amount|floatformat:2 }}</td>
                             <td><span class="order-ids">{% for o in item.orders %}#{{ o.id }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></td>
                             <td>
-                                <form method="POST" action="{% url 'admin_collections_payouts' %}" style="display: inline;">
+                                <form method="POST" action="{% url 'admin_collections_payouts' %}" style="display: inline;"
+                                    data-farmity-confirm="1"
+                                    data-farmity-confirm-type="warning"
+                                    data-farmity-confirm-title="Confirm payout to vendor?"
+                                    data-farmity-confirm-message="Record Rs. {{ item.amount|floatformat:2 }} as paid to {{ item.display_name }}. Included orders: {% for o in item.orders %}#{{ o.id }}{% if not forloop.last %}, {% endif %}{% endfor %}. The vendor will be notified. Only continue if you have already sent the money."
+                                    data-farmity-confirm-button="Yes, record payout"
+                                    data-farmity-cancel-button="Cancel">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="mark_payout_paid">
                                     <input type="hidden" name="seller_type" value="vendor">
                                     <input type="hidden" name="seller_id" value="{{ item.profile.id }}">
-                                    <button type="submit" class="btn-payout" onclick="return confirm('Mark Rs. {{ item.amount|floatformat:2 }} as paid to {{ item.display_name }}? They will be notified.');">
+                                    <input type="hidden" name="expected_payout_amount" value="{{ item.amount }}">
+                                    <button type="submit" class="btn-payout">
                                         <i class="fas fa-check"></i> Pay out
                                     </button>
                                 </form>
@@ -507,11 +526,12 @@
                     <thead>
                         <tr>
                             <th>Order</th>
-                            <th>Total collections (Rs.)</th>
+                            <th>Total collected (Rs.)</th>
+                            <th>Payout to seller (Rs.)</th>
                             <th>Type</th>
                             <th>Buyer</th>
                             <th>Seller</th>
-                            <th>Payment status</th>
+                            <th>Buyer payment</th>
                             <th>Details</th>
                         </tr>
                     </thead>
@@ -520,6 +540,7 @@
                         <tr>
                             <td><a class="order-link" href="javascript:void(0)" onclick="openOrderDetails({{ row.order.id }})">#{{ row.order.id }}</a></td>
                             <td class="amount-cell">Rs. {{ row.order.total_amount|floatformat:2 }}</td>
+                            <td class="amount-cell">Rs. {{ row.payout_amount|floatformat:2 }}</td>
                             <td>
                                 {% if row.product_type == 'Crop' %}<span class="badge badge-farmer">Crop</span>
                                 {% elif row.product_type == 'Tool' %}<span class="badge badge-vendor">Tool</span>
@@ -543,6 +564,58 @@
                 <div class="empty-state" style="padding: 24px;">
                     <i class="fas fa-receipt"></i>
                     <p>No pending payout transactions.</p>
+                </div>
+                {% endif %}
+
+                <h3 style="font-size: 1rem; font-weight: 600; color: #1a1d21; margin: 28px 0 12px; display: flex; align-items: center; gap: 8px;"><i class="fas fa-history"></i> Payout records (completed)</h3>
+                <p style="color:#5c6268; font-size:0.9rem; margin: 0 0 12px;">Orders where the seller share has been marked as released. Use this for audits and reconciliation.</p>
+                {% if completed_payout_rows %}
+                <div class="toolbar">
+                    <div style="color:#5c6268; font-size:0.86rem;">{{ completed_payout_rows|length }} records</div>
+                    <input id="completedPayoutsSearch" class="search-input" type="text" placeholder="Search by order, buyer or seller..." oninput="filterTable('completedPayoutsTable', this.value)">
+                </div>
+                <div class="table-wrap">
+                <table class="data-table" id="completedPayoutsTable">
+                    <thead>
+                        <tr>
+                            <th>Order</th>
+                            <th>Payout to seller (Rs.)</th>
+                            <th>Type</th>
+                            <th>Buyer</th>
+                            <th>Seller</th>
+                            <th>Released at</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in completed_payout_rows %}
+                        <tr>
+                            <td><a class="order-link" href="javascript:void(0)" onclick="openOrderDetails({{ row.order.id }})">#{{ row.order.id }}</a></td>
+                            <td class="amount-cell">Rs. {{ row.payout_amount|floatformat:2 }}</td>
+                            <td>
+                                {% if row.product_type == 'Crop' %}<span class="badge badge-farmer">Crop</span>
+                                {% elif row.product_type == 'Tool' %}<span class="badge badge-vendor">Tool</span>
+                                {% else %}—{% endif %}
+                            </td>
+                            <td>{{ row.order.buyer.email|default:"-" }}</td>
+                            <td><strong>{{ row.seller_name }}</strong></td>
+                            <td>
+                                {% if row.payout_at %}
+                                <span class="payment-chip payout-released"><i class="fas fa-check-double"></i> {{ row.payout_at|date:"M d, Y h:i A" }}</span>
+                                {% else %}
+                                <span class="payment-chip pending">—</span>
+                                {% endif %}
+                            </td>
+                            <td><button type="button" class="btn-view" onclick="openOrderDetails({{ row.order.id }})"><i class="fas fa-eye"></i> View</button></td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                </div>
+                {% else %}
+                <div class="empty-state" style="padding: 24px;">
+                    <i class="fas fa-history"></i>
+                    <p>No completed payout records yet.</p>
                 </div>
                 {% endif %}
             </div>

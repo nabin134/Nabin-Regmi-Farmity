@@ -1437,7 +1437,7 @@ def landing_page(request):
     tools_map = {t.id: t for t in tool_qs}
     tools = [tools_map[tid] for tid in selected_tool_ids if tid in tools_map]
 
-    # --- Vendor Spotlight (show exactly 4 vendors, one featured tool per vendor changes hourly) ---
+    # --- Vendor Spotlight (always render 4 slots: real vendors first, then placeholders) ---
     vendor_ids = list(
         VendorProfile.objects.annotate(
             tool_count=Count('tools', filter=Q(tools__is_available=True, tools__stock_quantity__gt=0))
@@ -1447,7 +1447,7 @@ def landing_page(request):
         .order_by('id')
         .values_list('id', flat=True)
     )
-    # Show at most 4 distinct vendors. If there are only 3 registered vendors, show only 3 (no duplicates).
+    # Show at most 4 distinct vendors.
     selected_vendor_ids = _pick_cyclic(vendor_ids, min(4, len(vendor_ids)))
 
     vendors_qs = (
@@ -1484,7 +1484,12 @@ def landing_page(request):
         pick_idx = (seed + vendor_id) % len(options)
         vendor.featured_tool = options[pick_idx]
 
-    experts = ExpertProfile.objects.select_related('user').all()[:6]
+    vendor_spotlight_slots = list(vendors)
+    if len(vendor_spotlight_slots) < 4:
+        vendor_spotlight_slots.extend([None] * (4 - len(vendor_spotlight_slots)))
+
+    experts = list(ExpertProfile.objects.select_related('user').all()[:2])
+
     farming_tips = FarmingTip.objects.filter(is_published=True, approval_status=FarmingTip.APPROVAL_APPROVED).select_related('expert', 'expert__user').order_by('-created_at')[:4]
     farmers_count = FarmerProfile.objects.count()
     vendors_count = VendorProfile.objects.count()
@@ -1512,7 +1517,8 @@ def landing_page(request):
         'experts': experts,
         'farming_tips': farming_tips,
         'vendors': vendors,
-        'vendor_spotlight_count': len(vendors),
+        'vendor_spotlight_count': 4,
+        'vendor_spotlight_slots': vendor_spotlight_slots,
         'landing_features': landing_features,
         'farmers_count': farmers_count,
         'vendors_count': vendors_count,
@@ -4220,8 +4226,11 @@ def user_dashboard(request):
             messages.error(request, 'Contact number is required.')
             return _redirect_same_page(request, 'user_dashboard')
         try:
-            tool = VendorTool.objects.get(id=tool_id, is_available=True, stock_quantity__gt=0)
-            if tool.stock_quantity >= quantity:
+            with transaction.atomic():
+                tool = VendorTool.objects.select_for_update().get(id=tool_id, is_available=True, stock_quantity__gt=0)
+                if tool.stock_quantity < quantity:
+                    messages.error(request, f'Insufficient stock. Available: {tool.stock_quantity} units')
+                    return _redirect_same_page(request, 'user_dashboard')
                 base_amount = tool.price * quantity
                 shipping_cost = Decimal('100.00')
                 total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
@@ -4247,12 +4256,12 @@ def user_dashboard(request):
                     order_email=order_email,
                     notes=request.POST.get('notes', '')
                 )
-                
+
                 if payment_method != Order.PAYMENT_ESEWA:
                     tool.stock_quantity -= quantity
                     if tool.stock_quantity == 0:
                         tool.is_available = False
-                    tool.save()
+                    tool.save(update_fields=['stock_quantity', 'is_available'])
                     order.inventory_deducted = True
                     order.save(update_fields=['inventory_deducted'])
                     vendor_user = getattr(tool.vendor, 'user', None)
@@ -4276,8 +4285,6 @@ def user_dashboard(request):
                     request.session['esewa_redirect_after'] = 'user_dashboard'
                     request.session.modified = True
                     return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
-            else:
-                messages.error(request, f'Insufficient stock. Available: {tool.stock_quantity} units')
         except VendorTool.DoesNotExist:
             messages.error(request, 'Tool not found or no longer available!')
         except Exception as e:
@@ -4320,129 +4327,130 @@ def user_dashboard(request):
                 continue
             if typ == 'crop':
                 try:
-                    crop = FarmerProduct.objects.get(id=item_id, is_available=True)
-                    if crop.quantity <= Decimal('1'):
-                        errors.append(f"{crop.name}: not available (need more than 1 {crop.unit} in stock)")
-                        continue
-                    if crop.quantity < qty:
-                        errors.append(f"{crop.name}: only {crop.quantity} {crop.unit} available")
-                        continue
-                    base_amount = (Decimal(str(crop.price_per_unit)) * qty).quantize(Decimal('0.01'))
-                    shipping_cost = Decimal('100.00')
-                    total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
-                    if payment_method == Order.PAYMENT_ESEWA:
-                        total_amount = total_amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
-                        base_amount = (total_amount - shipping_cost).quantize(Decimal('0.01'))
-                    admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='crop')
-                    order_status = (
-                        Order.STATUS_AWAITING_PAYMENT if payment_method == Order.PAYMENT_ESEWA else Order.STATUS_CONFIRMED
-                    )
-                    order = Order.objects.create(
-                        buyer=request.user,
-                        crop=crop,
-                        quantity=int(qty.to_integral_value(rounding='ROUND_HALF_UP')),
-                        total_amount=total_amount,
-                        shipping_cost=shipping_cost,
-                        admin_commission=admin_commission,
-                        seller_amount=seller_amount,
-                        status=order_status,
-                        payment_method=payment_method,
-                        payment_status='pending',
-                        shipping_address=shipping_address,
-                        contact_number=contact_number,
-                        order_email=order_email,
-                        notes=notes
-                    )
-                    if payment_method != Order.PAYMENT_ESEWA:
-                        crop.quantity -= qty
-                        if crop.quantity <= 0:
-                            crop.is_available = False
-                        crop.save()
-                        CropSale.objects.create(
-                            crop=crop,
-                            order=order,
-                            quantity_sold=qty,
-                            price_per_unit=crop.price_per_unit,
-                            total_amount=base_amount,
-                            sold_to=request.user,
-                            sold_at=timezone.now()
+                    with transaction.atomic():
+                        crop = FarmerProduct.objects.select_for_update().get(id=item_id, is_available=True)
+                        if crop.quantity < qty:
+                            errors.append(f"{crop.name}: only {crop.quantity} {crop.unit} available")
+                            continue
+                        base_amount = (Decimal(str(crop.price_per_unit)) * qty).quantize(Decimal('0.01'))
+                        shipping_cost = Decimal('100.00')
+                        total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
+                        if payment_method == Order.PAYMENT_ESEWA:
+                            total_amount = total_amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+                            base_amount = (total_amount - shipping_cost).quantize(Decimal('0.01'))
+                        admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='crop')
+                        order_status = (
+                            Order.STATUS_AWAITING_PAYMENT if payment_method == Order.PAYMENT_ESEWA else Order.STATUS_CONFIRMED
                         )
-                        order.inventory_deducted = True
-                        order.save(update_fields=['inventory_deducted'])
-                        farmer_user = getattr(crop.farmer, 'user', None)
-                        if farmer_user:
+                        qty_int = int(qty.to_integral_value(rounding=ROUND_HALF_UP))
+                        order = Order.objects.create(
+                            buyer=request.user,
+                            crop=crop,
+                            quantity=qty_int,
+                            total_amount=total_amount,
+                            shipping_cost=shipping_cost,
+                            admin_commission=admin_commission,
+                            seller_amount=seller_amount,
+                            status=order_status,
+                            payment_method=payment_method,
+                            payment_status='pending',
+                            shipping_address=shipping_address,
+                            contact_number=contact_number,
+                            order_email=order_email,
+                            notes=notes
+                        )
+                        if payment_method != Order.PAYMENT_ESEWA:
+                            crop.quantity -= qty
+                            if crop.quantity <= 0:
+                                crop.quantity = Decimal('0')
+                                crop.is_available = False
+                            crop.save(update_fields=['quantity', 'is_available'])
+                            CropSale.objects.create(
+                                crop=crop,
+                                order=order,
+                                quantity_sold=qty,
+                                price_per_unit=crop.price_per_unit,
+                                total_amount=base_amount,
+                                sold_to=request.user,
+                                sold_at=timezone.now()
+                            )
+                            order.inventory_deducted = True
+                            order.save(update_fields=['inventory_deducted'])
+                            farmer_user = getattr(crop.farmer, 'user', None)
+                            if farmer_user:
+                                create_notification(
+                                    farmer_user,
+                                    'New order for your crop',
+                                    f'Order #{order.id}: {crop.name} x{qty_int} — Rs. {total_amount:.2f} (incl. shipping)',
+                                    reverse('farmer_dashboard') + '?section=orders',
+                                    UserNotification.TYPE_ORDER
+                                )
                             create_notification(
-                                farmer_user,
-                                'New order for your crop',
-                                f'Order #{order.id}: {crop.name} x{int(round(qty))} — Rs. {total_amount:.2f} (incl. shipping)',
-                                reverse('farmer_dashboard') + '?section=orders',
+                                request.user,
+                                'Order placed',
+                                f'Order #{order.id}: {crop.name} x{qty_int} — Rs. {total_amount:.2f} (incl. shipping)',
+                                reverse('user_dashboard') + '?section=orders',
                                 UserNotification.TYPE_ORDER
                             )
-                        create_notification(
-                            request.user,
-                            'Order placed',
-                            f'Order #{order.id}: {crop.name} x{int(round(qty))} — Rs. {total_amount:.2f} (incl. shipping)',
-                            reverse('user_dashboard') + '?section=orders',
-                            UserNotification.TYPE_ORDER
-                        )
-                    orders_created.append(order)
+                        orders_created.append(order)
                 except FarmerProduct.DoesNotExist:
                     errors.append(f"Crop (id {item_id}) no longer available")
             elif typ == 'tool':
                 try:
-                    tool = VendorTool.objects.get(id=item_id, is_available=True, stock_quantity__gt=0)
-                    if tool.stock_quantity < qty:
-                        errors.append(f"{tool.name}: only {tool.stock_quantity} units available")
-                        continue
-                    base_amount = (Decimal(str(tool.price)) * Decimal(str(qty))).quantize(Decimal('0.01'))
-                    shipping_cost = Decimal('100.00')
-                    total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
-                    if payment_method == Order.PAYMENT_ESEWA:
-                        total_amount = total_amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
-                    admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
-                    order_status = (
-                        Order.STATUS_AWAITING_PAYMENT if payment_method == Order.PAYMENT_ESEWA else Order.STATUS_CONFIRMED
-                    )
-                    order = Order.objects.create(
-                        buyer=request.user,
-                        tool=tool,
-                        quantity=int(qty),
-                        total_amount=total_amount,
-                        shipping_cost=shipping_cost,
-                        admin_commission=admin_commission,
-                        seller_amount=seller_amount,
-                        status=order_status,
-                        payment_method=payment_method,
-                        payment_status='pending',
-                        shipping_address=shipping_address,
-                        contact_number=contact_number,
-                        order_email=order_email,
-                        notes=notes
-                    )
-                    if payment_method != Order.PAYMENT_ESEWA:
-                        tool.stock_quantity -= int(qty)
-                        if tool.stock_quantity == 0:
-                            tool.is_available = False
-                        tool.save()
-                        order.inventory_deducted = True
-                        order.save(update_fields=['inventory_deducted'])
-                        vendor_user = getattr(tool.vendor, 'user', None)
-                        if vendor_user:
+                    with transaction.atomic():
+                        tool = VendorTool.objects.select_for_update().get(id=item_id, is_available=True, stock_quantity__gt=0)
+                        if tool.stock_quantity < qty:
+                            errors.append(f"{tool.name}: only {tool.stock_quantity} units available")
+                            continue
+                        base_amount = (Decimal(str(tool.price)) * Decimal(str(qty))).quantize(Decimal('0.01'))
+                        shipping_cost = Decimal('100.00')
+                        total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
+                        if payment_method == Order.PAYMENT_ESEWA:
+                            total_amount = total_amount.quantize(Decimal('1'), rounding=ROUND_HALF_UP)
+                        admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
+                        order_status = (
+                            Order.STATUS_AWAITING_PAYMENT if payment_method == Order.PAYMENT_ESEWA else Order.STATUS_CONFIRMED
+                        )
+                        order = Order.objects.create(
+                            buyer=request.user,
+                            tool=tool,
+                            quantity=int(qty),
+                            total_amount=total_amount,
+                            shipping_cost=shipping_cost,
+                            admin_commission=admin_commission,
+                            seller_amount=seller_amount,
+                            status=order_status,
+                            payment_method=payment_method,
+                            payment_status='pending',
+                            shipping_address=shipping_address,
+                            contact_number=contact_number,
+                            order_email=order_email,
+                            notes=notes
+                        )
+                        if payment_method != Order.PAYMENT_ESEWA:
+                            tool.stock_quantity -= int(qty)
+                            if tool.stock_quantity == 0:
+                                tool.is_available = False
+                            tool.save(update_fields=['stock_quantity', 'is_available'])
+                            order.inventory_deducted = True
+                            order.save(update_fields=['inventory_deducted'])
+                            vendor_user = getattr(tool.vendor, 'user', None)
+                            if vendor_user:
+                                create_notification(
+                                    vendor_user,
+                                    'New tool order',
+                                    f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f} (incl. shipping)',
+                                    reverse('vendor_dashboard'),
+                                    UserNotification.TYPE_ORDER
+                                )
                             create_notification(
-                                vendor_user,
-                                'New tool order',
+                                request.user,
+                                'Order placed',
                                 f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f} (incl. shipping)',
-                                reverse('vendor_dashboard'),
+                                reverse('user_dashboard') + '?section=orders',
                                 UserNotification.TYPE_ORDER
                             )
-                        create_notification(
-                            request.user,
-                            'Order placed',
-                            f'Order #{order.id}: {tool.name} x{qty} — Rs. {total_amount:.2f} (incl. shipping)',
-                            reverse('user_dashboard') + '?section=orders',
-                            UserNotification.TYPE_ORDER
-                        )
-                    orders_created.append(order)
+                        orders_created.append(order)
                 except VendorTool.DoesNotExist:
                     errors.append(f"Tool (id {item_id}) no longer available")
             else:
@@ -4814,25 +4822,32 @@ def admin_dashboard(request):
     return render(request, 'admin_dashboard.html', context)
 
 
+def _admin_collections_collected_orders_qs():
+    """
+    Payment-completed orders shown on admin Collections & Payouts, including the Mainali
+    vendor exclusion rule so list totals match payout actions.
+    """
+    qs = Order.objects.filter(
+        payment_status=Order.PAYMENT_STATUS_COMPLETED
+    ).select_related(
+        'buyer',
+        'crop', 'crop__farmer', 'crop__farmer__user',
+        'tool', 'tool__vendor', 'tool__vendor__user',
+    )
+    mainali_vendor_orders = qs.filter(tool__vendor__user__email='np05cp4s240077@iic.edu.np')
+    mainali_has_sales = mainali_vendor_orders.filter(tool__isnull=False).exists()
+    if not mainali_has_sales:
+        qs = qs.exclude(tool__vendor__user__email='np05cp4s240077@iic.edu.np')
+    return qs
+
+
 @login_required
 def admin_collections_payouts(request):
     """Admin: view all amounts collected (paid orders) and pay out to farmers/vendors (e.g. weekly)."""
     if request.user.role != 'admin':
         return _redirect_to_role_home_response(request.user)
 
-    # Orders where payment is completed (eSewa paid online, or COD after seller marked cash received)
-    collected_orders = Order.objects.filter(
-        payment_status=Order.PAYMENT_STATUS_COMPLETED
-    ).select_related('crop', 'crop__farmer', 'crop__farmer__user', 'tool', 'tool__vendor', 'tool__vendor__user')
-    
-    # For Mainali Tools and Technology vendor, check if they have actual sales
-    mainali_vendor_orders = collected_orders.filter(tool__vendor__user__email='np05cp4s240077@iic.edu.np')
-    mainali_has_sales = mainali_vendor_orders.filter(tool__isnull=False).exists()
-    
-    if not mainali_has_sales:
-        # Exclude Mainali Tools and Technology vendor if no actual sales
-        collected_orders = collected_orders.exclude(tool__vendor__user__email='np05cp4s240077@iic.edu.np')
-    # If they have sales, include them automatically
+    collected_orders = _admin_collections_collected_orders_qs()
 
     total_collected = collected_orders.aggregate(total=Sum('total_amount'))['total'] or Decimal('0')
     total_admin_commission = collected_orders.aggregate(t=Sum('admin_commission'))['t'] or Decimal('0')
@@ -4896,54 +4911,116 @@ def admin_collections_payouts(request):
         vendor_pending[vid]['amount'] += _order_seller_amount(o)
         vendor_pending[vid]['orders'].append(o)
 
-    # Handle POST: mark payout paid for a seller
+    # Handle POST: mark payout paid for a seller (validated amount + DB state under transaction)
     if request.method == 'POST' and request.POST.get('action') == 'mark_payout_paid':
-        seller_type = request.POST.get('seller_type')  # 'farmer' | 'vendor'
-        seller_id = request.POST.get('seller_id')
-        if seller_type == 'farmer' and seller_id:
+        seller_type = (request.POST.get('seller_type') or '').strip()
+        seller_id_raw = (request.POST.get('seller_id') or '').strip()
+        expected_raw = (request.POST.get('expected_payout_amount') or '').strip().replace(',', '')
+
+        def _parse_money_decimal(s):
+            if not s:
+                return None
             try:
-                farmer = FarmerProfile.objects.get(id=seller_id)
-                orders_to_pay = pending_orders.filter(crop__farmer=farmer)
-                total_paid = orders_to_pay.aggregate(t=Sum('seller_amount'))['t'] or Decimal('0')
-                if total_paid == 0:
-                    total_paid = orders_to_pay.aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
-                now = timezone.now()
-                orders_to_pay.update(payout_status=Order.PAYOUT_PAID, payout_at=now)
-                seller_user = getattr(farmer, 'user', None)
-                if seller_user:
-                    create_notification(
-                        seller_user,
-                        'Payout received',
-                        f'Rs. {total_paid:.2f} has been transferred to you for your orders (weekly payout from Farmity admin).',
-                        reverse('farmer_dashboard') + '?section=orders',
-                        UserNotification.TYPE_ORDER
-                    )
-                messages.success(request, f'Payout of Rs. {total_paid:.2f} marked as paid to farmer {farmer.name or farmer.user.email}. They have been notified.')
-            except FarmerProfile.DoesNotExist:
-                messages.error(request, 'Farmer not found.')
-        elif seller_type == 'vendor' and seller_id:
-            try:
-                vendor = VendorProfile.objects.get(id=seller_id)
-                orders_to_pay = pending_orders.filter(tool__vendor=vendor)
-                total_paid = orders_to_pay.aggregate(t=Sum('seller_amount'))['t'] or Decimal('0')
-                if total_paid == 0:
-                    total_paid = orders_to_pay.aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
-                now = timezone.now()
-                orders_to_pay.update(payout_status=Order.PAYOUT_PAID, payout_at=now)
-                seller_user = getattr(vendor, 'user', None)
-                if seller_user:
-                    create_notification(
-                        seller_user,
-                        'Payout received',
-                        f'Rs. {total_paid:.2f} has been transferred to you for your orders (weekly payout from Farmity admin).',
-                        reverse('vendor_dashboard'),
-                        UserNotification.TYPE_ORDER
-                    )
-                messages.success(request, f'Payout of Rs. {total_paid:.2f} marked as paid to vendor {vendor.company_name or vendor.user.email}. They have been notified.')
-            except VendorProfile.DoesNotExist:
-                messages.error(request, 'Vendor not found.')
-        else:
+                d = Decimal(s)
+            except InvalidOperation:
+                return None
+            if d <= 0:
+                return None
+            return d
+
+        expected_amt = _parse_money_decimal(expected_raw)
+        if expected_amt is None:
+            messages.error(
+                request,
+                'Missing or invalid payout confirmation. Refresh the page and try again.',
+            )
+            return _redirect_same_admin_page(request, 'admin_collections_payouts')
+
+        try:
+            seller_pk = int(seller_id_raw)
+        except (TypeError, ValueError):
+            messages.error(request, 'Invalid seller reference.')
+            return _redirect_same_admin_page(request, 'admin_collections_payouts')
+
+        if seller_type not in ('farmer', 'vendor'):
             messages.error(request, 'Invalid payout request.')
+            return _redirect_same_admin_page(request, 'admin_collections_payouts')
+
+        farmer = None
+        vendor = None
+        total_paid_dec = Decimal('0')
+        try:
+            with transaction.atomic():
+                base = _admin_collections_collected_orders_qs().filter(pending_q)
+                if seller_type == 'farmer':
+                    farmer = FarmerProfile.objects.get(pk=seller_pk)
+                    orders_to_pay = base.filter(crop__farmer=farmer).select_for_update()
+                else:
+                    vendor = VendorProfile.objects.get(pk=seller_pk)
+                    orders_to_pay = base.filter(tool__vendor=vendor).select_for_update()
+
+                if not orders_to_pay.exists():
+                    messages.warning(
+                        request,
+                        'There are no pending payout orders for this seller. It may already have been paid out.',
+                    )
+                    return _redirect_same_admin_page(request, 'admin_collections_payouts')
+
+                total_paid_dec = orders_to_pay.aggregate(t=Sum('seller_amount'))['t'] or Decimal('0')
+                if total_paid_dec == 0:
+                    total_paid_dec = orders_to_pay.aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
+
+                exp_q = expected_amt.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                tot_q = total_paid_dec.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+                if exp_q != tot_q:
+                    messages.error(
+                        request,
+                        f'The payout amount no longer matches pending orders (form had Rs. {exp_q}, '
+                        f'current pending total Rs. {tot_q}). Refresh the page and try again.',
+                    )
+                    return _redirect_same_admin_page(request, 'admin_collections_payouts')
+
+                now = timezone.now()
+                orders_to_pay.update(payout_status=Order.PAYOUT_PAID, payout_at=now)
+        except FarmerProfile.DoesNotExist:
+            messages.error(request, 'Farmer not found.')
+            return _redirect_same_admin_page(request, 'admin_collections_payouts')
+        except VendorProfile.DoesNotExist:
+            messages.error(request, 'Vendor not found.')
+            return _redirect_same_admin_page(request, 'admin_collections_payouts')
+
+        if farmer is not None:
+            seller_user = getattr(farmer, 'user', None)
+            label = farmer.name or (seller_user.email if seller_user else 'farmer')
+            dash_url = reverse('farmer_dashboard') + '?section=orders'
+            if seller_user:
+                create_notification(
+                    seller_user,
+                    'Payout received',
+                    f'Rs. {total_paid_dec:.2f} has been transferred to you for your orders (weekly payout from Farmity admin).',
+                    dash_url,
+                    UserNotification.TYPE_ORDER,
+                )
+            messages.success(
+                request,
+                f'Payout of Rs. {total_paid_dec:.2f} marked as paid to farmer {label}. They have been notified.',
+            )
+        elif vendor is not None:
+            seller_user = getattr(vendor, 'user', None)
+            label = vendor.company_name or (seller_user.email if seller_user else 'vendor')
+            if seller_user:
+                create_notification(
+                    seller_user,
+                    'Payout received',
+                    f'Rs. {total_paid_dec:.2f} has been transferred to you for your orders (weekly payout from Farmity admin).',
+                    reverse('vendor_dashboard'),
+                    UserNotification.TYPE_ORDER,
+                )
+            messages.success(
+                request,
+                f'Payout of Rs. {total_paid_dec:.2f} marked as paid to vendor {label}. They have been notified.',
+            )
+
         return _redirect_same_admin_page(request, 'admin_collections_payouts')
 
     # Total paid out = total collected - still pending
@@ -4996,6 +5073,30 @@ def admin_collections_payouts(request):
             'seller_name': seller_name,
             'payout_amount': _order_seller_amount(o),
         })
+
+    paid_orders = collected_orders.filter(payout_status=Order.PAYOUT_PAID).order_by('-payout_at', '-id')
+    completed_payout_rows = []
+    for o in paid_orders:
+        if o.crop_id:
+            product_name = o.crop.name
+            product_type = 'Crop'
+            seller_name = o.crop.farmer.name or o.crop.farmer.user.email if o.crop and o.crop.farmer else 'Unknown'
+        elif o.tool_id:
+            product_name = o.tool.name
+            product_type = 'Tool'
+            seller_name = o.tool.vendor.company_name or o.tool.vendor.user.email if o.tool and o.tool.vendor else 'Unknown'
+        else:
+            product_name = '—'
+            product_type = '—'
+            seller_name = '—'
+        completed_payout_rows.append({
+            'order': o,
+            'product_name': product_name,
+            'product_type': product_type,
+            'seller_name': seller_name,
+            'payout_amount': _order_seller_amount(o),
+            'payout_at': o.payout_at,
+        })
     context = {
         'total_collected': float(total_collected),
         'total_admin_commission': float(total_admin_commission),
@@ -5007,6 +5108,7 @@ def admin_collections_payouts(request):
         'farmer_pending_list': list(farmer_pending.values()),
         'vendor_pending_list': list(vendor_pending.values()),
         'pending_payout_rows': pending_payout_rows,
+        'completed_payout_rows': completed_payout_rows,
         'open_support_count': SupportTicket.objects.filter(
             status__in=[SupportTicket.STATUS_OPEN, SupportTicket.STATUS_IN_PROGRESS]
         ).count(),

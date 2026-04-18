@@ -224,8 +224,8 @@
             <h2 class="section-title">Vendor Spotlight</h2>
             <p class="section-subtitle">Trusted agricultural suppliers</p>
             <div class="vendors-grid vendors-grid-{{ vendor_spotlight_count|default:0 }}">
-                {% for vendor in vendors %}
-                {% if vendor.user.is_verified %}
+                {% for vendor in vendor_spotlight_slots %}
+                {% if vendor %}
                 <div class="vendor-card">
                     <div class="vendor-image">
                         {% if vendor.logo %}
@@ -256,9 +256,25 @@
                     {% endif %}
                     <a href="/login/?next=/user/dashboard/" class="btn-view-store">View Store</a>
                 </div>
+                {% else %}
+                <div class="vendor-card vendor-card-placeholder">
+                    <div class="vendor-image vendor-image-placeholder">🏪</div>
+                    <div class="vendor-header">
+                        <h4 class="vendor-store-name">Your Store Here</h4>
+                        <span class="vendor-badge vendor-badge-upcoming">
+                            <i class="fas fa-seedling"></i> Join Farmity
+                        </span>
+                    </div>
+                    <p class="vendor-location">Register as a vendor to showcase tools.</p>
+                    <p class="vendor-products">Start selling with verified buyers.</p>
+                    <div class="vendor-featured">
+                        <div class="vendor-featured-label">Spotlight Slot</div>
+                        <div class="vendor-featured-name">Reserved for New Vendor</div>
+                        <div class="vendor-featured-price">Available Now</div>
+                    </div>
+                    <a href="/register/?role=vendor" class="btn-view-store">Register as Vendor</a>
+                </div>
                 {% endif %}
-                {% empty %}
-                <p class="section-subtitle">No vendors yet. Sign up as a vendor to list tools!</p>
                 {% endfor %}
             </div>
         </div>
@@ -300,8 +316,9 @@
     <section class="experts-section" id="experts">
         <div class="experts-container">
             <div class="experts-image">
-                <div class="expert-img-placeholder" style="position:relative; overflow:hidden;">
-                    <img id="expertSectionHeroImg" src="{% static 'images/agri expert.jpg' %}" alt="Agricultural expert consultation" style="display:block; width:100%; height:400px; object-fit:cover;" loading="lazy" onerror="this.style.display='none'; document.getElementById('expertSectionHeroFallback').style.display='flex';">                    <div id="expertSectionHeroFallback" style="display:none; width:100%; height:400px; background:rgba(255,255,255,0.1); border-radius:20px; align-items:center; justify-content:center; font-size:8rem;">👩‍🔬</div>
+                <div class="expert-img-placeholder">
+                    <img id="expertSectionHeroImg" src="{% static 'images/agri expert.jpg' %}" alt="Agricultural expert consultation" class="expert-hero-image" loading="lazy" onerror="this.style.display='none'; document.getElementById('expertSectionHeroFallback').style.display='flex';">
+                    <div id="expertSectionHeroFallback" class="expert-hero-fallback" style="display:none;">👩‍🔬</div>
                 </div>
             </div>
             <div class="experts-content">
@@ -310,26 +327,30 @@
                 {% if experts %}
                 <ul class="experts-features">
                     {% for expert in experts %}
-                    <li style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:0.75rem;">
-                        <span style="display:flex; align-items:center; gap:0.75rem;">
-                            <span style="width:40px; height:40px; border-radius:50%; overflow:hidden; flex-shrink:0; background:rgba(255,255,255,0.2); display:flex; align-items:center; justify-content:center;">
+                    <li class="expert-feature-card">
+                        <div class="expert-feature-main">
+                            <div class="expert-avatar-wrap">
                                 {% if expert.photo %}
-                                <img src="{{ expert.photo.url }}" alt="{{ expert.name|default:expert.user.email }}" style="width:100%; height:100%; object-fit:cover;" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
-                                <span style="display:none; font-size:1.25rem;">👩‍🔬</span>
+                                <img src="{{ expert.photo.url }}" alt="{{ expert.name|default:expert.user.email }}" class="expert-avatar-img" width="48" height="48" onerror="this.style.display='none'; this.nextElementSibling.style.display='block';">
+                                <span class="expert-avatar-fallback" style="display:none;">👩‍🔬</span>
                                 {% else %}
-                                <span style="font-size:1.25rem;">👩‍🔬</span>
+                                <span class="expert-avatar-fallback">👩‍🔬</span>
                                 {% endif %}
-                            </span>
-                            <span>✓ {{ expert.name|default:expert.user.email }}{% if expert.specialization %} – {{ expert.specialization }}{% endif %}</span>
-                        </span>
-                        <span style="display:flex; gap:0.5rem;">
-                            <a href="/login/?next=/user/dashboard/" class="btn-consult" style="padding:0.5rem 1rem; font-size:0.9rem; text-decoration:none;">Chat</a>
-                            <a href="/login/?next=/appointments/request/" class="btn-upload" style="padding:0.5rem 1rem; font-size:0.9rem; text-decoration:none; display:inline-flex; align-items:center;">Appointment</a>
-                        </span>
+                            </div>
+                            <div class="expert-feature-text">✓ {{ expert.name|default:expert.user.email }}{% if expert.specialization %} – {{ expert.specialization }}{% endif %}</div>
+                        </div>
+                        <div class="expert-feature-actions">
+                            <a href="/login/?next=/user/dashboard/" class="btn-consult expert-feature-btn">Chat</a>
+                            <a href="/login/?next=/appointments/request/" class="btn-upload expert-feature-btn">Appointment</a>
+                        </div>
                     </li>
                     {% endfor %}
                 </ul>
-                <p style="margin-top:1rem; font-size:0.95rem;">{{ experts_count }} agricultural expert{{ experts_count|pluralize }} available</p>
+                <p class="experts-availability">{{ experts_count }} agricultural expert{{ experts_count|pluralize }} available</p>
+                <div class="experts-buttons">
+                    <a href="/login/?next=/user/dashboard/" class="btn-consult">Start Chat</a>
+                    <a href="/login/?next=/appointments/request/" class="btn-upload">Book Appointment</a>
+                </div>
                 {% else %}
                 <ul class="experts-features">
                     <li>✓ Ask questions about crops, soil, farming techniques</li>
@@ -337,10 +358,10 @@
                     <li>✓ Get personalized farming recommendations</li>
                 </ul>
                 <div class="experts-buttons">
-                    <a href="/login/?next=/user/dashboard/" class="btn-consult">Chat</a>
-                    <a href="/login/?next=/appointments/request/" class="btn-upload" style="display:inline-flex; align-items:center; gap:0.5rem;">Appointment</a>
+                    <a href="/login/?next=/user/dashboard/" class="btn-consult">Start Chat</a>
+                    <a href="/login/?next=/appointments/request/" class="btn-upload">Book Appointment</a>
                 </div>
-                <p style="margin-top:1rem; font-size:0.95rem;">Sign up to connect with experts.</p>
+                <p class="experts-availability">Sign up to connect with experts.</p>
                 {% endif %}
             </div>
         </div>
@@ -395,47 +416,50 @@
         <div class="footer-container">
             <div class="footer-brand">
                 <div class="footer-brand-name">Farmity</div>
-                <p class="footer-tagline">Connecting agriculture for a sustainable future.</p>
+                <p class="footer-tagline">
+                    Your trusted smart agriculture platform. Connect with farmers, vendors, and experts to grow better, together.
+                </p>
             </div>
             <div class="footer-section">
-                <h4>Company</h4>
+                <h4>Quick Links</h4>
                 <ul>
-                    <li><a href="#">About Us</a></li>
-                    <li><a href="#">Contact</a></li>
-                    <li><a href="#">Careers</a></li>
+                    <li><a href="#home">Home</a></li>
+                    <li><a href="#marketplace">Marketplace</a></li>
+                    <li><a href="#vendors">Vendors</a></li>
+                    <li><a href="#experts">Experts</a></li>
                 </ul>
             </div>
             <div class="footer-section">
-                <h4>Products</h4>
+                <h4>Resources</h4>
                 <ul>
-                    <li><a href="#">Marketplace</a></li>
-                    <li><a href="#">Live Prices</a></li>
-                    <li><a href="#">Advisory</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h4>Support</h4>
-                <ul>
-                    <li><a href="{% url 'support_hub' %}">Customer Support</a></li>
+                    <li><a href="{% url 'support_hub' %}">Help Center</a></li>
                     <li><a href="{% url 'privacy_policy' %}">Privacy Policy</a></li>
                     <li><a href="{% url 'terms_of_service' %}">Terms of Service</a></li>
+                    <li><a href="/register/">Join Farmity</a></li>
                 </ul>
             </div>
-            <div class="footer-section">
-                <h4>Contact</h4>
-                <p class="footer-contact"><span class="footer-contact-icon">&#9993;</span> info@farmity.com</p>
-                <p class="footer-contact"><span class="footer-contact-icon">&#9742;</span> +91-9800000000</p>
-                <p class="footer-contact"><span class="footer-contact-icon">&#9981;</span> Nepal</p>
-                <div class="social-icons">
-                    <a href="#" aria-label="Facebook">📘</a>
-                    <a href="#" aria-label="Twitter">🐦</a>
-                    <a href="#" aria-label="Instagram">📷</a>
-                    <a href="#" aria-label="LinkedIn">💼</a>
-                </div>
+            <div class="footer-section footer-contact-section">
+                <h4>Contact Us</h4>
+                <p class="footer-contact"><span class="footer-contact-icon"><i class="fa-regular fa-envelope"></i></span> farmityforyou@gmail.com</p>
+                <p class="footer-contact"><span class="footer-contact-icon"><i class="fa-solid fa-phone"></i></span> +977 9804373219</p>
+                <p class="footer-contact"><span class="footer-contact-icon"><i class="fa-solid fa-location-dot"></i></span> Nepal</p>
             </div>
         </div>
         <div class="footer-bottom">
-            <p>© 2025 Farmity. All rights reserved.</p>
+            <p>© 2026 Farmity. All rights reserved.</p>
+            <div class="footer-bottom-right">
+                <div class="social-icons" aria-label="Farmity social links">
+                    <a href="https://www.instagram.com/farmityforyou/" target="_blank" rel="noopener noreferrer" aria-label="Instagram">
+                        <i class="fa-brands fa-instagram"></i>
+                    </a>
+                    <a href="https://www.youtube.com/@farmityforyou" target="_blank" rel="noopener noreferrer" aria-label="YouTube">
+                        <i class="fa-brands fa-youtube"></i>
+                    </a>
+                    <a href="https://www.linkedin.com/company/farmity/" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn">
+                        <i class="fa-brands fa-linkedin-in"></i>
+                    </a>
+                </div>
+            </div>
         </div>
     </footer>
 

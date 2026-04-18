@@ -2454,7 +2454,7 @@
                                     <div id="cartSummary" class="cart-summary-card" style="display: none;">
                                         <h4>Order summary</h4>
                                         <div class="cart-summary-row"><span>Product total</span><span id="cartSubtotal">Rs. 0.00</span></div>
-                                        <div class="cart-summary-row"><span>Shipping cost</span><span id="cartShipping">Rs. 0.00</span></div>
+                                        <div class="cart-summary-row"><span>Delivery (Rs. 100 × items)</span><span id="cartShipping">Rs. 0.00</span></div>
                                         <div class="cart-summary-total">
                                             <span>Total (Product + Shipping)</span>
                                             <span id="cartGrandTotal">Rs. 0.00</span>
@@ -2855,7 +2855,7 @@
                     <div style="font-size: 0.95rem; color: #374151;">
                         <div id="purchaseCropProductTotal">Product amount: Rs. 0.00</div>
                         <div id="purchaseCropShipping">Shipping (flat): Rs. 100.00</div>
-                        <div style="margin-top: 0.35rem; font-weight: 700; color: var(--primary);" id="purchaseCropGrandTotal">Total: Rs. 0.00</div>
+                        <div style="margin-top: 0.35rem; font-weight: 700; color: var(--primary);" id="purchaseCropGrandTotal">Total (product + shipping): Rs. 0.00</div>
                     </div>
                 </div>
 
@@ -2952,7 +2952,7 @@
                     <div style="font-size: 0.95rem; color: #374151;">
                         <div id="purchaseToolProductTotal">Product amount: Rs. 0.00</div>
                         <div id="purchaseToolShipping">Shipping (flat): Rs. 100.00</div>
-                        <div style="margin-top: 0.35rem; font-weight: 700; color: var(--primary);" id="purchaseToolGrandTotal">Total: Rs. 0.00</div>
+                        <div style="margin-top: 0.35rem; font-weight: 700; color: var(--primary);" id="purchaseToolGrandTotal">Total (product + shipping): Rs. 0.00</div>
                     </div>
                 </div>
 
@@ -3028,10 +3028,11 @@
                     <span>Product total</span>
                     <span id="checkoutSubtotal">Rs. 0.00</span>
                 </div>
-                <div style="display: flex; justify-content: space-between; margin-bottom: 0.75rem; color: #555;">
-                    <span>Shipping cost</span>
+                <div style="display: flex; justify-content: space-between; margin-bottom: 0.25rem; color: #555;">
+                    <span id="checkoutShippingLabel">Delivery (Rs. 100 per item)</span>
                     <span id="checkoutShipping">Rs. 0.00</span>
                 </div>
+                <p style="font-size: 0.78rem; color: #6b7280; margin: 0 0 0.75rem 0;">Each cart line becomes its own order with flat Rs. 100 shipping.</p>
                 <hr style="border: none; border-top: 1px solid #eee; margin: 0.75rem 0;">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.25rem;">
                     <span style="font-weight: 700; color: #333;">Total (Product + Shipping)</span>
@@ -3642,10 +3643,11 @@
             const subtotalEl = document.getElementById('cartSubtotal');
             const grandTotalEl = document.getElementById('cartGrandTotal');
             const shippingEl = document.getElementById('cartShipping');
-            const shippingFlat = cart.length > 0 ? 100.0 : 0.0;
+            const n = cart.length;
+            const shippingTotal = n > 0 ? (100.0 * n) : 0.0;
             if (subtotalEl) subtotalEl.textContent = 'Rs. ' + subtotal.toFixed(2);
-            if (shippingEl) shippingEl.textContent = 'Rs. ' + shippingFlat.toFixed(2);
-            if (grandTotalEl) grandTotalEl.textContent = 'Rs. ' + (subtotal + shippingFlat).toFixed(2);
+            if (shippingEl) shippingEl.textContent = 'Rs. ' + shippingTotal.toFixed(2);
+            if (grandTotalEl) grandTotalEl.textContent = 'Rs. ' + (subtotal + shippingTotal).toFixed(2);
             
             cartItemsList.innerHTML = cart.map((item, index) => {
                 const qty = item.quantity || 1;
@@ -3761,10 +3763,13 @@
             }).join('');
             document.getElementById('checkoutOrderSummary').innerHTML = lines;
             document.getElementById('checkoutSubtotal').textContent = 'Rs. ' + subtotal.toFixed(2);
-            const shippingFlat = cart.length > 0 ? 100.0 : 0.0;
+            const n = cart.length;
+            const shippingTotal = n > 0 ? (100.0 * n) : 0.0;
             const checkoutShippingEl = document.getElementById('checkoutShipping');
-            if (checkoutShippingEl) checkoutShippingEl.textContent = 'Rs. ' + shippingFlat.toFixed(2);
-            document.getElementById('checkoutGrandTotal').textContent = 'Rs. ' + (subtotal + shippingFlat).toFixed(2);
+            const checkoutShipLbl = document.getElementById('checkoutShippingLabel');
+            if (checkoutShippingEl) checkoutShippingEl.textContent = 'Rs. ' + shippingTotal.toFixed(2);
+            if (checkoutShipLbl) checkoutShipLbl.textContent = n > 0 ? ('Delivery (Rs. 100 × ' + n + ' items)') : 'Delivery';
+            document.getElementById('checkoutGrandTotal').textContent = 'Rs. ' + (subtotal + shippingTotal).toFixed(2);
             const payload = cart.map(item => ({ type: item.type, id: item.id, quantity: item.quantity || 1, name: item.name }));
             document.getElementById('checkoutCartItemsInput').value = JSON.stringify(payload);
             document.getElementById('checkoutCartModal').classList.add('active');
@@ -3779,8 +3784,8 @@
             unit = unit || 'kg';
             var availNum = parseFloat(available);
             if (isNaN(availNum)) availNum = 0;
-            if (availNum <= 1) {
-                showBuyerValidationMessage('This crop is not available for purchase. More than one unit must be in stock.');
+            if (availNum <= 0) {
+                showBuyerValidationMessage('This crop is out of stock.');
                 return;
             }
             var sectionEl = document.getElementById('purchaseCropReturnSection');
@@ -3793,7 +3798,7 @@
             var errCrop = document.getElementById('purchaseCropQtyError');
             if (errCrop) { errCrop.style.display = 'none'; errCrop.textContent = ''; }
             qtyInput.setAttribute('max', availNum > 0 ? availNum : 0);
-            var defaultQty = availNum > 1 ? 1 : '';
+            var defaultQty = availNum > 0 ? 1 : '';
             qtyInput.value = defaultQty === '' ? '' : String(defaultQty);
             document.getElementById('purchaseCropQuantityUnit').textContent = '(' + unit + ')';
             var imgWrap = document.getElementById('purchaseCropImageWrap');
