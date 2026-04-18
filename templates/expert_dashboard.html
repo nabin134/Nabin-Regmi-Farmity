@@ -11,6 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="/static/js/main.js"></script>
     <script src="/static/js/form-validation.js"></script>
+    <script src="/static/js/farmity-actions.js"></script>
     <style>
         * {
             margin: 0;
@@ -1479,6 +1480,7 @@
                         <div class="content-grid">
                             {% for tip in tips %}
                             <div class="content-card" data-tip-row="{{ tip.id }}">
+                                <textarea id="expert-tip-body-{{ tip.id }}" class="expert-tip-body-store" hidden readonly aria-hidden="true">{{ tip.content }}</textarea>
                                 {% if tip.image %}
                                 <div class="content-image-wrapper">
                                     <img src="{{ tip.image.url }}" alt="{{ tip.title }}" class="content-image">
@@ -1487,7 +1489,7 @@
                                 <div class="content-header">
                                     <h3>{{ tip.title }}</h3>
                                     <div class="content-actions">
-                                        <button type="button" class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditContentModal({{ tip.id }}, '{{ tip.title|escapejs }}', '{{ tip.content|escapejs }}', {{ tip.is_published|yesno:'true,false' }}, {% if tip.image %}'{{ tip.image.url|escapejs }}'{% else %}''{% endif %}){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
+                                        <button type="button" class="btn-action btn-edit" onclick="{% if kyc_status == 'approved' %}openEditContentModal({{ tip.id }}, '{{ tip.title|escapejs }}', {% if tip.image %}'{{ tip.image.url|escapejs }}'{% else %}''{% endif %}){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Edit{% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
                                             <i class="fas fa-edit"></i>
                                         </button>
                                         <button type="button" class="btn-action btn-delete" onclick="{% if kyc_status == 'approved' %}openDeleteContentModal({{ tip.id }}, '{{ tip.title|escapejs }}'){% endif %}" title="{% if kyc_status != 'approved' %}KYC verification required{% else %}Delete{% endif %}" {% if kyc_status != 'approved' %}disabled style="opacity: 0.5; cursor: not-allowed;"{% endif %}>
@@ -2034,7 +2036,15 @@
                 <h3 id="contentModalTitle">Share New Content</h3>
                 <button class="close-modal" onclick="closeContentModal()">&times;</button>
             </div>
-            <form id="contentForm" method="POST" enctype="multipart/form-data" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to submit this content?">
+            <form id="contentForm" method="POST" action="{% url 'expert_dashboard' %}" enctype="multipart/form-data"
+                  data-farmity-ajax="1"
+                  data-farmity-confirm="1"
+                  data-farmity-confirm-type="warning"
+                  data-farmity-confirm-title="Submit this content?"
+                  data-farmity-confirm-message="Your article will be sent to Farmity admin for review before it appears to farmers and buyers."
+                  data-farmity-confirm-button="Submit"
+                  data-farmity-cancel-button="Cancel"
+                  data-farmity-success-call="expertContentFormSuccess">
                 {% csrf_token %}
                 <input type="hidden" name="return_section" value="content">
                 <input type="hidden" id="content_id" name="tip_id">
@@ -2042,12 +2052,14 @@
                 
                 <div class="form-group">
                     <label for="content_title">Title *</label>
-                    <input type="text" id="content_title" name="title" class="form-control" required>
+                    <input type="text" id="content_title" name="title" class="form-control" required maxlength="255" autocomplete="off">
+                    <p class="farmity-field-error" id="contentFormFieldError-title" role="alert" style="display:none;"></p>
                 </div>
 
                 <div class="form-group">
                     <label for="content_text">Content *</label>
-                    <textarea id="content_text" name="content" class="form-control" rows="6" required></textarea>
+                    <textarea id="content_text" name="content" class="form-control" rows="8" required minlength="10" maxlength="50000" placeholder="Write at least 10 characters…"></textarea>
+                    <p class="farmity-field-error" id="contentFormFieldError-content" role="alert" style="display:none;"></p>
                 </div>
 
                 <div class="form-group">
@@ -2060,12 +2072,6 @@
 
                 <div id="content_submit_note" class="form-group" style="padding: 0.75rem; background: #f0f7f0; border-radius: 8px; font-size: 0.9rem; color: #2a6f45;">
                     <i class="fas fa-info-circle"></i> This content will be submitted for admin approval and will be visible to users once approved.
-                </div>
-                <div id="content_publish_option" class="form-group" style="display: none;">
-                    <label class="form-checkbox">
-                        <input type="checkbox" id="content_published" name="is_published">
-                        <span>Published (visible to users)</span>
-                    </label>
                 </div>
 
                 <div class="modal-footer">
@@ -2212,8 +2218,8 @@
         </div>
     </div>
 
-    <script src="/static/js/main.js"></script>
     <script>
+        window.EXPERT_KYC_APPROVED = {% if kyc_status == 'approved' %}true{% else %}false{% endif %};
         function openAppointmentResponseModal(appointmentId, action) {
             document.getElementById('appointmentResponseId').value = appointmentId;
             var msg = document.getElementById('appointmentResponseMessage');
@@ -2648,54 +2654,116 @@
         }
         document.getElementById('expertChatInput')?.addEventListener('keypress', function(e) { if (e.key === 'Enter') sendExpertMessage(); });
 
+        function expertContentFormSuccess() {
+            var m = document.getElementById('contentModal');
+            if (m) m.classList.remove('active');
+            window.setTimeout(function () { window.location.reload(); }, 500);
+        }
+
+        function expertClearContentFieldErrors() {
+            ['title', 'content'].forEach(function (name) {
+                var el = document.getElementById('contentFormFieldError-' + name);
+                if (el) { el.textContent = ''; el.style.display = 'none'; }
+            });
+        }
+
+        function expertValidateContentFormClient() {
+            expertClearContentFieldErrors();
+            var title = (document.getElementById('content_title').value || '').trim();
+            var body = (document.getElementById('content_text').value || '').trim();
+            var ok = true;
+            if (!title) {
+                var et = document.getElementById('contentFormFieldError-title');
+                if (et) { et.textContent = 'Please enter a title.'; et.style.display = 'block'; }
+                ok = false;
+            } else if (title.length > 255) {
+                var et2 = document.getElementById('contentFormFieldError-title');
+                if (et2) { et2.textContent = 'Title must be 255 characters or fewer.'; et2.style.display = 'block'; }
+                ok = false;
+            }
+            if (!body) {
+                var ec = document.getElementById('contentFormFieldError-content');
+                if (ec) { ec.textContent = 'Please enter the article body.'; ec.style.display = 'block'; }
+                ok = false;
+            } else if (body.length < 10) {
+                var ec2 = document.getElementById('contentFormFieldError-content');
+                if (ec2) { ec2.textContent = 'Content must be at least 10 characters.'; ec2.style.display = 'block'; }
+                ok = false;
+            } else if (body.length > 50000) {
+                var ec3 = document.getElementById('contentFormFieldError-content');
+                if (ec3) { ec3.textContent = 'Content is too long (max 50,000 characters).'; ec3.style.display = 'block'; }
+                ok = false;
+            }
+            return ok;
+        }
+
         // Modal Functions
         function openAddContentModal() {
+            if (!window.EXPERT_KYC_APPROVED) {
+                if (typeof showError === 'function') {
+                    showError('KYC verification is required to share content. Complete KYC first.');
+                }
+                return;
+            }
             document.getElementById('contentModal').classList.add('active');
             document.getElementById('contentModalTitle').textContent = 'Share New Content';
             document.getElementById('contentForm').reset();
+            expertClearContentFieldErrors();
             document.getElementById('content_id').value = '';
             document.getElementById('content_action').name = 'add_tip';
             document.getElementById('content_action').value = '1';
             document.getElementById('content_image_preview').style.display = 'none';
             document.getElementById('content_submit_note').style.display = 'block';
-            document.getElementById('content_publish_option').style.display = 'none';
         }
 
         function closeContentModal() {
             document.getElementById('contentModal').classList.remove('active');
         }
 
-        function openEditContentModal(id, title, content, isPublished, imageUrl) {
+        function openEditContentModal(id, title, imageUrl) {
+            if (!window.EXPERT_KYC_APPROVED) {
+                if (typeof showError === 'function') {
+                    showError('KYC verification is required to edit content. Complete KYC first.');
+                }
+                return;
+            }
+            var bodyEl = document.getElementById('expert-tip-body-' + id);
+            var bodyText = bodyEl ? bodyEl.value : '';
             document.getElementById('contentModal').classList.add('active');
             document.getElementById('contentModalTitle').textContent = 'Edit Content';
             document.getElementById('content_id').value = id;
             document.getElementById('content_title').value = title;
-            document.getElementById('content_text').value = content;
+            document.getElementById('content_text').value = bodyText;
+            expertClearContentFieldErrors();
             document.getElementById('content_submit_note').style.display = 'none';
-            document.getElementById('content_publish_option').style.display = 'block';
-            document.getElementById('content_published').checked = isPublished;
             document.getElementById('content_action').name = 'edit_tip';
             document.getElementById('content_action').value = '1';
             
-            // Show existing image if available
-            const preview = document.getElementById('content_image_preview');
+            var preview = document.getElementById('content_image_preview');
             if (imageUrl) {
                 document.getElementById('content_preview_img').src = imageUrl;
                 preview.style.display = 'block';
             } else {
                 preview.style.display = 'none';
             }
+            var fileInput = document.getElementById('content_image');
+            if (fileInput) fileInput.value = '';
         }
 
         function previewContentImage(input) {
-            if (input.files && input.files[0]) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    document.getElementById('content_preview_img').src = e.target.result;
-                    document.getElementById('content_image_preview').style.display = 'block';
-                };
-                reader.readAsDataURL(input.files[0]);
+            if (!input.files || !input.files[0]) return;
+            var f = input.files[0];
+            if (f.size > 5 * 1024 * 1024) {
+                if (typeof showError === 'function') showError('Image must be 5MB or smaller.');
+                input.value = '';
+                return;
             }
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                document.getElementById('content_preview_img').src = e.target.result;
+                document.getElementById('content_image_preview').style.display = 'block';
+            };
+            reader.readAsDataURL(f);
         }
 
         function openDeleteContentModal(id, title) {
@@ -2707,6 +2775,17 @@
         function closeDeleteContentModal() {
             document.getElementById('deleteContentModal').classList.remove('active');
         }
+
+        (function wireExpertContentFormValidation() {
+            var cf = document.getElementById('contentForm');
+            if (!cf) return;
+            cf.addEventListener('submit', function (ev) {
+                if (!expertValidateContentFormClient()) {
+                    ev.preventDefault();
+                    ev.stopImmediatePropagation();
+                }
+            }, true);
+        })();
 
         // Close modal when clicking outside
         window.onclick = function(event) {

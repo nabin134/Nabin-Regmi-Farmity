@@ -3642,51 +3642,111 @@ def expert_dashboard(request):
     # Handle Add Tip/Content - Require KYC approval
     if request.method == 'POST' and 'add_tip' in request.POST:
         if kyc_status != 'approved':
-            messages.error(request, 'KYC verification is required to upload content. Please complete your KYC verification first.')
-            return _redirect_same_page(request, 'expert_dashboard')
-        
-        title = request.POST.get('title')
-        content = request.POST.get('content')
-        
-        if title and content:
-            tip = FarmingTip.objects.create(
-                expert=profile,
-                title=title,
-                content=content,
-                is_published=False,
-                approval_status=FarmingTip.APPROVAL_PENDING
+            return _expert_finish(
+                False,
+                'KYC verification is required to upload content. Please complete your KYC verification first.',
             )
-            if request.FILES.get('image'):
-                tip.image = request.FILES.get('image')
-                tip.save()
-            messages.success(request, 'Content submitted for admin approval. It will be visible to users once approved.')
-        return _redirect_same_page(request, 'expert_dashboard')
-    
+
+        raw_title = request.POST.get('title')
+        raw_content = request.POST.get('content')
+        title = (raw_title or '').strip()
+        content = (raw_content or '').strip()
+        err = None
+        if not title:
+            err = 'Please enter a title.'
+        elif len(title) > 255:
+            err = 'Title must be 255 characters or fewer.'
+        elif not content:
+            err = 'Please enter the article body.'
+        elif len(content) < 10:
+            err = 'Content must be at least 10 characters.'
+        elif len(content) > 50000:
+            err = 'Content is too long (maximum 50,000 characters).'
+        if err:
+            _fe = {}
+            if not (raw_title or '').strip() or len((raw_title or '').strip()) > 255:
+                _fe['title'] = err
+            else:
+                _fe['content'] = err
+            return _expert_finish(False, err, field_errors=_fe)
+
+        img = request.FILES.get('image')
+        if img and getattr(img, 'size', 0) > 5 * 1024 * 1024:
+            return _expert_finish(False, 'Image must be 5MB or smaller.')
+
+        tip = FarmingTip.objects.create(
+            expert=profile,
+            title=title,
+            content=content,
+            is_published=False,
+            approval_status=FarmingTip.APPROVAL_PENDING,
+        )
+        if img:
+            tip.image = img
+            tip.save()
+        return _expert_finish(
+            True,
+            'Content submitted for admin approval. It will be visible to users once approved.',
+        )
+
     # Handle Edit Tip - Require KYC approval
     if request.method == 'POST' and 'edit_tip' in request.POST:
         if kyc_status != 'approved':
-            messages.error(request, 'KYC verification is required to edit content. Please complete your KYC verification first.')
-            return _redirect_same_page(request, 'expert_dashboard')
-        
+            return _expert_finish(
+                False,
+                'KYC verification is required to edit content. Please complete your KYC verification first.',
+            )
+
         tip_id = request.POST.get('tip_id')
+        raw_title = request.POST.get('title')
+        raw_content = request.POST.get('content')
+        title = (raw_title or '').strip()
+        content = (raw_content or '').strip()
+        err = None
+        if not title:
+            err = 'Please enter a title.'
+        elif len(title) > 255:
+            err = 'Title must be 255 characters or fewer.'
+        elif not content:
+            err = 'Please enter the article body.'
+        elif len(content) < 10:
+            err = 'Content must be at least 10 characters.'
+        elif len(content) > 50000:
+            err = 'Content is too long (maximum 50,000 characters).'
+        if err:
+            _fe = {}
+            if not (raw_title or '').strip() or len((raw_title or '').strip()) > 255:
+                _fe['title'] = err
+            else:
+                _fe['content'] = err
+            return _expert_finish(False, err, field_errors=_fe)
+
+        img = request.FILES.get('image')
+        if img and getattr(img, 'size', 0) > 5 * 1024 * 1024:
+            return _expert_finish(False, 'Image must be 5MB or smaller.')
+
         try:
             tip = FarmingTip.objects.get(id=tip_id, expert=profile)
-            tip.title = request.POST.get('title')
-            tip.content = request.POST.get('content')
-            if request.FILES.get('image'):
-                tip.image = request.FILES.get('image')
+            tip.title = title
+            tip.content = content
+            if img:
+                tip.image = img
             # If content was approved, editing sends it back to pending for re-approval
             if tip.approval_status == FarmingTip.APPROVAL_APPROVED:
                 tip.approval_status = FarmingTip.APPROVAL_PENDING
                 tip.is_published = False
                 tip.save()
-                messages.success(request, 'Content updated and submitted for admin approval again. It will be visible to users once approved.')
+                msg = (
+                    'Content updated and submitted for admin approval again. It will be visible to users once approved.'
+                )
             else:
                 tip.save()
-                messages.success(request, 'Content updated successfully!')
+                msg = 'Content updated successfully!'
+            return _expert_finish(True, msg)
         except FarmingTip.DoesNotExist:
-            messages.error(request, 'Content not found!')
-        return _redirect_same_page(request, 'expert_dashboard')
+            return _expert_finish(False, 'Content not found!')
+        except (ValueError, TypeError):
+            return _expert_finish(False, 'Invalid content reference.')
     
     # Handle Delete Tip - Require KYC approval
     if request.method == 'POST' and 'delete_tip' in request.POST:
@@ -4931,6 +4991,11 @@ def admin_collections_payouts(request):
 
     # Handle POST: mark payout paid for a seller (validated amount + DB state under transaction)
     if request.method == 'POST' and request.POST.get('action') == 'mark_payout_paid':
+        is_ajax = (
+            request.headers.get('x-requested-with') == 'XMLHttpRequest'
+            or request.POST.get('ajax') == '1'
+        )
+
         seller_type = (request.POST.get('seller_type') or '').strip()
         seller_id_raw = (request.POST.get('seller_id') or '').strip()
         expected_raw = (request.POST.get('expected_payout_amount') or '').strip().replace(',', '')
@@ -4948,20 +5013,26 @@ def admin_collections_payouts(request):
 
         expected_amt = _parse_money_decimal(expected_raw)
         if expected_amt is None:
-            messages.error(
-                request,
-                'Missing or invalid payout confirmation. Refresh the page and try again.',
-            )
+            msg = 'Missing or invalid payout confirmation. Refresh the page and try again.'
+            if is_ajax:
+                return JsonResponse({'ok': False, 'message': msg}, status=400)
+            messages.error(request, msg)
             return _redirect_same_admin_page(request, 'admin_collections_payouts')
 
         try:
             seller_pk = int(seller_id_raw)
         except (TypeError, ValueError):
-            messages.error(request, 'Invalid seller reference.')
+            msg = 'Invalid seller reference.'
+            if is_ajax:
+                return JsonResponse({'ok': False, 'message': msg}, status=400)
+            messages.error(request, msg)
             return _redirect_same_admin_page(request, 'admin_collections_payouts')
 
         if seller_type not in ('farmer', 'vendor'):
-            messages.error(request, 'Invalid payout request.')
+            msg = 'Invalid payout request.'
+            if is_ajax:
+                return JsonResponse({'ok': False, 'message': msg}, status=400)
+            messages.error(request, msg)
             return _redirect_same_admin_page(request, 'admin_collections_payouts')
 
         farmer = None
@@ -4978,10 +5049,12 @@ def admin_collections_payouts(request):
                     orders_to_pay = base.filter(tool__vendor=vendor).select_for_update()
 
                 if not orders_to_pay.exists():
-                    messages.warning(
-                        request,
-                        'There are no pending payout orders for this seller. It may already have been paid out.',
+                    msg = (
+                        'There are no pending payout orders for this seller. It may already have been paid out.'
                     )
+                    if is_ajax:
+                        return JsonResponse({'ok': False, 'message': msg}, status=400)
+                    messages.warning(request, msg)
                     return _redirect_same_admin_page(request, 'admin_collections_payouts')
 
                 total_paid_dec = orders_to_pay.aggregate(t=Sum('seller_amount'))['t'] or Decimal('0')
@@ -4991,20 +5064,28 @@ def admin_collections_payouts(request):
                 exp_q = expected_amt.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 tot_q = total_paid_dec.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 if exp_q != tot_q:
-                    messages.error(
-                        request,
+                    msg = (
                         f'The payout amount no longer matches pending orders (form had Rs. {exp_q}, '
-                        f'current pending total Rs. {tot_q}). Refresh the page and try again.',
+                        f'current pending total Rs. {tot_q}). Refresh the page and try again.'
                     )
+                    if is_ajax:
+                        return JsonResponse({'ok': False, 'message': msg}, status=400)
+                    messages.error(request, msg)
                     return _redirect_same_admin_page(request, 'admin_collections_payouts')
 
                 now = timezone.now()
                 orders_to_pay.update(payout_status=Order.PAYOUT_PAID, payout_at=now)
         except FarmerProfile.DoesNotExist:
-            messages.error(request, 'Farmer not found.')
+            msg = 'Farmer not found.'
+            if is_ajax:
+                return JsonResponse({'ok': False, 'message': msg}, status=400)
+            messages.error(request, msg)
             return _redirect_same_admin_page(request, 'admin_collections_payouts')
         except VendorProfile.DoesNotExist:
-            messages.error(request, 'Vendor not found.')
+            msg = 'Vendor not found.'
+            if is_ajax:
+                return JsonResponse({'ok': False, 'message': msg}, status=400)
+            messages.error(request, msg)
             return _redirect_same_admin_page(request, 'admin_collections_payouts')
 
         if farmer is not None:
@@ -5019,10 +5100,12 @@ def admin_collections_payouts(request):
                     dash_url,
                     UserNotification.TYPE_ORDER,
                 )
-            messages.success(
-                request,
-                f'Payout of Rs. {total_paid_dec:.2f} marked as paid to farmer {label}. They have been notified.',
+            success_message = (
+                f'Payout of Rs. {total_paid_dec:.2f} marked as paid to farmer {label}. They have been notified.'
             )
+            if is_ajax:
+                return JsonResponse({'ok': True, 'message': success_message})
+            messages.success(request, success_message)
         elif vendor is not None:
             seller_user = getattr(vendor, 'user', None)
             label = vendor.company_name or (seller_user.email if seller_user else 'vendor')
@@ -5034,10 +5117,12 @@ def admin_collections_payouts(request):
                     reverse('vendor_dashboard'),
                     UserNotification.TYPE_ORDER,
                 )
-            messages.success(
-                request,
-                f'Payout of Rs. {total_paid_dec:.2f} marked as paid to vendor {label}. They have been notified.',
+            success_message = (
+                f'Payout of Rs. {total_paid_dec:.2f} marked as paid to vendor {label}. They have been notified.'
             )
+            if is_ajax:
+                return JsonResponse({'ok': True, 'message': success_message})
+            messages.success(request, success_message)
 
         return _redirect_same_admin_page(request, 'admin_collections_payouts')
 
@@ -6108,6 +6193,12 @@ def admin_appointment_management(request):
             appointment_id = request.POST.get('appointment_id')
             try:
                 appointment = ExpertAppointment.objects.get(id=appointment_id)
+                if appointment.visit_status == ExpertAppointment.VISIT_VISITED:
+                    messages.error(
+                        request,
+                        'This appointment cannot be edited: the expert has marked the visit as completed.',
+                    )
+                    return _redirect_same_admin_page(request, 'admin_appointment_management')
                 old_status = appointment.status
                 old_requested_date = appointment.requested_date
                 old_requested_time = appointment.requested_time

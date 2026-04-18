@@ -65,6 +65,16 @@
         .msg.expert .msg-bubble { background: #f0f0f0; color: #333; }
         .msg-meta { font-size: 0.75rem; color: #999; margin-top: 0.25rem; }
         .msg.user .msg-meta { text-align: right; }
+        .msg-image-wrap { margin-bottom: 0.35rem; line-height: 0; }
+        .msg-image-wrap a { display: inline-block; }
+        .msg-image-wrap img {
+            max-width: min(280px, 85vw);
+            max-height: 240px;
+            border-radius: 10px;
+            display: block;
+            object-fit: cover;
+        }
+        .msg.user .msg-image-wrap img { border: 2px solid rgba(255,255,255,0.35); }
         .empty-msg { text-align: center; color: #999; padding: 2rem; font-size: 0.95rem; }
         .admin-badge { font-size: 0.7rem; color: #666; margin-top: 2px; }
 
@@ -136,7 +146,14 @@
                         {% for msg in messages_list %}
                         <div class="msg {% if msg.sender_id == thread.expert.user_id %}expert{% else %}user{% endif %}">
                             <div class="msg-bubble">
-                                {{ msg.message|linebreaksbr }}
+                                {% if msg.image %}
+                                <div class="msg-image-wrap">
+                                    <a href="{{ msg.image.url }}" target="_blank" rel="noopener noreferrer">
+                                        <img src="{{ msg.image.url }}" alt="Attached image">
+                                    </a>
+                                </div>
+                                {% endif %}
+                                {% if msg.message %}{{ msg.message|linebreaksbr }}{% endif %}
                                 <div class="msg-meta">{{ msg.created_at|date:"M d, h:i A" }} · {{ msg.sender.email }}{% if msg.sender_id == thread.expert.user_id %} (Expert){% else %} (User){% endif %}</div>
                             </div>
                         </div>

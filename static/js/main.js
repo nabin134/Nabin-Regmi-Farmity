@@ -248,16 +248,16 @@ function ensureLogoutModal() {
     style.id = 'farmityLogoutModalStyles';
     style.textContent = `
         :root{
-            --logout-modal-bg: rgba(15, 23, 42, 0.55);
+            --logout-modal-bg: rgba(15, 23, 42, 0.48);
             --logout-card: #ffffff;
             --logout-text: #0f172a;
-            --logout-muted: #475569;
-            --logout-border: rgba(15, 23, 42, 0.10);
-            --logout-shadow: 0 25px 60px rgba(2, 6, 23, 0.25);
-            --logout-primary: #15803d;
-            --logout-primary-dark: #166534;
-            --logout-danger: #dc2626;
-            --logout-danger-dark: #b91c1c;
+            --logout-muted: #64748b;
+            --logout-border: rgba(15, 23, 42, 0.08);
+            --logout-shadow: 0 24px 56px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(255,255,255,0.6) inset;
+            --logout-brand: #2d7a47;
+            --logout-brand-soft: rgba(45, 122, 71, 0.12);
+            --logout-danger: #c53030;
+            --logout-danger-dark: #9b2c2c;
         }
         #farmityLogoutModalOverlay{
             position: fixed;
@@ -266,98 +266,105 @@ function ensureLogoutModal() {
             display: none;
             align-items: center;
             justify-content: center;
-            padding: 18px;
+            padding: max(16px, env(safe-area-inset-bottom));
             z-index: 9999;
-            backdrop-filter: blur(6px);
+            backdrop-filter: blur(8px);
         }
         #farmityLogoutModalOverlay.show{ display:flex; }
         .farmity-logout-card{
             width: 100%;
-            max-width: 460px;
+            max-width: 400px;
             background: var(--logout-card);
             border: 1px solid var(--logout-border);
-            border-radius: 16px;
+            border-radius: 20px;
             box-shadow: var(--logout-shadow);
             overflow: hidden;
-            transform: translateY(8px);
+            transform: translateY(12px) scale(0.98);
             opacity: 0;
-            transition: transform 160ms ease, opacity 160ms ease;
-            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         }
         #farmityLogoutModalOverlay.show .farmity-logout-card{
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
             opacity: 1;
         }
-        .farmity-logout-head{
-            display:flex;
-            gap: 12px;
-            align-items: center;
-            padding: 18px 18px 12px;
+        .farmity-logout-accent{
+            height: 4px;
+            background: linear-gradient(90deg, var(--logout-brand) 0%, #4a9d62 50%, #6b8e23 100%);
+        }
+        .farmity-logout-inner{
+            padding: 1.5rem 1.5rem 1.25rem;
+            text-align: center;
         }
         .farmity-logout-icon{
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 1rem;
+            border-radius: 50%;
             display:flex;
             align-items:center;
             justify-content:center;
-            background: rgba(220, 38, 38, 0.10);
-            color: var(--logout-danger);
-            flex: 0 0 44px;
+            background: var(--logout-brand-soft);
+            color: var(--logout-brand);
+            border: 1px solid rgba(45, 122, 71, 0.2);
         }
         .farmity-logout-title{
-            margin: 0;
-            font-size: 1.05rem;
-            font-weight: 800;
-            letter-spacing: -0.01em;
+            margin: 0 0 0.4rem;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
             color: var(--logout-text);
-        }
-        .farmity-logout-body{
-            padding: 0 18px 16px;
+            line-height: 1.3;
         }
         .farmity-logout-desc{
             margin: 0;
             color: var(--logout-muted);
             line-height: 1.55;
-            font-size: 0.92rem;
+            font-size: 0.9rem;
         }
         .farmity-logout-actions{
             display:flex;
-            gap: 10px;
-            justify-content: flex-end;
-            padding: 14px 18px 18px;
-            background: rgba(2, 6, 23, 0.02);
-            border-top: 1px solid rgba(15, 23, 42, 0.06);
+            gap: 0.65rem;
+            justify-content: stretch;
+            padding: 0 1.25rem 1.25rem;
         }
         .farmity-logout-btn{
             appearance: none;
-            border: 1px solid rgba(15, 23, 42, 0.12);
-            background: #fff;
-            color: var(--logout-text);
-            border-radius: 999px;
-            padding: 10px 14px;
-            font-weight: 800;
-            font-size: 0.92rem;
+            flex: 1;
+            border-radius: 12px;
+            padding: 0.65rem 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
             cursor: pointer;
             transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, border-color 120ms ease;
             user-select: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
         }
         .farmity-logout-btn:active{ transform: translateY(1px); }
+        .farmity-logout-btn.cancel{
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            background: #f8fafc;
+            color: var(--logout-text);
+        }
         .farmity-logout-btn.cancel:hover{
-            background: rgba(2, 6, 23, 0.04);
+            background: #f1f5f9;
+            border-color: rgba(15, 23, 42, 0.18);
         }
         .farmity-logout-btn.confirm{
-            border-color: rgba(220, 38, 38, 0.25);
-            background: linear-gradient(135deg, var(--logout-danger) 0%, var(--logout-danger-dark) 100%);
+            border: 1px solid rgba(197, 48, 48, 0.35);
+            background: linear-gradient(180deg, var(--logout-danger) 0%, var(--logout-danger-dark) 100%);
             color: #fff;
-            box-shadow: 0 10px 22px rgba(220, 38, 38, 0.25);
+            box-shadow: 0 4px 14px rgba(197, 48, 48, 0.28);
         }
         .farmity-logout-btn.confirm:hover{
-            box-shadow: 0 12px 26px rgba(220, 38, 38, 0.30);
+            box-shadow: 0 6px 18px rgba(197, 48, 48, 0.35);
         }
         @media (max-width: 420px){
-            .farmity-logout-actions{ flex-direction: column-reverse; }
-            .farmity-logout-btn{ width: 100%; justify-content: center; }
+            .farmity-logout-actions{ flex-direction: column-reverse; padding: 0 1rem 1rem; }
+            .farmity-logout-btn{ width: 100%; }
         }
     `;
     document.head.appendChild(style);
@@ -369,24 +376,21 @@ function ensureLogoutModal() {
     overlay.setAttribute('aria-hidden', 'true');
     overlay.innerHTML = `
         <div class="farmity-logout-card" role="document" tabindex="-1">
-            <div class="farmity-logout-head">
+            <div class="farmity-logout-accent" aria-hidden="true"></div>
+            <div class="farmity-logout-inner">
                 <div class="farmity-logout-icon" aria-hidden="true">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 9v4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-                        <path d="M12 17h.01" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>
-                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 17H5a2 2 0 01-2-2V7a2 2 0 012-2h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M15 7l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M19 11H9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                 </div>
-                <div>
-                    <h3 class="farmity-logout-title">Are you sure you want to log out?</h3>
-                </div>
-            </div>
-            <div class="farmity-logout-body">
-                <p class="farmity-logout-desc">You will need to sign in again to access your dashboard, admin tools, and account features.</p>
+                <h3 class="farmity-logout-title">Log out of Farmity?</h3>
+                <p class="farmity-logout-desc">You’ll need to sign in again to view your orders, cart, and account.</p>
             </div>
             <div class="farmity-logout-actions">
-                <button type="button" class="farmity-logout-btn cancel" data-action="cancel">Cancel</button>
-                <button type="button" class="farmity-logout-btn confirm" data-action="confirm">Confirm Logout</button>
+                <button type="button" class="farmity-logout-btn cancel" data-action="cancel">Stay signed in</button>
+                <button type="button" class="farmity-logout-btn confirm" data-action="confirm">Log out</button>
             </div>
         </div>
     `;

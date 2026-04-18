@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Collections & Payouts - Admin - Farmity</title>
     <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/form-validation.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
         :root {
@@ -439,12 +440,14 @@
                             <td><span class="order-ids">{% for o in item.orders %}#{{ o.id }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></td>
                             <td>
                                 <form method="POST" action="{% url 'admin_collections_payouts' %}" style="display: inline;"
+                                    data-farmity-ajax="1"
                                     data-farmity-confirm="1"
                                     data-farmity-confirm-type="warning"
                                     data-farmity-confirm-title="Confirm payout to farmer?"
                                     data-farmity-confirm-message="Record Rs. {{ item.amount|floatformat:2 }} as paid to {{ item.display_name }}. Included orders: {% for o in item.orders %}#{{ o.id }}{% if not forloop.last %}, {% endif %}{% endfor %}. The farmer will be notified. Only continue if you have already sent the money."
                                     data-farmity-confirm-button="Yes, record payout"
-                                    data-farmity-cancel-button="Cancel">
+                                    data-farmity-cancel-button="Cancel"
+                                    data-farmity-success-call="farmityAdminPayoutSuccessReload">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="mark_payout_paid">
                                     <input type="hidden" name="seller_type" value="farmer">
@@ -487,12 +490,14 @@
                             <td><span class="order-ids">{% for o in item.orders %}#{{ o.id }}{% if not forloop.last %}, {% endif %}{% endfor %}</span></td>
                             <td>
                                 <form method="POST" action="{% url 'admin_collections_payouts' %}" style="display: inline;"
+                                    data-farmity-ajax="1"
                                     data-farmity-confirm="1"
                                     data-farmity-confirm-type="warning"
                                     data-farmity-confirm-title="Confirm payout to vendor?"
                                     data-farmity-confirm-message="Record Rs. {{ item.amount|floatformat:2 }} as paid to {{ item.display_name }}. Included orders: {% for o in item.orders %}#{{ o.id }}{% if not forloop.last %}, {% endif %}{% endfor %}. The vendor will be notified. Only continue if you have already sent the money."
                                     data-farmity-confirm-button="Yes, record payout"
-                                    data-farmity-cancel-button="Cancel">
+                                    data-farmity-cancel-button="Cancel"
+                                    data-farmity-success-call="farmityAdminPayoutSuccessReload">
                                     {% csrf_token %}
                                     <input type="hidden" name="action" value="mark_payout_paid">
                                     <input type="hidden" name="seller_type" value="vendor">
@@ -640,7 +645,14 @@
     </div>
 
     <script src="/static/js/main.js"></script>
+    <script src="/static/js/form-validation.js"></script>
+    <script src="/static/js/farmity-actions.js"></script>
     <script>
+        function farmityAdminPayoutSuccessReload() {
+            window.setTimeout(function () {
+                window.location.reload();
+            }, 450);
+        }
         function showTab(name) {
             var panels = document.querySelectorAll('.tab-panel');
             var buttons = document.querySelectorAll('.tab-btn');

@@ -283,6 +283,24 @@
             color: white;
         }
 
+        .btn-action-locked {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #6c757d;
+            background: #e9ecef;
+            cursor: not-allowed;
+            user-select: none;
+        }
+
+        .status-badge.visit-visited { background: #d1fae5; color: #065f46; }
+        .status-badge.visit-will_visit { background: #e0f2fe; color: #0369a1; }
+        .status-badge.visit-waiting { background: #fef3c7; color: #92400e; }
+
         .btn:hover {
             opacity: 0.9;
         }
@@ -517,6 +535,7 @@
                             <th>Date</th>
                             <th>Time</th>
                             <th>Status</th>
+                            <th>Visit</th>
                             <th>Created</th>
                             <th>Actions</th>
                         </tr>
@@ -531,12 +550,25 @@
                             <td>
                                 <span class="status-badge {{ appointment.status }}">{{ appointment.get_status_display }}</span>
                             </td>
+                            <td>
+                                {% if appointment.visit_status %}
+                                <span class="status-badge visit-{{ appointment.visit_status }}">{{ appointment.get_visit_status_display }}</span>
+                                {% else %}
+                                <span style="color:#999;">—</span>
+                                {% endif %}
+                            </td>
                             <td>{{ appointment.created_at|date:"M d, Y" }}</td>
                             <td>
                                 <div class="action-buttons">
-                                    <button class="btn btn-edit" onclick="openEditAppointmentModal({{ appointment.id }}, '{{ appointment.requested_date }}', '{{ appointment.requested_time }}', '{{ appointment.status }}', '{{ appointment.message|default:""|escapejs }}', '{{ appointment.response_message|default:""|escapejs }}')">
+                                    {% if appointment.visit_status == 'visited' %}
+                                    <span class="btn-action-locked" title="The expert marked this visit as completed; this booking cannot be edited.">
+                                        <i class="fas fa-lock"></i> Locked
+                                    </span>
+                                    {% else %}
+                                    <button type="button" class="btn btn-edit" onclick="openEditAppointmentModal({{ appointment.id }}, '{{ appointment.requested_date }}', '{{ appointment.requested_time }}', '{{ appointment.status }}', '{{ appointment.message|default:""|escapejs }}', '{{ appointment.response_message|default:""|escapejs }}')">
                                         <i class="fas fa-edit"></i> Edit
                                     </button>
+                                    {% endif %}
                                     {% if appointment.status != 'cancelled' %}
                                     <button type="button" class="btn btn-cancel-appt" onclick="openCancelAppointmentModal({{ appointment.id }})">
                                         <i class="fas fa-ban"></i> Cancel
