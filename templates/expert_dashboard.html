@@ -574,6 +574,11 @@
             color: #721c24;
         }
 
+        .status-cancelled {
+            background: #e5e7eb;
+            color: #374151;
+        }
+
         /* Appointments – card layout */
         .appointments-list {
             display: flex;
@@ -601,6 +606,7 @@
         .appointment-item.status-pending-card { border-left: 4px solid #F59E0B; }
         .appointment-item.status-accepted-card { border-left: 4px solid #10B981; }
         .appointment-item.status-rejected-card { border-left: 4px solid #EF4444; }
+        .appointment-item.status-cancelled-card { border-left: 4px solid #6B7280; }
         .appointment-item.status-closed-card { border-left: 4px solid #6b7280; opacity: 0.92; }
         .status-closed { background: #e5e7eb; color: #374151; }
 
@@ -1542,8 +1548,8 @@
                                     <div class="appointment-message-box"><strong>Farmer query:</strong> {{ appointment.message }}</div>
                                     {% endif %}
                                     {% if appointment.response_message %}
-                                    <div class="appointment-response-box {% if appointment.status == 'rejected' %}rejected{% endif %} appointment-response-message">
-                                        <strong>{% if appointment.status == 'rejected' %}Reason:{% else %}Your response:{% endif %}</strong> {{ appointment.response_message }}
+                                    <div class="appointment-response-box {% if appointment.status == 'rejected' or appointment.status == 'cancelled' %}rejected{% endif %} appointment-response-message">
+                                        <strong>{% if appointment.status == 'rejected' %}Reason:{% elif appointment.status == 'cancelled' %}Admin:{% else %}Your response:{% endif %}</strong> {{ appointment.response_message }}
                                     </div>
                                     {% endif %}
                                     <p class="appointment-requested-at"><i class="far fa-calendar"></i> Requested on {{ appointment.created_at|date:"M d, Y" }}</p>

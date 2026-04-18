@@ -2250,8 +2250,8 @@
                                 <p class="appointment-message">{{ appointment.message }}</p>
                                 {% endif %}
                                 {% if appointment.response_message %}
-                                <div class="appointment-response-box {% if appointment.status == 'rejected' %}rejected{% else %}accepted{% endif %}">
-                                    <strong>{% if appointment.status == 'rejected' %}Reason:{% else %}Expert reply:{% endif %}</strong> {{ appointment.response_message }}
+                                <div class="appointment-response-box {% if appointment.status == 'rejected' %}rejected{% elif appointment.status == 'cancelled' %}rejected{% else %}accepted{% endif %}">
+                                    <strong>{% if appointment.status == 'rejected' %}Reason:{% elif appointment.status == 'cancelled' %}Update:{% else %}Expert reply:{% endif %}</strong> {{ appointment.response_message }}
                                 </div>
                                 {% endif %}
                                 {% if appointment.status == 'accepted' and appointment.visit_status %}

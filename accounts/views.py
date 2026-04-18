@@ -6098,12 +6098,29 @@ def admin_appointment_management(request):
                 appointment.status = request.POST.get('status', appointment.status)
                 appointment.message = request.POST.get('message', appointment.message)
                 appointment.response_message = request.POST.get('response_message', appointment.response_message)
+                if appointment.status == ExpertAppointment.STATUS_CANCELLED:
+                    appointment.visit_status = None
                 appointment.save()
 
                 # Email copy for important appointment status updates (user + admin).
                 try:
                     if appointment.status != old_status:
-                        if appointment.status == ExpertAppointment.STATUS_ACCEPTED:
+                        if appointment.status == ExpertAppointment.STATUS_CANCELLED:
+                            create_notification(
+                                appointment.requester,
+                                'Appointment cancelled',
+                                f'Your appointment on {appointment.requested_date} at {appointment.requested_time} was cancelled by Farmity admin.',
+                                reverse('user_dashboard') + '?section=appointments',
+                                UserNotification.TYPE_APPOINTMENT,
+                            )
+                            create_notification(
+                                appointment.expert.user,
+                                'Appointment cancelled',
+                                f'An appointment on {appointment.requested_date} at {appointment.requested_time} was cancelled by Farmity admin.',
+                                reverse('expert_dashboard') + '?section=appointments',
+                                UserNotification.TYPE_APPOINTMENT,
+                            )
+                        elif appointment.status == ExpertAppointment.STATUS_ACCEPTED:
                             create_notification(
                                 appointment.requester,
                                 'Appointment accepted',
@@ -6144,6 +6161,44 @@ def admin_appointment_management(request):
             except ExpertAppointment.DoesNotExist:
                 messages.error(request, 'Appointment not found!')
         
+        elif action == 'cancel_appointment':
+            appointment_id = request.POST.get('appointment_id')
+            note = (request.POST.get('cancellation_note') or '').strip()
+            try:
+                appointment = ExpertAppointment.objects.get(id=appointment_id)
+                if appointment.status == ExpertAppointment.STATUS_CANCELLED:
+                    messages.info(request, 'This appointment is already cancelled.')
+                else:
+                    appt_date = appointment.requested_date
+                    appt_time = appointment.requested_time
+                    requester = appointment.requester
+                    expert_user = appointment.expert.user
+                    base = 'Cancelled by Farmity admin.'
+                    appointment.status = ExpertAppointment.STATUS_CANCELLED
+                    appointment.visit_status = None
+                    appointment.response_message = f'{base} {note}'.strip() if note else base
+                    appointment.save()
+                    try:
+                        create_notification(
+                            requester,
+                            'Appointment cancelled',
+                            f'Your appointment on {appt_date} at {appt_time} was cancelled by Farmity admin.',
+                            reverse('user_dashboard') + '?section=appointments',
+                            UserNotification.TYPE_APPOINTMENT,
+                        )
+                        create_notification(
+                            expert_user,
+                            'Appointment cancelled',
+                            f'An appointment on {appt_date} at {appt_time} was cancelled by Farmity admin.',
+                            reverse('expert_dashboard') + '?section=appointments',
+                            UserNotification.TYPE_APPOINTMENT,
+                        )
+                    except Exception:
+                        logging.getLogger(__name__).exception("Failed to send appointment cancellation notifications")
+                    messages.success(request, 'Appointment cancelled. The requester and expert have been notified.')
+            except ExpertAppointment.DoesNotExist:
+                messages.error(request, 'Appointment not found!')
+        
         elif action == 'delete_appointment':
             appointment_id = request.POST.get('appointment_id')
             try:
@@ -6153,28 +6208,29 @@ def admin_appointment_management(request):
                 appt_date = appointment.requested_date
                 appt_time = appointment.requested_time
                 appointment.delete()
-
-                # Email copy for cancelled appointment (admin action).
                 try:
                     create_notification(
                         requester,
-                        'Appointment cancelled',
-                        f'Your appointment on {appt_date} at {appt_time} was cancelled by Farmity admin.',
+                        'Appointment removed',
+                        f'Your appointment on {appt_date} at {appt_time} was permanently removed by Farmity admin.',
                         reverse('user_dashboard') + '?section=appointments',
                         UserNotification.TYPE_APPOINTMENT,
                     )
                     create_notification(
                         expert_user,
-                        'Appointment cancelled',
-                        f'An appointment on {appt_date} at {appt_time} was cancelled by Farmity admin.',
+                        'Appointment removed',
+                        f'An appointment on {appt_date} at {appt_time} was permanently removed by Farmity admin.',
                         reverse('expert_dashboard') + '?section=appointments',
                         UserNotification.TYPE_APPOINTMENT,
                     )
                 except Exception:
-                    logging.getLogger(__name__).exception("Failed to send appointment cancellation email")
-                messages.success(request, 'Appointment deleted successfully!')
+                    logging.getLogger(__name__).exception('Failed to send appointment deletion notifications')
+                messages.success(
+                    request,
+                    'Appointment deleted permanently from the system. The requester and expert have been notified.',
+                )
             except ExpertAppointment.DoesNotExist:
-                messages.error(request, 'Appointment not found!')
+                messages.error(request, 'Appointment not found.')
         
         return _redirect_same_admin_page(request, 'admin_appointment_management')
     
@@ -6202,6 +6258,7 @@ def admin_appointment_management(request):
     pending_appointments = ExpertAppointment.objects.filter(status=ExpertAppointment.STATUS_PENDING).count()
     accepted_appointments = ExpertAppointment.objects.filter(status=ExpertAppointment.STATUS_ACCEPTED).count()
     rejected_appointments = ExpertAppointment.objects.filter(status=ExpertAppointment.STATUS_REJECTED).count()
+    cancelled_appointments = ExpertAppointment.objects.filter(status=ExpertAppointment.STATUS_CANCELLED).count()
     
     context = {
         'appointments': appointments,
@@ -6211,6 +6268,7 @@ def admin_appointment_management(request):
         'pending_appointments': pending_appointments,
         'accepted_appointments': accepted_appointments,
         'rejected_appointments': rejected_appointments,
+        'cancelled_appointments': cancelled_appointments,
     }
     
     return render(request, 'admin_appointment_management.html', context)

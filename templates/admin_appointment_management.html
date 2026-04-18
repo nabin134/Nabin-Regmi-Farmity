@@ -251,6 +251,7 @@
         .status-badge.pending { background: #fff3cd; color: #856404; }
         .status-badge.accepted { background: #d4edda; color: #155724; }
         .status-badge.rejected { background: #f8d7da; color: #721c24; }
+        .status-badge.cancelled { background: #e5e7eb; color: #374151; }
 
         .action-buttons {
             display: flex;
@@ -274,6 +275,11 @@
 
         .btn-delete {
             background: var(--danger);
+            color: white;
+        }
+
+        .btn-cancel-appt {
+            background: #b45309;
             color: white;
         }
 
@@ -467,6 +473,10 @@
                     <div class="stat-value">{{ rejected_appointments }}</div>
                     <div class="stat-label">Rejected</div>
                 </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ cancelled_appointments }}</div>
+                    <div class="stat-label">Cancelled</div>
+                </div>
             </div>
 
             <!-- Filters -->
@@ -480,6 +490,7 @@
                                 <option value="pending" {% if status_filter == 'pending' %}selected{% endif %}>Pending</option>
                                 <option value="accepted" {% if status_filter == 'accepted' %}selected{% endif %}>Accepted</option>
                                 <option value="rejected" {% if status_filter == 'rejected' %}selected{% endif %}>Rejected</option>
+                                <option value="cancelled" {% if status_filter == 'cancelled' %}selected{% endif %}>Cancelled</option>
                             </select>
                         </div>
                         <div class="filter-group">
@@ -526,8 +537,13 @@
                                     <button class="btn btn-edit" onclick="openEditAppointmentModal({{ appointment.id }}, '{{ appointment.requested_date }}', '{{ appointment.requested_time }}', '{{ appointment.status }}', '{{ appointment.message|default:""|escapejs }}', '{{ appointment.response_message|default:""|escapejs }}')">
                                         <i class="fas fa-edit"></i> Edit
                                     </button>
-                                    <button class="btn btn-delete" onclick="confirmDeleteAppointment({{ appointment.id }})">
-                                        <i class="fas fa-trash"></i> Delete
+                                    {% if appointment.status != 'cancelled' %}
+                                    <button type="button" class="btn btn-cancel-appt" onclick="openCancelAppointmentModal({{ appointment.id }})">
+                                        <i class="fas fa-ban"></i> Cancel
+                                    </button>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-delete" onclick="openDeleteAppointmentModal({{ appointment.id }})">
+                                        <i class="fas fa-trash-alt"></i> Delete
                                     </button>
                                 </div>
                             </td>
@@ -569,6 +585,7 @@
                         <option value="pending">Pending</option>
                         <option value="accepted">Accepted</option>
                         <option value="rejected">Rejected</option>
+                        <option value="cancelled">Cancelled</option>
                     </select>
                 </div>
                 <div class="form-group">
@@ -587,21 +604,49 @@
         </div>
     </div>
 
-    <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" class="modal">
+    <!-- Cancel appointment (admin) -->
+    <div id="cancelAppointmentModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h3 class="modal-title">Confirm Delete</h3>
-                <button class="close-modal" onclick="closeDeleteModal()">&times;</button>
+                <h3 class="modal-title">Cancel appointment</h3>
+                <button type="button" class="close-modal" onclick="closeCancelAppointmentModal()">&times;</button>
             </div>
-            <p id="deleteMessage"></p>
+            <p id="cancelAppointmentIntro" style="color:#555; margin-bottom:16px;">This marks the booking as <strong>Cancelled</strong>. The requester and expert are notified. The record is kept for your records.</p>
+            <form method="POST" action="{% url 'admin_appointment_management' %}">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="cancel_appointment">
+                <input type="hidden" name="appointment_id" id="cancelAppointmentId">
+                <div class="form-group">
+                    <label class="form-label" for="cancellationNote">Optional note (shown on the appointment)</label>
+                    <textarea name="cancellation_note" id="cancellationNote" class="form-control" rows="2" placeholder="e.g. Expert unavailable — please book another slot"></textarea>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" onclick="closeCancelAppointmentModal()">Close</button>
+                    <button type="submit" class="btn btn-cancel-appt"><i class="fas fa-ban"></i> Confirm cancel</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Delete appointment permanently -->
+    <div id="deleteAppointmentModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">Delete appointment</h3>
+                <button type="button" class="close-modal" onclick="closeDeleteAppointmentModal()">&times;</button>
+            </div>
+            <p style="color:#555; margin-bottom:16px;">
+                This <strong>permanently removes</strong> the appointment from the database. It will no longer appear for the requester or expert.
+                They will be notified that the booking was removed.
+            </p>
+            <p style="color:#b91c1c; font-size:0.9rem; margin-bottom:16px;"><i class="fas fa-exclamation-triangle"></i> This cannot be undone. Use <strong>Cancel</strong> if you only want to mark it as cancelled and keep a record.</p>
             <form method="POST" action="{% url 'admin_appointment_management' %}">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="delete_appointment">
                 <input type="hidden" name="appointment_id" id="deleteAppointmentId">
                 <div class="modal-actions">
-                    <button type="button" class="btn btn-cancel" onclick="closeDeleteModal()">Cancel</button>
-                    <button type="submit" class="btn btn-delete">Delete</button>
+                    <button type="button" class="btn btn-cancel" onclick="closeDeleteAppointmentModal()">Close</button>
+                    <button type="submit" class="btn btn-delete"><i class="fas fa-trash-alt"></i> Delete permanently</button>
                 </div>
             </form>
         </div>
@@ -622,18 +667,27 @@
             document.getElementById('editAppointmentModal').classList.remove('active');
         }
 
-        function confirmDeleteAppointment(id) {
-            document.getElementById('deleteAppointmentId').value = id;
-            document.getElementById('deleteMessage').textContent = `Are you sure you want to delete this appointment? This action cannot be undone.`;
-            document.getElementById('deleteModal').classList.add('active');
+        function openCancelAppointmentModal(id) {
+            document.getElementById('cancelAppointmentId').value = id;
+            document.getElementById('cancellationNote').value = '';
+            document.getElementById('cancelAppointmentModal').classList.add('active');
         }
 
-        function closeDeleteModal() {
-            document.getElementById('deleteModal').classList.remove('active');
+        function closeCancelAppointmentModal() {
+            document.getElementById('cancelAppointmentModal').classList.remove('active');
+        }
+
+        function openDeleteAppointmentModal(id) {
+            document.getElementById('deleteAppointmentId').value = id;
+            document.getElementById('deleteAppointmentModal').classList.add('active');
+        }
+
+        function closeDeleteAppointmentModal() {
+            document.getElementById('deleteAppointmentModal').classList.remove('active');
         }
 
         window.onclick = function(event) {
-            const modals = ['editAppointmentModal', 'deleteModal'];
+            const modals = ['editAppointmentModal', 'cancelAppointmentModal', 'deleteAppointmentModal'];
             modals.forEach(modalId => {
                 const modal = document.getElementById(modalId);
                 if (event.target == modal) {

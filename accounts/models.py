@@ -274,10 +274,12 @@ class ExpertAppointment(models.Model):
     STATUS_PENDING = 'pending'
     STATUS_ACCEPTED = 'accepted'
     STATUS_REJECTED = 'rejected'
+    STATUS_CANCELLED = 'cancelled'
     STATUS_CHOICES = (
         (STATUS_PENDING, 'Pending'),
         (STATUS_ACCEPTED, 'Accepted'),
         (STATUS_REJECTED, 'Rejected'),
+        (STATUS_CANCELLED, 'Cancelled'),
     )
 
     VISIT_VISITED = 'visited'
