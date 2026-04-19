@@ -353,10 +353,11 @@ const Validators = {
 class ToastManager {
     constructor() {
         this.container = null;
-        this.init();
     }
 
     init() {
+        if (this.container) return;
+        if (!document.body) return;
         this.container = document.createElement('div');
         this.container.className = 'toast-container';
         document.body.appendChild(this.container);
@@ -364,6 +365,12 @@ class ToastManager {
 
     show(message, type = 'info', duration = 5000) {
         if (!this.container) this.init();
+        if (!this.container) {
+            if (typeof console !== 'undefined' && console.warn) {
+                console.warn('ToastManager: document.body not ready; message not shown:', message);
+            }
+            return;
+        }
 
         const toast = document.createElement('div');
         toast.className = `toast ${type}`;
@@ -520,33 +527,59 @@ class ConfirmationDialog {
     }
 }
 
-// Global instances
-let toastManager = new ToastManager();
-let confirmationDialog = new ConfirmationDialog();
+// Global instances (defer until <body> exists — scripts in <head> would otherwise throw and leave
+// `toastManager` stuck in the temporal dead zone, breaking showError / farmity-actions.)
+let toastManager = null;
+let confirmationDialog = null;
+
+function farmityBootstrapUxGlobals() {
+    if (!document.body) return;
+    if (!toastManager) {
+        toastManager = new ToastManager();
+        toastManager.init();
+    }
+    if (!confirmationDialog) {
+        confirmationDialog = new ConfirmationDialog();
+    }
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', farmityBootstrapUxGlobals, { once: true });
+} else {
+    farmityBootstrapUxGlobals();
+}
 
 // Utility functions
 function showConfirmation(options) {
+    farmityBootstrapUxGlobals();
+    if (!confirmationDialog) return Promise.resolve(false);
     return confirmationDialog.show(options);
 }
 
 function showToast(message, type, duration) {
-    toastManager.show(message, type, duration);
+    farmityBootstrapUxGlobals();
+    if (toastManager) toastManager.show(message, type, duration);
 }
 
 function showSuccess(message, duration) {
-    toastManager.success(message, duration);
+    farmityBootstrapUxGlobals();
+    if (toastManager) toastManager.success(message, duration);
 }
 
 function showError(message, duration) {
-    toastManager.error(message, duration);
+    farmityBootstrapUxGlobals();
+    if (toastManager) toastManager.error(message, duration);
+    else if (typeof console !== 'undefined' && console.error) console.error(message);
 }
 
 function showWarning(message, duration) {
-    toastManager.warning(message, duration);
+    farmityBootstrapUxGlobals();
+    if (toastManager) toastManager.warning(message, duration);
 }
 
 function showInfo(message, duration) {
-    toastManager.info(message, duration);
+    farmityBootstrapUxGlobals();
+    if (toastManager) toastManager.info(message, duration);
 }
 
 // Form validation setup for common forms

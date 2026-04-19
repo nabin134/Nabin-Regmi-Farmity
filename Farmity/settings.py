@@ -3,6 +3,7 @@ Django settings for Farmity project.
 """
 
 from pathlib import Path
+from datetime import timedelta
 import os
 
 import dj_database_url
@@ -165,21 +166,33 @@ _on_render = os.environ.get('RENDER', '').lower() in ('1', 'true', 'yes')
 _database_url = (os.environ.get('DATABASE_URL') or '').strip()
 _use_postgres = bool(_database_url) and (not _use_local_sqlite or _on_render)
 
-if _use_postgres:
-    DATABASES = {
-        'default': dj_database_url.config(
-            conn_max_age=600,
-            ssl_require=os.environ.get('DATABASE_SSL_REQUIRE', 'true').lower()
-            in ('1', 'true', 'yes'),
-        )
+# if _use_postgres:
+#     DATABASES = {
+#         'default': dj_database_url.config(
+#             conn_max_age=600,
+#             ssl_require=os.environ.get('DATABASE_SSL_REQUIRE', 'true').lower()
+#             in ('1', 'true', 'yes'),
+#         )
+#     }
+# else:
+#     DATABASES = {
+#         'default': {
+#             'ENGINE': 'django.db.backends.sqlite3',
+#             'NAME': BASE_DIR / 'db.sqlite3',
+#         }
+#     }
+
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'farmity_db',
+        'USER': 'postgres',
+        'PASSWORD': '1234',
+        'HOST': 'localhost',
+        'PORT': '5432'
     }
-else:
-    DATABASES = {
-        'default': {
-            'ENGINE': 'django.db.backends.sqlite3',
-            'NAME': BASE_DIR / 'db.sqlite3',
-        }
-    }
+}
+
 
 
 # ======================
@@ -349,4 +362,15 @@ REST_FRAMEWORK = {
         'rest_framework.parsers.FormParser',
         'rest_framework.parsers.MultiPartParser',
     ],
+}
+
+# JWT lifetimes for tokens returned by login / verify-otp (djangorestframework-simplejwt)
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(
+        minutes=int(os.environ.get('JWT_ACCESS_TOKEN_MINUTES', '60'))
+    ),
+    'REFRESH_TOKEN_LIFETIME': timedelta(
+        days=int(os.environ.get('JWT_REFRESH_TOKEN_DAYS', '7'))
+    ),
+    'SIGNING_KEY': SECRET_KEY,
 }

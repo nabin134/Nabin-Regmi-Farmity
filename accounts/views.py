@@ -469,6 +469,17 @@ def _login_user(request, user):
         login(request, user)
 
 
+def _jwt_tokens_for_user(user):
+    """Return SimpleJWT access/refresh strings for API clients (e.g. Postman)."""
+    from rest_framework_simplejwt.tokens import RefreshToken
+
+    refresh = RefreshToken.for_user(user)
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
+
+
 # ======================
 # SIGNUP API
 # ======================
@@ -824,11 +835,13 @@ class LoginView(APIView):
                 request.session.modified = True
                 redirect_url = _redirect_to_role_home(user)
                 
+                tokens = _jwt_tokens_for_user(user)
                 return Response(
                     {
                         "message": "Login successful",
                         "user": UserSerializer(user).data,
-                        "redirect_url": redirect_url
+                        "redirect_url": redirect_url,
+                        **tokens,
                     },
                     status=status.HTTP_200_OK
                 )
@@ -963,11 +976,13 @@ class OTPVerificationView(APIView):
                 request.session.modified = True
                 redirect_url = _redirect_to_role_home(user)
                 
+                tokens = _jwt_tokens_for_user(user)
                 return Response(
                     {
                         "message": "OTP verified successfully. Login successful.",
                         "user": UserSerializer(user).data,
-                        "redirect_url": redirect_url
+                        "redirect_url": redirect_url,
+                        **tokens,
                     },
                     status=status.HTTP_200_OK
                 )

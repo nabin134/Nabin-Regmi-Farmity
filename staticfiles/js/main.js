@@ -30,6 +30,61 @@ function getCookie(name) {
     return cookieValue;
 }
 
+/**
+ * In-app feedback (prefers form-validation showToast/showError when loaded).
+ * Safe to call from inline handlers after this script runs.
+ */
+function farmityNotify(message, type) {
+    if (!message) return;
+    type = type || 'info';
+    if (typeof showToast === 'function') {
+        const t = type === 'success' ? 'success' : type === 'error' ? 'error' : type === 'warning' ? 'warning' : 'info';
+        showToast(message, t);
+        return;
+    }
+    if (type === 'error' && typeof showError === 'function') {
+        showError(message);
+        return;
+    }
+    if (type === 'success' && typeof showSuccess === 'function') {
+        showSuccess(message);
+        return;
+    }
+    if (type === 'warning' && typeof showWarning === 'function') {
+        showWarning(message);
+        return;
+    }
+    if (type === 'info' && typeof showInfo === 'function') {
+        showInfo(message);
+        return;
+    }
+    var root = document.getElementById('farmity-notify-root');
+    if (!root) {
+        root = document.createElement('div');
+        root.id = 'farmity-notify-root';
+        root.setAttribute('aria-live', 'polite');
+        root.style.cssText = 'position:fixed;bottom:1.25rem;right:1.25rem;z-index:100002;display:flex;flex-direction:column;gap:0.5rem;align-items:flex-end;pointer-events:none;max-width:calc(100vw - 2rem);';
+        document.body.appendChild(root);
+    }
+    var el = document.createElement('div');
+    var isErr = type === 'error';
+    var isOk = type === 'success';
+    var bg = isErr ? '#fef2f2' : isOk ? '#ecfdf5' : '#fffbeb';
+    var br = isErr ? '#fecaca' : isOk ? '#a7f3d0' : '#fde68a';
+    var fg = isErr ? '#b91c1c' : isOk ? '#065f46' : '#92400e';
+    el.style.cssText = 'pointer-events:auto;padding:0.65rem 0.9rem;border-radius:10px;border:1px solid ' + br + ';background:' + bg + ';color:' + fg + ';font:500 0.9rem system-ui,Segoe UI,sans-serif;box-shadow:0 8px 24px rgba(0,0,0,.12);';
+    el.textContent = message;
+    root.appendChild(el);
+    setTimeout(function () {
+        el.style.opacity = '0';
+        el.style.transition = 'opacity .25s ease';
+        setTimeout(function () {
+            if (el.parentNode) el.parentNode.removeChild(el);
+        }, 260);
+    }, 4000);
+}
+window.farmityNotify = farmityNotify;
+
 // Main initialization
 document.addEventListener('DOMContentLoaded', function() {
     // Role selection cards
@@ -51,16 +106,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Register Form
-    const registerForm = document.getElementById('registerForm');
-    if (registerForm) {
-        registerForm.addEventListener('submit', handleRegister);
+    // Register Form — register.html binds its own submit handler (fetch + verify-email redirect).
+    // Attaching handleRegister here too caused duplicate POSTs (success then duplicate-email error).
+    const registerPath = (window.location.pathname || '/').replace(/\/+$/, '') || '/';
+    const onRegisterPage = registerPath === '/register';
+    if (!onRegisterPage) {
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', handleRegister);
+        }
     }
 
-    // Password visibility toggles (login: #togglePassword only; register: #togglePassword + #toggleConfirmPassword)
+    // Password visibility toggles (login uses its own handler; register/reset use button + inner <i>, or legacy bare <i> toggle)
     function wirePasswordToggle(toggleEl, inputId) {
         if (!toggleEl) return;
-        toggleEl.addEventListener('click', function () {
+        toggleEl.addEventListener('click', function (e) {
+            e.preventDefault();
             const passwordInput = document.getElementById(inputId);
             if (!passwordInput) return;
             const icon = this.querySelector('i');
@@ -68,15 +129,24 @@ document.addEventListener('DOMContentLoaded', function() {
             passwordInput.type = show ? 'text' : 'password';
             this.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
             this.setAttribute('title', show ? 'Hide password' : 'Show password');
+            if (this.tagName === 'BUTTON') {
+                this.setAttribute('aria-pressed', show ? 'true' : 'false');
+            }
             if (icon) {
                 icon.classList.toggle('fa-eye', !show);
                 icon.classList.toggle('fa-eye-slash', show);
+            } else if (this.tagName === 'I') {
+                this.classList.toggle('fa-eye', !show);
+                this.classList.toggle('fa-eye-slash', show);
             } else {
                 this.textContent = show ? '🙈' : '👁️';
             }
         });
     }
-    wirePasswordToggle(document.getElementById('togglePassword'), 'password');
+    // login.html wires its own password toggle (and adds aria state). Avoid double-binding.
+    if (!window.location.pathname.includes('/login/')) {
+        wirePasswordToggle(document.getElementById('togglePassword'), 'password');
+    }
     wirePasswordToggle(document.getElementById('toggleConfirmPassword'), 'confirmPassword');
 
     // Login page: clear inline errors when user edits a field
@@ -178,16 +248,16 @@ function ensureLogoutModal() {
     style.id = 'farmityLogoutModalStyles';
     style.textContent = `
         :root{
-            --logout-modal-bg: rgba(15, 23, 42, 0.55);
+            --logout-modal-bg: rgba(15, 23, 42, 0.48);
             --logout-card: #ffffff;
             --logout-text: #0f172a;
-            --logout-muted: #475569;
-            --logout-border: rgba(15, 23, 42, 0.10);
-            --logout-shadow: 0 25px 60px rgba(2, 6, 23, 0.25);
-            --logout-primary: #15803d;
-            --logout-primary-dark: #166534;
-            --logout-danger: #dc2626;
-            --logout-danger-dark: #b91c1c;
+            --logout-muted: #64748b;
+            --logout-border: rgba(15, 23, 42, 0.08);
+            --logout-shadow: 0 24px 56px rgba(15, 23, 42, 0.18), 0 0 0 1px rgba(255,255,255,0.6) inset;
+            --logout-brand: #2d7a47;
+            --logout-brand-soft: rgba(45, 122, 71, 0.12);
+            --logout-danger: #c53030;
+            --logout-danger-dark: #9b2c2c;
         }
         #farmityLogoutModalOverlay{
             position: fixed;
@@ -196,98 +266,105 @@ function ensureLogoutModal() {
             display: none;
             align-items: center;
             justify-content: center;
-            padding: 18px;
+            padding: max(16px, env(safe-area-inset-bottom));
             z-index: 9999;
-            backdrop-filter: blur(6px);
+            backdrop-filter: blur(8px);
         }
         #farmityLogoutModalOverlay.show{ display:flex; }
         .farmity-logout-card{
             width: 100%;
-            max-width: 460px;
+            max-width: 400px;
             background: var(--logout-card);
             border: 1px solid var(--logout-border);
-            border-radius: 16px;
+            border-radius: 20px;
             box-shadow: var(--logout-shadow);
             overflow: hidden;
-            transform: translateY(8px);
+            transform: translateY(12px) scale(0.98);
             opacity: 0;
-            transition: transform 160ms ease, opacity 160ms ease;
-            font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), opacity 200ms ease;
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
         }
         #farmityLogoutModalOverlay.show .farmity-logout-card{
-            transform: translateY(0);
+            transform: translateY(0) scale(1);
             opacity: 1;
         }
-        .farmity-logout-head{
-            display:flex;
-            gap: 12px;
-            align-items: center;
-            padding: 18px 18px 12px;
+        .farmity-logout-accent{
+            height: 4px;
+            background: linear-gradient(90deg, var(--logout-brand) 0%, #4a9d62 50%, #6b8e23 100%);
+        }
+        .farmity-logout-inner{
+            padding: 1.5rem 1.5rem 1.25rem;
+            text-align: center;
         }
         .farmity-logout-icon{
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
+            width: 56px;
+            height: 56px;
+            margin: 0 auto 1rem;
+            border-radius: 50%;
             display:flex;
             align-items:center;
             justify-content:center;
-            background: rgba(220, 38, 38, 0.10);
-            color: var(--logout-danger);
-            flex: 0 0 44px;
+            background: var(--logout-brand-soft);
+            color: var(--logout-brand);
+            border: 1px solid rgba(45, 122, 71, 0.2);
         }
         .farmity-logout-title{
-            margin: 0;
-            font-size: 1.05rem;
-            font-weight: 800;
-            letter-spacing: -0.01em;
+            margin: 0 0 0.4rem;
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
             color: var(--logout-text);
-        }
-        .farmity-logout-body{
-            padding: 0 18px 16px;
+            line-height: 1.3;
         }
         .farmity-logout-desc{
             margin: 0;
             color: var(--logout-muted);
             line-height: 1.55;
-            font-size: 0.92rem;
+            font-size: 0.9rem;
         }
         .farmity-logout-actions{
             display:flex;
-            gap: 10px;
-            justify-content: flex-end;
-            padding: 14px 18px 18px;
-            background: rgba(2, 6, 23, 0.02);
-            border-top: 1px solid rgba(15, 23, 42, 0.06);
+            gap: 0.65rem;
+            justify-content: stretch;
+            padding: 0 1.25rem 1.25rem;
         }
         .farmity-logout-btn{
             appearance: none;
-            border: 1px solid rgba(15, 23, 42, 0.12);
-            background: #fff;
-            color: var(--logout-text);
-            border-radius: 999px;
-            padding: 10px 14px;
-            font-weight: 800;
-            font-size: 0.92rem;
+            flex: 1;
+            border-radius: 12px;
+            padding: 0.65rem 1rem;
+            font-weight: 600;
+            font-size: 0.9rem;
             cursor: pointer;
             transition: transform 120ms ease, box-shadow 120ms ease, background 120ms ease, border-color 120ms ease;
             user-select: none;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
         }
         .farmity-logout-btn:active{ transform: translateY(1px); }
+        .farmity-logout-btn.cancel{
+            border: 1px solid rgba(15, 23, 42, 0.12);
+            background: #f8fafc;
+            color: var(--logout-text);
+        }
         .farmity-logout-btn.cancel:hover{
-            background: rgba(2, 6, 23, 0.04);
+            background: #f1f5f9;
+            border-color: rgba(15, 23, 42, 0.18);
         }
         .farmity-logout-btn.confirm{
-            border-color: rgba(220, 38, 38, 0.25);
-            background: linear-gradient(135deg, var(--logout-danger) 0%, var(--logout-danger-dark) 100%);
+            border: 1px solid rgba(197, 48, 48, 0.35);
+            background: linear-gradient(180deg, var(--logout-danger) 0%, var(--logout-danger-dark) 100%);
             color: #fff;
-            box-shadow: 0 10px 22px rgba(220, 38, 38, 0.25);
+            box-shadow: 0 4px 14px rgba(197, 48, 48, 0.28);
         }
         .farmity-logout-btn.confirm:hover{
-            box-shadow: 0 12px 26px rgba(220, 38, 38, 0.30);
+            box-shadow: 0 6px 18px rgba(197, 48, 48, 0.35);
         }
         @media (max-width: 420px){
-            .farmity-logout-actions{ flex-direction: column-reverse; }
-            .farmity-logout-btn{ width: 100%; justify-content: center; }
+            .farmity-logout-actions{ flex-direction: column-reverse; padding: 0 1rem 1rem; }
+            .farmity-logout-btn{ width: 100%; }
         }
     `;
     document.head.appendChild(style);
@@ -299,24 +376,21 @@ function ensureLogoutModal() {
     overlay.setAttribute('aria-hidden', 'true');
     overlay.innerHTML = `
         <div class="farmity-logout-card" role="document" tabindex="-1">
-            <div class="farmity-logout-head">
+            <div class="farmity-logout-accent" aria-hidden="true"></div>
+            <div class="farmity-logout-inner">
                 <div class="farmity-logout-icon" aria-hidden="true">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
-                        <path d="M12 9v4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"/>
-                        <path d="M12 17h.01" stroke="currentColor" stroke-width="3.2" stroke-linecap="round"/>
-                        <path d="M10.29 3.86 1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/>
+                    <svg width="26" height="26" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M10 17H5a2 2 0 01-2-2V7a2 2 0 012-2h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M15 7l4 4-4 4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M19 11H9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                     </svg>
                 </div>
-                <div>
-                    <h3 class="farmity-logout-title">Are you sure you want to log out?</h3>
-                </div>
-            </div>
-            <div class="farmity-logout-body">
-                <p class="farmity-logout-desc">You will need to sign in again to access your dashboard, admin tools, and account features.</p>
+                <h3 class="farmity-logout-title">Log out of Farmity?</h3>
+                <p class="farmity-logout-desc">You’ll need to sign in again to view your orders, cart, and account.</p>
             </div>
             <div class="farmity-logout-actions">
-                <button type="button" class="farmity-logout-btn cancel" data-action="cancel">Cancel</button>
-                <button type="button" class="farmity-logout-btn confirm" data-action="confirm">Confirm Logout</button>
+                <button type="button" class="farmity-logout-btn cancel" data-action="cancel">Stay signed in</button>
+                <button type="button" class="farmity-logout-btn confirm" data-action="confirm">Log out</button>
             </div>
         </div>
     `;
@@ -415,6 +489,8 @@ document.addEventListener('click', async function(e) {
 
     const ok = await showLogoutConfirmation();
     if (!ok) return;
+    localStorage.removeItem('user');
+    localStorage.removeItem('isLoggedIn');
     window.location.href = href;
 }, true);
 
@@ -444,6 +520,8 @@ document.addEventListener('submit', async function(e) {
 
     const ok = await showLogoutConfirmation();
     if (!ok) return;
+    localStorage.removeItem('user');
+    localStorage.removeItem('isLoggedIn');
     form.submit();
 }, true);
 
@@ -589,7 +667,7 @@ async function handleLogin(e) {
             if (messageDiv) {
                 showTempMessage(messageDiv, errorMsg, 'error', 3000);
             } else {
-                alert(errorMsg);
+                farmityNotify(errorMsg, 'error');
             }
         }
     } catch (error) {
@@ -1130,13 +1208,31 @@ window.FormValidator = {
         // Add error styling
         field.classList.add('field-invalid');
         
-        // Create or update error element
-        let errorElement = field.parentNode.querySelector('.field-error');
+        const wrapper = field.closest('.input-wrapper');
+        const mountParent = wrapper ? wrapper.parentNode : field.parentNode;
+        const insertAfter = wrapper || field;
+        let key = (field.id || field.name || '').trim();
+        if (!key) {
+            if (!field.dataset.farmityErrorKey) {
+                field.dataset.farmityErrorKey = 'farmity-fe-' + String(Math.random()).slice(2);
+            }
+            key = field.dataset.farmityErrorKey;
+        }
+
+        // Old behavior appended inside .input-wrapper; global CSS uses flex row, so errors appeared beside the input.
+        if (wrapper) {
+            wrapper.querySelectorAll(':scope > .field-error').forEach(function (el) {
+                el.remove();
+            });
+        }
+
+        let errorElement = mountParent.querySelector('.field-error[data-farmity-for="' + key.replace(/"/g, '\\"') + '"]');
         if (!errorElement) {
             errorElement = document.createElement('div');
             errorElement.className = 'field-error';
-            errorElement.style.cssText = 'color: #dc3545; font-size: 0.85rem; margin-top: 0.5rem; font-weight: 500; display: block;';
-            field.parentNode.appendChild(errorElement);
+            errorElement.setAttribute('data-farmity-for', key);
+            errorElement.style.cssText = 'color: #dc3545; font-size: 0.85rem; margin-top: 0.5rem; font-weight: 500; display: block; width: 100%; box-sizing: border-box;';
+            insertAfter.insertAdjacentElement('afterend', errorElement);
         }
         
         errorElement.textContent = message;
@@ -1155,7 +1251,21 @@ window.FormValidator = {
         
         field.classList.remove('field-invalid');
         
-        const errorElement = field.parentNode.querySelector('.field-error');
+        let key = (field.id || field.name || '').trim();
+        if (!key && field.dataset.farmityErrorKey) {
+            key = field.dataset.farmityErrorKey;
+        }
+        const wrapper = field.closest('.input-wrapper');
+        const mountParent = wrapper ? wrapper.parentNode : field.parentNode;
+        let errorElement = key && mountParent
+            ? mountParent.querySelector('.field-error[data-farmity-for="' + key.replace(/"/g, '\\"') + '"]')
+            : null;
+        if (!errorElement && wrapper) {
+            errorElement = wrapper.querySelector(':scope > .field-error');
+        }
+        if (!errorElement) {
+            errorElement = field.parentNode.querySelector('.field-error');
+        }
         if (errorElement) {
             errorElement.style.display = 'none';
         }
@@ -1351,15 +1461,29 @@ window.FormValidator = {
     }
 };
 
+function farmityShouldSkipGlobalFieldValidation(field) {
+    if (!field || !field.closest) return false;
+    /* Login/register ship their own inline errors; binding both yields duplicate messages. */
+    try {
+        var path = (window.location.pathname || '').replace(/\/+$/, '') || '/';
+        if (path.endsWith('/login')) {
+            return true;
+        }
+    } catch (e) { /* ignore */ }
+    return !!(field.closest('#loginForm') || field.closest('#registerForm'));
+}
+
 // Auto-initialize common validation patterns
 document.addEventListener('DOMContentLoaded', function() {
     // Add email validation to all email fields
     document.querySelectorAll('input[type="email"]').forEach(function(field) {
+        if (farmityShouldSkipGlobalFieldValidation(field)) return;
         window.FormValidator.addRealtimeValidation(field, 'email', { required: field.hasAttribute('required') });
     });
     
     // Add required validation to all required fields
     document.querySelectorAll('input[required], select[required], textarea[required]').forEach(function(field) {
+        if (farmityShouldSkipGlobalFieldValidation(field)) return;
         if (field.type !== 'email') {
             window.FormValidator.addRealtimeValidation(field, 'required', { 
                 fieldName: field.getAttribute('data-field-name') || field.name || 'Field' 
@@ -1369,12 +1493,14 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Add password validation to password fields
     document.querySelectorAll('input[type="password"]').forEach(function(field) {
+        if (farmityShouldSkipGlobalFieldValidation(field)) return;
         const confirmField = field.form.querySelector('input[type="password"][name*="confirm"], input[type="password"][id*="confirm"]');
         window.FormValidator.addRealtimeValidation(field, 'password', { confirmField: confirmField });
     });
     
     // Add phone validation to phone fields
     document.querySelectorAll('input[type="tel"], input[name*="phone"], input[id*="phone"]').forEach(function(field) {
+        if (farmityShouldSkipGlobalFieldValidation(field)) return;
         window.FormValidator.addRealtimeValidation(field, 'phone', { required: field.hasAttribute('required') });
     });
 });
@@ -1404,8 +1530,7 @@ window.SuccessMessage = {
         
         if (!messagesContainer) {
             console.warn('Could not find messages container');
-            // Fallback to alert if no container found
-            alert(message);
+            farmityNotify(message, 'success');
             return;
         }
         

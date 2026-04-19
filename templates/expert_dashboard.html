@@ -10,8 +10,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
     <script src="/static/js/main.js"></script>
-    <script src="/static/js/form-validation.js"></script>
-    <script src="/static/js/farmity-actions.js"></script>
     <style>
         * {
             margin: 0;
@@ -344,6 +342,14 @@
 
         .stat-card.content {
             border-left-color: var(--secondary);
+        }
+
+        .stat-card.stat-card-clickable {
+            cursor: pointer;
+        }
+        .stat-card.stat-card-clickable:focus-visible {
+            outline: 3px solid var(--primary);
+            outline-offset: 2px;
         }
 
         .stat-card.appointments {
@@ -1343,7 +1349,7 @@
                 {% if active_section == 'dashboard' %}{% include 'includes/messages_block.html' %}{% endif %}
                 <!-- Summary Cards -->
                 <div class="stats-grid" style="display: grid !important; visibility: visible !important;">
-                    <div class="stat-card content">
+                    <div class="stat-card content stat-card-clickable" role="button" tabindex="0" title="Open share content" aria-label="Content shared: open share new content" onclick="expertGoToShareContent(event)" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();expertGoToShareContent(event);}">
                         <div class="stat-content">
                             <h4>Content Shared</h4>
                             <div class="stat-value">{{ content_count }}</div>
@@ -1815,7 +1821,7 @@
                                     {% else %}
                                     <div id="expertViewPhoto" style="width: 140px; height: 140px; border-radius: 50%; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); display: flex; align-items: center; justify-content: center; color: white; font-size: 3rem;"><i class="fas fa-user"></i></div>
                                     {% endif %}
-                                    <form method="POST" action="" enctype="multipart/form-data" style="margin-top: 0.75rem; text-align: center;">
+                                    <form method="POST" action="{% url 'expert_dashboard' %}" enctype="multipart/form-data" style="margin-top: 0.75rem; text-align: center;">
                                         {% csrf_token %}
                                         <input type="hidden" name="update_photo" value="1">
                                         <input type="hidden" name="return_section" value="profile">
@@ -2038,12 +2044,6 @@
             </div>
             <form id="contentForm" method="POST" action="{% url 'expert_dashboard' %}" enctype="multipart/form-data"
                   data-farmity-ajax="1"
-                  data-farmity-confirm="1"
-                  data-farmity-confirm-type="warning"
-                  data-farmity-confirm-title="Submit this content?"
-                  data-farmity-confirm-message="Your article will be sent to Farmity admin for review before it appears to farmers and buyers."
-                  data-farmity-confirm-button="Submit"
-                  data-farmity-cancel-button="Cancel"
                   data-farmity-success-call="expertContentFormSuccess">
                 {% csrf_token %}
                 <input type="hidden" name="return_section" value="content">
@@ -2063,8 +2063,14 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="content_image">Image (Optional)</label>
-                    <input type="file" id="content_image" name="image" accept="image/*" class="form-control" onchange="previewContentImage(this)">
+                    <span class="profile-info-label" style="display:block;margin-bottom:0.35rem;">Image (Optional)</span>
+                    <input type="file" id="content_image" name="image" accept="image/*" onchange="previewContentImage(this)" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0.01;overflow:hidden;" tabindex="-1" aria-label="Optional image file for this content">
+                    <div style="display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem;">
+                        <button type="button" class="btn btn-secondary btn-sm" id="content_image_pick_btn" onclick="document.getElementById('content_image').click()" title="Choose image file" aria-label="Upload optional image">
+                            <i class="fas fa-upload"></i> Upload image
+                        </button>
+                        <span id="content_image_name" style="font-size: 0.9rem; color: #666;"></span>
+                    </div>
                     <div id="content_image_preview" style="margin-top: 1rem; display: none;">
                         <img id="content_preview_img" src="" alt="Preview" style="max-width: 200px; border-radius: 8px;">
                     </div>
@@ -2697,6 +2703,15 @@
             return ok;
         }
 
+        function expertGoToShareContent(evt) {
+            if (evt) {
+                if (typeof evt.preventDefault === 'function') evt.preventDefault();
+                if (typeof evt.stopPropagation === 'function') evt.stopPropagation();
+            }
+            showSection('content', null);
+            openAddContentModal();
+        }
+
         // Modal Functions
         function openAddContentModal() {
             if (!window.EXPERT_KYC_APPROVED) {
@@ -2713,6 +2728,8 @@
             document.getElementById('content_action').name = 'add_tip';
             document.getElementById('content_action').value = '1';
             document.getElementById('content_image_preview').style.display = 'none';
+            var cin = document.getElementById('content_image_name');
+            if (cin) cin.textContent = '';
             document.getElementById('content_submit_note').style.display = 'block';
         }
 
@@ -2748,16 +2765,24 @@
             }
             var fileInput = document.getElementById('content_image');
             if (fileInput) fileInput.value = '';
+            var cin = document.getElementById('content_image_name');
+            if (cin) cin.textContent = '';
         }
 
         function previewContentImage(input) {
-            if (!input.files || !input.files[0]) return;
+            var nameEl = document.getElementById('content_image_name');
+            if (!input.files || !input.files[0]) {
+                if (nameEl) nameEl.textContent = '';
+                return;
+            }
             var f = input.files[0];
             if (f.size > 5 * 1024 * 1024) {
                 if (typeof showError === 'function') showError('Image must be 5MB or smaller.');
                 input.value = '';
+                if (nameEl) nameEl.textContent = '';
                 return;
             }
+            if (nameEl) nameEl.textContent = f.name || '';
             var reader = new FileReader();
             reader.onload = function(e) {
                 document.getElementById('content_preview_img').src = e.target.result;
