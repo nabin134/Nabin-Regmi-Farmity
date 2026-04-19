@@ -711,14 +711,14 @@
                             </label>
                             <div class="file-upload-wrapper">
                                 <input type="file" id="id_document" name="id_document" 
-                                       class="file-input" accept=".pdf,.jpg,.jpeg,.png"
+                                       class="file-input" accept=".jpg,.jpeg,.png,.gif,.webp,image/*"
                                        {% if not kyc %}required{% endif %}
                                        onchange="handleFileSelect(this, 'id-preview')">
                                 <div class="upload-icon">
                                     <i class="fas fa-cloud-upload-alt"></i>
                                 </div>
                                 <div class="upload-text">Click to upload or drag and drop</div>
-                                <div class="upload-hint">PDF, JPG, or PNG (Max 5MB)</div>
+                                <div class="upload-hint">JPG, PNG, GIF, or WebP (Max 5MB). PDF is not accepted.</div>
                                 <div class="file-preview" id="id-preview"></div>
                             </div>
                             {% if kyc.id_document %}
@@ -735,7 +735,7 @@
                             </label>
                             <div class="file-upload-wrapper">
                                 <input type="file" id="selfie" name="selfie" 
-                                       class="file-input" accept=".jpg,.jpeg,.png"
+                                       class="file-input" accept=".jpg,.jpeg,.png,.gif,.webp,image/*"
                                        {% if not kyc %}required{% endif %}
                                        onchange="handleFileSelect(this, 'selfie-preview')">
                                 <div class="upload-icon">
@@ -760,14 +760,14 @@
                             </label>
                             <div class="file-upload-wrapper">
                                 <input type="file" id="company_document" name="company_document" 
-                                       class="file-input" accept=".pdf,.jpg,.jpeg,.png"
+                                       class="file-input" accept=".jpg,.jpeg,.png,.gif,.webp,image/*"
                                        {% if not kyc %}required{% endif %}
                                        onchange="handleFileSelect(this, 'company-preview')">
                                 <div class="upload-icon">
                                     <i class="fas fa-building"></i>
                                 </div>
                                 <div class="upload-text">Click to upload company document</div>
-                                <div class="upload-hint">PDF, JPG, or PNG (Max 5MB)</div>
+                                <div class="upload-hint">JPG, PNG, GIF, or WebP (Max 5MB). PDF is not accepted.</div>
                                 <div class="file-preview" id="company-preview"></div>
                             </div>
                             {% if kyc.company_document %}
@@ -786,14 +786,14 @@
                             </label>
                             <div class="file-upload-wrapper">
                                 <input type="file" id="certificate_document" name="certificate_document" 
-                                       class="file-input" accept=".pdf,.jpg,.jpeg,.png"
+                                       class="file-input" accept=".jpg,.jpeg,.png,.gif,.webp,image/*"
                                        {% if not kyc %}required{% endif %}
                                        onchange="handleFileSelect(this, 'certificate-preview')">
                                 <div class="upload-icon">
                                     <i class="fas fa-certificate"></i>
                                 </div>
                                 <div class="upload-text">Click to upload certificate</div>
-                                <div class="upload-hint">PDF, JPG, or PNG (Max 5MB)</div>
+                                <div class="upload-hint">JPG, PNG, GIF, or WebP (Max 5MB). PDF is not accepted.</div>
                                 <div class="file-preview" id="certificate-preview"></div>
                             </div>
                             {% if kyc.certificate_document %}
@@ -875,6 +875,17 @@
         let currentStep = 1;
         const totalSteps = 3;
         const kycFormEl = document.getElementById('kycForm');
+        const KYC_MAX_FILE_BYTES = 5 * 1024 * 1024;
+
+        function kycFileExceedsMax(file) {
+            return file && file.size > KYC_MAX_FILE_BYTES;
+        }
+
+        function kycIsAllowedImageFile(file) {
+            if (!file || !file.name) return false;
+            const n = file.name.toLowerCase();
+            return /\.(jpe?g|png|gif|webp)$/i.test(n);
+        }
 
         function changeStep(direction) {
             // Validate current step before moving
@@ -912,13 +923,57 @@
                     showToast('Please upload all required documents', 'error');
                     return false;
                 }
+                if (idDoc && !kycIsAllowedImageFile(idDoc)) {
+                    showToast('Identity document must be an image (JPG, PNG, etc.). PDF is not accepted.', 'error');
+                    return false;
+                }
+                if (selfie && !kycIsAllowedImageFile(selfie)) {
+                    showToast('Selfie must be an image (JPG, PNG, etc.). PDF is not accepted.', 'error');
+                    return false;
+                }
                 if (userRole === 'vendor' && !document.getElementById('company_document')?.files?.[0] && !hasCompanyOnServer) {
                     showToast('Please upload all required documents', 'error');
                     return false;
                 }
+                if (userRole === 'vendor') {
+                    const cd = document.getElementById('company_document')?.files?.[0];
+                    if (cd && !kycIsAllowedImageFile(cd)) {
+                        showToast('Company document must be an image (JPG, PNG, etc.). PDF is not accepted.', 'error');
+                        return false;
+                    }
+                }
                 if (userRole === 'agricultural_expert' && !document.getElementById('certificate_document')?.files?.[0] && !hasCertOnServer) {
                     showToast('Please upload all required documents', 'error');
                     return false;
+                }
+                if (userRole === 'agricultural_expert') {
+                    const cert = document.getElementById('certificate_document')?.files?.[0];
+                    if (cert && !kycIsAllowedImageFile(cert)) {
+                        showToast('Certificate must be an image (JPG, PNG, etc.). PDF is not accepted.', 'error');
+                        return false;
+                    }
+                }
+                if (idDoc && kycFileExceedsMax(idDoc)) {
+                    showToast('Identity document must be 5 MB or smaller.', 'error');
+                    return false;
+                }
+                if (selfie && kycFileExceedsMax(selfie)) {
+                    showToast('Selfie must be 5 MB or smaller.', 'error');
+                    return false;
+                }
+                if (userRole === 'vendor') {
+                    const cd = document.getElementById('company_document')?.files?.[0];
+                    if (cd && kycFileExceedsMax(cd)) {
+                        showToast('Company document must be 5 MB or smaller.', 'error');
+                        return false;
+                    }
+                }
+                if (userRole === 'agricultural_expert') {
+                    const cert = document.getElementById('certificate_document')?.files?.[0];
+                    if (cert && kycFileExceedsMax(cert)) {
+                        showToast('Certificate must be 5 MB or smaller.', 'error');
+                        return false;
+                    }
                 }
             }
             return true;
@@ -1032,19 +1087,24 @@
         function handleFileSelect(input, previewId) {
             const file = input.files[0];
             if (file) {
+                if (!kycIsAllowedImageFile(file)) {
+                    showToast('Please choose an image file (JPG, PNG, GIF, or WebP). PDF is not accepted.', 'error');
+                    input.value = '';
+                    return;
+                }
                 const preview = document.getElementById(previewId);
                 const fileSize = (file.size / 1024 / 1024).toFixed(2);
                 const fileName = file.name;
                 
-                if (file.size > 5 * 1024 * 1024) {
-                    showToast('File size must be less than 5MB', 'error');
+                if (file.size > KYC_MAX_FILE_BYTES) {
+                    showToast('File must be 5 MB or smaller.', 'error');
                     input.value = '';
                     return;
                 }
                 
                 preview.innerHTML = `
                     <div class="preview-item">
-                        <i class="fas fa-file ${fileName.endsWith('.pdf') ? 'fa-file-pdf' : 'fa-file-image'} preview-icon"></i>
+                        <i class="fas fa-file fa-file-image preview-icon"></i>
                         <div class="preview-info">
                             <div class="preview-name">${fileName}</div>
                             <div class="preview-size">${fileSize} MB</div>

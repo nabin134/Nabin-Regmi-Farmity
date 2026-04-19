@@ -1,7 +1,10 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
-from rest_framework.permissions import AllowAny
+from rest_framework.permissions import AllowAny, IsAuthenticated
+from rest_framework.authentication import SessionAuthentication
+from rest_framework.parsers import JSONParser, FormParser, MultiPartParser
+from rest_framework_simplejwt.authentication import JWTAuthentication
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, redirect
@@ -2110,6 +2113,167 @@ def dashboard(request):
     return redirect(url_path)
 
 
+_KYC_IMAGE_EXTENSIONS = ('.jpg', '.jpeg', '.png', '.gif', '.webp')
+KYC_UPLOAD_MAX_BYTES = 5 * 1024 * 1024
+
+
+def _kyc_image_file_error(uploaded_file):
+    """Return an error message if the upload is not an allowed image type (PDF not allowed)."""
+    if not uploaded_file:
+        return None
+    name = (getattr(uploaded_file, 'name', '') or '').lower()
+    if any(name.endswith(ext) for ext in _KYC_IMAGE_EXTENSIONS):
+        return None
+    return 'Please upload an image file (JPG, PNG, GIF, or WebP). PDF files are not accepted.'
+
+
+def _kyc_file_size_error(uploaded_file, max_bytes=KYC_UPLOAD_MAX_BYTES):
+    """Return an error message if the upload exceeds max size (default 5 MB)."""
+    if not uploaded_file:
+        return None
+    size = getattr(uploaded_file, 'size', None)
+    if size is not None and size > max_bytes:
+        return 'File must be 5 MB or smaller.'
+    return None
+
+
+def _kyc_submit_payload(user, full_name, id_number, id_document, selfie, company_document, certificate_document):
+    """
+    Validate and persist KYC for farmers, vendors, and experts.
+    Used by kyc_page POST and KYCSubmitAPIView.
+
+    Returns (errors: dict | None, result: dict | None).
+    On success result is {'kyc': KYCRequest, 'message': str}.
+    """
+    existing = user.kyc_requests.first()
+    if existing and existing.status == KYCRequest.STATUS_APPROVED:
+        return (
+            {'detail': 'Your KYC is approved. Verified details cannot be changed from this flow.'},
+            None,
+        )
+
+    errors = {}
+    is_resubmission = bool(existing and existing.status == KYCRequest.STATUS_REJECTED)
+    is_pending_update = bool(existing and existing.status == KYCRequest.STATUS_PENDING)
+    keep_prior_files = is_resubmission or is_pending_update
+
+    if not full_name:
+        errors['full_name'] = 'Full name is required.'
+    if not id_number:
+        errors['id_number'] = 'ID number is required.'
+    if not id_document and not (keep_prior_files and existing and existing.id_document):
+        errors['id_document'] = 'ID document is required.'
+    if not selfie and not keep_prior_files:
+        errors['selfie'] = 'Selfie photo is required.'
+
+    if user.role == 'vendor':
+        if not company_document and not (existing and existing.company_document):
+            errors['company_document'] = 'Company registration document is required for vendors.'
+    elif user.role == 'agricultural_expert':
+        if not certificate_document and not (existing and existing.certificate_document):
+            errors['certificate_document'] = 'Professional certificate is required for agricultural experts.'
+
+    for field_name, f in (
+        ('id_document', id_document),
+        ('selfie', selfie),
+        ('company_document', company_document),
+        ('certificate_document', certificate_document),
+    ):
+        if not f:
+            continue
+        img_err = _kyc_image_file_error(f)
+        if img_err:
+            errors[field_name] = img_err
+            continue
+        size_err = _kyc_file_size_error(f)
+        if size_err:
+            errors[field_name] = size_err
+
+    if errors:
+        return (errors, None)
+
+    kyc = None
+    message = None
+
+    if existing and existing.status == KYCRequest.STATUS_REJECTED:
+        existing.full_name = full_name
+        existing.id_number = id_number
+        if id_document:
+            existing.id_document = id_document
+        if selfie:
+            existing.selfie = selfie
+        if company_document:
+            existing.company_document = company_document
+        if certificate_document:
+            existing.certificate_document = certificate_document
+        existing.status = KYCRequest.STATUS_PENDING
+        existing.rejection_reason = None
+        existing.save()
+        message = 'KYC resubmitted successfully!'
+        kyc = existing
+        try:
+            create_notification(
+                user,
+                'KYC submitted',
+                'Your KYC verification has been submitted (resubmission) and is pending approval. You will receive an email after review (approved or rejected).',
+                reverse('kyc'),
+                UserNotification.TYPE_KYC,
+            )
+        except Exception:
+            logging.getLogger(__name__).exception('Failed to send KYC resubmission notification')
+    elif existing and existing.status == KYCRequest.STATUS_PENDING:
+        existing.full_name = full_name
+        existing.id_number = id_number
+        if id_document:
+            existing.id_document = id_document
+        if selfie:
+            existing.selfie = selfie
+        if company_document:
+            existing.company_document = company_document
+        if certificate_document:
+            existing.certificate_document = certificate_document
+        existing.save()
+        message = 'KYC details updated successfully.'
+        kyc = existing
+    elif not existing:
+        kyc = KYCRequest.objects.create(
+            user=user,
+            full_name=full_name,
+            id_number=id_number,
+            id_document=id_document,
+            selfie=selfie,
+            company_document=company_document,
+            certificate_document=certificate_document,
+            status=KYCRequest.STATUS_PENDING,
+        )
+        message = 'KYC submitted successfully!'
+        try:
+            create_notification(
+                user,
+                'KYC submitted',
+                'Your KYC verification has been submitted and is pending approval. You will receive an email after review (approved or rejected).',
+                reverse('kyc'),
+                UserNotification.TYPE_KYC,
+            )
+        except Exception:
+            logging.getLogger(__name__).exception('Failed to send KYC submission notification')
+    else:
+        return ({'detail': 'An error occurred. Please contact support.'}, None)
+
+    user.is_verified = False
+    user.save(update_fields=['is_verified'])
+    return (None, {'kyc': kyc, 'message': message})
+
+
+def _kyc_absolute_file_url(request, f):
+    if not f:
+        return None
+    try:
+        return request.build_absolute_uri(f.url)
+    except Exception:
+        return None
+
+
 @login_required
 def kyc_page(request):
     if not getattr(request.user, 'email_verified', False):
@@ -2142,100 +2306,24 @@ def kyc_page(request):
         company_document = request.FILES.get('company_document')
         certificate_document = request.FILES.get('certificate_document')
 
-        errors = {}
-        is_resubmission = bool(existing and existing.status == KYCRequest.STATUS_REJECTED)
-        is_pending_update = bool(existing and existing.status == KYCRequest.STATUS_PENDING)
-        keep_prior_files = is_resubmission or is_pending_update
-
-        if not full_name:
-            errors['full_name'] = 'Full name is required.'
-        if not id_number:
-            errors['id_number'] = 'ID number is required.'
-        if not id_document and not (keep_prior_files and existing and existing.id_document):
-            errors['id_document'] = 'ID document is required.'
-        # Selfie required on first submission only; optional when updating / resubmitting.
-        if not selfie and not keep_prior_files:
-            errors['selfie'] = 'Selfie photo is required.'
-
-        if request.user.role == 'vendor':
-            if not company_document and not (existing and existing.company_document):
-                errors['company_document'] = 'Company registration document is required for vendors.'
-        elif request.user.role == 'agricultural_expert':
-            if not certificate_document and not (existing and existing.certificate_document):
-                errors['certificate_document'] = 'Professional certificate is required for agricultural experts.'
-
-        if not errors:
-            if existing and existing.status == KYCRequest.STATUS_REJECTED:
-                existing.full_name = full_name
-                existing.id_number = id_number
-                if id_document:
-                    existing.id_document = id_document
-                if selfie:
-                    existing.selfie = selfie
-                if company_document:
-                    existing.company_document = company_document
-                if certificate_document:
-                    existing.certificate_document = certificate_document
-                existing.status = KYCRequest.STATUS_PENDING
-                existing.rejection_reason = None
-                existing.save()
-                messages.success(request, 'KYC resubmitted successfully!')
-
-                try:
-                    create_notification(
-                        request.user,
-                        'KYC submitted',
-                        'Your KYC verification has been submitted (resubmission) and is pending approval. You will receive an email after review (approved or rejected).',
-                        reverse('kyc'),
-                        UserNotification.TYPE_KYC,
-                    )
-                except Exception:
-                    logging.getLogger(__name__).exception("Failed to send KYC resubmission email")
-            elif existing and existing.status == KYCRequest.STATUS_PENDING:
-                existing.full_name = full_name
-                existing.id_number = id_number
-                if id_document:
-                    existing.id_document = id_document
-                if selfie:
-                    existing.selfie = selfie
-                if company_document:
-                    existing.company_document = company_document
-                if certificate_document:
-                    existing.certificate_document = certificate_document
-                existing.save()
-                messages.success(request, 'KYC details updated successfully.')
-            elif not existing:
-                KYCRequest.objects.create(
-                    user=request.user,
-                    full_name=full_name,
-                    id_number=id_number,
-                    id_document=id_document,
-                    selfie=selfie,
-                    company_document=company_document,
-                    certificate_document=certificate_document,
-                    status=KYCRequest.STATUS_PENDING,
-                )
-                messages.success(request, 'KYC submitted successfully!')
-
-                try:
-                    create_notification(
-                        request.user,
-                        'KYC submitted',
-                        'Your KYC verification has been submitted and is pending approval. You will receive an email after review (approved or rejected).',
-                        reverse('kyc'),
-                        UserNotification.TYPE_KYC,
-                    )
-                except Exception:
-                    logging.getLogger(__name__).exception("Failed to send KYC submission email")
-            else:
-                messages.error(request, 'An error occurred. Please contact support.')
-
-            request.user.is_verified = False
-            request.user.save(update_fields=['is_verified'])
-            return redirect(reverse('kyc'))
-        else:
+        errors, result = _kyc_submit_payload(
+            request.user,
+            full_name,
+            id_number,
+            id_document,
+            selfie,
+            company_document,
+            certificate_document,
+        )
+        if errors:
             for field, error_msg in errors.items():
-                messages.error(request, f"{field.replace('_', ' ').title()}: {error_msg}")
+                if field == 'detail':
+                    messages.error(request, error_msg)
+                else:
+                    messages.error(request, f"{field.replace('_', ' ').title()}: {error_msg}")
+        else:
+            messages.success(request, result['message'])
+            return redirect(reverse('kyc'))
 
     context = {
         'kyc': existing,
@@ -2243,6 +2331,118 @@ def kyc_page(request):
         'can_edit': can_edit,
     }
     return render(request, 'kyc.html', context)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class KYCMeAPIView(APIView):
+    """GET current user's KYC status (JSON). Auth: session or Bearer JWT."""
+
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if not getattr(user, 'email_verified', False):
+            return Response(
+                {'error': 'Email not verified.', 'detail': 'Verify your email before KYC.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if not _user_requires_kyc(user):
+            return Response(
+                {'error': 'KYC not required for this account.', 'role': getattr(user, 'role', None)},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        _ensure_role_profile(user)
+        kyc = user.kyc_requests.first()
+        if not kyc:
+            return Response(
+                {
+                    'kyc': None,
+                    'role': user.role,
+                    'requires_company_document': user.role == 'vendor',
+                    'requires_certificate_document': user.role == 'agricultural_expert',
+                }
+            )
+        return Response(
+            {
+                'kyc': {
+                    'id': kyc.id,
+                    'status': kyc.status,
+                    'full_name': kyc.full_name,
+                    'id_number': kyc.id_number,
+                    'id_document_url': _kyc_absolute_file_url(request, kyc.id_document),
+                    'selfie_url': _kyc_absolute_file_url(request, kyc.selfie),
+                    'company_document_url': _kyc_absolute_file_url(request, kyc.company_document),
+                    'certificate_document_url': _kyc_absolute_file_url(request, kyc.certificate_document),
+                    'rejection_reason': kyc.rejection_reason or '',
+                    'created_at': kyc.created_at.isoformat(),
+                    'updated_at': kyc.updated_at.isoformat(),
+                },
+                'role': user.role,
+                'can_edit': not (kyc.status == KYCRequest.STATUS_APPROVED),
+                'requires_company_document': user.role == 'vendor',
+                'requires_certificate_document': user.role == 'agricultural_expert',
+            }
+        )
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class KYCSubmitAPIView(APIView):
+    """POST KYC documents (multipart). Same rules as /kyc/ form. Auth: session or Bearer JWT."""
+
+    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    permission_classes = [IsAuthenticated]
+    parser_classes = [JSONParser, FormParser, MultiPartParser]
+
+    def post(self, request):
+        user = request.user
+        if not getattr(user, 'email_verified', False):
+            return Response(
+                {'error': 'Email not verified.', 'detail': 'Verify your email before KYC.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+        if not _user_requires_kyc(user):
+            return Response(
+                {'error': 'KYC not required for this account role.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        _ensure_role_profile(user)
+
+        full_name = (request.data.get('full_name') or request.POST.get('full_name') or '').strip()
+        id_number = (request.data.get('id_number') or request.POST.get('id_number') or '').strip()
+        id_document = request.FILES.get('id_document')
+        selfie = request.FILES.get('selfie')
+        company_document = request.FILES.get('company_document')
+        certificate_document = request.FILES.get('certificate_document')
+
+        errors, result = _kyc_submit_payload(
+            user,
+            full_name,
+            id_number,
+            id_document,
+            selfie,
+            company_document,
+            certificate_document,
+        )
+        if errors:
+            return Response({'error': 'Validation failed', 'details': errors}, status=status.HTTP_400_BAD_REQUEST)
+        kyc = result['kyc']
+        return Response(
+            {
+                'message': result['message'],
+                'kyc': {
+                    'id': kyc.id,
+                    'status': kyc.status,
+                    'full_name': kyc.full_name,
+                    'id_number': kyc.id_number,
+                    'id_document_url': _kyc_absolute_file_url(request, kyc.id_document),
+                    'selfie_url': _kyc_absolute_file_url(request, kyc.selfie),
+                    'company_document_url': _kyc_absolute_file_url(request, kyc.company_document),
+                    'certificate_document_url': _kyc_absolute_file_url(request, kyc.certificate_document),
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
 
 
 @login_required

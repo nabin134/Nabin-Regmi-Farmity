@@ -3,7 +3,7 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import HttpResponse
-from accounts.urls import api_urlpatterns
+from accounts.urls import api_urlpatterns, kyc_api_urlpatterns
 
 urlpatterns = [
     # Admin URLs
@@ -12,6 +12,7 @@ urlpatterns = [
     # App URLs
     path('', include('accounts.urls')),
     path('api/auth/', include(api_urlpatterns)),
+    path('api/kyc/', include(kyc_api_urlpatterns)),
     path('accounts/', include('allauth.urls')),  # Allauth URLs for social login
 ]
 

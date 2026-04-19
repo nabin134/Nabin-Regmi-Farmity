@@ -1,6 +1,7 @@
 from django.urls import path
 from .views import (
     SignupView, LoginView, ForgotPasswordView, ResetPasswordView, VerifyOTPView,
+    KYCMeAPIView, KYCSubmitAPIView,
     OTPVerificationView, ResendOTPView, VerifyEmailView, ResendEmailVerificationView,
     landing_page, role_selection, register_page, login_page, home_page, dashboard,
     terms_of_service_page, privacy_policy_page,
@@ -95,4 +96,9 @@ api_urlpatterns = [
     path('resend-otp/', ResendOTPView.as_view(), name='api-resend-otp'),
     path('forgot-password/', ForgotPasswordView.as_view(), name='api-forgot-password'),
     path('reset-password/', ResetPasswordView.as_view(), name='api-reset-password'),
+]
+
+kyc_api_urlpatterns = [
+    path('me/', KYCMeAPIView.as_view(), name='api-kyc-me'),
+    path('submit/', KYCSubmitAPIView.as_view(), name='api-kyc-submit'),
 ]
