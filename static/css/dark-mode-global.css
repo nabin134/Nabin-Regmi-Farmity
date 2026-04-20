@@ -177,6 +177,18 @@ html.dark-mode .btn-change-photo-sm {
     color: #e8eaed !important;
 }
 
+html.dark-mode .password-toggle {
+    background: #252b33 !important;
+    color: #e8eaed !important;
+    border-color: #3d4754 !important;
+}
+
+html.dark-mode .password-toggle:hover {
+    background: #2d3640 !important;
+    color: #86efac !important;
+    border-color: #4b5563 !important;
+}
+
 html.dark-mode .data-table,
 html.dark-mode .orders-table,
 html.dark-mode table {

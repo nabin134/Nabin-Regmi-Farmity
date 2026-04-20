@@ -3823,7 +3823,7 @@
 
                             <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 12px; border: 1px solid #e9ecef;">
 
-                                <form method="POST" action="{% url 'change_password' %}">
+                                <form method="POST" action="{% url 'change_password' %}" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-reset-on-success="1">
 
                                     {% csrf_token %}
 

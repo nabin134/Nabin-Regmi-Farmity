@@ -419,6 +419,14 @@
             justify-content: flex-end;
             margin-top: 20px;
         }
+        .btn-view {
+            background: #ffffff;
+            color: #1f2937;
+            border: 1px solid #d1d5db;
+        }
+        .btn-view:hover {
+            background: #f8fafc;
+        }
 
         .btn-cancel {
             background: #6c757d;
@@ -864,7 +872,9 @@
                             <th>Amount</th>
                             <th>Payment Method</th>
                             <th>Payment Status</th>
+                            <th>Order Status</th>
                             <th>Date</th>
+                            <th>Actions</th>
                         </tr>
                     </thead>
                     <tbody id="adminMarketplacePaymentsTbody">
@@ -877,7 +887,31 @@
                             <td>
                                 <span class="status-badge {{ order.payment_status }}">{{ order.get_payment_status_display }}</span>
                             </td>
+                            <td>
+                                <span class="status-badge {{ order.status }}">{{ order.get_status_display }}</span>
+                            </td>
                             <td>{{ order.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <div class="action-buttons">
+                                    {% if order.payment_status == 'completed' %}
+                                    <button class="btn btn-edit" type="button" disabled style="opacity:0.6; cursor:not-allowed;">
+                                        <i class="fas fa-lock"></i> Closed
+                                    </button>
+                                    {% else %}
+                                    <button class="btn btn-edit" type="button" onclick="openEditOrderModal({{ order.id }}, '{{ order.status }}', '{{ order.payment_status }}', '{{ order.payment_method|default:"" }}', '{{ order.tracking_number|default:""|escapejs }}', '{{ order.shipping_address|default:""|escapejs }}', '{{ order.notes|default:""|escapejs }}')">
+                                        <i class="fas fa-edit"></i> Edit
+                                    </button>
+                                    {% endif %}
+                                    <button class="btn btn-view" type="button" onclick="openTransactionDetails({{ order.id }})">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                    {% if order.payment_status != 'completed' %}
+                                    <button class="btn btn-delete" type="button" onclick="confirmDeleteOrder({{ order.id }})">
+                                        <i class="fas fa-trash"></i> Delete
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -1091,6 +1125,22 @@
         </div>
     </div>
 
+    <!-- Transaction Details Modal -->
+    <div id="transactionDetailsModal" class="modal" aria-hidden="true">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title" id="transactionDetailsTitle">Transaction details</h3>
+                <button class="close-modal" onclick="closeTransactionDetailsModal()">&times;</button>
+            </div>
+            <div id="transactionDetailsBody">
+                <p style="color: #64748b;">Loading transaction details...</p>
+            </div>
+            <div class="modal-actions">
+                <button type="button" class="btn btn-cancel" onclick="closeTransactionDetailsModal()">Close</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         (function () {
             function bindViewMore(btnId, tbodyId) {
@@ -1217,9 +1267,33 @@
             document.getElementById('deleteModal').classList.remove('active');
         }
 
+        // Transaction details view
+        function openTransactionDetails(orderId) {
+            var modal = document.getElementById('transactionDetailsModal');
+            var body = document.getElementById('transactionDetailsBody');
+            var title = document.getElementById('transactionDetailsTitle');
+            title.textContent = 'Transaction #' + orderId + ' details';
+            body.innerHTML = '<p style="color: #64748b;">Loading transaction details...</p>';
+            modal.classList.add('active');
+            modal.setAttribute('aria-hidden', 'false');
+
+            fetch('/orders/' + orderId + '/?embed=1', { credentials: 'same-origin' })
+                .then(function(resp) { return resp.text(); })
+                .then(function(html) { body.innerHTML = html; })
+                .catch(function() {
+                    body.innerHTML = '<p style="color: #b91c1c;">Could not load transaction details right now.</p>';
+                });
+        }
+
+        function closeTransactionDetailsModal() {
+            var modal = document.getElementById('transactionDetailsModal');
+            modal.classList.remove('active');
+            modal.setAttribute('aria-hidden', 'true');
+        }
+
         // Close modals on outside click
         window.onclick = function(event) {
-            const modals = ['toolModal', 'cropModal', 'orderModal', 'deleteModal'];
+            const modals = ['toolModal', 'cropModal', 'orderModal', 'deleteModal', 'transactionDetailsModal'];
             modals.forEach(modalId => {
                 const modal = document.getElementById(modalId);
                 if (event.target == modal) {

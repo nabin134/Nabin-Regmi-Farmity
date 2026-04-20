@@ -1742,8 +1742,18 @@ def esewa_initiate(request):
             messages.info(request, 'This order is already paid.')
             return _redirect_to_role_home_response(request.user)
         total_amount = order.total_amount
-        transaction_uuid = f'order-{order.id}'
         order_ids = [order.id]
+        # eSewa rejects reused transaction UUIDs. Create a fresh payment-group
+        # reference for every initiation attempt (including retries).
+        ref = 'pg-' + secrets.token_urlsafe(16).replace('-', '').replace('_', '')[:32]
+        PaymentGroup.objects.create(
+            reference=ref,
+            buyer=request.user,
+            order_ids=list(order_ids),
+            total_amount=total_amount,
+            status=PaymentGroup.STATUS_PENDING,
+        )
+        transaction_uuid = ref
     else:
         # Cart checkout: order ids stored in session
         order_ids = request.session.get('esewa_pending_order_ids', [])
@@ -2701,6 +2711,17 @@ def change_password(request):
                 messages.success(request, msg)
             else:
                 messages.error(request, msg)
+            # Keep user on the same page section for non-AJAX submissions.
+            return_path = (request.POST.get('_return_path') or '').strip()
+            return_query = (request.POST.get('_return_query') or '').strip()
+            if return_path:
+                target = return_path
+                if return_query:
+                    target = f'{target}?{return_query}'
+                return redirect(target)
+            referer = (request.META.get('HTTP_REFERER') or '').strip()
+            if referer:
+                return redirect(referer)
             return redirect('settings')
 
         if not current_password or not new_password or not confirm_password:
@@ -2868,7 +2889,7 @@ def farmer_dashboard(request):
             messages.error(request, 'KYC verification is required to purchase tools. Please complete your KYC verification first.')
             return _redirect_same_page(request, 'farmer_dashboard')
         
-        payment_method = request.POST.get('payment_method', Order.PAYMENT_COD)
+        payment_method = (request.POST.get('payment_method', Order.PAYMENT_COD) or Order.PAYMENT_COD).strip().lower()
         tool_id = request.POST.get('tool_id')
         quantity = int(request.POST.get('quantity', 1))
         shipping_address = request.POST.get('shipping_address', '')
@@ -2943,9 +2964,12 @@ def farmer_dashboard(request):
                     )
                     messages.success(request, f'Order successfully placed! You will pay Rs. {total_amount:.2f} on delivery.')
                 else:
+                    # Use the same session-based redirect contract as cart checkout
+                    # so eSewa initiation is consistent and resilient.
+                    request.session['esewa_pending_order_ids'] = [order.id]
                     request.session['esewa_redirect_after'] = 'farmer_dashboard'
                     request.session.modified = True
-                    return redirect(reverse('esewa_initiate') + f'?order_id={order.id}')
+                    return redirect(reverse('esewa_initiate'))
             else:
                 messages.error(request, 'Insufficient stock!')
         except VendorTool.DoesNotExist:
@@ -5189,11 +5213,25 @@ def _admin_collections_collected_orders_qs():
     return qs
 
 
+def _admin_order_seller_amount(order):
+    """Seller share with legacy fallback when seller_amount is missing."""
+    return (order.seller_amount if order.seller_amount and order.seller_amount > 0 else order.total_amount or Decimal('0'))
+
+
+def _admin_sum_seller_amount(orders_qs):
+    """Sum seller shares using the same fallback rule used in UI group rows."""
+    total = Decimal('0')
+    for order in orders_qs:
+        total += _admin_order_seller_amount(order)
+    return total
+
+
 @login_required
 def admin_collections_payouts(request):
     """Admin: view all amounts collected (paid orders) and pay out to farmers/vendors (e.g. weekly)."""
     if request.user.role != 'admin':
         return _redirect_to_role_home_response(request.user)
+    is_ajax_request = _farmity_wants_ajax(request)
 
     collected_orders = _admin_collections_collected_orders_qs()
 
@@ -5202,11 +5240,11 @@ def admin_collections_payouts(request):
     # Pending payout: collected but not yet paid to seller (use seller_amount: 80% of product + shipping)
     pending_q = Q(payout_status__isnull=True) | Q(payout_status=Order.PAYOUT_PENDING)
     pending_orders = collected_orders.filter(pending_q)
-    total_pending_payout = pending_orders.aggregate(total=Sum('seller_amount'))['total'] or Decimal('0')
+    total_pending_payout = _admin_sum_seller_amount(pending_orders)
 
     # Amount per seller uses seller_amount ((product - commission) + shipping). Fallback to total_amount for old orders.
     def _order_seller_amount(o):
-        return (o.seller_amount if o.seller_amount and o.seller_amount > 0 else o.total_amount)
+        return _admin_order_seller_amount(o)
 
     # Group ALL collected by farmer (crop orders) — amount to pay = seller_amount
     farmer_collected = {}
@@ -5261,10 +5299,7 @@ def admin_collections_payouts(request):
 
     # Handle POST: mark payout paid for a seller (validated amount + DB state under transaction)
     if request.method == 'POST' and request.POST.get('action') == 'mark_payout_paid':
-        is_ajax = (
-            request.headers.get('x-requested-with') == 'XMLHttpRequest'
-            or request.POST.get('ajax') == '1'
-        )
+        is_ajax = is_ajax_request
 
         seller_type = (request.POST.get('seller_type') or '').strip()
         seller_id_raw = (request.POST.get('seller_id') or '').strip()
@@ -5313,10 +5348,14 @@ def admin_collections_payouts(request):
                 base = _admin_collections_collected_orders_qs().filter(pending_q)
                 if seller_type == 'farmer':
                     farmer = FarmerProfile.objects.get(pk=seller_pk)
-                    orders_to_pay = base.filter(crop__farmer=farmer).select_for_update()
+                    candidate_ids = list(base.filter(crop__farmer=farmer).values_list('id', flat=True))
                 else:
                     vendor = VendorProfile.objects.get(pk=seller_pk)
-                    orders_to_pay = base.filter(tool__vendor=vendor).select_for_update()
+                    candidate_ids = list(base.filter(tool__vendor=vendor).values_list('id', flat=True))
+
+                # PostgreSQL cannot apply FOR UPDATE on nullable outer-join sides.
+                # Lock only concrete Order rows by id to keep this transaction safe.
+                orders_to_pay = Order.objects.filter(id__in=candidate_ids).select_for_update()
 
                 if not orders_to_pay.exists():
                     msg = (
@@ -5327,9 +5366,8 @@ def admin_collections_payouts(request):
                     messages.warning(request, msg)
                     return _redirect_same_admin_page(request, 'admin_collections_payouts')
 
-                total_paid_dec = orders_to_pay.aggregate(t=Sum('seller_amount'))['t'] or Decimal('0')
-                if total_paid_dec == 0:
-                    total_paid_dec = orders_to_pay.aggregate(t=Sum('total_amount'))['t'] or Decimal('0')
+                # Use fallback-aware total so validation matches displayed per-seller amount.
+                total_paid_dec = _admin_sum_seller_amount(orders_to_pay)
 
                 exp_q = expected_amt.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
                 tot_q = total_paid_dec.quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
@@ -5395,6 +5433,10 @@ def admin_collections_payouts(request):
             messages.success(request, success_message)
 
         return _redirect_same_admin_page(request, 'admin_collections_payouts')
+
+    # If this was an AJAX POST but action was missing/invalid, always return JSON.
+    if request.method == 'POST' and is_ajax_request:
+        return JsonResponse({'ok': False, 'message': 'Invalid payout action.'}, status=400)
 
     # Total paid out = total collected - still pending
     total_paid_out = total_collected - total_pending_payout
@@ -6272,6 +6314,12 @@ def admin_marketplace_oversight(request):
             order_id = request.POST.get('order_id')
             try:
                 order = Order.objects.select_related('buyer', 'tool', 'tool__vendor', 'crop', 'crop__farmer').get(id=order_id)
+                if order.payment_status == Order.PAYMENT_STATUS_COMPLETED:
+                    messages.error(
+                        request,
+                        'This transaction is closed after confirmed payment and cannot be edited.'
+                    )
+                    return _redirect_same_admin_page(request, 'admin_marketplace_oversight')
                 old_status = order.status
                 old_payment_status = order.payment_status or ''
                 order.status = request.POST.get('status', order.status)
@@ -6337,6 +6385,12 @@ def admin_marketplace_oversight(request):
             order_id = request.POST.get('order_id')
             try:
                 order = Order.objects.get(id=order_id)
+                if order.payment_status == Order.PAYMENT_STATUS_COMPLETED:
+                    messages.error(
+                        request,
+                        'This transaction is closed after confirmed payment and cannot be deleted.'
+                    )
+                    return _redirect_same_admin_page(request, 'admin_marketplace_oversight')
                 order.delete()
                 messages.success(request, 'Order deleted successfully!')
             except Order.DoesNotExist:
@@ -6419,9 +6473,8 @@ def admin_marketplace_oversight(request):
         context['completed_orders'] = Order.objects.filter(status=Order.STATUS_DELIVERED).count()
     
     if section == 'overview' or section == 'payments':
-        orders = Order.objects.select_related('buyer', 'tool', 'crop').exclude(
-            status=Order.STATUS_AWAITING_PAYMENT
-        ).order_by('-created_at')
+        # Include awaiting_payment orders so admin can review/update/delete pending payments.
+        orders = Order.objects.select_related('buyer', 'tool', 'crop').order_by('-created_at')
         total_revenue = Order.objects.aggregate(total=Sum('total_amount'))['total'] or 0
         completed_payments = Order.objects.filter(payment_status=Order.PAYMENT_STATUS_COMPLETED).count()
         pending_payments = Order.objects.filter(payment_status=Order.PAYMENT_STATUS_PENDING).count()

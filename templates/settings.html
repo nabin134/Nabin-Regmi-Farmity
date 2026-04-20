@@ -124,6 +124,44 @@
             background: #f8f9fa;
             cursor: not-allowed;
         }
+        .password-field {
+            position: relative;
+        }
+        .password-field .form-control {
+            padding-right: 3rem;
+        }
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 1rem;
+            transform: translateY(-50%);
+            border: 1px solid #d1d5db;
+            background: #ffffff;
+            color: #4b5563;
+            cursor: pointer;
+            padding: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.95rem;
+            line-height: 1;
+            z-index: 5;
+            opacity: 1;
+            visibility: visible;
+            transition: all 0.2s ease;
+        }
+        .password-toggle:hover {
+            background: #f8fafc;
+            border-color: var(--sea-green);
+            color: var(--sea-green);
+        }
+        .password-toggle:focus-visible {
+            outline: 2px solid rgba(53, 141, 88, 0.35);
+            outline-offset: 1px;
+        }
         textarea.form-control {
             resize: vertical;
             min-height: 100px;
@@ -361,15 +399,25 @@
                             {% csrf_token %}
                             <div class="form-group">
                                 <label>Current Password</label>
-                                <input type="password" name="current_password" class="form-control" 
-                                       placeholder="Enter your current password" required>
+                                <div class="password-field">
+                                    <input type="password" name="current_password" id="currentPassword" class="form-control"
+                                           placeholder="Enter your current password" required>
+                                    <button type="button" class="password-toggle" data-toggle-target="currentPassword" aria-label="Show password" title="Show password">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
                                 <p class="farmity-field-error" id="changePasswordFormFieldError-current_password" style="display:none;margin-top:0.35rem;font-size:0.8125rem;color:#dc3545;"></p>
                             </div>
                             <div class="form-group">
                                 <label>New Password</label>
-                                <input type="password" name="new_password" class="form-control" 
-                                       placeholder="Enter your new password" required 
-                                       pattern=".{8,}" title="Password must be at least 8 characters">
+                                <div class="password-field">
+                                    <input type="password" name="new_password" id="newPassword" class="form-control"
+                                           placeholder="Enter your new password" required
+                                           pattern=".{8,}" title="Password must be at least 8 characters">
+                                    <button type="button" class="password-toggle" data-toggle-target="newPassword" aria-label="Show password" title="Show password">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
                                 <p class="farmity-field-error" id="changePasswordFormFieldError-new_password" style="display:none;margin-top:0.35rem;font-size:0.8125rem;color:#dc3545;"></p>
                                 <div class="info-box">
                                     <p class="info-box-text">
@@ -380,8 +428,13 @@
                             </div>
                             <div class="form-group">
                                 <label>Confirm New Password</label>
-                                <input type="password" name="confirm_password" class="form-control" 
-                                       placeholder="Confirm your new password" required>
+                                <div class="password-field">
+                                    <input type="password" name="confirm_password" id="confirmPasswordSetting" class="form-control"
+                                           placeholder="Confirm your new password" required>
+                                    <button type="button" class="password-toggle" data-toggle-target="confirmPasswordSetting" aria-label="Show password" title="Show password">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                </div>
                                 <p class="farmity-field-error" id="changePasswordFormFieldError-confirm_password" style="display:none;margin-top:0.35rem;font-size:0.8125rem;color:#dc3545;"></p>
                             </div>
                             <button type="submit" class="btn-primary">
@@ -508,6 +561,22 @@
                 localStorage.setItem('darkMode', 'false');
                 applyTheme(false);
             }
+        });
+
+        // Settings password field visibility toggle
+        document.addEventListener('click', function(e) {
+            const btn = e.target.closest('.password-toggle[data-toggle-target]');
+            if (!btn) return;
+            const targetId = btn.getAttribute('data-toggle-target');
+            const input = document.getElementById(targetId);
+            const icon = btn.querySelector('i');
+            if (!input || !icon) return;
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+            btn.setAttribute('title', show ? 'Hide password' : 'Show password');
+            icon.classList.toggle('fa-eye', !show);
+            icon.classList.toggle('fa-eye-slash', show);
         });
 
         // Language Logic
