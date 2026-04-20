@@ -255,14 +255,6 @@ def _send_notification_email(
     if user_email:
         recipient_list.append(user_email)
 
-    # Also notify admins (requested by the user)
-    for e in get_admin_email_recipients():
-        if e and e not in recipient_list:
-            recipient_list.append(e)
-
-    if not recipient_list:
-        return
-
     role = getattr(user, "role", "") or ""
     lower_title = (title or "").lower()
     lower_message = (message or "").lower()
@@ -311,6 +303,15 @@ def _send_notification_email(
             event_type = "support_reply"
         else:
             event_type = "support_created"
+
+    # Admin inbox should receive payment-only email copies.
+    if event_type in {"payment_completed", "payout_paid"}:
+        for e in get_admin_email_recipients():
+            if e and e not in recipient_list:
+                recipient_list.append(e)
+
+    if not recipient_list:
+        return
 
     ok = send_branded_email(
         subject=title,

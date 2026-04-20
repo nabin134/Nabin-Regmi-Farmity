@@ -35,7 +35,7 @@ class EmailVerificationOtpApiTests(TestCase):
 
     def test_verify_email_valid_otp_activates_and_returns_redirect(self):
         otp = OTP.generate_otp(
-            self.user, expiry_minutes=30, purpose=OTP.PURPOSE_EMAIL_VERIFY
+            self.user, expiry_minutes=10, purpose=OTP.PURPOSE_EMAIL_VERIFY
         )
         url = reverse("api-verify-email")
         response = self.client.post(
@@ -61,7 +61,7 @@ class EmailVerificationOtpApiTests(TestCase):
             email_verified=False,
         )
         otp = OTP.generate_otp(
-            farmer, expiry_minutes=30, purpose=OTP.PURPOSE_EMAIL_VERIFY
+            farmer, expiry_minutes=10, purpose=OTP.PURPOSE_EMAIL_VERIFY
         )
         response = self.client.post(
             reverse("api-verify-email"),
@@ -73,7 +73,7 @@ class EmailVerificationOtpApiTests(TestCase):
 
     def test_verify_email_invalid_otp_returns_400_and_safe_message(self):
         OTP.generate_otp(
-            self.user, expiry_minutes=30, purpose=OTP.PURPOSE_EMAIL_VERIFY
+            self.user, expiry_minutes=10, purpose=OTP.PURPOSE_EMAIL_VERIFY
         )
         url = reverse("api-verify-email")
         response = self.client.post(
@@ -91,7 +91,7 @@ class EmailVerificationOtpApiTests(TestCase):
 
     def test_verify_email_expired_otp_returns_distinct_error(self):
         fresh = OTP.generate_otp(
-            self.user, expiry_minutes=30, purpose=OTP.PURPOSE_EMAIL_VERIFY
+            self.user, expiry_minutes=10, purpose=OTP.PURPOSE_EMAIL_VERIFY
         )
         OTP.objects.filter(pk=fresh.pk).update(
             expires_at=timezone.now() - timedelta(minutes=1)

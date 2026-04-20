@@ -22,6 +22,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
 import re
+from functools import wraps
 from urllib.parse import urlencode
 import secrets
 import hashlib
@@ -372,6 +373,64 @@ def _profile_finish(request, ok, message, extra_json=None):
     return redirect('profile')
 
 
+class CsrfExemptSessionAuthentication(SessionAuthentication):
+    """Session auth for APIs without CSRF enforcement (Postman-friendly)."""
+    def enforce_csrf(self, request):
+        return
+
+
+def _request_payload(request):
+    """Return request payload for JSON or form requests."""
+    if request.content_type and 'application/json' in request.content_type.lower():
+        try:
+            body = (request.body or b'').decode('utf-8').strip()
+            return json.loads(body) if body else {}
+        except Exception:
+            return {}
+    return request.POST
+
+
+def _api_authenticate_request_user(request):
+    """
+    Authenticate API request using either:
+    - existing Django session (request.user), or
+    - Bearer access token (SimpleJWT).
+    """
+    user = getattr(request, 'user', None)
+    if user is not None and getattr(user, 'is_authenticated', False):
+        return True
+
+    auth_header = (request.META.get('HTTP_AUTHORIZATION') or '').strip()
+    if not auth_header.lower().startswith('bearer '):
+        return False
+
+    token = auth_header.split(' ', 1)[1].strip()
+    if not token:
+        return False
+
+    try:
+        jwt_auth = JWTAuthentication()
+        validated = jwt_auth.get_validated_token(token)
+        user = jwt_auth.get_user(validated)
+        request.user = user
+        return True
+    except Exception:
+        return False
+
+
+def api_login_required(view_func):
+    """API auth gate (session cookie or Bearer access token)."""
+    @wraps(view_func)
+    def _wrapped(request, *args, **kwargs):
+        if _api_authenticate_request_user(request):
+            return view_func(request, *args, **kwargs)
+        return JsonResponse(
+            {'error': 'Authentication required. Use session cookie or Bearer access token.'},
+            status=401,
+        )
+    return _wrapped
+
+
 def _redirect_same_admin_page(request, view_name):
     """
     Redirect back to the same admin page preserving all current GET parameters
@@ -501,13 +560,13 @@ class SignupView(APIView):
                 user = serializer.save()
                 print(f"User created: {user.email} (ID: {user.id})")
                 # Send OTP and require email verification before KYC/dashboard.
-                otp = OTP.generate_otp(user, expiry_minutes=30, purpose=OTP.PURPOSE_EMAIL_VERIFY)
+                otp = OTP.generate_otp(user, expiry_minutes=10, purpose=OTP.PURPOSE_EMAIL_VERIFY)
                 try:
                     send_mail(
                         subject='Verify your email - Farmity',
                         message=(
                             f'Your Farmity verification code is: {otp.otp_code}\n\n'
-                            f'This code will expire in 30 minutes.\n\n'
+                            f'This code will expire in 10 minutes.\n\n'
                             f'Visit Farmity: https://tinyurl.com/Farmity\n\n'
                             f'If you did not create this account, please ignore this email.'
                         ),
@@ -521,17 +580,13 @@ class SignupView(APIView):
 
                 redirect_url = reverse('verify_email') + '?' + urlencode({'email': user.email})
 
-                # Welcome email (user + admin copy).
+                # Welcome email (user only; admins receive payment-related emails only).
                 # Signup currently creates no in-app notification, so we send directly here.
                 email_failed = False
-                admin_emails = get_admin_email_recipients()
 
                 recipient_list = []
                 if user.email:
                     recipient_list.append(user.email)
-                for e in admin_emails:
-                    if e and e not in recipient_list:
-                        recipient_list.append(e)
 
                 if recipient_list:
                     kyc_next = redirect_url == reverse('kyc')
@@ -696,13 +751,13 @@ class ResendEmailVerificationView(APIView):
                     status=status.HTTP_200_OK,
                 )
 
-            otp = OTP.generate_otp(user, expiry_minutes=30, purpose=OTP.PURPOSE_EMAIL_VERIFY)
+            otp = OTP.generate_otp(user, expiry_minutes=10, purpose=OTP.PURPOSE_EMAIL_VERIFY)
             try:
                 send_mail(
                     subject='Verify your email - Farmity',
                     message=(
                         f'Your Farmity verification code is: {otp.otp_code}\n\n'
-                        f'This code will expire in 30 minutes.\n\n'
+                        f'This code will expire in 10 minutes.\n\n'
                         f'Visit Farmity: https://tinyurl.com/Farmity\n\n'
                         f'If you did not create this account, please ignore this email.'
                     ),
@@ -799,13 +854,13 @@ class LoginView(APIView):
 
             # Block full login until email is verified and account is active — resend code and send user to verify page
             if not getattr(user, 'email_verified', False) or not user.is_active:
-                otp = OTP.generate_otp(user, expiry_minutes=30, purpose=OTP.PURPOSE_EMAIL_VERIFY)
+                otp = OTP.generate_otp(user, expiry_minutes=10, purpose=OTP.PURPOSE_EMAIL_VERIFY)
                 try:
                     send_mail(
                         subject='Verify your email - Farmity',
                         message=(
                             f'Your Farmity verification code is: {otp.otp_code}\n\n'
-                            f'This code will expire in 30 minutes.\n\n'
+                            f'This code will expire in 10 minutes.\n\n'
                             f'Visit Farmity: https://tinyurl.com/Farmity\n\n'
                             f'If you did not request this, please ignore this email.'
                         ),
@@ -2337,7 +2392,7 @@ def kyc_page(request):
 class KYCMeAPIView(APIView):
     """GET current user's KYC status (JSON). Auth: session or Bearer JWT."""
 
-    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    authentication_classes = [JWTAuthentication, CsrfExemptSessionAuthentication]
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -2390,7 +2445,7 @@ class KYCMeAPIView(APIView):
 class KYCSubmitAPIView(APIView):
     """POST KYC documents (multipart). Same rules as /kyc/ form. Auth: session or Bearer JWT."""
 
-    authentication_classes = [JWTAuthentication, SessionAuthentication]
+    authentication_classes = [JWTAuthentication, CsrfExemptSessionAuthentication]
     permission_classes = [IsAuthenticated]
     parser_classes = [JSONParser, FormParser, MultiPartParser]
 
@@ -7044,7 +7099,8 @@ def _check_chat_access(request, thread):
     return True, None
 
 
-@login_required
+@csrf_exempt
+@api_login_required
 def api_chat_messages(request, thread_id):
     """GET: Return JSON list of messages for a thread."""
     try:
@@ -7069,7 +7125,8 @@ def api_chat_messages(request, thread_id):
     return JsonResponse({'messages': data})
 
 
-@login_required
+@csrf_exempt
+@api_login_required
 def api_chat_send(request, thread_id):
     """POST: Send a message. Returns JSON with new message."""
     try:
@@ -7097,7 +7154,8 @@ def api_chat_send(request, thread_id):
     })
 
 
-@login_required
+@csrf_exempt
+@api_login_required
 def api_chat_start(request, expert_id):
     """POST: Start or get thread with expert. Returns JSON with thread_id."""
     if request.user.role not in {'buyer', 'farmer'}:
@@ -7129,6 +7187,563 @@ def api_chat_start(request, expert_id):
         'specialization': expert.specialization or '',
         'experience': expert.experience or '',
     })
+
+
+def _tool_to_api_json(request, tool):
+    return {
+        'id': tool.id,
+        'name': tool.name,
+        'description': tool.description or '',
+        'stock_quantity': tool.stock_quantity,
+        'price': str(tool.price),
+        'is_available': bool(tool.is_available),
+        'vendor_id': tool.vendor_id,
+        'vendor_name': tool.vendor.company_name or tool.vendor.user.email,
+        'image_url': request.build_absolute_uri(tool.image.url) if getattr(tool, 'image', None) else None,
+        'created_at': tool.created_at.isoformat() if tool.created_at else None,
+    }
+
+
+def _crop_to_api_json(request, crop):
+    return {
+        'id': crop.id,
+        'name': crop.name,
+        'quantity': str(crop.quantity),
+        'unit': crop.unit,
+        'price_per_unit': str(crop.price_per_unit),
+        'is_available': bool(crop.is_available),
+        'farmer_id': crop.farmer_id,
+        'farmer_name': crop.farmer.name or crop.farmer.user.email,
+        'image_url': request.build_absolute_uri(crop.image.url) if getattr(crop, 'image', None) else None,
+        'created_at': crop.created_at.isoformat() if crop.created_at else None,
+    }
+
+
+@csrf_exempt
+@api_login_required
+def api_tools_add(request):
+    """POST: Add a tool listing (vendor only)."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    if request.user.role != 'vendor':
+        return JsonResponse({'error': 'Only vendors can add tools.'}, status=403)
+    kyc = request.user.kyc_requests.first()
+    if kyc and kyc.status != KYCRequest.STATUS_APPROVED:
+        return JsonResponse({'error': 'KYC verification required to add tools.'}, status=403)
+
+    payload = _request_payload(request)
+    name = ((payload.get('name') or '') if isinstance(payload, dict) else '').strip()
+    description = ((payload.get('description') or '') if isinstance(payload, dict) else '').strip()
+    price_raw = ((payload.get('price') or '') if isinstance(payload, dict) else '').strip()
+    stock_raw = (
+        (payload.get('stock_quantity') or payload.get('stock') or '')
+        if isinstance(payload, dict) else ''
+    )
+    is_available_raw = (payload.get('is_available') if isinstance(payload, dict) else True)
+    image = request.FILES.get('image')
+
+    if not name:
+        return JsonResponse({'error': 'name is required.'}, status=400)
+    try:
+        price = Decimal(str(price_raw))
+    except Exception:
+        return JsonResponse({'error': 'price must be a valid number.'}, status=400)
+    if price <= 0:
+        return JsonResponse({'error': 'price must be greater than 0.'}, status=400)
+    try:
+        stock_quantity = int(str(stock_raw))
+    except Exception:
+        return JsonResponse({'error': 'stock_quantity must be a valid integer.'}, status=400)
+    if stock_quantity < 0:
+        return JsonResponse({'error': 'stock_quantity cannot be negative.'}, status=400)
+
+    is_available = str(is_available_raw).strip().lower() in {'1', 'true', 'yes', 'on'}
+    is_available = bool(is_available and stock_quantity > 0)
+
+    profile, _ = VendorProfile.objects.get_or_create(user=request.user)
+    tool = VendorTool.objects.create(
+        vendor=profile,
+        name=name,
+        description=description or None,
+        stock_quantity=stock_quantity,
+        price=price,
+        is_available=is_available,
+    )
+    if image:
+        tool.image = image
+        tool.save(update_fields=['image'])
+    return JsonResponse(
+        {'message': 'Tool added successfully.', 'tool': _tool_to_api_json(request, tool)},
+        status=201,
+    )
+
+
+@csrf_exempt
+@api_login_required
+def api_crops_add(request):
+    """POST: Add a crop listing (farmer only)."""
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    if request.user.role != 'farmer':
+        return JsonResponse({'error': 'Only farmers can add crops.'}, status=403)
+    kyc = request.user.kyc_requests.first()
+    if kyc and kyc.status != KYCRequest.STATUS_APPROVED:
+        return JsonResponse({'error': 'KYC verification required to add crops.'}, status=403)
+
+    payload = _request_payload(request)
+    name = ((payload.get('name') or '') if isinstance(payload, dict) else '').strip()
+    quantity_raw = ((payload.get('quantity') or '') if isinstance(payload, dict) else '').strip()
+    unit = ((payload.get('unit') or 'kg') if isinstance(payload, dict) else 'kg').strip() or 'kg'
+    price_raw = ((payload.get('price_per_unit') or '') if isinstance(payload, dict) else '').strip()
+    is_available_raw = (payload.get('is_available') if isinstance(payload, dict) else True)
+    image = request.FILES.get('image')
+
+    if not name:
+        return JsonResponse({'error': 'name is required.'}, status=400)
+    try:
+        quantity = Decimal(str(quantity_raw))
+    except Exception:
+        return JsonResponse({'error': 'quantity must be a valid number.'}, status=400)
+    if quantity <= 0:
+        return JsonResponse({'error': 'quantity must be greater than 0.'}, status=400)
+    try:
+        price_per_unit = Decimal(str(price_raw))
+    except Exception:
+        return JsonResponse({'error': 'price_per_unit must be a valid number.'}, status=400)
+    if price_per_unit <= 0:
+        return JsonResponse({'error': 'price_per_unit must be greater than 0.'}, status=400)
+
+    is_available = str(is_available_raw).strip().lower() in {'1', 'true', 'yes', 'on'}
+    is_available = bool(is_available and quantity > 0)
+
+    profile, _ = FarmerProfile.objects.get_or_create(user=request.user)
+    crop = FarmerProduct.objects.create(
+        farmer=profile,
+        name=name,
+        quantity=quantity,
+        unit=unit,
+        price_per_unit=price_per_unit,
+        is_available=is_available,
+    )
+    if image:
+        crop.image = image
+        crop.save(update_fields=['image'])
+    return JsonResponse(
+        {'message': 'Crop added successfully.', 'crop': _crop_to_api_json(request, crop)},
+        status=201,
+    )
+
+
+@csrf_exempt
+@api_login_required
+def api_tools_list(request):
+    """GET: List marketplace tools for API testing."""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    qs = (
+        VendorTool.objects.filter(is_available=True, stock_quantity__gt=0)
+        .select_related('vendor', 'vendor__user')
+        .order_by('-created_at')
+    )
+    data = [_tool_to_api_json(request, tool) for tool in qs]
+    return JsonResponse({'count': len(data), 'tools': data})
+
+
+@csrf_exempt
+@api_login_required
+def api_crops_list(request):
+    """GET: List marketplace crops for API testing."""
+    if request.method != 'GET':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    qs = (
+        FarmerProduct.objects.filter(is_available=True, quantity__gt=0)
+        .select_related('farmer', 'farmer__user')
+        .order_by('-created_at')
+    )
+    data = [_crop_to_api_json(request, crop) for crop in qs]
+    return JsonResponse({'count': len(data), 'crops': data})
+
+
+@csrf_exempt
+@api_login_required
+def api_orders_create(request):
+    """
+    POST: Create an order for tool/crop using API payload.
+    Accepted fields:
+      item_type: 'tool' or 'crop'
+      item_id: integer
+      quantity: integer (default 1)
+      payment_method: 'cod' or 'esewa' (default cod)
+      shipping_address: required
+      contact_number: required
+      order_email: optional
+      notes: optional
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    if request.user.role not in {'buyer', 'farmer'}:
+        return JsonResponse({'error': 'Only buyers/farmers can create orders.'}, status=403)
+
+    payload = _request_payload(request)
+    item_type = ((payload.get('item_type') or '') if isinstance(payload, dict) else '').strip().lower()
+    item_id_raw = ((payload.get('item_id') or '') if isinstance(payload, dict) else '').strip()
+    qty_raw = ((payload.get('quantity') or '1') if isinstance(payload, dict) else '1')
+    payment_method = ((payload.get('payment_method') or Order.PAYMENT_COD) if isinstance(payload, dict) else Order.PAYMENT_COD).strip().lower()
+    shipping_address = ((payload.get('shipping_address') or '') if isinstance(payload, dict) else '').strip()
+    contact_number = ((payload.get('contact_number') or '') if isinstance(payload, dict) else '').strip()
+    order_email = ((payload.get('order_email') or '') if isinstance(payload, dict) else '').strip() or None
+    notes = ((payload.get('notes') or '') if isinstance(payload, dict) else '').strip()
+
+    if item_type not in {'tool', 'crop'}:
+        return JsonResponse({'error': "item_type must be 'tool' or 'crop'."}, status=400)
+    try:
+        item_id = int(item_id_raw)
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'item_id must be a valid integer.'}, status=400)
+    try:
+        quantity = int(qty_raw)
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'quantity must be a valid integer.'}, status=400)
+    if quantity <= 0:
+        return JsonResponse({'error': 'quantity must be greater than 0.'}, status=400)
+    if payment_method not in {Order.PAYMENT_COD, Order.PAYMENT_ESEWA}:
+        return JsonResponse({'error': "payment_method must be 'cod' or 'esewa'."}, status=400)
+    if not shipping_address:
+        return JsonResponse({'error': 'shipping_address is required.'}, status=400)
+    if not contact_number:
+        return JsonResponse({'error': 'contact_number is required.'}, status=400)
+
+    shipping_cost = Decimal('100.00')
+
+    with transaction.atomic():
+        if item_type == 'tool':
+            try:
+                item = VendorTool.objects.select_related('vendor', 'vendor__user').get(
+                    id=item_id, is_available=True, stock_quantity__gte=quantity
+                )
+            except VendorTool.DoesNotExist:
+                return JsonResponse({'error': 'Tool not found or out of stock.'}, status=404)
+            base_amount = Decimal(str(item.price)) * quantity
+            total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
+            admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='tool')
+            order = Order.objects.create(
+                buyer=request.user,
+                tool=item,
+                quantity=quantity,
+                total_amount=total_amount,
+                shipping_cost=shipping_cost,
+                admin_commission=admin_commission,
+                seller_amount=seller_amount,
+                status=Order.STATUS_AWAITING_PAYMENT if payment_method == Order.PAYMENT_ESEWA else Order.STATUS_CONFIRMED,
+                payment_method=payment_method,
+                payment_status=Order.PAYMENT_STATUS_PENDING,
+                shipping_address=shipping_address,
+                contact_number=contact_number,
+                order_email=order_email,
+                notes=notes,
+            )
+            if payment_method != Order.PAYMENT_ESEWA:
+                item.stock_quantity = max(0, item.stock_quantity - quantity)
+                item.is_available = item.stock_quantity > 0
+                item.save(update_fields=['stock_quantity', 'is_available'])
+                order.inventory_deducted = True
+                order.save(update_fields=['inventory_deducted'])
+            item_name = item.name
+        else:
+            try:
+                item = FarmerProduct.objects.select_related('farmer', 'farmer__user').get(
+                    id=item_id, is_available=True
+                )
+            except FarmerProduct.DoesNotExist:
+                return JsonResponse({'error': 'Crop not found or unavailable.'}, status=404)
+            if Decimal(str(item.quantity)) < Decimal(str(quantity)):
+                return JsonResponse({'error': 'Requested quantity exceeds available crop quantity.'}, status=400)
+            base_amount = Decimal(str(item.price_per_unit)) * Decimal(str(quantity))
+            total_amount = (base_amount + shipping_cost).quantize(Decimal('0.01'))
+            admin_commission, seller_amount = Order.compute_commission(total_amount, shipping_cost, product_type='crop')
+            order = Order.objects.create(
+                buyer=request.user,
+                crop=item,
+                quantity=quantity,
+                total_amount=total_amount,
+                shipping_cost=shipping_cost,
+                admin_commission=admin_commission,
+                seller_amount=seller_amount,
+                status=Order.STATUS_AWAITING_PAYMENT if payment_method == Order.PAYMENT_ESEWA else Order.STATUS_CONFIRMED,
+                payment_method=payment_method,
+                payment_status=Order.PAYMENT_STATUS_PENDING,
+                shipping_address=shipping_address,
+                contact_number=contact_number,
+                order_email=order_email,
+                notes=notes,
+            )
+            if payment_method != Order.PAYMENT_ESEWA:
+                item.quantity = max(Decimal('0'), Decimal(str(item.quantity)) - Decimal(str(quantity)))
+                item.is_available = item.quantity > 0
+                item.save(update_fields=['quantity', 'is_available'])
+                CropSale.objects.create(
+                    farmer=item.farmer,
+                    crop_name=item.name,
+                    quantity_sold=Decimal(str(quantity)),
+                    amount_earned=base_amount,
+                    buyer=request.user,
+                )
+                order.inventory_deducted = True
+                order.save(update_fields=['inventory_deducted'])
+            item_name = item.name
+
+    return JsonResponse(
+        {
+            'message': 'Order created successfully.',
+            'order': {
+                'id': order.id,
+                'item_type': item_type,
+                'item_name': item_name,
+                'quantity': order.quantity,
+                'payment_method': order.payment_method,
+                'payment_status': order.payment_status,
+                'status': order.status,
+                'shipping_cost': str(order.shipping_cost or 0),
+                'total_amount': str(order.total_amount or 0),
+            },
+        },
+        status=201,
+    )
+
+
+def _finalize_paid_order_inventory(order):
+    """Finalize stock and crop-sale bookkeeping once payment is completed (idempotent)."""
+    if not order or order.inventory_deducted:
+        return
+    if order.tool_id:
+        tool = VendorTool.objects.filter(id=order.tool_id).first()
+        if tool:
+            tool.stock_quantity = max(0, int(tool.stock_quantity) - int(order.quantity or 1))
+            if tool.stock_quantity == 0:
+                tool.is_available = False
+            tool.save(update_fields=['stock_quantity', 'is_available'])
+    if order.crop_id:
+        crop = FarmerProduct.objects.filter(id=order.crop_id).first()
+        if crop:
+            q = Decimal(str(order.quantity or 1))
+            crop.quantity = crop.quantity - q
+            if crop.quantity <= 0:
+                crop.quantity = Decimal('0')
+                crop.is_available = False
+            crop.save(update_fields=['quantity', 'is_available'])
+            if not CropSale.objects.filter(order=order).exists():
+                CropSale.objects.create(
+                    crop=crop,
+                    order=order,
+                    quantity_sold=q,
+                    price_per_unit=crop.price_per_unit,
+                    total_amount=(Decimal(str(crop.price_per_unit)) * q),
+                    sold_to=order.buyer,
+                    sold_at=timezone.now(),
+                )
+    order.inventory_deducted = True
+    order.save(update_fields=['inventory_deducted'])
+
+
+@csrf_exempt
+@api_login_required
+def api_payments_esewa_initiate(request):
+    """
+    POST: Build eSewa payment form payload for an existing eSewa order.
+    Body: { "order_id": 123 }
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    payload = _request_payload(request)
+    order_id_raw = ((payload.get('order_id') or '') if isinstance(payload, dict) else '').strip()
+    try:
+        order_id = int(order_id_raw)
+    except Exception:
+        return JsonResponse({'error': 'order_id must be a valid integer.'}, status=400)
+    try:
+        order = Order.objects.get(id=order_id, buyer=request.user, payment_method=Order.PAYMENT_ESEWA)
+    except Order.DoesNotExist:
+        return JsonResponse({'error': 'eSewa order not found for this user.'}, status=404)
+    if order.payment_status == Order.PAYMENT_STATUS_COMPLETED:
+        return JsonResponse({'error': 'Order is already paid.'}, status=400)
+
+    from .esewa import get_esewa_config, esewa_build_form_data
+    merchant_code, secret, form_url = get_esewa_config()
+    if not merchant_code or not secret:
+        return JsonResponse({'error': 'eSewa is not configured.'}, status=400)
+
+    public_base = (getattr(settings, 'ESEWA_PUBLIC_BASE_URL', None) or '').strip().rstrip('/')
+    if public_base:
+        base = public_base
+    else:
+        base = f"{'https' if request.is_secure() else 'http'}://{request.get_host() or '127.0.0.1:8000'}"
+    success_url = base + reverse('esewa_success')
+    failure_url = base + reverse('esewa_failure')
+    transaction_uuid = f'order-{order.id}'
+    form_data = esewa_build_form_data(
+        total_amount=order.total_amount,
+        transaction_uuid=transaction_uuid,
+        success_url=success_url,
+        failure_url=failure_url,
+    )
+    if not form_data:
+        return JsonResponse({'error': 'Failed to build eSewa payload.'}, status=500)
+    return JsonResponse(
+        {
+            'message': 'eSewa payload generated.',
+            'order_id': order.id,
+            'form_url': form_url,
+            'transaction_uuid': transaction_uuid,
+            'form_data': form_data,
+            'success_url': success_url,
+            'failure_url': failure_url,
+        }
+    )
+
+
+@csrf_exempt
+@api_login_required
+def api_orders_mark_payment(request):
+    """
+    POST: Mark payment completed for API testing.
+    Body: { "order_id": 123, "payment_status": "completed" | "failed" }
+    Buyer can update own order; seller/admin can update related order.
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    payload = _request_payload(request)
+    order_id_raw = ((payload.get('order_id') or '') if isinstance(payload, dict) else '').strip()
+    payment_status = ((payload.get('payment_status') or Order.PAYMENT_STATUS_COMPLETED) if isinstance(payload, dict) else Order.PAYMENT_STATUS_COMPLETED).strip().lower()
+    if payment_status not in {Order.PAYMENT_STATUS_COMPLETED, Order.PAYMENT_STATUS_FAILED, Order.PAYMENT_STATUS_PENDING}:
+        return JsonResponse({'error': "payment_status must be 'pending', 'completed', or 'failed'."}, status=400)
+    try:
+        order_id = int(order_id_raw)
+    except Exception:
+        return JsonResponse({'error': 'order_id must be a valid integer.'}, status=400)
+
+    try:
+        order = Order.objects.select_related('tool', 'tool__vendor', 'crop', 'crop__farmer', 'buyer').get(id=order_id)
+    except Order.DoesNotExist:
+        return JsonResponse({'error': 'Order not found.'}, status=404)
+
+    is_buyer = order.buyer_id == request.user.id
+    is_vendor_seller = bool(order.tool and order.tool.vendor and order.tool.vendor.user_id == request.user.id)
+    is_farmer_seller = bool(order.crop and order.crop.farmer and order.crop.farmer.user_id == request.user.id)
+    is_admin = request.user.role == 'admin'
+    if not (is_buyer or is_vendor_seller or is_farmer_seller or is_admin):
+        return JsonResponse({'error': 'Access denied.'}, status=403)
+
+    order.payment_status = payment_status
+    if payment_status == Order.PAYMENT_STATUS_COMPLETED:
+        order.status = Order.STATUS_CONFIRMED
+        _finalize_paid_order_inventory(order)
+    elif payment_status == Order.PAYMENT_STATUS_FAILED and order.status == Order.STATUS_AWAITING_PAYMENT:
+        order.status = Order.STATUS_PENDING
+    order.save(update_fields=['payment_status', 'status', 'updated_at'])
+    return JsonResponse(
+        {
+            'message': 'Payment status updated.',
+            'order': {
+                'id': order.id,
+                'payment_method': order.payment_method,
+                'payment_status': order.payment_status,
+                'status': order.status,
+                'total_amount': str(order.total_amount or 0),
+                'inventory_deducted': bool(order.inventory_deducted),
+            },
+        }
+    )
+
+
+@csrf_exempt
+@api_login_required
+def api_appointments_book(request):
+    """
+    POST: Book appointment with an expert.
+    Fields: expert_id, requested_date (YYYY-MM-DD), requested_time (HH:MM), message(optional)
+    """
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    if request.user.role not in {'buyer', 'farmer'}:
+        return JsonResponse({'error': 'For farmers and buyers only.'}, status=403)
+    if request.user.role == 'farmer':
+        kyc_request = request.user.kyc_requests.first()
+        if kyc_request and kyc_request.status != 'approved':
+            return JsonResponse({'error': 'KYC verification required'}, status=403)
+
+    payload = _request_payload(request)
+    expert_id_raw = ((payload.get('expert_id') or '') if isinstance(payload, dict) else '').strip()
+    requested_date = ((payload.get('requested_date') or '') if isinstance(payload, dict) else '').strip()
+    requested_time = ((payload.get('requested_time') or '') if isinstance(payload, dict) else '').strip()
+    message = ((payload.get('message') or '') if isinstance(payload, dict) else '').strip()
+
+    try:
+        expert_id = int(expert_id_raw)
+    except (TypeError, ValueError):
+        return JsonResponse({'error': 'expert_id must be a valid integer.'}, status=400)
+
+    try:
+        req_date = datetime.strptime(requested_date, '%Y-%m-%d').date()
+    except Exception:
+        return JsonResponse({'error': 'requested_date must be YYYY-MM-DD.'}, status=400)
+    req_time = _parse_appointment_booking_time(requested_time)
+    if not req_time:
+        return JsonResponse({'error': 'requested_time must be HH:MM (24h).'}, status=400)
+
+    try:
+        expert = ExpertProfile.objects.select_related('user').get(id=expert_id)
+    except ExpertProfile.DoesNotExist:
+        return JsonResponse({'error': 'Expert not found.'}, status=404)
+
+    slot_err, _avail = _validate_expert_appointment_slot(expert, req_date, req_time, exclude_appointment_id=None)
+    if slot_err:
+        return JsonResponse({'error': slot_err}, status=400)
+
+    duplicate = ExpertAppointment.objects.filter(
+        expert=expert,
+        requester=request.user,
+        requested_date=req_date,
+        requested_time=req_time,
+        status__in=[ExpertAppointment.STATUS_PENDING, ExpertAppointment.STATUS_ACCEPTED],
+    ).exists()
+    if duplicate:
+        return JsonResponse(
+            {'error': 'You already have an appointment with this expert at the selected date/time.'},
+            status=400,
+        )
+
+    appt = ExpertAppointment.objects.create(
+        expert=expert,
+        requester=request.user,
+        requested_date=req_date,
+        requested_time=req_time,
+        message=message,
+        status=ExpertAppointment.STATUS_PENDING,
+    )
+    if getattr(expert, 'user', None):
+        create_notification(
+            expert.user,
+            'New appointment request',
+            f'{request.user.email} requested an appointment on {requested_date} at {requested_time}.',
+            reverse('expert_dashboard') + '?section=appointments',
+            UserNotification.TYPE_APPOINTMENT,
+        )
+    return JsonResponse(
+        {
+            'message': 'Appointment booked successfully.',
+            'appointment': {
+                'id': appt.id,
+                'expert_id': expert.id,
+                'expert_name': expert.name or expert.user.email,
+                'requested_date': appt.requested_date.isoformat(),
+                'requested_time': appt.requested_time.strftime('%H:%M'),
+                'status': appt.status,
+                'status_display': appt.get_status_display(),
+                'message': appt.message or '',
+            },
+        },
+        status=201,
+    )
 
 
 # ======================

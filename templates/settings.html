@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Settings - Farmity</title>
+    {% include 'includes/dark_mode_head.html' %}
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="/static/css/form-validation.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
@@ -486,21 +487,26 @@
     <script>
         // Dark Mode Logic
         const toggle = document.getElementById('darkModeToggle');
+        const root = document.documentElement;
         const body = document.body;
 
-        // Check saved preference
-        if (localStorage.getItem('darkMode') === 'true') {
-            toggle.checked = true;
-            body.classList.add('dark-mode');
+        function applyTheme(isDark) {
+            root.classList.toggle('dark-mode', isDark);
+            body.classList.toggle('dark-mode', isDark);
         }
+
+        // Check saved preference
+        const isDarkSaved = localStorage.getItem('darkMode') === 'true';
+        toggle.checked = isDarkSaved;
+        applyTheme(isDarkSaved);
 
         toggle.addEventListener('change', function() {
             if (this.checked) {
                 localStorage.setItem('darkMode', 'true');
-                body.classList.add('dark-mode');
+                applyTheme(true);
             } else {
                 localStorage.setItem('darkMode', 'false');
-                body.classList.remove('dark-mode');
+                applyTheme(false);
             }
         });
 

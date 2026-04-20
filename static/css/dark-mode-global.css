@@ -11,6 +11,70 @@ html.dark-mode body {
     color: #e8eaed !important;
 }
 
+html.dark-mode .main-header,
+html.dark-mode .main-footer,
+html.dark-mode .header-container,
+html.dark-mode .footer-container,
+html.dark-mode .footer-bottom,
+html.dark-mode .dropdown-menu,
+html.dark-mode .settings-card,
+html.dark-mode .settings-body,
+html.dark-mode .toggle-container,
+html.dark-mode .info-box,
+html.dark-mode .message,
+html.dark-mode .section-header i {
+    background: #1a1f26 !important;
+    color: #e8eaed !important;
+    border-color: #2d3640 !important;
+}
+
+html.dark-mode .main-header {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45) !important;
+}
+
+html.dark-mode .main-nav a,
+html.dark-mode .footer-section a,
+html.dark-mode .footer-tagline,
+html.dark-mode .footer-contact,
+html.dark-mode .toggle-description,
+html.dark-mode .select-wrapper::after {
+    color: #cbd5e1 !important;
+}
+
+html.dark-mode .setting-section {
+    border-bottom-color: #2d3640 !important;
+}
+
+html.dark-mode .toggle-title,
+html.dark-mode .section-header h2,
+html.dark-mode .form-group label,
+html.dark-mode .info-box-text,
+html.dark-mode .message {
+    color: #e8eaed !important;
+}
+
+html.dark-mode .info-box {
+    border-left-color: #3b82f6 !important;
+}
+
+html.dark-mode .message.success {
+    background: #163225 !important;
+    border-color: #22c55e !important;
+    color: #bbf7d0 !important;
+}
+
+html.dark-mode .message.error {
+    background: #3a1e22 !important;
+    border-color: #ef4444 !important;
+    color: #fecaca !important;
+}
+
+html.dark-mode .message.info {
+    background: #1b3340 !important;
+    border-color: #38bdf8 !important;
+    color: #bae6fd !important;
+}
+
 /* Generic surfaces */
 html.dark-mode .top-header,
 html.dark-mode .content-section,
@@ -249,6 +313,26 @@ html.dark-mode [style*="background: #f8f9fa; border: 2px solid #e9ecef"],
 html.dark-mode [style*="background:#f8f9fa"] {
     background: #252b33 !important;
     border-color: #3d4754 !important;
+}
+
+/* Catch common inline white surfaces that bypass component classes */
+html.dark-mode [style*="background:white"],
+html.dark-mode [style*="background: white"],
+html.dark-mode [style*="background-color:white"],
+html.dark-mode [style*="background-color: white"],
+html.dark-mode [style*="background:#fff"],
+html.dark-mode [style*="background: #fff"],
+html.dark-mode [style*="background:#ffffff"],
+html.dark-mode [style*="background: #ffffff"],
+html.dark-mode [style*="background-color:#fff"],
+html.dark-mode [style*="background-color: #fff"],
+html.dark-mode [style*="background-color:#ffffff"],
+html.dark-mode [style*="background-color: #ffffff"],
+html.dark-mode [style*="rgb(255,255,255)"],
+html.dark-mode [style*="rgb(255, 255, 255)"] {
+    background: #1a1f26 !important;
+    color: #e8eaed !important;
+    border-color: #2d3640 !important;
 }
 
 /* Notification bell dropdown text */

@@ -18,15 +18,15 @@
 
     function farmityConfirm(message, type = 'warning', options = {}) {
         const dlg = typeof showConfirmation === 'function' ? showConfirmation : null;
-        const prompt = (message || '').trim() || 'Are you sure you want to proceed?';
+        const prompt = (message || '').trim() || 'Please confirm to continue.';
         const title = (options.title || '').trim();
         const confirmText = (options.confirmText || '').trim();
         const cancelText = (options.cancelText || '').trim();
         if (dlg) {
             return dlg({
-                title: title || (type === 'danger' ? 'Please Confirm Action' : 'Please Confirm'),
+                title: title || (type === 'danger' ? 'Confirm This Action' : 'Please Confirm'),
                 message: prompt,
-                confirmText: confirmText || (type === 'danger' ? 'Confirm' : 'Yes, Continue'),
+                confirmText: confirmText || (type === 'danger' ? 'Confirm' : 'Continue'),
                 cancelText: cancelText || 'Cancel',
                 type: type,
             });
@@ -69,6 +69,24 @@
         form.querySelectorAll('.field-invalid').forEach(function (el) {
             el.classList.remove('field-invalid');
         });
+    }
+
+    function applyInlineProfileUpdate(form) {
+        if (!form || form.getAttribute('data-farmity-inline-update') !== '1') return;
+        const card = form.closest('.info-card');
+        if (!card) return;
+        const valueTarget = card.querySelector('.profile-value-text');
+        if (!valueTarget) return;
+
+        const editable = form.querySelector('input:not([type="hidden"]), textarea, select');
+        if (editable) {
+            const next = (editable.value || '').trim();
+            valueTarget.textContent = next || 'Not set';
+        }
+
+        const row = card.querySelector('.profile-value-row');
+        form.style.display = 'none';
+        if (row) row.style.display = 'flex';
     }
 
     function normalizeResponse(data) {
@@ -115,7 +133,7 @@
         const useConfirm = form.getAttribute('data-farmity-confirm') === '1';
         if (useConfirm) {
             let confirmType = 'warning';
-            const confirmMessage = (form.getAttribute('data-farmity-confirm-message') || '').trim() || 'Are you sure you want to proceed?';
+            const confirmMessage = (form.getAttribute('data-farmity-confirm-message') || '').trim() || 'Please confirm to continue.';
             const forcedType = (form.getAttribute('data-farmity-confirm-type') || '').trim();
             const confirmTitle = (form.getAttribute('data-farmity-confirm-title') || '').trim();
             const confirmButtonText = (form.getAttribute('data-farmity-confirm-button') || '').trim();
@@ -370,6 +388,7 @@
                         inp.value = data.email;
                     });
                 }
+                applyInlineProfileUpdate(form);
                 // Handle profile form toggle back to view mode
                 if (form.id === 'expertProfileForm') {
                     const viewMode = document.getElementById('expertProfileViewMode');

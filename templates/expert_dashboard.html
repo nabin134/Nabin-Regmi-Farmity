@@ -1887,7 +1887,7 @@
                                     <span style="padding: 0.35rem 0.75rem; background: linear-gradient(135deg, var(--primary) 0%, #2e7d32 100%); color: white; border-radius: 16px; font-weight: 600; font-size: 0.8rem;">{{ role_display|default:"Agricultural Expert" }}</span>
                                 </div>
                             </div>
-                            <form method="POST" id="expertProfileForm" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-type="warning" data-farmity-confirm-title="Update Profile Information?" data-farmity-confirm-message="Your profile details will be updated for your account. Do you want to continue?" data-farmity-confirm-button="Yes, Update Profile" data-farmity-cancel-button="Cancel">
+                            <form method="POST" id="expertProfileForm" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-type="warning" data-farmity-confirm-title="Confirm Profile Update" data-farmity-confirm-message="Your profile details will be saved to your account. Please confirm to continue." data-farmity-confirm-button="Confirm Update" data-farmity-cancel-button="Cancel">
                                 {% csrf_token %}
                                 <input type="hidden" name="update_profile" value="1">
                                 <input type="hidden" name="return_section" value="profile">
@@ -3044,14 +3044,14 @@
             function askAvailabilityDeleteConfirm() {
                 if (typeof showConfirmation === 'function') {
                     return showConfirmation({
-                        title: 'Delete Availability?',
-                        message: 'Are you sure you want to delete this availability date?',
+                        title: 'Confirm Availability Deletion',
+                        message: 'This will permanently remove the selected availability date. Do you want to continue?',
                         type: 'danger',
-                        confirmText: 'Yes, Delete',
+                        confirmText: 'Delete Date',
                         cancelText: 'Cancel'
                     });
                 }
-                return Promise.resolve(window.confirm('Are you sure you want to delete this availability date?'));
+                return Promise.resolve(window.confirm('Please confirm deletion of this availability date.'));
             }
 
             var dayForm = document.getElementById('availabilityDayForm');

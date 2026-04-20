@@ -497,7 +497,7 @@
                             <span><i class="fas fa-envelope"></i> <span class="profile-value-text profile-value-text-email" data-profile-email-display>{{ request.user.email|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
-                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;" data-farmity-ajax="1" data-farmity-inline-update="1">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="true">
                             <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address">
@@ -511,7 +511,7 @@
                             <span><i class="fas fa-user"></i> <span class="profile-value-text">{{ profile.name|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
-                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;" data-farmity-ajax="1" data-farmity-inline-update="1">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="true">
                             <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Name">
@@ -525,7 +525,7 @@
                             <span><i class="fas fa-phone"></i> <span class="profile-value-text">{{ profile.contact|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
-                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;" data-farmity-ajax="1" data-farmity-inline-update="1">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="true">
                             <input type="text" name="contact" class="form-control" value="{{ profile.contact|default:'' }}" placeholder="Contact">
@@ -539,7 +539,7 @@
                             <span><i class="fas fa-map-marker-alt"></i> <span class="profile-value-text">{{ profile.location|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
-                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;" data-farmity-ajax="1" data-farmity-inline-update="1">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="true">
                             <input type="text" name="location" class="form-control" value="{{ profile.location|default:'' }}" placeholder="Location">
@@ -553,7 +553,7 @@
                             <span><i class="fas fa-tractor"></i> <span class="profile-value-text">{{ profile.farm_size|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
-                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;" data-farmity-ajax="1" data-farmity-inline-update="1">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="true">
                             <input type="text" name="farm_size" class="form-control" value="{{ profile.farm_size|default:'' }}" placeholder="Farm size">
@@ -574,7 +574,7 @@
                             <span><i class="fas fa-envelope"></i> <span class="profile-value-text profile-value-text-email" data-profile-email-display>{{ request.user.email|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
-                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;" data-farmity-ajax="1" data-farmity-inline-update="1">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="true">
                             <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address">
@@ -588,7 +588,7 @@
                             <span><i class="fas fa-user"></i> <span class="profile-value-text">{{ profile.name|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
-                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;" data-farmity-ajax="1" data-farmity-inline-update="1">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="true">
                             <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Name">
@@ -602,7 +602,7 @@
                             <span><i class="fas fa-graduation-cap"></i> <span class="profile-value-text">{{ profile.specialization|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
-                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;" data-farmity-ajax="1" data-farmity-inline-update="1">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="true">
                             <input type="text" name="specialization" class="form-control" value="{{ profile.specialization|default:'' }}" placeholder="Specialization">
@@ -616,7 +616,7 @@
                             <span><i class="fas fa-briefcase"></i> <span class="profile-value-text">{{ profile.experience|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
-                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;" data-farmity-ajax="1" data-farmity-inline-update="1">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="true">
                             <input type="text" name="experience" class="form-control" value="{{ profile.experience|default:'' }}" placeholder="Experience">
@@ -630,7 +630,7 @@
                             <span><i class="fas fa-graduation-cap"></i> <span class="profile-value-text">{{ profile.qualification|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
-                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;" data-farmity-ajax="1" data-farmity-inline-update="1">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="true">
                             <input type="text" name="qualifications" class="form-control" value="{{ profile.qualification|default:'' }}" placeholder="Qualification">
@@ -651,7 +651,7 @@
                             <span><i class="fas fa-envelope"></i> <span class="profile-value-text profile-value-text-email" data-profile-email-display>{{ request.user.email|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
-                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;" data-farmity-ajax="1" data-farmity-inline-update="1">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="true">
                             <input type="email" name="email" class="form-control" value="{{ request.user.email|default:'' }}" placeholder="Email address">
@@ -665,7 +665,7 @@
                             <span><i class="fas fa-user"></i> <span class="profile-value-text">{{ profile.name|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
-                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;" data-farmity-ajax="1" data-farmity-inline-update="1">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="true">
                             <input type="text" name="name" class="form-control" value="{{ profile.name|default:'' }}" placeholder="Name">
@@ -679,7 +679,7 @@
                             <span><i class="fas fa-phone"></i> <span class="profile-value-text">{{ profile.phone|default:"Not set" }}</span></span>
                             <button type="button" class="btn-inline-edit" onclick="showProfileInlineEdit(this)" title="Edit"><i class="fas fa-pencil-alt"></i></button>
                         </div>
-                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;">
+                        <form method="POST" action="{% url 'profile' %}" class="inline-edit-form" style="display:none;" data-farmity-ajax="1" data-farmity-inline-update="1">
                             {% csrf_token %}
                             <input type="hidden" name="update_profile" value="true">
                             <input type="text" name="contact" class="form-control" value="{{ profile.phone|default:'' }}" placeholder="Contact">
@@ -709,7 +709,7 @@
                 {% endif %}
             </div>
 
-    <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="profile-form-section" id="profileForm" style="{% if request.user.role == 'farmer' or request.user.role == 'agricultural_expert' or request.user.role == 'buyer' %}display: none;{% endif %}" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-message="Are you sure you want to update your profile?" data-farmity-success-call="toggleProfileEdit">
+    <form method="POST" action="{% url 'profile' %}" enctype="multipart/form-data" class="profile-form-section" id="profileForm" style="{% if request.user.role == 'farmer' or request.user.role == 'agricultural_expert' or request.user.role == 'buyer' %}display: none;{% endif %}" data-farmity-ajax="1" data-farmity-confirm="1" data-farmity-confirm-title="Confirm Profile Update" data-farmity-confirm-message="Your profile details will be saved to your account. Please confirm to continue." data-farmity-confirm-button="Confirm Update" data-farmity-cancel-button="Cancel" data-farmity-success-call="toggleProfileEdit">
                 {% csrf_token %}
                 <input type="hidden" name="update_profile" value="true">
 
